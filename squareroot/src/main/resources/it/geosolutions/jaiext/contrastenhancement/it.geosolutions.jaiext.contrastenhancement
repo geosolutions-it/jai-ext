@@ -1,0 +1,8 @@
+SquareRootStretchDescriptor0=Apply a square root stretch. 
+SquareRootStretchDescriptor1=The minimum input value.
+SquareRootStretchDescriptor2=The maximum input value.
+SquareRootStretchDescriptor3=The minimum output value (usually zero).
+SquareRootStretchDescriptor4=The maximum output value (usually 255).
+SquareRootStretchDescriptor5=Operation requires its parameter to have at least 1 array element.
+DescriptorVersion=1.0
+
