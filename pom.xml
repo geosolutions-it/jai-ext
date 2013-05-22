@@ -499,5 +499,6 @@
   <modules>
     <module>squareroot</module>
     <module>roiaware-ops</module>
+    <module>concurrent-tile-cache</module>
   </modules>
 </project>
