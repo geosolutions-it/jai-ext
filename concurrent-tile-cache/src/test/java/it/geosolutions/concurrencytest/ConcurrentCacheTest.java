@@ -28,8 +28,10 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.InterpolationNearest;
 import javax.media.jai.JAI;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
+import javax.media.jai.operator.ConstantDescriptor;
 import javax.media.jai.operator.ScaleDescriptor;
 import com.sun.media.imageio.plugins.tiff.TIFFImageReadParam;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
@@ -69,7 +71,7 @@ private double maxTileX;
 
 private double maxTileY;
 
-private RenderedOp image_;
+private RenderedImage image_;
 
 /*
  * This test-class compares the functionality of the default Sun tilecache or
@@ -150,11 +152,12 @@ public double[] testwriteImageAndWatchFlag(boolean concurrentEnabled,
                 Float.valueOf(3.5f), Float.valueOf(0.0f), Float.valueOf(0.0f),
                 new InterpolationNearest(), null);
 
+        
         // Saving of the tiles maximum and minimun index
         minTileX = image_.getMinTileX();
         minTileY = image_.getMinTileY();
-        maxTileX = image_.getMaxTileX();
-        maxTileY = image_.getMaxTileY();
+        maxTileX = minTileX + image_.getNumXTiles();
+        maxTileY = minTileY + image_.getNumYTiles();
 
         for (int s = 1; s <= threadMaxNumber; s = s * 2) {
             // latch for wait the completion of all threads
@@ -337,31 +340,16 @@ public void run() {
 
 // simple method for creating a synthetic grayscale image
 public static RenderedImage getSynthetic(final double maximum) {
-    final int width = 10000;
-    final int height = 10000;
-    final WritableRaster raster = RasterFactory.createBandedRaster(
-            DataBuffer.TYPE_BYTE, width, height, 1, null);
-    final Random random = new Random();
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            raster.setSample(x, y, 0, Math.ceil(random.nextDouble() * maximum));
-        }
-    }
-    final ColorModel cm = new ComponentColorModelJAI(
-            ColorSpace.getInstance(ColorSpace.CS_GRAY), false, false,
-            Transparency.OPAQUE, DataBuffer.TYPE_BYTE);
-    final RenderedImage image = new BufferedImage(cm, raster, false, null);
-    ImageLayout tileLayout = new ImageLayout(image);
-    tileLayout.setTileWidth(width / 100);
-    tileLayout.setTileHeight(height / 100);
-    HashMap map = new HashMap();
-    map.put(JAI.KEY_IMAGE_LAYOUT, tileLayout);
-    map.put(JAI.KEY_INTERPOLATION,
-            Interpolation.getInstance(Interpolation.INTERP_BICUBIC));
-    RenderingHints tileHints = new RenderingHints(map);
+    final float width = 10000;
+    final float height = 10000;
     ParameterBlock pb = new ParameterBlock();
-    pb.addSource(image);
-    return JAI.create("format", pb, tileHints);
+    pb.add(width); 
+    pb.add(height); 
+    pb.add(new Integer[]{1}); 
+    // Create the constant operation.   
+    return JAI.create("constant", pb);
+
+    
 }
 
 }
