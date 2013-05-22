@@ -1,9 +1,20 @@
 package it.geosolutions.concurrencytest;
 
+import org.geotools.resources.image.ComponentColorModelJAI;
 import it.geosolutions.concurrent.ConcurrentTileCache;
+
+import java.awt.RenderingHints;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+import java.awt.image.WritableRaster;
+import java.awt.image.renderable.ParameterBlock;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -13,11 +24,13 @@ import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.stream.FileImageInputStream;
+import javax.media.jai.ImageLayout;
+import javax.media.jai.Interpolation;
 import javax.media.jai.InterpolationNearest;
 import javax.media.jai.JAI;
+import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.ScaleDescriptor;
-import org.junit.Test;
 import com.sun.media.imageio.plugins.tiff.TIFFImageReadParam;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
@@ -52,10 +65,6 @@ private double minTileX;
 
 private double minTileY;
 
-// private double intervalX;
-
-// private double intervalY;
-
 private double maxTileX;
 
 private double maxTileY;
@@ -70,13 +79,15 @@ private RenderedOp image_;
  * change the concurrency level. The test performs up to 400 request with an
  * increased number of threads from 1 to 64 and calculate the throughput after
  * running the test 10 times. For every run the test execute 1000 requests for
- * the hotspot code compilation
+ * the hotspot code compilation. When you run the test it throws a
+ * ClassNotFoundException because it doesn't find the medialib accelerator but
+ * then continue working in pure java mode.
  */
 
-//@Test
+// @Test
 public double[] testwriteImageAndWatchFlag(boolean concurrentEnabled,
-        int concurrencyLevel, long memoryCacheCapacity) throws IOException,
-        InterruptedException {
+        int concurrencyLevel, long memoryCacheCapacity, RenderedImage img,
+        String path) throws IOException, InterruptedException {
     if (concurrentEnabled) {
         ConcurrentTileCache newCache = new ConcurrentTileCache();
         newCache.setConcurrencyLevel(concurrencyLevel);
@@ -91,9 +102,6 @@ public double[] testwriteImageAndWatchFlag(boolean concurrentEnabled,
     // throughput array for storing data
     double[] througputArray = new double[EXPONENT + 1];
 
-    // Creation of the input file to read and the output file to write
-    final File inputFile = new File(
-            "src/test/resources/it/geosolutions/concurrent/test-data/write.tif");
     // Creation of the thread pool executor
     ThreadPoolExecutor pool = new ThreadPoolExecutor(threadMaxNumber,
             threadMaxNumber, 60, TimeUnit.SECONDS,
@@ -103,21 +111,36 @@ public double[] testwriteImageAndWatchFlag(boolean concurrentEnabled,
 
     // ExecutorService pool = Executors.newCachedThreadPool();
 
+    // Creation of a Rendered image to store the image
+    RenderedImage image;
+
     generator = new Random();
     // Thoughput array index
     int index = 0;
-    // Instantiation of the read-params
-    final TIFFImageReadParam param = new TIFFImageReadParam();
-    // Instantiation of the file-reader
-    TIFFImageReader reader = (TIFFImageReader) new TIFFImageReaderSpi()
-            .createReaderInstance();
-    // Instantiation of the imageinputstream and imageoutputstrem
-    FileImageInputStream stream_in = new FileImageInputStream(inputFile);
+
+    TIFFImageReader reader = null;
+    final TIFFImageReadParam param;
+    FileImageInputStream stream_in = null;
+
     try {
-        // Setting the inputstream to the reader
-        reader.setInput(stream_in);
-        // Creation of a Rendered image to store the image
-        RenderedImage image = reader.readAsRenderedImage(0, param);
+
+        if (path != null) {
+            // Instantiation of the file-reader
+            reader = (TIFFImageReader) new TIFFImageReaderSpi()
+                    .createReaderInstance();
+            // Instantiation of the read-params
+            param = new TIFFImageReadParam();
+            final File inputFile = new File(path);
+            // Instantiation of the imageinputstream and imageoutputstrem
+            stream_in = new FileImageInputStream(inputFile);
+
+            reader.setInput(stream_in);
+            // Rendered image to store the image
+            image = reader.readAsRenderedImage(0, param);
+        } else {
+            image = img;
+        }
+
         // image elaboration
         image = ScaleDescriptor.create(image, Float.valueOf(2.0f),
                 Float.valueOf(2.0f), Float.valueOf(0.0f), Float.valueOf(0.0f),
@@ -214,22 +237,45 @@ public double[] testwriteImageAndWatchFlag(boolean concurrentEnabled,
 
 static public void main(String[] args) throws Exception {
     // initial settings
+    // check if using the concurrent cache or default
     boolean concurrentOrDefault;
-    int concurrencyLevel;
+    // sets the concurrency level
+    int concurrencyLevel = 0;
+    // sets the memory cache capacity
     long memoryCacheCapacity;
+    // choice of using a synthetic or a real image
+    boolean syntheticImage;
+    // loaded data
+    RenderedImage imageSynth = null;
+    String path = null;
 
     if (args.length > 0) {
         concurrentOrDefault = Boolean.parseBoolean(args[0]);
-        concurrencyLevel = Integer.parseInt(args[1]);
-        memoryCacheCapacity = Long.parseLong(args[2]);
-
+        if (concurrentOrDefault) {
+            concurrencyLevel = Integer.parseInt(args[1]);
+            memoryCacheCapacity = Long.parseLong(args[2]);
+            syntheticImage = Boolean.parseBoolean(args[3]);
+            if (syntheticImage) {
+                imageSynth = getSynthetic(1);
+            } else {
+                path = args[4];
+            }
+        } else {
+            memoryCacheCapacity = Long.parseLong(args[1]);
+            syntheticImage = Boolean.parseBoolean(args[2]);
+            if (syntheticImage) {
+                imageSynth = getSynthetic(1);
+            } else {
+                path = args[3];
+            }
+        }
     } else {
         concurrentOrDefault = DEFAULT_CONCURRENT_ENABLE;
         concurrencyLevel = DEFAULT_CONCURRENCY_LEVEL;
         memoryCacheCapacity = DEFAULT_MEMORY_CAPACITY;
+        imageSynth = getSynthetic(1);
 
     }
-
     // setting the logger
     LOGGER.setLevel(Level.FINE);
 
@@ -244,9 +290,11 @@ static public void main(String[] args) throws Exception {
     for (int f = 0; f < numTest; f++) {
         LOGGER.log(Level.INFO, "Test N°." + (f + 1));
         dataTest[f] = new ConcurrentCacheTest().testwriteImageAndWatchFlag(
-                concurrentOrDefault, concurrencyLevel, memoryCacheCapacity);
+                concurrentOrDefault, concurrencyLevel, memoryCacheCapacity,
+                imageSynth, path);
 
     }
+    
     // showing the result
     String stringConcurrent = new String();
     if (concurrentOrDefault) {
@@ -269,7 +317,7 @@ static public void main(String[] args) throws Exception {
 
 private class Worker implements Runnable {
 
-@Override
+// @Override
 public void run() {
     int i = 0;
     while (i < maxRequestPerThread) {
@@ -285,6 +333,35 @@ public void run() {
 
 }
 
+}
+
+// simple method for creating a synthetic grayscale image
+public static RenderedImage getSynthetic(final double maximum) {
+    final int width = 10000;
+    final int height = 10000;
+    final WritableRaster raster = RasterFactory.createBandedRaster(
+            DataBuffer.TYPE_BYTE, width, height, 1, null);
+    final Random random = new Random();
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            raster.setSample(x, y, 0, Math.ceil(random.nextDouble() * maximum));
+        }
+    }
+    final ColorModel cm = new ComponentColorModelJAI(
+            ColorSpace.getInstance(ColorSpace.CS_GRAY), false, false,
+            Transparency.OPAQUE, DataBuffer.TYPE_BYTE);
+    final RenderedImage image = new BufferedImage(cm, raster, false, null);
+    ImageLayout tileLayout = new ImageLayout(image);
+    tileLayout.setTileWidth(width / 100);
+    tileLayout.setTileHeight(height / 100);
+    HashMap map = new HashMap();
+    map.put(JAI.KEY_IMAGE_LAYOUT, tileLayout);
+    map.put(JAI.KEY_INTERPOLATION,
+            Interpolation.getInstance(Interpolation.INTERP_BICUBIC));
+    RenderingHints tileHints = new RenderingHints(map);
+    ParameterBlock pb = new ParameterBlock();
+    pb.addSource(image);
+    return JAI.create("format", pb, tileHints);
 }
 
 }
