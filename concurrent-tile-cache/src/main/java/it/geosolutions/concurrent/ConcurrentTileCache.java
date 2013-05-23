@@ -98,7 +98,7 @@ public enum Actions {
 private Cache<Object, CachedTileImpl> buildCache() {
     CacheBuilder<Object, Object> builder = CacheBuilder.newBuilder();
     builder.maximumWeight((long) (memoryCacheCapacity * memoryCacheThreshold))
-            .recordStats().concurrencyLevel(concurrencyLevel)
+            .concurrencyLevel(concurrencyLevel)
             .weigher(new Weigher<Object, CachedTileImpl>() {
                 public int weigh(Object o, CachedTileImpl cti) {
                     return (int) cti.getTileSize();
@@ -484,7 +484,10 @@ public synchronized void enableDiagnostics() {
 
 /** Retrieves the hit count from the cache statistics */
 public long getCacheHitCount() {
-    return cacheObject.stats().hitCount();
+    if(diagnosticEnabled){
+        return cacheObject.stats().hitCount();
+    }
+    return 0;
 }
 
 /** Retrieves the current memory size of the cache */
@@ -501,7 +504,11 @@ public synchronized long getCacheMemoryUsed() {
 
 /** Retrieves the miss count from the cache statistics */
 public long getCacheMissCount() {
-    return cacheObject.stats().missCount();
+    if(diagnosticEnabled){
+        return cacheObject.stats().missCount();
+    }
+    return 0;
+    
 }
 
 /** Retrieves the number of tiles in the cache */

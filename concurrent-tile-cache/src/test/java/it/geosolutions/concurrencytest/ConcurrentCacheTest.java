@@ -36,6 +36,7 @@ import javax.media.jai.operator.ScaleDescriptor;
 import com.sun.media.imageio.plugins.tiff.TIFFImageReadParam;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
+import com.sun.media.jai.util.SunTileCache;
 
 public class ConcurrentCacheTest {
 
@@ -53,6 +54,9 @@ private final static Logger LOGGER = Logger.getLogger(ConcurrentCacheTest.class
 // choice of which type of tilecache is used (ConcurrentTileCache if true,
 // default otherwise)
 private static boolean DEFAULT_CONCURRENT_ENABLE = true;
+
+//diagnostics
+private static boolean DEFAULT_DIAGNOSTICS = false;
 
 // choice of the concurrency Level
 private static int DEFAULT_CONCURRENCY_LEVEL = 4;
@@ -89,13 +93,25 @@ private RenderedImage image_;
 // @Test
 public double[] testwriteImageAndWatchFlag(boolean concurrentEnabled,
         int concurrencyLevel, long memoryCacheCapacity, RenderedImage img,
-        String path) throws IOException, InterruptedException {
+        String path,boolean diagnostics) throws IOException, InterruptedException {
+    //sets the cache and is concurrency level and diagnostics if needed
     if (concurrentEnabled) {
         ConcurrentTileCache newCache = new ConcurrentTileCache();
         newCache.setConcurrencyLevel(concurrencyLevel);
+        if(diagnostics){
+            newCache.enableDiagnostics();
+        }
         JAI.getDefaultInstance().setTileCache(newCache);
-
+        
+        //sets the old cache and diagnostics if needed 
+    }else{
+        SunTileCache oldCache =new SunTileCache();
+        if(diagnostics){
+            oldCache.enableDiagnostics();
+        }
+        JAI.getDefaultInstance().setTileCache(oldCache);
     }
+    
     JAI.getDefaultInstance().getTileCache()
             .setMemoryCapacity(memoryCacheCapacity);
     JAI.getDefaultInstance().getTileScheduler().setParallelism(10);
@@ -248,6 +264,8 @@ static public void main(String[] args) throws Exception {
     long memoryCacheCapacity;
     // choice of using a synthetic or a real image
     boolean syntheticImage;
+    //diagnostics
+    boolean diagnosticEnabled=DEFAULT_DIAGNOSTICS;
     // loaded data
     RenderedImage imageSynth = null;
     String path = null;
@@ -258,18 +276,20 @@ static public void main(String[] args) throws Exception {
             concurrencyLevel = Integer.parseInt(args[1]);
             memoryCacheCapacity = Long.parseLong(args[2]);
             syntheticImage = Boolean.parseBoolean(args[3]);
+            diagnosticEnabled=Boolean.parseBoolean(args[4]);
             if (syntheticImage) {
                 imageSynth = getSynthetic(1);
             } else {
-                path = args[4];
+                path = args[5];
             }
         } else {
             memoryCacheCapacity = Long.parseLong(args[1]);
             syntheticImage = Boolean.parseBoolean(args[2]);
+            diagnosticEnabled=Boolean.parseBoolean(args[3]);
             if (syntheticImage) {
                 imageSynth = getSynthetic(1);
             } else {
-                path = args[3];
+                path = args[4];
             }
         }
     } else {
@@ -277,7 +297,6 @@ static public void main(String[] args) throws Exception {
         concurrencyLevel = DEFAULT_CONCURRENCY_LEVEL;
         memoryCacheCapacity = DEFAULT_MEMORY_CAPACITY;
         imageSynth = getSynthetic(1);
-
     }
     // setting the logger
     LOGGER.setLevel(Level.FINE);
@@ -294,7 +313,7 @@ static public void main(String[] args) throws Exception {
         LOGGER.log(Level.INFO, "Test N°." + (f + 1));
         dataTest[f] = new ConcurrentCacheTest().testwriteImageAndWatchFlag(
                 concurrentOrDefault, concurrencyLevel, memoryCacheCapacity,
-                imageSynth, path);
+                imageSynth, path,diagnosticEnabled);
 
     }
     
