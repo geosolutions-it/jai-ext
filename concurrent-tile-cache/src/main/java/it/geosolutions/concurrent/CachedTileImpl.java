@@ -21,7 +21,7 @@ import javax.media.jai.remote.SerializableRenderedImage;
  * This class is used by ConcurrentTileCache to create an object that includes all the
  * information associated with a tile, and is put into the cache.
  */
-final class CachedTileImpl implements CachedTile {
+public final class CachedTileImpl implements CachedTile {
 
 final Raster tile; // the tile
 
@@ -46,7 +46,7 @@ private Actions action; // every action done by the tile cache
  * 
  * @since 1.1
  */
-CachedTileImpl(RenderedImage owner, int tileX, int tileY, Raster tile,
+public CachedTileImpl(RenderedImage owner, int tileX, int tileY, Raster tile,
         Object tileCacheMetric) {
 
     this.owner = new WeakReference(owner);
@@ -68,7 +68,7 @@ CachedTileImpl(RenderedImage owner, int tileX, int tileY, Raster tile,
 /**
  * Returns the hash table "key" as a <code>Object</code> for this tile. 
  */
-static Object hashKey(RenderedImage owner, int tileX, int tileY) {
+public static Object hashKey(RenderedImage owner, int tileX, int tileY) {
     long idx = tileY * (long) owner.getNumXTiles() + tileX;
 
     BigInteger imageID = null;
