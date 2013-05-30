@@ -88,7 +88,7 @@ public static Object hashKey(RenderedImage owner, int tileX, int tileY) {
     }
 
     idx = idx & 0x00000000ffffffffL;
-    return new Long(((long) owner.hashCode() << 32) | idx);
+    return Long.valueOf((((long) owner.hashCode() << 32) | idx));
 }
 
 /** Returns a string of the class object. */

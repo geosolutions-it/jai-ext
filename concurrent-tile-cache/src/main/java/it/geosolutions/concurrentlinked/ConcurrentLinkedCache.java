@@ -93,6 +93,7 @@ public ConcurrentLinkedCache(long memoryCacheCapacity, int concurrencyLevel,
     /* the counters are set to 0 */
     hitNumber = 0;
     missNumber = 0;
+    System.err.println("Using ConcurrentLinkedCache");
 }
 
 /** Private method for building the cache */
@@ -129,8 +130,7 @@ public void add(RenderedImage image, int xTile, int yTile, Raster dataTile,
     /* Tile key calculation */
     Object key = CachedTileImpl.hashKey(image, xTile, yTile);
     /* New tile creation */
-    CachedTileImpl newValue = new CachedTileImpl(image, xTile, yTile, dataTile,
-            tileMetric);
+    CachedTileImpl newValue = new CachedTileImpl(image, xTile, yTile, dataTile,tileMetric);
     /* If diagnostic is enabled the tile status is changed */
     if (diagnosticEnabled) {
         synchronized (this) {
@@ -170,9 +170,8 @@ public void addTiles(RenderedImage image, Point[] positions,
  * This method flushes the cache and, if diagnostic is enabled, reset the
  * counters and, for every tile, update tile status
  */
-public void flush() {
+public synchronized void flush() {
     if (diagnosticEnabled) {
-        synchronized (this) {
             /*
              * An iterator of all the key in the cache is used for updating
              * every tile and the removing it
@@ -189,7 +188,6 @@ public void flush() {
             /* Counter reset */
             hitNumber = 0;
             missNumber = 0;
-        }
     } else {
         /* Simple cache clearing */
         cacheObject.clear();
@@ -249,27 +247,43 @@ public Raster getTile(RenderedImage image, int xTile, int yTile) {
 }
 
 /** All the tile of the specific image are returned */
-public Raster[] getTiles(RenderedImage image) {
-    /* Temporary arraylist for storing the result of the inner getTiles */
-    ArrayList<Raster> data = new ArrayList<Raster>();
-    /* Tile coordinates */
-    int numTx = image.getNumXTiles();
-    int numTy = image.getNumYTiles();
-    int lengthArray = Math.max(numTy, numTx);
-    /* Array creation for using the getTiles(RenderedImage, Point[]) method */
-    Point[] coordinates = new Point[lengthArray];
-    /*
-     * Method for taking the tile in the specified coordinates. Even the null
-     * values are present
-     */
-    Raster[] tileWithNull = getTiles(image, coordinates);
-    /* Cycle for eliminating the null values */
-    for (int z = 0; z < tileWithNull.length; z++) {
-        if (tileWithNull[z] != null) {
-            data.add(tileWithNull[z]);
+public Raster[] getTiles(RenderedImage image) {    
+    // instantiation of the result array
+    Raster[] tilesData = null;
+    // total number of tiles present in the cache
+    int tileCount = (int) cacheObject.size();
+
+    int size = Math.min(image.getNumXTiles() * image.getNumYTiles(), tileCount);
+
+    if (size > 0) {
+        int minTx = image.getMinTileX();
+        int minTy = image.getMinTileY();
+        int maxTx = minTx + image.getNumXTiles();
+        int maxTy = minTy + image.getNumYTiles();
+
+        // arbitrarily set a temporary vector size
+        ArrayList<Raster> tempData = new ArrayList<Raster>();
+        // cycle through all the tile in the image and check if they are in the
+        // cache...
+        for (int y = minTy; y < maxTy; y++) {
+            for (int x = minTx; x < maxTx; x++) {
+
+                Raster rasterTile = getTile(image, x, y);
+
+                // ...then add to the vector if present
+                if (rasterTile != null) {
+                    tempData.add(rasterTile);
+                }
+            }
+        }
+
+        int tmpsize = tempData.size();
+        if (tmpsize > 0) {
+            tilesData = (Raster[]) tempData.toArray(new Raster[tmpsize]);
         }
     }
-    return (Raster[]) data.toArray();
+
+    return tilesData;    
 }
 
 /** This method returns an array of tiles at the given positions */

@@ -34,8 +34,7 @@ private static final int STARTING_REQUEST_PER_FIRST_THREAD = 1000;
 
 private static final int EXPONENT = 6;
 
-private final static Logger LOGGER = Logger.getLogger(ConcurrentCacheTest.class
-        .toString());
+private final static Logger LOGGER = Logger.getLogger(ConcurrentCacheTest.class.toString());
 
 // choice of which type of tilecache is used (ConcurrentLinkedCache,
 // ConcurrentTileCache,
