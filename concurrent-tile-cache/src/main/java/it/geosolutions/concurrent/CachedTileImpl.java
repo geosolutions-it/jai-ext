@@ -91,32 +91,6 @@ public static Object hashKey(RenderedImage owner, int tileX, int tileY) {
     return Long.valueOf((((long) owner.hashCode() << 32) | idx));
 }
 
-/** Returns a string of the class object. */
-public String toString() {
-    RenderedImage o = (RenderedImage) getOwner();
-    String ostring = o == null ? "null" : o.toString();
-
-    Raster t = getTile();
-    String tstring = t == null ? "null" : t.toString();
-
-    return getClass().getName()
-            + "@"
-            + Integer.toHexString(hashCode())
-            + ": owner = "
-            + ostring
-            + " tileX = "
-            + Integer.toString(tileX)
-            + " tileY = "
-            + Integer.toString(tileY)
-            + " tile = "
-            + tstring
-            + " key = "
-            + ((key instanceof Long) ? Long.toHexString(((Long) key)
-                    .longValue()) : key.toString()) + " memorySize = "
-            + Long.toString(tileSize) + " timeStamp = "
-            + Long.toString(timeStamp);
-}
-
 /** Returns the value of the cached tile. */
 public Raster getTile() {
     return tile;

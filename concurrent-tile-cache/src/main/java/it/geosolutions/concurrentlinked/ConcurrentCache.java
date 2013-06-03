@@ -9,13 +9,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Observable;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.media.jai.TileCache;
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.googlecode.concurrentlinkedhashmap.EvictionListener;
-import com.googlecode.concurrentlinkedhashmap.Weigher;
 import com.sun.media.jai.util.CacheDiagnostics;
 
-public class ConcurrentLinkedCache extends Observable implements TileCache,
+public class ConcurrentCache extends Observable implements TileCache,
         CacheDiagnostics {
 
 /** Default value for memory threshold */
@@ -27,20 +25,21 @@ public static final long DEFAULT_MEMORY_CACHE = 16L * 1024L * 1024L;
 /** Default boolean for diagnostic mode */
 public static final boolean DEFAULT_DIAGNOSTIC = false;
 
-/** Default ConcurrentLinkedHashMap concurrency level */
+/** Default ConcurrentHashMap concurrency level */
 public static final int DEFAULT_CONCURRENCY_LEVEL = 16;
-
-/** The real cache */
-private ConcurrentLinkedHashMap<Object, CachedTileImpl> cacheObject;
 
 /** Cache memory capacity */
 private long memoryCacheCapacity = DEFAULT_MEMORY_CACHE;
 
-/** concurrency level of the ConcurrentLinkedHashMap */
+/** concurrency level of the ConcurrentHashMap */
 private int concurrencyLevel = DEFAULT_CONCURRENCY_LEVEL;
 
 /** Cache memory threshold (typically 0.75F) */
 private float memoryCacheThreshold = DEFAULT_MEMORY_THRESHOLD;
+
+/** The real cache */
+private ConcurrentHashMap<Object, CachedTileImpl> cacheObject = new ConcurrentHashMap<Object, CachedTileImpl>(
+        1000);
 
 /**
  * Current diagnostic mode (enabled or not). This variable is set to volatile
@@ -54,67 +53,23 @@ private int missNumber;
 /** Current number of cache hits */
 private int hitNumber;
 
-/**
- * Eviction listener for catching the tile evicted by the
- * ConcurrentLinkedHashMap and, if diagnostic is enabled, the eviction is
- * notified to the observer
- */
-private EvictionListener<Object, CachedTileImpl> listener = new EvictionListener<Object, CachedTileImpl>() {
-
-    public void onEviction(Object key, CachedTileImpl oldValue) {
-        if (diagnosticEnabled) {
-            synchronized (this) {
-                oldValue.updateTileTimeStamp();
-                oldValue.setAction(Actions.REMOVAL_FROM_EVICTION);
-                setChanged();
-                notifyObservers(oldValue);
-            }
-
-        }
-    }
-
-};
-
 /* Simple constructor */
-public ConcurrentLinkedCache() {
+public ConcurrentCache() {
     this(DEFAULT_MEMORY_CACHE, DEFAULT_CONCURRENCY_LEVEL,
             DEFAULT_MEMORY_THRESHOLD, DEFAULT_DIAGNOSTIC);
 }
 
 /* Parameterized constructor */
-public ConcurrentLinkedCache(long memoryCacheCapacity, int concurrencyLevel,
+public ConcurrentCache(long memoryCacheCapacity, int concurrencyLevel,
         float memoryCacheThreshold, boolean diagnosticEnabled) {
     this.concurrencyLevel = concurrencyLevel;
     this.memoryCacheCapacity = memoryCacheCapacity;
     this.diagnosticEnabled = diagnosticEnabled;
     this.memoryCacheThreshold = memoryCacheThreshold;
-    /* the cache instantiation is done in the buildLinkedCache() method */
-    cacheObject = buildLinkedCache();
     /* the counters are set to 0 */
     hitNumber = 0;
     missNumber = 0;
-    System.err.println("Using ConcurrentLinkedCache");
-}
-
-/** Private method for building the cache */
-private ConcurrentLinkedHashMap<Object, CachedTileImpl> buildLinkedCache() {
-    /* Builder instantiation */
-    ConcurrentLinkedHashMap.Builder<Object, CachedTileImpl> builder = new ConcurrentLinkedHashMap.Builder<Object, CachedTileImpl>();
-    builder.concurrencyLevel(concurrencyLevel)
-            .maximumWeightedCapacity(
-                    (long) (memoryCacheCapacity * memoryCacheThreshold))
-            /* The weigher is used for weighing every entry */
-            .weigher(new Weigher<CachedTileImpl>() {
-                public int weightOf(CachedTileImpl tile) {
-                    return (int) ((CachedTileImpl) tile).getTileSize();
-                }
-            });
-    /* Listener is used only with diagnostic */
-    if (diagnosticEnabled) {
-        builder.listener(listener);
-    }
-    /* Cache creation */
-    return builder.build();
+    System.err.println("Using ConcurrentCache");
 }
 
 public void add(RenderedImage image, int xTile, int yTile, Raster dataTile) {
@@ -193,8 +148,7 @@ public synchronized void flush() {
         /* Simple cache clearing */
         cacheObject.clear();
     }
-    /* The cache is rebuilt */
-    cacheObject = buildLinkedCache();
+
 }
 
 /** This method gets the current cache memory capacity */
@@ -303,7 +257,7 @@ public Raster[] getTiles(RenderedImage image, Point[] positions) {
         }
     } else {
         /*
-         * Else, they are simply returned by the ConcurrentLinkedHashMap.get()
+         * Else, they are simply returned by the ConcurrentHashMap.get()
          * method
          */
         for (int j = 0; j < positions.length; j++) {
@@ -439,7 +393,7 @@ public long getCacheHitCount() {
 
 /** This method returns the cache weighed size */
 public long getCacheMemoryUsed() {
-    return cacheObject.weightedSize();
+    return -1;
 }
 
 /** This method returns the number of cache miss */
