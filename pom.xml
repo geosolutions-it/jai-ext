@@ -500,6 +500,6 @@
     <module>squareroot</module>
     <module>roiaware-ops</module>
     <module>concurrent-tile-cache</module>
-	<module>jai-image-op-no-data</module>
+	<module>jai-op-nodata</module>
   </modules>
 </project>
