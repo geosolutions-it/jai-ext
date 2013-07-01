@@ -71,17 +71,8 @@ public class MosaicNoDataOpImage extends OpImage {
 
     /** Enumerator for the type of mosaic weigher */
     public enum WeightType {
-        WEIGHT_TYPE_ALPHA(1), WEIGHT_TYPE_ROI(2), WEIGHT_TYPE_NODATA(3);
+        WEIGHT_TYPE_ALPHA, WEIGHT_TYPE_ROI, WEIGHT_TYPE_NODATA;
 
-        private final int value;
-
-        WeightType(int num) {
-            this.value = num;
-        }
-
-        public int valueData() {
-            return value;
-        }
 
     }
 
@@ -709,13 +700,13 @@ public class MosaicNoDataOpImage extends OpImage {
 
         // Weight type arrays can have different weight types if ROI or alpha
         // channel are present or not
-        int[] weightTypesUsed = new int[sourcesNumber];
+        WeightType[] weightTypesUsed = new WeightType[sourcesNumber];
         for (int i = 0; i < sourcesNumber; i++) {
-            weightTypesUsed[i] = WeightType.WEIGHT_TYPE_NODATA.valueData();
+            weightTypesUsed[i] = WeightType.WEIGHT_TYPE_NODATA;
             if (srcBean[i].getAlphaRasterAccessor() != null) {
-                weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA.valueData();
+                weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
             } else if (roiPresent && imageBeans[i].getImageRoi() != null) {
-                weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI.valueData();
+                weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
             }
         }
 
@@ -749,7 +740,7 @@ public class MosaicNoDataOpImage extends OpImage {
                     // The offset is initialized
                     sLineOffsets[s] = srcBandOffsets[s][b];
                 }
-                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA.valueData()) {
+                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
                     // The alpha value are taken only from the first band (this
                     // happens because the raster
                     // accessor provides the data array with the band data even if
@@ -935,7 +926,7 @@ public class MosaicNoDataOpImage extends OpImage {
                             } else {
 
                                 switch (weightTypesUsed[s]) {
-                                case 1:
+                                case WEIGHT_TYPE_ALPHA:
                                     switch (dataType) {
                                     case DataBuffer.TYPE_BYTE:
                                         setDestinationFlag = aBandDataByte[s][aPixelOffsets[s]] != 0;
@@ -959,7 +950,7 @@ public class MosaicNoDataOpImage extends OpImage {
 
                                     aPixelOffsets[s] += alfaPixelStride[s];
                                     break;
-                                case 2:
+                                case WEIGHT_TYPE_ROI:
                                     setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX,
                                             dstY, 0) > 0;
                                     break;
@@ -1048,7 +1039,7 @@ public class MosaicNoDataOpImage extends OpImage {
                             sPixelOffsets[s] = sLineOffsets[s];
                             sLineOffsets[s] += srcLineStride[s];
                         }
-                        if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA.valueData()) {
+                        if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
                             aPixelOffsets[s] = aLineOffsets[s];
                             aLineOffsets[s] += alfaLineStride[s];
                         }
@@ -1168,7 +1159,7 @@ public class MosaicNoDataOpImage extends OpImage {
                             } else {
 
                                 switch (weightTypesUsed[s]) {
-                                case 1:
+                                case WEIGHT_TYPE_ALPHA:
                                     switch (dataType) {
                                     case DataBuffer.TYPE_BYTE:
                                         weight = (aBandDataByte[s][aPixelOffsets[s]] & 0xff);
@@ -1219,7 +1210,7 @@ public class MosaicNoDataOpImage extends OpImage {
 
                                     aPixelOffsets[s] += alfaPixelStride[s];
                                     break;
-                                case 2:
+                                case WEIGHT_TYPE_ROI:
                                     weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0 ? 1.0F
                                             : 0.0F;
 
