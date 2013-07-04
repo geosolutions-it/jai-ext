@@ -15,6 +15,8 @@
     <interactive.tests>false</interactive.tests>
     <test.maxHeapSize>512M</test.maxHeapSize>
     <jt.version>1.2.0</jt.version>
+     <fork.javac>true</fork.javac>
+    <javac.maxHeapSize>256M</javac.maxHeapSize>
   </properties>
 
   <!-- ======================================================== -->
@@ -152,7 +154,7 @@
         
         <configuration>
             <!-- Necessary to enable javadoc to handle J2SE 1.4 features. -->
-          <source>1.5</source>
+          <!-- source>1.5</source -->
             <!-- Specifies whether or not the version text is included.-->
           <version>false</version>
             <!-- Omit qualifying package name before class names in output.-->
@@ -417,10 +419,12 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.5</source>  <!-- The -source argument for the Java compiler. -->
-          <target>1.5</target>  <!-- The -target argument for the Java compiler. -->
+          <source>1.6</source>  <!-- The -source argument for the Java compiler. -->
+          <target>1.6</target>  <!-- The -target argument for the Java compiler. -->
           <debug>true</debug>   <!-- Whether to include debugging information.   -->
-          <encoding>ISO-8859-1</encoding> <!-- The -encoding argument for the Java compiler. -->
+          <encoding>UTF-8</encoding> <!-- The -encoding argument for the Java compiler. -->
+          <fork>${fork.javac}</fork> 
+          <maxmem>${javac.maxHeapSize}</maxmem>
         </configuration>
       </plugin>
       <!-- ======================================================= -->
@@ -463,7 +467,7 @@
             <descriptor>release/src.xml</descriptor>
             <descriptor>release/javadoc.xml</descriptor>
            </descriptors>
-           <finalName>imageio-ext-1.2-SNAPSHOT</finalName>
+           <finalName>jai-ext-1.0-SNAPSHOT</finalName>
            <outputDirectory>${project.build.directory}/release</outputDirectory>
           </configuration>
        </plugin>
