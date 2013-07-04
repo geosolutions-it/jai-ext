@@ -503,5 +503,6 @@
   <modules>
     <module>squareroot</module>
     <module>roiaware-ops</module>
+    <module>changematrix</module>
   </modules>
 </project>
