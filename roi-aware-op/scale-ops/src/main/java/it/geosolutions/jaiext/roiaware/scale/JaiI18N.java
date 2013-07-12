@@ -13,12 +13,12 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *    Lesser General Public License for more details.
  */
-package it.geosolutions.jaiext.roiaware.affine;
+package it.geosolutions.jaiext.roiaware.scale;
 
-import it.geosolutions.jaiext.resources.image.PropertyUtil;
+import it.geosolutions.jaiext.roiaware.resources.PropertyUtil;
 
 class JaiI18N {
-    static String packageName = "it.geosolutions.jaiext.roiaware.affine";
+    static String packageName = "it.geosolutions.jaiext.scale";
 
     public static String getString(String key) {
         return PropertyUtil.getString(packageName, key);
