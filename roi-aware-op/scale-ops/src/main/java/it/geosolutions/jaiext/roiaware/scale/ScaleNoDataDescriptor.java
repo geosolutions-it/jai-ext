@@ -310,8 +310,8 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
  * <p><table border=1>
  * <caption>Resource List</caption>
  * <tr><th>Name</th>        <th>Value</th></tr>
- * <tr><td>GlobalName</td>  <td>Scale</td></tr>
- * <tr><td>LocalName</td>   <td>Scale</td></tr>
+ * <tr><td>GlobalName</td>  <td>ScaleNoData</td></tr>
+ * <tr><td>LocalName</td>   <td>ScaleNoData</td></tr>
  * <tr><td>Vendor</td>      <td>it.geosolutions.jaiext.roiaware</td></tr>
  * <tr><td>Description</td> <td>Resizes an image.</td></tr>
  * <tr><td>DocURL</td>      <td> See this URL for the official description http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ScaleDescriptor.html</td></tr>
@@ -337,6 +337,10 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
  *                            <td>0.0F</td>
  * <tr><td>interpolation</td> <td>javax.media.jai.Interpolation</td>
  *                            <td>Null(An Interpolation Object must be defined)</td>
+ * <tr><td>ROI</td>           <td>ROI</td>
+ *                            <td>null</td>         
+ * <tr><td>useROIAccessor</td><td>Boolean</td>
+ *                            <td>False</td>                            
  * </table></p>
  *
  * @see javax.media.jai.Interpolation

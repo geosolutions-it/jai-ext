@@ -2,8 +2,6 @@ package it.geosolutions.jaiext.roiaware.interpolators;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
-import java.awt.image.Raster;
-
 import javax.media.jai.Interpolation;
 import javax.media.jai.InterpolationBilinear;
 import javax.media.jai.RasterAccessor;
@@ -114,6 +112,10 @@ public class InterpolationBilinearNew extends Interpolation {
             throw new IllegalArgumentException(
                     "If roiBounds or roiIter are not null, so even the other must be not null");
         }
+    }
+    
+    public double getDestinationNoData() {
+        return destinationNoData;
     }
     
     public Range getNoDataRange() {

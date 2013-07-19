@@ -5,7 +5,7 @@ package it.geosolutions.jaiext.roiaware.scale;
 
 import org.junit.Test;
 
-public class BicubicScaleTest<T extends Number & Comparable<? super T>> extends TestBase<T>{
+public class BicubicScaleTest<T extends Number & Comparable<? super T>> extends TestScale<T>{
     @Test
     public void testImageScaling() {
         boolean roiPresent=false;

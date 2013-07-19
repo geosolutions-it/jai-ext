@@ -1,4 +1,4 @@
-package it.geosolutions.jaiext.roiaware.scale;
+package it.geosolutions.jaiext.roiaware.affine;
 
 import static org.junit.Assert.assertEquals;
 import it.geosolutions.jaiext.roiaware.interpolators.InterpolationBicubicNew;
@@ -7,6 +7,7 @@ import it.geosolutions.jaiext.roiaware.interpolators.InterpolationNearestNew;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
 import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
@@ -16,12 +17,14 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROIShape;
+import javax.media.jai.operator.AffineDescriptor;
+
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.junit.Test;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
 
-public class ImageRGBTest<T extends Number & Comparable<? super T>> extends TestScale<T> {
+public class ImageRGBTest<T extends Number & Comparable<? super T>> extends TestAffine<T> {
 
     private int imageWidth;
 
@@ -34,6 +37,7 @@ public class ImageRGBTest<T extends Number & Comparable<? super T>> extends Test
         boolean bicubic2Disabled = true;
         boolean useROIAccessor = true;
         boolean roiUsed = true;
+        boolean setDestinationNoData = true;
 
         TIFFImageReader reader = null;
 
@@ -59,13 +63,13 @@ public class ImageRGBTest<T extends Number & Comparable<? super T>> extends Test
 
             int dataType = image.getSampleModel().getDataType();
 
-            testImage(image, useROIAccessor,roiUsed, bicubic2Disabled, dataType,
+            testImage(image, useROIAccessor,roiUsed, bicubic2Disabled, setDestinationNoData, dataType,
                     InterpolationType.NEAREST_INTERP);
 
-            testImage(image, useROIAccessor,roiUsed, bicubic2Disabled, dataType,
+            testImage(image, useROIAccessor,roiUsed, bicubic2Disabled, setDestinationNoData, dataType,
                     InterpolationType.BILINEAR_INTERP);
 
-            testImage(image, useROIAccessor,roiUsed, bicubic2Disabled, dataType,
+            testImage(image, useROIAccessor,roiUsed, bicubic2Disabled, setDestinationNoData, dataType,
                     InterpolationType.BICUBIC_INTERP);
 
         } catch (IOException e) {
@@ -101,7 +105,7 @@ public class ImageRGBTest<T extends Number & Comparable<? super T>> extends Test
     }
 
     private void testImage(RenderedImage sourceImage, boolean useROIAccessor,boolean roiUsed,
-            boolean bicubic2Disabled, int dataType, InterpolationType interpType) {
+            boolean bicubic2Disabled,boolean setDestinationNoData, int dataType, InterpolationType interpType) {
 
         // Hints are used only with roiAccessor
         RenderingHints hints = null;
@@ -117,7 +121,8 @@ public class ImageRGBTest<T extends Number & Comparable<? super T>> extends Test
             useROIAccessor=false;
         }
 
-
+        // Setting of the destination No Data
+        destinationNoData = 0;
 
         // Interpolator initialization
         Interpolation interp = null;
@@ -143,9 +148,17 @@ public class ImageRGBTest<T extends Number & Comparable<? super T>> extends Test
             break;
         }
 
-        // Scale operation
-        RenderedImage destinationIMG = ScaleNoDataDescriptor.create(sourceImage, scaleX, scaleY,
-                transX, transY, interp, roi, useROIAccessor, hints);
+        
+     // Transformation
+        // Rotation 
+        AffineTransform transform = AffineTransform.getQuadrantRotateInstance(numquadrants, anchorX, anchorY);
+        // + Scale (X and Y doubled)
+        transform.concatenate(AffineTransform.getScaleInstance(scaleX, scaleY));
+        // + Translation (translation towards the center of the image)
+        transform.concatenate(AffineTransform.getTranslateInstance(transX, transY));        
+        
+        // Affine operation
+        RenderedImage destinationIMG = AffineNoDataDescriptor.create(sourceImage, transform, interp, null, roi, useROIAccessor, setDestinationNoData, hints); 
 
         if (INTERACTIVE && TEST_SELECTOR == interpType.getType()) {
             RenderedImageBrowser.showChain(destinationIMG, false, roiUsed);

@@ -84,7 +84,11 @@ public class InterpolationNearestNew extends Interpolation {
                     "If roiBounds or roiIter are not null, so even the other must be not null");
         }
     }
-
+    
+    public double getDestinationNoData() {
+        return destinationNoData;
+    }
+    
     public Range getNoDataRange() {
         return noDataRange;
     }
@@ -107,7 +111,7 @@ public class InterpolationNearestNew extends Interpolation {
 
     // method for calculating the nearest-neighbor interpolation (no Binary data).
     public Number interpolate(RasterAccessor src, Integer bandIndex, int dnumband, int posx,
-            int posy, Integer yROIValue, RasterAccessor roiAccessor, boolean setDestinationNoData) {
+            int posy, Integer yROIValue, RasterAccessor roiAccessor, boolean setNoData) {
         // src data and destination data
         Number destData = null;
         // the destination data is set equal to the source data but could change if the ROI is present. If
@@ -116,7 +120,7 @@ public class InterpolationNearestNew extends Interpolation {
         case DataBuffer.TYPE_BYTE:
             byte srcDataByte = src.getByteDataArray(bandIndex)[posx + posy];
             if ((noDataRange != null && ((Range<Byte>) noDataRange).contains(srcDataByte))
-                    || setDestinationNoData) {
+                    || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataByte;
@@ -125,7 +129,7 @@ public class InterpolationNearestNew extends Interpolation {
         case DataBuffer.TYPE_SHORT:
             short srcDataShort = src.getShortDataArray(bandIndex)[posx + posy];
             if ((noDataRange != null && ((Range<Short>) noDataRange).contains(srcDataShort))
-                    || setDestinationNoData) {
+                    || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataShort;
@@ -133,7 +137,7 @@ public class InterpolationNearestNew extends Interpolation {
         case DataBuffer.TYPE_INT:
             int srcDataInt = src.getIntDataArray(bandIndex)[posx + posy];
             if ((noDataRange != null && ((Range<Integer>) noDataRange).contains(srcDataInt))
-                    || setDestinationNoData) {
+                    || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataInt;
@@ -141,7 +145,7 @@ public class InterpolationNearestNew extends Interpolation {
         case DataBuffer.TYPE_FLOAT:
             float srcDataFloat = src.getFloatDataArray(bandIndex)[posx + posy];
             if ((noDataRange != null && ((Range<Float>) noDataRange).contains(srcDataFloat))
-                    || setDestinationNoData) {
+                    || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataFloat;
@@ -149,7 +153,7 @@ public class InterpolationNearestNew extends Interpolation {
         case DataBuffer.TYPE_DOUBLE:
             double srcDataDouble = src.getDoubleDataArray(bandIndex)[posx + posy];
             if ((noDataRange != null && ((Range<Double>) noDataRange).contains(srcDataDouble))
-                    || setDestinationNoData) {
+                    || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataDouble;

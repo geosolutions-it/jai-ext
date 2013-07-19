@@ -93,6 +93,10 @@ public class InterpolationBicubicNew extends InterpolationTable {
         }
     }
     
+    public double getDestinationNoData() {
+        return destinationNoData;
+    }
+    
     public Range getNoDataRange() {
         return noDataRange;
     }

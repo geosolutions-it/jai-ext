@@ -17,9 +17,9 @@ import org.jaitools.numeric.Range;
 import org.junit.Test;
 
 public class CoverageClassTest<T extends Number & Comparable<? super T>> extends
-        TestBase<T> {
+TestScale<T> {
 
-    // this class is used for testing the getProperty() method of the ScaleNoDataDescriptor class
+    // this test-case is used for testing the getProperty() method of the ScaleNoDataDescriptor class
     @Test
     public void testROIProperty() {
         ScaleNoDataDescriptor descriptor = new ScaleNoDataDescriptor();

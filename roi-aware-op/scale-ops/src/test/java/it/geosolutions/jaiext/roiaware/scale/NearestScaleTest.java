@@ -4,7 +4,7 @@ import static org.junit.Assert.assertFalse;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class NearestScaleTest<T extends Number & Comparable<? super T>> extends TestBase<T> {
+public class NearestScaleTest<T extends Number & Comparable<? super T>> extends TestScale<T> {
     
     
     
