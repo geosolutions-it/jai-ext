@@ -4,8 +4,6 @@ import org.junit.Test;
 
 public class BilinearScaleTest extends TestScale{
 
-    
-    
     @Test
     public void testImageScaling() {
         boolean roiPresent=false;

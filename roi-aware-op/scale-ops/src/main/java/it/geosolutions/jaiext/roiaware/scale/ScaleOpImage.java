@@ -1493,11 +1493,8 @@ public abstract class ScaleOpImage extends GeometricOpImage {
         super.dispose();
     }
     
-    protected void computeRect(Raster[] sources,
+    protected abstract void computeRect(Raster[] sources,
             WritableRaster dest,
             Rectangle destRect,
-            Raster[] rois) {
-    	String className = this.getClass().getName();
-    	throw new RuntimeException(className + " " + JaiI18N.getString("OpImage0"));
-}
+            Raster[] rois);
 }

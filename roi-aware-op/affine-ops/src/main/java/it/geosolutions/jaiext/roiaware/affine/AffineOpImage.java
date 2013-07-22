@@ -103,7 +103,7 @@ class AffineOpImage extends GeometricOpImage {
     /**
      * Padding values for interpolation
      */
-    public int lpad, rpad, tpad, bpad;
+    protected int lpad, rpad, tpad, bpad;
 
     protected final ROI srcROI;
 

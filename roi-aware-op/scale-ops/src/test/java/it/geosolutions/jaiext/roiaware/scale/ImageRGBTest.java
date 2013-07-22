@@ -29,7 +29,7 @@ public class ImageRGBTest extends TestScale {
     
     
     @Test
-    public void testInterpolation() {
+    public void testInterpolation() throws Throwable {
 
         boolean bicubic2Disabled = true;
         boolean useROIAccessor = true;
@@ -67,8 +67,6 @@ public class ImageRGBTest extends TestScale {
 
             testImage(image, useROIAccessor,roiUsed, bicubic2Disabled, dataType,
                     InterpolationType.BICUBIC_INTERP);
-
-        } catch (IOException e) {
 
         } finally {
             try {
@@ -132,15 +130,25 @@ public class ImageRGBTest extends TestScale {
             // Bilinear
             interp = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
                     destinationNoData, dataType);
+            if(hints!=null){
+                hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender.createInstance(BorderExtender.BORDER_COPY)));
+            } else {
+                hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender.createInstance(BorderExtender.BORDER_COPY));
+            }
 
             break;
         case BICUBIC_INTERP:
             // Bicubic
             interp = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
                     destinationNoData, dataType, bicubic2Disabled, DEFAULT_PRECISION_BITS);
+            if(hints!=null){
+                hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender.createInstance(BorderExtender.BORDER_COPY)));
+            }else {
+                hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender.createInstance(BorderExtender.BORDER_COPY));
+            }
             break;
         default:
-            break;
+            throw new IllegalArgumentException("..."); 
         }
 
         // Scale operation
@@ -155,12 +163,12 @@ public class ImageRGBTest extends TestScale {
                 e.printStackTrace();
             }
         } else {
+            
+            // Forcing to retrieve an array of all the image tiles
             // image tile calculation for searching possible errors
-            destinationIMG.getTile(0, 0);
+            ((PlanarImage)destinationIMG).getTiles();
         }
-        // Forcing to retrieve an array of all the image tiles
-        PlanarImage planarIMG = (PlanarImage) destinationIMG;
-        planarIMG.getTiles();
+
 
         // Control if the scale operation has been correctly performed
         // width
