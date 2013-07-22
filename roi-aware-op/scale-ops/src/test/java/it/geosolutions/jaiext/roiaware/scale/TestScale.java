@@ -21,7 +21,7 @@ import it.geosolutions.jaiext.roiaware.interpolators.InterpolationBilinearNew;
 import it.geosolutions.jaiext.roiaware.interpolators.InterpolationNearestNew;
 import it.geosolutions.jaiext.roiaware.testclasses.TestBase;
 
-public class TestScale<T extends Number & Comparable<? super T>> extends TestBase<T> {
+public class TestScale extends TestBase {
 
     @Override
     protected void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
@@ -42,49 +42,68 @@ public class TestScale<T extends Number & Comparable<? super T>> extends TestBas
             sourceNoDataInt = 1;
         }
 
-        T sourceNoData = null;
-
         // ImageTest
         // starting dataType
         int dataType = DataBuffer.TYPE_BYTE;
-        sourceNoData = (T) sourceNoDataByte;
-        testImage(dataType, sourceNoData, useROIAccessor, isBinary, bicubic2Disabled,
+        testImage(dataType, sourceNoDataByte, useROIAccessor, isBinary, bicubic2Disabled,
                 noDataRangeUsed, roiPresent, interpType, testSelect);
 
         dataType = DataBuffer.TYPE_USHORT;
-        sourceNoData = (T) sourceNoDataUshort;
-        testImage(dataType, sourceNoData, useROIAccessor, isBinary, bicubic2Disabled,
+        testImage(dataType, sourceNoDataUshort, useROIAccessor, isBinary, bicubic2Disabled,
                 noDataRangeUsed, roiPresent, interpType, testSelect);
 
         dataType = DataBuffer.TYPE_INT;
-        sourceNoData = (T) sourceNoDataInt;
-        testImage(dataType, sourceNoData, useROIAccessor, isBinary, bicubic2Disabled,
+        testImage(dataType, sourceNoDataInt, useROIAccessor, isBinary, bicubic2Disabled,
                 noDataRangeUsed, roiPresent, interpType, testSelect);
 
         if (!isBinary) {
             dataType = DataBuffer.TYPE_SHORT;
-            sourceNoData = (T) sourceNoDataShort;
-            testImage(dataType, sourceNoData, useROIAccessor, isBinary, bicubic2Disabled,
+            testImage(dataType, sourceNoDataShort, useROIAccessor, isBinary, bicubic2Disabled,
                     noDataRangeUsed, roiPresent, interpType, testSelect);
 
             dataType = DataBuffer.TYPE_FLOAT;
-            sourceNoData = (T) sourceNoDataFloat;
-            testImage(dataType, sourceNoData, useROIAccessor, isBinary, bicubic2Disabled,
+            testImage(dataType, sourceNoDataFloat, useROIAccessor, isBinary, bicubic2Disabled,
                     noDataRangeUsed, roiPresent, interpType, testSelect);
 
             dataType = DataBuffer.TYPE_DOUBLE;
-            sourceNoData = (T) sourceNoDataDouble;
-            testImage(dataType, sourceNoData, useROIAccessor, isBinary, bicubic2Disabled,
+            testImage(dataType, sourceNoDataDouble, useROIAccessor, isBinary, bicubic2Disabled,
                     noDataRangeUsed, roiPresent, interpType, testSelect);
         }
 
     }
 
+    
     @Override
-    protected void testImage(int dataType, T noDataValue, boolean useROIAccessor, boolean isBinary,
-            boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
+    protected  <T extends Number & Comparable<? super T>> void testImageAffine(RenderedImage sourceImage, int dataType, T noDataValue,
+            boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
+            boolean noDataRangeUsed, boolean roiPresent, boolean setDestinationNoData,
+            it.geosolutions.jaiext.roiaware.testclasses.TestBase.TransformationType transformType,
             it.geosolutions.jaiext.roiaware.testclasses.TestBase.InterpolationType interpType,
             it.geosolutions.jaiext.roiaware.testclasses.TestBase.TestSelection testSelect) {
+        throw new UnsupportedOperationException("This operation is not supported, use testImage instead");
+        
+    }
+
+    @Override
+    protected void testGlobalAffine(boolean useROIAccessor, boolean isBinary,
+            boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
+            boolean setDestinationNoData,
+            it.geosolutions.jaiext.roiaware.testclasses.TestBase.InterpolationType interpType,
+            it.geosolutions.jaiext.roiaware.testclasses.TestBase.TestSelection testSelect) {
+        throw new UnsupportedOperationException("This operation is not supported, use testGlobal instead");
+        
+    }
+
+    
+    
+    
+    
+    @Override
+    protected <T extends Number & Comparable<? super T>> void testImage(int dataType,
+            T noDataValue, boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
+            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
+            TestSelection testSelect) {
+
         // No Data Range
         Range<T> noDataRange = null;
         // Source test image
@@ -168,28 +187,9 @@ public class TestScale<T extends Number & Comparable<? super T>> extends TestBas
         // width
         assertEquals((int) (DEFAULT_WIDTH * scaleX), destinationIMG.getWidth());
         // height
-        assertEquals((int) (DEFAULT_HEIGHT * scaleY), destinationIMG.getHeight());
+        assertEquals((int) (DEFAULT_HEIGHT * scaleY), destinationIMG.getHeight());  
     }
 
-    @Override
-    protected void testImageAffine(RenderedImage sourceImage, int dataType, T noDataValue,
-            boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, boolean setDestinationNoData,
-            it.geosolutions.jaiext.roiaware.testclasses.TestBase.TransformationType transformType,
-            it.geosolutions.jaiext.roiaware.testclasses.TestBase.InterpolationType interpType,
-            it.geosolutions.jaiext.roiaware.testclasses.TestBase.TestSelection testSelect) {
-        throw new UnsupportedOperationException("This operation is not supported, use testImage instead");
-        
-    }
 
-    @Override
-    protected void testGlobalAffine(boolean useROIAccessor, boolean isBinary,
-            boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
-            boolean setDestinationNoData,
-            it.geosolutions.jaiext.roiaware.testclasses.TestBase.InterpolationType interpType,
-            it.geosolutions.jaiext.roiaware.testclasses.TestBase.TestSelection testSelect) {
-        throw new UnsupportedOperationException("This operation is not supported, use testGlobal instead");
-        
-    }
 
 }

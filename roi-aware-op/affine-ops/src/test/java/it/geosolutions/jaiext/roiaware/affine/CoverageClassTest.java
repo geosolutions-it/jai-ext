@@ -16,8 +16,7 @@ import javax.media.jai.operator.NullDescriptor;
 import org.jaitools.numeric.Range;
 import org.junit.Test;
 
-public class CoverageClassTest<T extends Number & Comparable<? super T>> extends
-TestAffine<T> {
+public class CoverageClassTest extends TestAffine {
 
     // this test-case is used for testing the getProperty() method of the AffineNoDataDescriptor class
     @Test
@@ -29,7 +28,7 @@ TestAffine<T> {
         boolean useROIAccessor = false;
         boolean setDestinationNoData = false;
         int dataType = DataBuffer.TYPE_BYTE;
-        Range<T> noDataRange = null;
+        Range<Byte> noDataRange = null;
 
         // Interpolator initialization
         // Nearest-Neighbor
@@ -114,7 +113,7 @@ TestAffine<T> {
 
         boolean useROIAccessor = false;
         boolean setDestinationNoData = false;
-        Range<T> noDataRange = null;
+        Range<Byte> noDataRange = null;
         int dataType = DataBuffer.TYPE_BYTE;
 
         byte imageValue = 127;
@@ -162,7 +161,7 @@ TestAffine<T> {
 
         boolean useROIAccessor = false;
         boolean setDestinationNoData = false;
-        Range<T> noDataRange = null;
+        Range<Byte> noDataRange = null;
         int dataType = DataBuffer.TYPE_BYTE;
 
         byte imageValue = 127;

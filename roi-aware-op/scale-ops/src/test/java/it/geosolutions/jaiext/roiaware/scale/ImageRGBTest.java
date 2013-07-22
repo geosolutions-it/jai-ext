@@ -21,7 +21,7 @@ import org.junit.Test;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
 
-public class ImageRGBTest<T extends Number & Comparable<? super T>> extends TestScale<T> {
+public class ImageRGBTest extends TestScale {
 
     private int imageWidth;
 

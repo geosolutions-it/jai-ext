@@ -4,7 +4,7 @@ package it.geosolutions.jaiext.roiaware.affine;
 //import org.junit.Ignore;
 import org.junit.Test;
 
-public class NearestAffineTest<T extends Number & Comparable<? super T>> extends TestAffine<T> {
+public class NearestAffineTest extends TestAffine {
     
     @Test
     public void testImageAffine() {

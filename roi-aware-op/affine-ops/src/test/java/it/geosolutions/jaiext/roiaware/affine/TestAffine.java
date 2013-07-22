@@ -21,7 +21,7 @@ import it.geosolutions.jaiext.roiaware.interpolators.InterpolationBilinearNew;
 import it.geosolutions.jaiext.roiaware.interpolators.InterpolationNearestNew;
 import it.geosolutions.jaiext.roiaware.testclasses.TestBase;
 
-public class TestAffine<T extends Number & Comparable<? super T>>  extends TestBase<T>{
+public class TestAffine  extends TestBase{
     
     /** Quadrant rotation number for the Affine transformation */
     protected int numquadrants = 1;
@@ -38,14 +38,13 @@ public class TestAffine<T extends Number & Comparable<? super T>>  extends TestB
 
     protected float transY = -DEFAULT_HEIGHT;
     
-    
-
-    
-    protected void testImageAffine(RenderedImage sourceImage, int dataType, T noDataValue,
-            boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, boolean setDestinationNoData,
-            TransformationType transformType, InterpolationType interpType, TestSelection testSelect) {
-        // No Data Range
+    @Override
+    protected <T extends Number & Comparable<? super T>> void testImageAffine(
+            RenderedImage sourceImage, int dataType, T noDataValue, boolean useROIAccessor,
+            boolean isBinary, boolean bicubic2Disabled, boolean noDataRangeUsed,
+            boolean roiPresent, boolean setDestinationNoData, TransformationType transformType,
+            InterpolationType interpType, TestSelection testSelect) {
+     // No Data Range
         Range<T> noDataRange = null;
 
         if (noDataRangeUsed && !isBinary) {
@@ -171,7 +170,11 @@ public class TestAffine<T extends Number & Comparable<? super T>>  extends TestB
             // Y axis
             assertEquals(expectedY, actualY, tolerance);
         }
+
+        
     }
+
+   
 
     protected void testGlobalAffine(boolean useROIAccessor, boolean isBinary,
             boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
@@ -195,43 +198,36 @@ public class TestAffine<T extends Number & Comparable<? super T>>  extends TestB
             destinationNoData = 255;
         }
 
-        T sourceNoData = null;
         // ImageTest
         // starting dataType
         int dataType = DataBuffer.TYPE_BYTE;
-        sourceNoData = (T) sourceNoDataByte;
-        testAllOperation(dataType, isBinary, sourceNoData, useROIAccessor, bicubic2Disabled,
+        testAllOperation(dataType, isBinary, sourceNoDataByte, useROIAccessor, bicubic2Disabled,
                 noDataRangeUsed, roiPresent, setDestinationNoData, interpType, testSelect);
 
         dataType = DataBuffer.TYPE_USHORT;
-        sourceNoData = (T) sourceNoDataUshort;
-        testAllOperation(dataType, isBinary, sourceNoData, useROIAccessor, bicubic2Disabled,
+        testAllOperation(dataType, isBinary, sourceNoDataUshort, useROIAccessor, bicubic2Disabled,
                 noDataRangeUsed, roiPresent, setDestinationNoData, interpType, testSelect);
 
         dataType = DataBuffer.TYPE_INT;
-        sourceNoData = (T) sourceNoDataInt;
-        testAllOperation(dataType, isBinary, sourceNoData, useROIAccessor, bicubic2Disabled,
+        testAllOperation(dataType, isBinary, sourceNoDataInt, useROIAccessor, bicubic2Disabled,
                 noDataRangeUsed, roiPresent, setDestinationNoData, interpType, testSelect);
 
         if (!isBinary) {
             dataType = DataBuffer.TYPE_SHORT;
-            sourceNoData = (T) sourceNoDataShort;
-            testAllOperation(dataType, isBinary, sourceNoData, useROIAccessor, bicubic2Disabled,
+            testAllOperation(dataType, isBinary, sourceNoDataShort, useROIAccessor, bicubic2Disabled,
                     noDataRangeUsed, roiPresent, setDestinationNoData, interpType, testSelect);
 
             dataType = DataBuffer.TYPE_FLOAT;
-            sourceNoData = (T) sourceNoDataFloat;
-            testAllOperation(dataType, isBinary, sourceNoData, useROIAccessor, bicubic2Disabled,
+            testAllOperation(dataType, isBinary, sourceNoDataFloat, useROIAccessor, bicubic2Disabled,
                     noDataRangeUsed, roiPresent, setDestinationNoData, interpType, testSelect);
             dataType = DataBuffer.TYPE_DOUBLE;
-            sourceNoData = (T) sourceNoDataDouble;
-            testAllOperation(dataType, isBinary, sourceNoData, useROIAccessor, bicubic2Disabled,
+            testAllOperation(dataType, isBinary, sourceNoDataDouble, useROIAccessor, bicubic2Disabled,
                     noDataRangeUsed, roiPresent, setDestinationNoData, interpType, testSelect);
         }
 
     }
 
-    protected void testAllOperation(int dataType, boolean isBinary, T sourceNoData,
+    protected <T extends Number & Comparable<? super T>> void testAllOperation(int dataType, boolean isBinary, T sourceNoData,
             boolean useROIAccessor, boolean bicubic2Disabled, boolean noDataRangeUsed,
             boolean roiPresent, boolean setDestinationNoData, InterpolationType interpType,
             TestSelection testSelect) {
@@ -263,15 +259,15 @@ public class TestAffine<T extends Number & Comparable<? super T>>  extends TestB
         
     }
 
+   
+
     @Override
-    protected void testImage(int dataType, T noDataValue, boolean useROIAccessor, boolean isBinary,
-            boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
-            it.geosolutions.jaiext.roiaware.testclasses.TestBase.InterpolationType interpType,
-            it.geosolutions.jaiext.roiaware.testclasses.TestBase.TestSelection testSelect) {
-        
+    protected <T extends Number & Comparable<? super T>> void testImage(int dataType,
+            T noDataValue, boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
+            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
+            TestSelection testSelect) {
         throw new UnsupportedOperationException("This operation is not supported, use testImageAffine instead");
         
     }
 
-   
     }

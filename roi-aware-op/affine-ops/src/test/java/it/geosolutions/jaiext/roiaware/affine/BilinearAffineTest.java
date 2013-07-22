@@ -4,7 +4,7 @@ package it.geosolutions.jaiext.roiaware.affine;
 //import org.junit.Ignore;
 import org.junit.Test;
 
-public class BilinearAffineTest<T extends Number & Comparable<? super T>> extends TestAffine<T>{
+public class BilinearAffineTest extends TestAffine{
 
     
     

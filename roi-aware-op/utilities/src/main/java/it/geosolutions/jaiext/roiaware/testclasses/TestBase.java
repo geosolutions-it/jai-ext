@@ -10,7 +10,7 @@ import java.awt.image.SampleModel;
 import javax.media.jai.ROIShape;
 import javax.media.jai.TiledImage;
 
-public abstract class TestBase<T extends Number & Comparable<? super T>> {
+public abstract class TestBase {
 
     /** Default value for image width */
     public static int DEFAULT_WIDTH = 256;
@@ -43,8 +43,6 @@ public abstract class TestBase<T extends Number & Comparable<? super T>> {
     protected float scaleX = 2;
 
     protected float scaleY = 2;
-
-    T noDataValue;
 
     public enum InterpolationType {
         NEAREST_INTERP(0), BILINEAR_INTERP(1), BICUBIC_INTERP(2);
@@ -96,11 +94,11 @@ public abstract class TestBase<T extends Number & Comparable<? super T>> {
             boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
             TestSelection testSelect);
 
-    protected abstract void testImage(int dataType, T noDataValue, boolean useROIAccessor, boolean isBinary,
+    protected abstract <T extends Number & Comparable<? super T>> void testImage(int dataType, T noDataValue, boolean useROIAccessor, boolean isBinary,
             boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
             InterpolationType interpType, TestSelection testSelect);
 
-    protected abstract void testImageAffine(RenderedImage sourceImage, int dataType, T noDataValue,
+    protected abstract <T extends Number & Comparable<? super T>> void testImageAffine(RenderedImage sourceImage, int dataType, T noDataValue,
             boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
             boolean noDataRangeUsed, boolean roiPresent, boolean setDestinationNoData,
             TransformationType transformType, InterpolationType interpType, TestSelection testSelect);

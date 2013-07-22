@@ -16,8 +16,7 @@ import javax.media.jai.operator.NullDescriptor;
 import org.jaitools.numeric.Range;
 import org.junit.Test;
 
-public class CoverageClassTest<T extends Number & Comparable<? super T>> extends
-TestScale<T> {
+public class CoverageClassTest extends TestScale {
 
     // this test-case is used for testing the getProperty() method of the ScaleNoDataDescriptor class
     @Test
@@ -29,7 +28,7 @@ TestScale<T> {
         boolean useROIAccessor = false;
         boolean bicubic2Disabled = false;
         int dataType = DataBuffer.TYPE_BYTE;
-        Range<T> noDataRange = null;
+        Range<Byte> noDataRange = null;
 
         // Interpolators initialization
         // Nearest-Neighbor
@@ -111,7 +110,7 @@ TestScale<T> {
 
         boolean useROIAccessor = false;
         int dataType = DataBuffer.TYPE_BYTE;
-        Range<T> noDataRange = null;
+        Range<Byte> noDataRange = null;
 
         float xScale = 1.0f;
         float yScale = 1.0f;
@@ -149,7 +148,7 @@ TestScale<T> {
 
         boolean useROIAccessor = false;
         int dataType = DataBuffer.TYPE_BYTE;
-        Range<T> noDataRange = null;
+        Range<Byte> noDataRange = null;
 
         float xScale = 1.0f;
         float yScale = 1.0f;

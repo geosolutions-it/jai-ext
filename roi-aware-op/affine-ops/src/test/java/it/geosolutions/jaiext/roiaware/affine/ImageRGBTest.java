@@ -17,14 +17,13 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROIShape;
-import javax.media.jai.operator.AffineDescriptor;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.junit.Test;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
 
-public class ImageRGBTest<T extends Number & Comparable<? super T>> extends TestAffine<T> {
+public class ImageRGBTest extends TestAffine {
 
     private int imageWidth;
 

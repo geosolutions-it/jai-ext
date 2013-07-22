@@ -2,7 +2,7 @@ package it.geosolutions.jaiext.roiaware.scale;
 
 import org.junit.Test;
 
-public class BilinearScaleTest<T extends Number & Comparable<? super T>> extends TestScale<T>{
+public class BilinearScaleTest extends TestScale{
 
     
     
