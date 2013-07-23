@@ -357,7 +357,8 @@ static public void main(String[] args) throws Exception {
 
     FileHandler fileTxt = new FileHandler(
             "src/test/resources/it/geosolutions/logfiles/ConcurrentCacheTestLog.txt");
-    LOGGER.addHandler(fileTxt);
+    //Log Handler no used for now
+    //LOGGER.addHandler(fileTxt);
 
     // number of tests to do
     int numTest = 10;

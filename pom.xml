@@ -495,9 +495,13 @@
   <!-- ========================================================== -->
   <modules>
     <module>squareroot</module>
-    <module>roiaware-ops</module>
     <module>concurrent-tile-cache</module>
-	<module>jai-op-nodata</module>
-    <module>roi-aware-op</module>
+    <module>roiaware-legacy</module>
+    <module>jt-scale</module>
+    <module>jt-affine</module>
+    <module>jt-utilities</module>
+    <module>jt-warp</module>
+    <module>jt-iterators</module>
+    <module>jt-mosaic</module>
   </modules>
 </project>
