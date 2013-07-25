@@ -1,0 +1,7 @@
+*.classpath
+*.project
+*.settings
+roiaware-ops/target/*
+squareroot/target/*
+changematrix/target/*
+target/*
