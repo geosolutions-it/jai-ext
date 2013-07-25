@@ -1,0 +1,6 @@
+target/*
+squareroot/target/*
+roiaware-ops/target/*
+*.classpath
+*.project
+*.settings
