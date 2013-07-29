@@ -24,10 +24,21 @@ import org.junit.Test;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
 
+
+
+/**
+ * This class extends the TestAffine class and tests the Affine operation on a RGB image. If the user want to see
+ * the result, must set the JAI.Ext.Interactive parameter to true, the JAI.Ext.TestSelector from 0 to 2 (the 3 
+ * interpolation types) and JAI.Ext.TransformationSelector from 0 to 3 (one of the possible transformations) to the 
+ * Console. The ROI is created by the roiCreation() method and its height and width are half of the RGB image height 
+ * and width. The 3 tests with the different interpolation types are executed by calling 3 times the testImage() 
+ * method and changing each time the selected interpolation. The transformation performed is a combination of rotation,
+ * translation and scaling. 
+ */
 public class ImageRGBTest extends TestAffine {
-
+	/** RGB image width*/
     private int imageWidth;
-
+    /** RGB image height*/
     private int imageHeigth;
     
     

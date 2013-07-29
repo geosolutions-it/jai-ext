@@ -4,8 +4,6 @@ import it.geosolutions.concurrent.ConcurrentTileCache;
 import it.geosolutions.concurrentlinked.ConcurrentCache;
 import it.geosolutions.concurrentlinked.ConcurrentLinkedCache;
 import it.geosolutions.concurrentlinked.ConcurrentNonBlockingCache;
-
-import java.awt.Point;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.File;

@@ -18,6 +18,13 @@ import javax.media.jai.operator.NullDescriptor;
 import org.jaitools.numeric.Range;
 import org.junit.Test;
 
+
+/**
+ * This test-class extends the TestScale class and is used for extending the code-coverage of the project. In this test-class
+ * are checked the getProperty() method of the ScaleNoDataDescriptor class and the capability of the ScaleNoDataCRIF.create() 
+ * method to call the TranslateIntOpImage class or the CopyOpImage class when the requested operation is simply a translation
+ * or a copy of the source image without ROI object. 
+ */
 public class CoverageClassTest extends TestScale {
 
     // this test-case is used for testing the getProperty() method of the ScaleNoDataDescriptor class

@@ -4,6 +4,14 @@ package it.geosolutions.jaiext.affine;
 import org.junit.Ignore;
 import org.junit.Test;
 
+
+/**
+ * This test-class extends the TestAffine class and is used for testing the nearest interpolation inside the Affine operation.
+ * The first method tests the affine operation without the presence of a ROI or a No Data Range. The 2nd method introduces a ROI 
+ * object calculated using a ROI RasterAccessor while the 3rd method uses an Iterator on the ROI Object. The last method performs 
+ * the affine operation with all the components. The last method is similar to the 4th method but executes its operations on binary 
+ * images. In this class the last method is ignored because it has a bug that must be solved. 
+ */
 public class NearestAffineTest extends TestAffine {
     
     @Test

@@ -23,6 +23,24 @@ import org.junit.Test;
 import com.sun.media.jai.util.Rational;
 import junit.framework.TestCase;
 
+
+
+
+/**
+ * This class extends the TestCase class and is used for testing the 3 interpolation types used in various JAI-EXT modules:
+ * Nearest-Neighbor, Bilinear, Bicubic. The 9 tests are divided in 3 groups, one for every interpolation type. Inside every method 
+ * all the data types are tested. Inside every group there are 3 kind of tests:
+ * 
+ * <ul>
+ * <li>test with No Data Range</li>
+ * <li>test with No Data Range and ROI using a ROI iterator</li>
+ * <li>test with No Data Range and ROI using a ROI RasterAccessor</li>
+ * </ul>
+ * 
+ * Before starting all the tests the initialSetup() method is used for creating an array of images of all data types with the associated 
+ * ROI. These synthetic images are not constant because at the creation time they are filled with random values in the upper left tile.
+ * Binary images are not tested in this class. 
+ */
 public class InterpTest extends TestCase {
 
     /**
@@ -108,7 +126,7 @@ public class InterpTest extends TestCase {
     // NO BINARY IMAGES. ONLY TYPE BYTE.
 
     @Test
-    public void testInterpolatorNearest2() {
+    public void testInterpolatorNearestNew() {
         // Data Initialization and image creation
         if (!initialSetup) {
             initialSetup();
@@ -134,7 +152,7 @@ public class InterpTest extends TestCase {
     }
 
     @Test
-    public void testInterpolatorNearest2ROIBounds() {
+    public void testInterpolatorNearestNewROIBounds() {
         // Data Initialization and image creation
         if (!initialSetup) {
             initialSetup();
@@ -160,7 +178,7 @@ public class InterpTest extends TestCase {
     }
 
     @Test
-    public void testInterpolatorNearest2ROIAccessor() {
+    public void testInterpolatorNearestNewROIAccessor() {
         // Data Initialization and image creation
         if (!initialSetup) {
             initialSetup();
@@ -186,7 +204,7 @@ public class InterpTest extends TestCase {
     }
 
     @Test
-    public void testInterpolatorBilinear2() {
+    public void testInterpolatorBilinearNew() {
         // Data Initialization and image creation
         if (!initialSetup) {
             initialSetup();
@@ -213,7 +231,7 @@ public class InterpTest extends TestCase {
     }
 
     @Test
-    public void testInterpolatorBilinear2ROIBounds() {
+    public void testInterpolatorBilinearNewROIBounds() {
         // Data Initialization and image creation
         if (!initialSetup) {
             initialSetup();
@@ -239,7 +257,7 @@ public class InterpTest extends TestCase {
     }
 
     @Test
-    public void testInterpolatorBilinear2ROIAccessor() {
+    public void testInterpolatorBilinearNewROIAccessor() {
         // Data Initialization and image creation
         if (!initialSetup) {
             initialSetup();

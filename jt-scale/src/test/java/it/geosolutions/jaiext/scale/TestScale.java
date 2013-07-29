@@ -22,6 +22,15 @@ import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
 import it.geosolutions.jaiext.scale.ScaleNoDataDescriptor;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
+/**
+ * This test-class is an extension of the TestBase class inside the jt-utilities project. By calling the testGlobal() method 
+ * with the selected parameters is possible to create an image with the selected preferences and then process it with the 
+ * preferred interpolation type. Inside the testGlobal() method are tested images with all the possible data type by calling
+ * the testImage() method. This method is used for creating an image with the user-defined parameters(data type, ROI, No Data Range)
+ * and then scaling it with the supplied interpolation type. If the user wants to see a scaled image with the selected type of test,
+ * must set JAI.Ext.Interactive parameter to true and JAI.Ext.TestSelector from 0 to 5 to the Console. The methods testImageAffine()
+ * testGlobalAffine() are not supported, they are defined in the jt-affine project.
+ */
 public class TestScale extends TestBase {
 
     @Override

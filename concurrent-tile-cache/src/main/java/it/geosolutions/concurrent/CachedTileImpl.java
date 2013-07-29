@@ -7,11 +7,8 @@ import it.geosolutions.concurrent.ConcurrentTileCache.Actions;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
-import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.Method;
 import java.math.BigInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.media.jai.CachedTile;
 import javax.media.jai.PlanarImage;

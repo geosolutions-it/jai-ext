@@ -5,6 +5,13 @@ package it.geosolutions.jaiext.scale;
 
 import org.junit.Test;
 
+/**
+ * This test-class extends the TestScale class and is used for testing the bicubic interpolation inside the Scale operation.
+ * The first method tests the scale operation without the presence of a ROI or a No Data Range. The 2nd method introduces a 
+ * ROI object calculated using a ROI RasterAccessor while the 3rd method uses an Iterator on the ROI Object. The 4th method 
+ * performs the scale operation with all the components. The last method is similar to the 4th method but executes its operations 
+ * on binary images. 
+ */
 public class BicubicScaleTest extends TestScale{
     @Test
     public void testImageScaling() {

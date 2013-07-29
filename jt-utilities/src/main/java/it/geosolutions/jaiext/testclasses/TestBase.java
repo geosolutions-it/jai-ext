@@ -10,6 +10,17 @@ import java.awt.image.SampleModel;
 import javax.media.jai.ROIShape;
 import javax.media.jai.TiledImage;
 
+
+/**
+ * This class is an abstract class used for creating test images used by the affine and scale operation test-classes. The 
+ * only two methods defined are roiCreation() and createTestImage(). The first is used for creating a new ROI object with 
+ * height and width respectively half of the image height and width. The second is used for creating a test image of the 
+ * selected data type. The image can be filled with data inside by setting the IMAGE_FILLER parameter to true, but this 
+ * slows the test-computations. The image is by default a cross surrounded by lots of pixel with value 0. For binary images
+ * a big rectangle is added into the left half of the image; for not-binary images a simple square is added in the upper left 
+ * of the image. The square is  useful for the rotate operation(inside the jt-affine project) because it shows if the image
+ * has been correctly rotated.   
+ */
 public abstract class TestBase {
 
     /** Default value for image width */

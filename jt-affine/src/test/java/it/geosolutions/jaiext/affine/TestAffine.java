@@ -22,6 +22,27 @@ import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
 import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
+
+/**
+ * This test-class is an extension of the TestBase class inside the jt-utilities project. By calling the testGlobalAffine() method 
+ * with the selected parameters is possible to create an image with the selected preferences and then process it with the 
+ * preferred interpolation type. Inside the testGlobalAffine() method are tested images with all the possible data type by calling
+ * the testImageAffine() method. This method is used for creating an image with the user-defined parameters(data type, ROI, No Data Range)
+ * and then transforming it with 4 possible transformations:
+ * 
+ * <ul>
+ * <li>Only Rotation</li>
+ * <li>Only Scaling</li>
+ * <li>Only Translation</li>
+ * <li>Combination of the 3 above</li>
+ * </ul>
+ * 
+ * The affine transformation is performed with the selected interpolation type. If the user wants to see the result image with the selected 
+ * kind of test, must set JAI.Ext.Interactive parameter to true, JAI.Ext.TestSelector from 0 to 5 and the JAI.Ext.TransformationSelector
+ * from 0 to 3 (one of the above described transformations) to the Console. The testAllOperation() method is used for grouping all the 
+ * tests on the same image with 4 different transformations in only one test-method. The methods testImage() and testGlobal() are not supported, 
+ * they are defined in the jt-scale project.
+ */
 public class TestAffine  extends TestBase{
     
     /** Quadrant rotation number for the Affine transformation */

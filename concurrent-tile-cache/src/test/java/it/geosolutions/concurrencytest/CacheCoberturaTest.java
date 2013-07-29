@@ -1,6 +1,5 @@
 package it.geosolutions.concurrencytest;
 
-import static org.junit.Assert.*;
 
 import java.awt.image.RenderedImage;
 
