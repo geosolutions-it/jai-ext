@@ -7,6 +7,7 @@ import java.awt.image.DataBuffer;
 import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
+
 import javax.media.jai.ROIShape;
 import javax.media.jai.TiledImage;
 
@@ -15,11 +16,11 @@ import javax.media.jai.TiledImage;
  * This class is an abstract class used for creating test images used by the affine and scale operation test-classes. The 
  * only two methods defined are roiCreation() and createTestImage(). The first is used for creating a new ROI object with 
  * height and width respectively half of the image height and width. The second is used for creating a test image of the 
- * selected data type. The image can be filled with data inside by setting the IMAGE_FILLER parameter to true, but this 
- * slows the test-computations. The image is by default a cross surrounded by lots of pixel with value 0. For binary images
- * a big rectangle is added into the left half of the image; for not-binary images a simple square is added in the upper left 
- * of the image. The square is  useful for the rotate operation(inside the jt-affine project) because it shows if the image
- * has been correctly rotated.   
+ * selected data type. The image can be filled with data inside by setting the JAI.Ext.ImageFill parameter to true from 
+ * the console, but this slows the test-computations. The image is by default a cross surrounded by lots of pixel with 
+ * value 0. For binary images a big rectangle is added into the left half of the image; for not-binary images a simple 
+ * square is added in the upper left of the image. The square is  useful for the rotate operation(inside the jt-affine 
+ * project) because it shows if the image has been correctly rotated.   
  */
 public abstract class TestBase {
 
@@ -41,7 +42,9 @@ public abstract class TestBase {
 
     public static boolean INTERACTIVE = Boolean.getBoolean("JAI.Ext.Interactive");
     
-    public static boolean IMAGE_FILLER = false;
+    public static boolean IMAGE_FILLER = Boolean.getBoolean("JAI.Ext.ImageFill");
+    
+    public static Integer INVERSE_SCALE = Integer.getInteger("JAI.Ext.InverseScale");
 
     public static Integer TEST_SELECTOR = Integer.getInteger("JAI.Ext.TestSelector");
 
@@ -51,9 +54,9 @@ public abstract class TestBase {
 
     protected float transY = 0;
 
-    protected float scaleX = 2;
+    protected float scaleX = 0.5f;
 
-    protected float scaleY = 2;
+    protected float scaleY = 0.5f;
 
     public enum InterpolationType {
         NEAREST_INTERP(0), BILINEAR_INTERP(1), BICUBIC_INTERP(2);
@@ -69,6 +72,21 @@ public abstract class TestBase {
         }
     }
 
+    public enum ScaleType {
+        MAGNIFY(0), REDUCTION(1);
+        
+        private int type;
+        
+        ScaleType(int type){
+            this.type=type;
+        }
+        
+        public int getType() {
+            return type;
+        }
+    }
+    
+    
     public enum TestSelection {
         NO_ROI_ONLY_DATA(0)
         , ROI_ACCESSOR_ONLY_DATA(1)
@@ -88,7 +106,7 @@ public abstract class TestBase {
     }
 
     public enum TransformationType {
-        ROTATE_OP(0), TRANSLATE_OP(1), SCALE_OP(2), ALL(3);
+        ROTATE_OP(0), TRANSLATE_OP(2), SCALE_OP(1), ALL(3);
 
         private int value;
 
@@ -103,25 +121,25 @@ public abstract class TestBase {
     
     protected abstract void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
             boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
-            TestSelection testSelect);
+            TestSelection testSelect,ScaleType scaleValue);
 
     protected abstract <T extends Number & Comparable<? super T>> void testImage(int dataType, T noDataValue, boolean useROIAccessor, boolean isBinary,
             boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
-            InterpolationType interpType, TestSelection testSelect);
+            InterpolationType interpType, TestSelection testSelect,ScaleType scaleValue);
 
     protected abstract <T extends Number & Comparable<? super T>> void testImageAffine(RenderedImage sourceImage, int dataType, T noDataValue,
             boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
             boolean noDataRangeUsed, boolean roiPresent, boolean setDestinationNoData,
-            TransformationType transformType, InterpolationType interpType, TestSelection testSelect);
+            TransformationType transformType, InterpolationType interpType, TestSelection testSelect,ScaleType scaleValue);
     
     protected abstract void testGlobalAffine(boolean useROIAccessor, boolean isBinary,
             boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
-            boolean setDestinationNoData, InterpolationType interpType, TestSelection testSelect);
+            boolean setDestinationNoData, InterpolationType interpType, TestSelection testSelect,ScaleType scaleValue);
     
     
     protected ROIShape roiCreation() {
-        int roiHeight = DEFAULT_HEIGHT / 2;
-        int roiWidth = DEFAULT_WIDTH / 2;
+        int roiHeight = DEFAULT_HEIGHT *3/ 4;
+        int roiWidth = DEFAULT_WIDTH *3/ 4;
 
         Rectangle roiBound = new Rectangle(0, 0, roiWidth, roiHeight);
 
@@ -229,29 +247,82 @@ public abstract class TestBase {
                         }
                       //If selected, the image could be filled
                     } else if (!isBinary && fillImage) {
-                        switch (dataType) {
-                        case DataBuffer.TYPE_BYTE:
-                            used.setSample(j, k, b, valueB + b);
-                            break;
-                        case DataBuffer.TYPE_USHORT:
-                            used.setSample(j, k, b, valueUS + b);
-                            break;
-                        case DataBuffer.TYPE_SHORT:
-                            used.setSample(j, k, b, valueS + b);
-                            break;
-                        case DataBuffer.TYPE_INT:
-                            used.setSample(j, k, b, valueI + b);
-                            break;
-                        case DataBuffer.TYPE_FLOAT:
-                            float data = valueF + b / 3.0f;
-                            used.setSample(j, k, b, data);
-                            break;
-                        case DataBuffer.TYPE_DOUBLE:
-                            double dataD = valueD + b / 3.0d;
-                            used.setSample(j, k, b, dataD);
-                            break;
-                        default:
-                            throw new IllegalArgumentException("Wrong data type");
+                    	// a little square of no data on the upper left is inserted
+                        if( (j>=20) && (j<50) && (k>=20) && (k<50)){
+                            switch (dataType) {
+                            case DataBuffer.TYPE_BYTE:
+                                used.setSample(j, k, b, 0);
+                                break;
+                            case DataBuffer.TYPE_USHORT:
+                                used.setSample(j, k, b, 0);
+                                break;
+                            case DataBuffer.TYPE_SHORT:
+                                used.setSample(j, k, b, 0);
+                                break;
+                            case DataBuffer.TYPE_INT:
+                                used.setSample(j, k, b, 0);
+                                break;
+                            case DataBuffer.TYPE_FLOAT:
+                                used.setSample(j, k, b, 0);
+                                break;
+                            case DataBuffer.TYPE_DOUBLE:
+                                used.setSample(j, k, b,0);
+                                break;
+                            default:
+                                throw new IllegalArgumentException("Wrong data type");
+                            }
+                            
+                            if( (j>=30) && (j<40) && (k>=20) && (k<30)){
+                                switch (dataType) {
+                                case DataBuffer.TYPE_BYTE:
+                                    used.setSample(j, k, b, crossValueByte);
+                                    break;
+                                case DataBuffer.TYPE_USHORT:
+                                    used.setSample(j, k, b, crossValueUShort);
+                                    break;
+                                case DataBuffer.TYPE_SHORT:
+                                    used.setSample(j, k, b, crossValueShort);
+                                    break;
+                                case DataBuffer.TYPE_INT:
+                                    used.setSample(j, k, b, crossValueInteger);
+                                    break;
+                                case DataBuffer.TYPE_FLOAT:
+                                    used.setSample(j, k, b, crossValueFloat);
+                                    break;
+                                case DataBuffer.TYPE_DOUBLE:
+                                    used.setSample(j, k, b, crossValueDouble);
+                                    break;
+                                default:
+                                    throw new IllegalArgumentException("Wrong data type");
+                                }
+                            }
+                            
+                            
+                        }else{
+                            switch (dataType) {
+                            case DataBuffer.TYPE_BYTE:
+                                used.setSample(j, k, b, valueB + b);
+                                break;
+                            case DataBuffer.TYPE_USHORT:
+                                used.setSample(j, k, b, valueUS + b);
+                                break;
+                            case DataBuffer.TYPE_SHORT:
+                                used.setSample(j, k, b, valueS + b);
+                                break;
+                            case DataBuffer.TYPE_INT:
+                                used.setSample(j, k, b, valueI + b);
+                                break;
+                            case DataBuffer.TYPE_FLOAT:
+                                float data = valueF + b / 3.0f;
+                                used.setSample(j, k, b, data);
+                                break;
+                            case DataBuffer.TYPE_DOUBLE:
+                                double dataD = valueD + b / 3.0d;
+                                used.setSample(j, k, b, dataD);
+                                break;
+                            default:
+                                throw new IllegalArgumentException("Wrong data type");
+                            }
                         }
                       //If is binary a rectangle is added
                     }else if (isBinary && (j>imgBinX && j<imgBinWidth) && (j>imgBinY && j<imgBinHeight)) {
@@ -297,6 +368,32 @@ public abstract class TestBase {
                                     throw new IllegalArgumentException("Wrong data type");
                                 }
                             }
+                            
+                            if( (j>=150) && (j<170) && (k>=90) && (k<110)){
+                                switch (dataType) {
+                                case DataBuffer.TYPE_BYTE:
+                                    used.setSample(j, k, b, crossValueByte);
+                                    break;
+                                case DataBuffer.TYPE_USHORT:
+                                    used.setSample(j, k, b, crossValueUShort);
+                                    break;
+                                case DataBuffer.TYPE_SHORT:
+                                    used.setSample(j, k, b, crossValueShort);
+                                    break;
+                                case DataBuffer.TYPE_INT:
+                                    used.setSample(j, k, b, crossValueInteger);
+                                    break;
+                                case DataBuffer.TYPE_FLOAT:
+                                    used.setSample(j, k, b, crossValueFloat);
+                                    break;
+                                case DataBuffer.TYPE_DOUBLE:
+                                    used.setSample(j, k, b, crossValueDouble);
+                                    break;
+                                default:
+                                    throw new IllegalArgumentException("Wrong data type");
+                                }
+                            }
+                            
                         }                    
                 }
             }

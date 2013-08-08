@@ -204,7 +204,7 @@ class AffinePropertyGenerator extends PropertyGeneratorImpl {
  * of the classic interpolation method: InterpolationNearestNew, InterpolationBilinearNew,
  * InterpolationBicubicNew. The No Data Range used must be defined inside the interpolator,
  * at the interpolator creation time, while the ROI support is handled inside the 
- * AffineNoDataOpImage.
+ * AffineDataOpImage.
  *
  * <p><table border=1>
  * <caption>Resource List</caption>
@@ -247,9 +247,9 @@ class AffinePropertyGenerator extends PropertyGeneratorImpl {
  * @see javax.media.jai.OperationDescriptor
  */
 @SuppressWarnings("serial")
-public class AffineNoDataDescriptor extends OperationDescriptorImpl {
+public class AffineDataDescriptor extends OperationDescriptorImpl {
     
-    private final static Logger LOGGER = Logger.getLogger(AffineNoDataDescriptor.class.toString());
+    private final static Logger LOGGER = Logger.getLogger(AffineDataDescriptor.class.toString());
     
 
     /**
@@ -292,7 +292,7 @@ public class AffineNoDataDescriptor extends OperationDescriptorImpl {
 
 
     /** Constructor. */
-    public AffineNoDataDescriptor() {
+    public AffineDataDescriptor() {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
     }
 

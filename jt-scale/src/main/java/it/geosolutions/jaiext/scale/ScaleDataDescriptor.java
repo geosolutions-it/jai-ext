@@ -160,7 +160,7 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
 	            
 	            InterpolationBilinearNew interpBilinear=new InterpolationBilinearNew(interpolator.getSubsampleBitsH(), null, false, 0, interpolator.getDataType());	                    
 	            
-	            roiImage = new ScaleNoDataOpImage(constantImage, null,scalingHints,extender, interpBilinear,sx, sy, tx, ty,  false);
+	            roiImage = new ScaleDataOpImage(constantImage, null,scalingHints,extender, interpBilinear,sx, sy, tx, ty,  false);
 	            
 //	            roiImage = new ScaleBilinearOpImage(constantImage, extender, scalingHints, layout, sx, sy, tx, ty, interp, false);
 	            
@@ -304,7 +304,7 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
  * of the classic interpolation method: InterpolationNearestNew, InterpolationBilinearNew,
  * InterpolationBicubicNew. The No Data Range used must be defined inside the interpolator,
  * at the interpolator creation time, while the ROI support is handled inside the 
- * ScaleNoDataOpImage.
+ * ScaleDataOpImage.
  * 
  *
  * <p><table border=1>
@@ -348,9 +348,9 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
  * @see javax.media.jai.OperationDescriptor
  */
 
-public class ScaleNoDataDescriptor extends OperationDescriptorImpl {
+public class ScaleDataDescriptor extends OperationDescriptorImpl {
     
-    private final static Logger LOGGER = Logger.getLogger(ScaleNoDataDescriptor.class.toString());
+    private final static Logger LOGGER = Logger.getLogger(ScaleDataDescriptor.class.toString());
 
     /**
      * The resource strings that provide the general documentation
@@ -393,7 +393,7 @@ public class ScaleNoDataDescriptor extends OperationDescriptorImpl {
     };
 
     /** Constructor. */
-    public ScaleNoDataDescriptor() {
+    public ScaleDataDescriptor() {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
     }
 

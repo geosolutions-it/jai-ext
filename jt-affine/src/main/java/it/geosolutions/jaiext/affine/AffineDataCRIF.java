@@ -14,7 +14,7 @@ package it.geosolutions.jaiext.affine;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
 import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
-import it.geosolutions.jaiext.scale.ScaleNoDataOpImage;
+import it.geosolutions.jaiext.scale.ScaleDataOpImage;
 import it.geosolutions.jaiext.utilities.ImageUtilities;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -40,12 +40,12 @@ import com.sun.media.jai.opimage.TranslateIntOpImage;
  * @since EA4
  * @see AffineOpimage, ScaleOpImage
  */
-public class AffineNoDataCRIF extends CRIFImpl {
+public class AffineDataCRIF extends CRIFImpl {
 
     private static final float TOLERANCE = 0.01F;
 
     /** Constructor. */
-    public AffineNoDataCRIF() {
+    public AffineDataCRIF() {
         super("affine");
     }
 
@@ -161,22 +161,22 @@ public class AffineNoDataCRIF extends CRIFImpl {
 
                 InterpolationNearestNew interpN = (InterpolationNearestNew) interp;
 
-                return new ScaleNoDataOpImage(source, layout, renderHints, extender, interpN,
+                return new ScaleDataOpImage(source, layout, renderHints, extender, interpN,
                         (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
 
             } else if (interp instanceof InterpolationBilinearNew) {
 
                 InterpolationBilinearNew interpB = (InterpolationBilinearNew) interp;
 
-                return new ScaleNoDataOpImage(source, layout, renderHints, extender, interpB,
+                return new ScaleDataOpImage(source, layout, renderHints, extender, interpB,
                         (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
             } else if (interp instanceof InterpolationBicubicNew) {
                 InterpolationBicubicNew interpBN = (InterpolationBicubicNew) interp;
 
-                return new ScaleNoDataOpImage(source, layout, renderHints, extender, interpBN,
+                return new ScaleDataOpImage(source, layout, renderHints, extender, interpBN,
                         (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
             } else {
-                return new ScaleNoDataOpImage(source, layout, renderHints, extender, interp,
+                return new ScaleDataOpImage(source, layout, renderHints, extender, interp,
                         (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
             }
         }
@@ -186,24 +186,24 @@ public class AffineNoDataCRIF extends CRIFImpl {
 
             InterpolationNearestNew interpN = (InterpolationNearestNew) interp;
 
-            return new AffineNoDataOpImage(source, extender, renderHints, layout, transform,
+            return new AffineDataOpImage(source, extender, renderHints, layout, transform,
                     interpN, useROIAccessor, setDestinationNoData);
 
         } else if (interp instanceof InterpolationBilinearNew) {
 
             InterpolationBilinearNew interpB = (InterpolationBilinearNew) interp;
 
-            return new AffineNoDataOpImage(source, extender, renderHints, layout, transform,
+            return new AffineDataOpImage(source, extender, renderHints, layout, transform,
                     interpB, useROIAccessor, setDestinationNoData);
 
         } else if (interp instanceof InterpolationBicubicNew) {
 
             InterpolationBicubicNew interpBN = (InterpolationBicubicNew) interp;
 
-            return new AffineNoDataOpImage(source, extender, renderHints, layout, transform,
+            return new AffineDataOpImage(source, extender, renderHints, layout, transform,
                     interpBN, useROIAccessor, setDestinationNoData);
         } else {
-            return new AffineNoDataOpImage(source, extender, renderHints, layout, transform,
+            return new AffineDataOpImage(source, extender, renderHints, layout, transform,
                     interp, backgroundValues, setDestinationNoData);
         }
 

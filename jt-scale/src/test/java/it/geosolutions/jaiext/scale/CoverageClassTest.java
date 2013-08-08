@@ -4,7 +4,7 @@ import static org.junit.Assert.*;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
 import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
-import it.geosolutions.jaiext.scale.ScaleNoDataDescriptor;
+import it.geosolutions.jaiext.scale.ScaleDataDescriptor;
 import it.geosolutions.jaiext.scale.ScalePropertyGenerator;
 
 import java.awt.Rectangle;
@@ -21,16 +21,16 @@ import org.junit.Test;
 
 /**
  * This test-class extends the TestScale class and is used for extending the code-coverage of the project. In this test-class
- * are checked the getProperty() method of the ScaleNoDataDescriptor class and the capability of the ScaleNoDataCRIF.create() 
+ * are checked the getProperty() method of the ScaleDataDescriptor class and the capability of the ScaleDataCRIF.create() 
  * method to call the TranslateIntOpImage class or the CopyOpImage class when the requested operation is simply a translation
  * or a copy of the source image without ROI object. 
  */
 public class CoverageClassTest extends TestScale {
 
-    // this test-case is used for testing the getProperty() method of the ScaleNoDataDescriptor class
+    // this test-case is used for testing the getProperty() method of the ScaleDataDescriptor class
     @Test
     public void testROIProperty() {
-        ScaleNoDataDescriptor descriptor = new ScaleNoDataDescriptor();
+        ScaleDataDescriptor descriptor = new ScaleDataDescriptor();
         ScalePropertyGenerator propertyGenerator = (ScalePropertyGenerator) descriptor
                 .getPropertyGenerators()[0];
 
@@ -64,13 +64,13 @@ public class CoverageClassTest extends TestScale {
         RenderedOp testIMG = NullDescriptor.create(testImg, null);
 
         // Scaled images
-        RenderedImage scaleImgNear = ScaleNoDataDescriptor.create(testIMG, scaleX, scaleY, transX,
+        RenderedImage scaleImgNear = ScaleDataDescriptor.create(testIMG, scaleX, scaleY, transX,
                 transY, interpNear, roi, useROIAccessor, null);
 
-        RenderedImage scaleImgBil = ScaleNoDataDescriptor.create(testIMG, scaleX, scaleY, transX,
+        RenderedImage scaleImgBil = ScaleDataDescriptor.create(testIMG, scaleX, scaleY, transX,
                 transY, interpBil, roi, useROIAccessor, null);
 
-        RenderedImage scaleImgBic = ScaleNoDataDescriptor.create(testIMG, scaleX, scaleY, transX,
+        RenderedImage scaleImgBic = ScaleDataDescriptor.create(testIMG, scaleX, scaleY, transX,
                 transY, interpBic, roi, useROIAccessor, null);
 
         scaleImgNear.getTile(0, 0);
@@ -99,8 +99,8 @@ public class CoverageClassTest extends TestScale {
         int roiBilWidth = roiBil.getBounds().width;
         int roiBilHeighth = roiBil.getBounds().height;
 
-        int roiBicWidth = roiBic.getBounds().width + interpBic.getRightPadding();
-        int roiBicHeight = roiBic.getBounds().height + interpBic.getBottomPadding();
+        int roiBicWidth = roiBic.getBounds().width ;
+        int roiBicHeight = roiBic.getBounds().height;
 
         // Nearest
         assertEquals((int) (roiWidth * scaleX), roiNearWidth);
@@ -136,7 +136,7 @@ public class CoverageClassTest extends TestScale {
                 false);
 
         // Scaled images
-        PlanarImage scaleImgNear = ScaleNoDataDescriptor.create(testIMG, xScale, yScale, xTrans,
+        PlanarImage scaleImgNear = ScaleDataDescriptor.create(testIMG, xScale, yScale, xTrans,
                 yTrans, interpNear, null, useROIAccessor, null);
         scaleImgNear.getTiles();
         
@@ -174,7 +174,7 @@ public class CoverageClassTest extends TestScale {
                 false);
 
         // Scaled images
-        PlanarImage scaleImgNear = ScaleNoDataDescriptor.create(testIMG, xScale, yScale, xTrans,
+        PlanarImage scaleImgNear = ScaleDataDescriptor.create(testIMG, xScale, yScale, xTrans,
                 yTrans, interpNear, null, useROIAccessor, null);
         scaleImgNear.getTiles();
         

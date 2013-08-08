@@ -2,10 +2,10 @@
 # Image descriptors
 #
 
-descriptor  it.geosolutions.jaiext.mosaic.MosaicNoDataDescriptor
+descriptor  it.geosolutions.jaiext.mosaic.MosaicDataDescriptor
 
 #
 # RenderedImageFactories
 #
 
-rendered  it.geosolutions.jaiext.mosaic.MosaicNoDataRIF  it.geosolutions.opimage.mosaic  MosaicNoData MosaicNoData 
+rendered  it.geosolutions.jaiext.mosaic.MosaicDataRIF  it.geosolutions.opimage.mosaic  MosaicNoData MosaicNoData 

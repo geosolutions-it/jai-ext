@@ -83,7 +83,7 @@ import com.sun.media.jai.opimage.MosaicOpImage;
  * 
  * @see MosaicOpImage
  */
-public class MosaicNoDataDescriptor extends OperationDescriptorImpl {
+public class MosaicDataDescriptor extends OperationDescriptorImpl {
 
 /** serialVersionUID */
 private static final long serialVersionUID = 2718297230579888333L;
@@ -132,7 +132,7 @@ private static final Object[] paramDefaults = { null, MOSAIC_TYPE_OVERLAY,
         new Number[] { 0.0 } };
 
 /** Constructor. */
-public MosaicNoDataDescriptor() {
+public MosaicDataDescriptor() {
     super(resources, new String[] { RenderedRegistryMode.MODE_NAME }, 0,
             paramNames, paramClasses, paramDefaults, null);
 }

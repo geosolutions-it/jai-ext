@@ -31,15 +31,15 @@ import com.sun.media.jai.util.ImageUtil;
 
 /**
  * This class takes an array of <code>RenderedImage</code> and creates a mosaic of them. If the image pixels are No Data values, they are not
- * calculated and the MosaicNoDataOpImage searches for the pixels of the other source images in the same location. If all the pixels in the same
+ * calculated and the MosaicDataOpImage searches for the pixels of the other source images in the same location. If all the pixels in the same
  * location are No Data, the destination image pixel will be a destination No Data value. This feature is combined with the ROI support and alpha
- * channel support(leaved unchanged). No Data support has been added both in the BLEND and OVERLAY mosaic type. The MosaicNoDataOpImage behavior is
+ * channel support(leaved unchanged). No Data support has been added both in the BLEND and OVERLAY mosaic type. The MosaicDataOpImage behavior is
  * equal to that of the old MosaicOpImage, the only difference is the No Data support. The input values of the first one are different because a Java
  * Bean is used for storing all of them in a unique block instead of different variables as the second one. This Java Bean is described in the
  * ImageMosaicBean class. Inside this class, other Java Beans are used for simplifying the image data transport between the various method.
  */
 //@SuppressWarnings("unchecked")
-public class MosaicNoDataOpImage extends OpImage {
+public class MosaicDataOpImage extends OpImage {
     /**
      * Default value for the destination image if every pixel in the same location is a no data
      */
@@ -75,6 +75,12 @@ public class MosaicNoDataOpImage extends OpImage {
      * No data values for the destination image if the pixel of the same location are no Data
      */
     private Number[] destinationNoData;
+    
+    private boolean[] isRangeNaN;
+    
+    private boolean[] isPositiveInf;
+    
+    private boolean[] isNegativeInf;
 
     /** Enumerator for the type of mosaic weigher */
     public enum WeightType {
@@ -204,7 +210,7 @@ public class MosaicNoDataOpImage extends OpImage {
     /**
      * This constructor takes the source images, the layout, the rendering hints, and the parameters and initialize variables.
      */
-    public MosaicNoDataOpImage(List sources, ImageLayout layout, Map renderingHints,
+    public MosaicDataOpImage(List sources, ImageLayout layout, Map renderingHints,
             ImageMosaicBean[] images, MosaicType mosaicTypeSelected, Number[] destinationNoData) {
         // OpImage constructor
         super((Vector) sources, checkLayout(sources, layout), renderingHints, true);
@@ -215,40 +221,6 @@ public class MosaicNoDataOpImage extends OpImage {
         // Type of data used for every image
         int dataType = sampleModel.getDataType();
 
-        // for (int i = 0; i < images.length; i++) {
-        // if (images[i].getSourceNoData() == null) {
-        // // If there is no data range inside an Image Bean, it is
-        // // automatically added to it
-        // switch (dataType) {
-        // case DataBuffer.TYPE_BYTE:
-        // images[i].setSourceNoData(new Range<Byte>(Byte.MIN_VALUE, true, Byte.MIN_VALUE,
-        // true));
-        // break;
-        // case DataBuffer.TYPE_USHORT:
-        // images[i].setSourceNoData(new Range<Short>((short) 0, true, (short) 0, true));
-        // break;
-        // case DataBuffer.TYPE_SHORT:
-        // images[i].setSourceNoData(new Range<Short>(Short.MIN_VALUE, true,
-        // Short.MIN_VALUE, true));
-        // break;
-        // case DataBuffer.TYPE_INT:
-        // images[i].setSourceNoData(new Range<Integer>(Integer.MIN_VALUE, true,
-        // Integer.MIN_VALUE, true));
-        // break;
-        // case DataBuffer.TYPE_FLOAT:
-        // images[i].setSourceNoData(new Range<Float>(Float.MIN_VALUE, true,
-        // Float.MIN_VALUE, true));
-        // break;
-        // case DataBuffer.TYPE_DOUBLE:
-        // images[i].setSourceNoData(new Range<Double>(Double.MIN_VALUE, true,
-        // Double.MIN_VALUE, true));
-        // break;
-        // default:
-        //
-        // }
-        // }
-        // }
-
         // Stores the data passed by the parameterBlock
         this.numBands = sampleModel.getNumBands();
         int numSources = getNumSources();
@@ -257,6 +229,28 @@ public class MosaicNoDataOpImage extends OpImage {
         this.roiPresent = false;
         this.alphaPresent = false;
 
+        //Control on the eventual noDataRange if it has NaN, Positive Infinity or Negative Infinity as NoData
+        
+        isRangeNaN = new boolean[numSources];
+        isPositiveInf = new boolean[numSources];
+        isNegativeInf = new boolean[numSources];
+        for(int j = 0; j < numSources;j++){
+        	
+        	Range noDataRange=imageBeans[j].getSourceNoData();
+        	
+        	if(noDataRange!=null && (dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)){
+            	// If the range goes from -Inf to Inf No Data is NaN
+            	if(!noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinNegInf()){
+            		isRangeNaN[j]=true;
+            	// If the range is a positive infinite point isPositiveInf flag is set
+            	}else if(noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinInf()){
+            		isPositiveInf[j]=true;
+            	// If the range is a negative infinite point isNegativeInf flag is set
+            	}else if(noDataRange.isPoint() && noDataRange.isMaxNegInf() && noDataRange.isMinNegInf()){
+            		isNegativeInf[j]=true;
+            	}
+            }
+        }
         // This list contains the aplha channel for every source image (if present)
         List<PlanarImage> alphaList = new ArrayList<PlanarImage>();
 
@@ -912,18 +906,46 @@ public class MosaicNoDataOpImage extends OpImage {
                                 }
                                 break;
                             case DataBuffer.TYPE_FLOAT:
-                                Range<Float> noDataRangeFloat = ((Range<Float>) srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                if (noDataRangeFloat != null) {
-                                    isData = !noDataRangeFloat.contains(sourceValueFloat);
-                                }
+                            	//Addition of the control for NaN, Positive or Negative Infinity values in the No Data Range
+                            	if(isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]){
+                            		//If the value is NaN then isData = false
+                            		if(isRangeNaN[s]){
+                            			isData = !Float.isNaN(sourceValueFloat);
+                            		//If the value is Positive Infinity then isData = false
+                            		}else if(isPositiveInf[s]){
+                            			isData = !(sourceValueFloat==Float.POSITIVE_INFINITY);
+                            		//If the value is Negative Infinity then isData = false
+                            		}else if(isNegativeInf[s]){
+                            			isData = !(sourceValueFloat==Float.NEGATIVE_INFINITY);
+                            		}
+                            	}else{
+                                    Range<Float> noDataRangeFloat = ((Range<Float>) srcBean[s]
+                                            .getSourceNoDataRangeRasterAccessor());
+                                    if (noDataRangeFloat != null) {
+                                        isData = !noDataRangeFloat.contains(sourceValueFloat);
+                                    }
+                            	}
                                 break;
-                            case DataBuffer.TYPE_DOUBLE:
-                                Range<Double> noDataRangeDouble = ((Range<Double>) srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                if (noDataRangeDouble != null) {
-                                    isData = !noDataRangeDouble.contains(sourceValueDouble);
-                                }
+                            case DataBuffer.TYPE_DOUBLE:                            	
+                            	//Addition of the control for NaN, Positive or Negative Infinity values in the No Data Range
+                            	if(isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]){
+                            		//If the value is NaN then isData = false
+                            		if(isRangeNaN[s]){
+                            			isData = !Double.isNaN(sourceValueDouble);
+                            		//If the value is Positive Infinity then isData = false
+                            		}else if(isPositiveInf[s]){
+                            			isData = !(sourceValueDouble==Double.POSITIVE_INFINITY);
+                            		//If the value is Negative Infinity then isData = false
+                            		}else if(isNegativeInf[s]){
+                            			isData = !(sourceValueDouble==Double.NEGATIVE_INFINITY);
+                            		}
+                            	}else{
+                                    Range<Double> noDataRangeDouble = ((Range<Double>) srcBean[s]
+                                            .getSourceNoDataRangeRasterAccessor());
+                                    if (noDataRangeDouble != null) {
+                                        isData = !noDataRangeDouble.contains(sourceValueDouble);
+                                    }
+                            	}
                                 break;
                             }
 
@@ -1143,20 +1165,46 @@ public class MosaicNoDataOpImage extends OpImage {
                                 }
                                 break;
                             case DataBuffer.TYPE_FLOAT:
-
-                                Range<Float> noDataRangeFloat = ((Range<Float>) srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                if (noDataRangeFloat != null) {
-                                    isData = !noDataRangeFloat.contains(sourceValueFloat);
-                                }
+                            	//Addition of the control for NaN, Positive or Negative Infinity values in the No Data Range
+                            	if(isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]){
+                            		//If the value is NaN then isData = false
+                            		if(isRangeNaN[s]){
+                            			isData = !Float.isNaN(sourceValueFloat);
+                            		//If the value is Positive Infinity then isData = false
+                            		}else if(isPositiveInf[s]){
+                            			isData = !(sourceValueFloat==Float.POSITIVE_INFINITY);
+                            		//If the value is Negative Infinity then isData = false
+                            		}else if(isNegativeInf[s]){
+                            			isData = !(sourceValueFloat==Float.NEGATIVE_INFINITY);
+                            		}
+                            	}else{
+                                    Range<Float> noDataRangeFloat = ((Range<Float>) srcBean[s]
+                                            .getSourceNoDataRangeRasterAccessor());
+                                    if (noDataRangeFloat != null) {
+                                        isData = !noDataRangeFloat.contains(sourceValueFloat);
+                                    }
+                            	}
                                 break;
                             case DataBuffer.TYPE_DOUBLE:
-
-                                Range<Double> noDataRangeDouble = ((Range<Double>) srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                if (noDataRangeDouble != null) {
-                                    isData = !noDataRangeDouble.contains(sourceValueDouble);
-                                }
+                            	//Addition of the control for NaN, Positive or Negative Infinity values in the No Data Range
+                            	if(isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]){
+                            		//If the value is NaN then isData = false
+                            		if(isRangeNaN[s]){
+                            			isData = !Double.isNaN(sourceValueDouble);
+                            		//If the value is Positive Infinity then isData = false
+                            		}else if(isPositiveInf[s]){
+                            			isData = !(sourceValueDouble==Double.POSITIVE_INFINITY);
+                            		//If the value is Negative Infinity then isData = false
+                            		}else if(isNegativeInf[s]){
+                            			isData = !(sourceValueDouble==Double.NEGATIVE_INFINITY);
+                            		}
+                            	}else{
+                                    Range<Double> noDataRangeDouble = ((Range<Double>) srcBean[s]
+                                            .getSourceNoDataRangeRasterAccessor());
+                                    if (noDataRangeDouble != null) {
+                                        isData = !noDataRangeDouble.contains(sourceValueDouble);
+                                    }
+                            	}
                                 break;
                             }
 
@@ -1243,10 +1291,14 @@ public class MosaicNoDataOpImage extends OpImage {
                                 numerator += (weight * (sourceValueInt));
                                 break;
                             case DataBuffer.TYPE_FLOAT:
-                                numerator += (weight * (sourceValueFloat));
+                            	if(!((isNegativeInf[s] || isPositiveInf[s] || isRangeNaN[s]) && weight ==0)){
+                            		numerator += (weight * (sourceValueFloat));
+                            	}
                                 break;
                             case DataBuffer.TYPE_DOUBLE:
-                                numerator += (weight * (sourceValueDouble));
+                            	if(!((isNegativeInf[s] || isPositiveInf[s] || isRangeNaN[s]) && weight ==0)){
+                            		numerator += (weight * (sourceValueDouble));
+                            	}
                                 break;
                             }
 

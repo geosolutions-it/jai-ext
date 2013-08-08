@@ -23,7 +23,11 @@ public class BicubicScaleTest extends TestScale{
               
         
         testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
-                ,roiPresent,InterpolationType.BICUBIC_INTERP, TestSelection.NO_ROI_ONLY_DATA);
+                ,roiPresent,InterpolationType.BICUBIC_INTERP, TestSelection.NO_ROI_ONLY_DATA,ScaleType.MAGNIFY);
+        
+        testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
+                ,roiPresent,InterpolationType.BICUBIC_INTERP, TestSelection.NO_ROI_ONLY_DATA,ScaleType.REDUCTION);
+        
     }
 
     @Test
@@ -36,7 +40,11 @@ public class BicubicScaleTest extends TestScale{
         boolean useROIAccessor=true;
               
         testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
-                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.ROI_ACCESSOR_ONLY_DATA);
+                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.ROI_ACCESSOR_ONLY_DATA,ScaleType.MAGNIFY);
+        
+        testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
+                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.ROI_ACCESSOR_ONLY_DATA,ScaleType.REDUCTION);
+        
     }
 
     @Test
@@ -49,7 +57,10 @@ public class BicubicScaleTest extends TestScale{
         boolean useROIAccessor=false;
               
         testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
-                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.ROI_ONLY_DATA);
+                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.ROI_ONLY_DATA,ScaleType.MAGNIFY);
+        
+        testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
+                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.ROI_ONLY_DATA,ScaleType.REDUCTION);
     }
     
     @Test
@@ -63,7 +74,11 @@ public class BicubicScaleTest extends TestScale{
               
         
         testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
-                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.ROI_ACCESSOR_NO_DATA);
+                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.ROI_ACCESSOR_NO_DATA,ScaleType.MAGNIFY);
+        
+        testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
+                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
+        
     }
     
     @Test
@@ -75,7 +90,11 @@ public class BicubicScaleTest extends TestScale{
         boolean useROIAccessor=true;
                       
         testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
-                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA);
+                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.MAGNIFY);
+        
+        testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
+                ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
+        
     }
 
 }

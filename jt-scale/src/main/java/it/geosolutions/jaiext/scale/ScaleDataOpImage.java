@@ -17,9 +17,13 @@ import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Map;
+
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
+import javax.media.jai.InterpolationBicubic;
+import javax.media.jai.InterpolationBicubic2;
+import javax.media.jai.InterpolationBilinear;
 import javax.media.jai.InterpolationTable;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
@@ -37,105 +41,49 @@ import com.sun.media.jai.util.Rational;
  */
 
 // @SuppressWarnings("unchecked")
-public class ScaleNoDataOpImage extends ScaleOpImage {
+public class ScaleDataOpImage extends ScaleOpImage {
 
-    /** Inverse scale value X */
-    long invScaleXInt;
 
-    /** Inverse scale fractional value X */
-    long invScaleXFrac;
-
-    /** Inverse scale value Y */
-    long invScaleYInt;
-
-    /** Inverse scale fractional value Y */
-    long invScaleYFrac;
-
-    /** Interpolator provided to the Scale operator */
-    private Interpolation interpolator = null;
-
-    /** Nearest-Neighbor interpolator */
-    private InterpolationNearestNew interpN = null;
-
-    /** Bilinear interpolator */
-    private InterpolationBilinearNew interpB = null;
-
-    /** Bicubic interpolator */
-    private InterpolationBicubicNew interpBN = null;
-
-    /** Boolean for checking if the image is binary or not */
-    private boolean isBinary;
-
-    /** Subsample bits used for binary and bicubic interpolation */
-    private int subsampleBits;
-
-    /** Value used for calculating the fractional part of the y position */
-    private int one;
-
-    /** Interpolation kernel width */
-    private int interp_width;
-
-    /** Interpolation kernel heigth */
-    private int interp_height;
-
-    /** Interpolation kernel left padding */
-    private int interp_left;
-
-    /** Interpolation kernel top padding */
-    private int interp_top;
-
-    /** Value used for calculating the bilinear interpolation */
-    private int shift2;
-
-    /** The value of 0.5 scaled by 2^subsampleBits */
-    private int round2;
-
-    /** Precision bits used for bicubic interpolation */
-    private int precisionBits;
-
-    /** The value of 0.5 scaled by 2^precisionBits */
-    private int round;
-
-    /** Image dataType */
-    private int dataType;
 
     // Simple constructor used for interpolators different from InterpolationNearest2, InterpolationBilinear2, InterpolationBicubicNew
-    public ScaleNoDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+    public ScaleDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
 
         super(source, layout, configuration, true, extender, interp, scaleX, scaleY, transX,
-                transY, useRoiAccessor);
-        scaleOpInitialization(source, interp);
+                transY, useRoiAccessor);     
+        scaleOpInitialization(source,interp);
     }
 
-    public ScaleNoDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+    public ScaleDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, InterpolationNearestNew interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
 
         super(source, layout, configuration, true, extender, interp.getInterpNearest(), scaleX,
-                scaleY, transX, transY, useRoiAccessor);
-        scaleOpInitialization(source, interp);
+                scaleY, transX, transY, useRoiAccessor);  
+        scaleOpInitialization(source,interp);
     }
 
-    public ScaleNoDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+    public ScaleDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, InterpolationBilinearNew interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
 
         super(source, layout, configuration, true, extender, interp.getInterpBilinear(), scaleX,
                 scaleY, transX, transY, useRoiAccessor);
-        scaleOpInitialization(source, interp);
+        scaleOpInitialization(source,interp);
     }
 
-    public ScaleNoDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+    public ScaleDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, InterpolationBicubicNew interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
 
         super(source, layout, configuration, true, extender, interp.getInterpBiCubic(), scaleX,
                 scaleY, transX, transY, useRoiAccessor);
-        scaleOpInitialization(source, interp);
+        scaleOpInitialization(source,interp);
     }
 
+
+    
     private void scaleOpInitialization(RenderedImage source, Interpolation interp) {
         // If the source has an IndexColorModel, override the default setting
         // in OpImage. The dest shall have exactly the same SampleModel and
@@ -168,15 +116,75 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
         // Interpolator settings
         interpolator = interp;
 
-        if (interpolator instanceof InterpolationNearestNew) {
+        if (interpolator instanceof InterpolationNearestNew) {            
             interpN = (InterpolationNearestNew) interpolator;
+            this.interp=interpN.getInterpNearest();
             interpN.setROIdata(roiBounds, roiIter);
+            noData = interpN.getNoDataRange();
+            if (noData != null) {
+                hasNoData = true;
+                destinationNoDataDouble = interpN.getDestinationNoData();
+                if ((dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)) {
+                    // If the range goes from -Inf to Inf No Data is NaN
+                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
+                        isRangeNaN = true;
+                        // If the range is a positive infinite point isPositiveInf flag is set
+                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
+                        isPositiveInf = true;
+                        // If the range is a negative infinite point isNegativeInf flag is set
+                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
+                        isNegativeInf = true;
+                    }
+                }
+            } else if (hasROI) {
+                destinationNoDataDouble = interpN.getDestinationNoData();
+            }
         } else if (interpolator instanceof InterpolationBilinearNew) {
             interpB = (InterpolationBilinearNew) interpolator;
+            this.interp=interpB.getInterpBilinear();
             interpB.setROIdata(roiBounds, roiIter);
+            noData = interpB.getNoDataRange();
+            if (noData != null) {
+                hasNoData = true;
+                destinationNoDataDouble = interpB.getDestinationNoData();
+                if ((dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)) {
+                    // If the range goes from -Inf to Inf No Data is NaN
+                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
+                        isRangeNaN = true;
+                        // If the range is a positive infinite point isPositiveInf flag is set
+                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
+                        isPositiveInf = true;
+                        // If the range is a negative infinite point isNegativeInf flag is set
+                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
+                        isNegativeInf = true;
+                    }
+                }
+            } else if (hasROI) {
+                destinationNoDataDouble = interpB.getDestinationNoData();
+            }
         } else if (interpolator instanceof InterpolationBicubicNew) {
             interpBN = (InterpolationBicubicNew) interpolator;
+            this.interp=interpBN.getInterpBiCubic();
             interpBN.setROIdata(roiBounds, roiIter);
+            noData = interpBN.getNoDataRange();
+            if (noData != null) {
+                hasNoData = true;
+                destinationNoDataDouble = interpBN.getDestinationNoData();
+                if ((dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)) {
+                    // If the range goes from -Inf to Inf No Data is NaN
+                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
+                        isRangeNaN = true;
+                        // If the range is a positive infinite point isPositiveInf flag is set
+                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
+                        isPositiveInf = true;
+                        // If the range is a negative infinite point isNegativeInf flag is set
+                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
+                        isNegativeInf = true;
+                    }
+                }
+            } else if (hasROI) {
+                destinationNoDataDouble = interpBN.getDestinationNoData();
+            }
         }
 
         // subsample bits used for the bilinear and bicubic interpolation
@@ -209,6 +217,29 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
 
         SampleModel sm = source.getSampleModel();
 
+        // Selection of the destination No Data
+        switch (sm.getDataType()) {
+        case DataBuffer.TYPE_BYTE:
+            destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
+            break;
+        case DataBuffer.TYPE_USHORT:
+            destinationNoDataUShort = (short) (((short) destinationNoDataDouble) & 0xffff);
+            break;
+        case DataBuffer.TYPE_SHORT:
+            destinationNoDataShort = (short) destinationNoDataDouble;
+            break;
+        case DataBuffer.TYPE_INT:
+            destinationNoDataInt = (int) destinationNoDataDouble;
+            break;
+        case DataBuffer.TYPE_FLOAT:
+            destinationNoDataFloat = (float) destinationNoDataDouble;
+            break;
+        case DataBuffer.TYPE_DOUBLE:
+            break;
+        default:
+            throw new IllegalArgumentException("Wrong data Type");
+        }
+
         // Special case -- if the image is represented using
         // a MultiPixelPackedSampleModel and a byte, ushort,
         // or int DataBuffer we can access the pixel data directly.
@@ -224,7 +255,7 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
                         || sm.getDataType() == DataBuffer.TYPE_USHORT || sm.getDataType() == DataBuffer.TYPE_INT);
 
     }
-
+    
     /** This method executes the scale operation on a selected region of the image */
     protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
         computeRect(sources, dest, destRect, null);
@@ -236,7 +267,7 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
         // Retrieve format tags.
         RasterFormatTag[] formatTags = getFormatTags();
         // Only one source raster is used
-        Raster source = sources[0];
+        Raster source = sources[0]; 
 
         // Get the source rectangle
         Rectangle srcRect = source.getBounds();
@@ -294,14 +325,14 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
         // This methods differs only for the presence of the roi or if the image is a binary one
         if (isBinary) {
             computeLoopBynary(srcAccessor, source, dest, destRect, xpos, ypos,yposRoi, xfracvalues,
-                    yfracvalues,roi,yposRoi);
+                    yfracvalues,roi,yposRoi,srcRect.x, srcRect.y);
         } else {
             if (rois != null) {
                 computeLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracvalues,
                         yfracvalues, roiAccessor, yposRoi);
             } else {
                 computeLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracvalues,
-                        yfracvalues);
+                        yfracvalues,null,null);
             }
         }
 
@@ -336,7 +367,10 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
         syNum *= invScaleYRationalNum;
         syDenom *= invScaleYRationalDenom;
 
-        if(interpBN!=null|| interpB!=null){
+        if(interpBN!=null|| interpB!=null
+        		|| interpolator instanceof InterpolationBilinear 
+        		|| interpolator instanceof InterpolationBicubic
+        		|| interpolator instanceof InterpolationBicubic2){
             // Subtract 0.5
             syNum = 2 * syNum - syDenom;
             syDenom *= 2;
@@ -374,7 +408,10 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
 
         
         
-        if(interpBN!=null|| interpB!=null){
+        if(interpBN!=null|| interpB!=null 
+        		|| interpolator instanceof InterpolationBilinear 
+        		|| interpolator instanceof InterpolationBicubic
+        		|| interpolator instanceof InterpolationBicubic2){
         // Subtract 0.5
         sxNum = 2 * sxNum - sxDenom;
         sxDenom *= 2;
@@ -470,12 +507,6 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
                 srcYFrac -= commonYDenom;
             }
         }
-    }
-
-    // Method for calculating the destination pixels without using the roiAccessor
-    private void computeLoop(RasterAccessor src, Rectangle dstRect, RasterAccessor dst, int[] xpos,
-            int[] ypos, Number[] xfracvalues, Number[] yfracvalues) {
-        computeLoop(src, dstRect, dst, xpos, ypos, xfracvalues, yfracvalues, null, null);
     }
 
     // Method for calculating the destination pixels without using the roiAccessor
@@ -606,12 +637,10 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
 
                     if (interpBN != null) {
                         // Bicubic/Bicubic2 interpolation(must be set at the interpolator creation)
-                        s = interpBN.interpolate(src, k, dnumBands, posx, posy, fracValues,
-                                posyROI, roi, false);
+                        s = interpBN.interpolate(src, k, dnumBands, posx, posy, fracValues, posyROI, roi, false);
                     } else if (interpB != null) {
                         // Bilinear interpolation
-                        s = interpB.interpolate(src, k, dnumBands, posx, posy, fracValues, posyROI,
-                                roi, false);
+                        s = interpB.interpolate(src, k, dnumBands, posx, posy, fracValues, posyROI, roi, false);
                     } else if (interpN != null) {
                         // Nearest-Neighbor interpolation
                         s = interpN.interpolate(src, k, dnumBands, posx, posy, posyROI, roi, false);
@@ -716,7 +745,7 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
 
     private void computeLoopBynary(RasterAccessor src, Raster source, WritableRaster dest,
             Rectangle destRect, int xvalues[], int yvalues[], int yvaluesROI[],Number[] xfracvalues,
-            Number[] yfracvalues, Raster roi, int[] posYROI) {
+            Number[] yfracvalues, Raster roi, int[] posYROI,int srcRectX,int srcRectY) {
 
         int dx = destRect.x;
         int dy = destRect.y;
@@ -730,6 +759,7 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
         int sourceTransY = source.getSampleModelTranslateY();
         int sourceDataBitOffset = sourceSM.getDataBitOffset();
         int sourceScanlineStride = sourceSM.getScanlineStride();
+        int sourcePixelStride = sourceSM.getPixelBitStride();
 
         
         MultiPixelPackedSampleModel roiSM=null;
@@ -923,8 +953,8 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
                     xfrac = xfracvalues[i].intValue();
 
                     x = xvalues[i];
-                    coordinates[0] = src.getX() + x;
-                    coordinates[1] = src.getY() + y / sourceScanlineStride;
+                    coordinates[0] = src.getX() + (x-srcRectX)*sourcePixelStride;
+                    coordinates[1] = src.getY() + ((y-srcRectY)*sourceScanlineStride) / sourceScanlineStride;
 
                     xNextBitNo = sourceDataBitOffset + (x + 1 - sourceTransX);
 
@@ -974,7 +1004,7 @@ public class ScaleNoDataOpImage extends ScaleOpImage {
                             destDataS[destYOffset + destByteShortIntNum] &= (0xffff - (0x01 << destBitShift));
                             break;
                         case DataBuffer.TYPE_INT:
-                            destDataI[destYOffset + destByteShortIntNum] &= (0xff - (0x01 << destBitShift));
+                            destDataI[destYOffset + destByteShortIntNum] &= (0xffffffff - (0x01 << destBitShift));
                             break;
                         }
                     }

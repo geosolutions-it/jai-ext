@@ -2,10 +2,10 @@
 # Image descriptors
 #
 
-descriptor  it.geosolutions.jaiext.affine.AffineNoDataDescriptor
+descriptor  it.geosolutions.jaiext.affine.AffineDataDescriptor
 
 #
 # RenderedImageFactories
 #
 
-rendered  it.geosolutions.jaiext.affine.AffineNoDataCRIF  it.geosolutions.jaiext.roiaware  AffineNoData AffineNoData 
+rendered  it.geosolutions.jaiext.affine.AffineDataCRIF  it.geosolutions.jaiext.roiaware  AffineNoData AffineNoData 

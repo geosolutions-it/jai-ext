@@ -10,6 +10,7 @@ import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
+
 import javax.media.jai.BorderExtender;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
@@ -18,9 +19,12 @@ import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 import javax.media.jai.TiledImage;
 import javax.media.jai.iterator.RandomIter;
+
 import org.jaitools.numeric.Range;
 import org.junit.Test;
+
 import com.sun.media.jai.util.Rational;
+
 import junit.framework.TestCase;
 
 
@@ -539,59 +543,146 @@ public class InterpTest extends TestCase {
         int temp = 0;
         float tempf = 0;
         double tempd = 0;
-        // temporary sample variable
-        int value = 0;
-        float valuef = 0;
-        double valued = 0;
+        //Impainting for no Data Values 
+        //boolean array for evaluating if every weight line is composed by 0
+        boolean[] weight0 = new boolean[4];
+        // Array containg only 1 value, an array of all the 
+        for(int ii =0;ii<4;ii++){
+        	int[][] lineArray={weightArray[ii]};
+        	if(sumWeight(lineArray)==0){
+        		weight0[ii]=true;
+        	}else{
+        		weight0[ii]=false;
+        	}
+        }
+        long[] valueArray=null;
+        float[] valueArrayF=null;
+        double[] valueArrayD=null;
+        
+        int value_=0;
+        int value0=0;
+        int value1=0;
+        int value2=0;
+        
+        float value_f=0;
+        float value0f=0;
+        float value1f=0;
+        float value2f=0;
+        
+        double value_d=0;
+        double value0d=0;
+        double value1d=0;
+        double value2d=0;
         // Bicubic interpolation with interpolation table
 
         for (int k = 0; k < rowSum.length; k++) {
             rowSum[k] = 0;
             rowSumF[k] = 0;
             rowSumD[k] = 0;
+            
+            //Inpainting of the no data values by substituting them with the neighbor values  
+            switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+                value_ = pixelArray[k][0].byteValue() & 0xff;
+                value0 = pixelArray[k][1].byteValue() & 0xff;
+                value1 = pixelArray[k][2].byteValue() & 0xff;
+                value2 = pixelArray[k][3].byteValue() & 0xff;
+                valueArray=bicubicInpainting(value_, value0, value1, value2, weightArray[k], null);
+                break;
+            case DataBuffer.TYPE_USHORT:
+            	value_ = pixelArray[k][0].shortValue() & 0xffff;
+                value0 = pixelArray[k][1].shortValue() & 0xffff;
+                value1 = pixelArray[k][2].shortValue() & 0xffff;
+                value2 = pixelArray[k][3].shortValue() & 0xffff;
+                valueArray=bicubicInpainting(value_, value0, value1, value2, weightArray[k], null);
+                break;
+            case DataBuffer.TYPE_SHORT:
+            	value_ = pixelArray[k][0].shortValue();
+                value0 = pixelArray[k][1].shortValue();
+                value1 = pixelArray[k][2].shortValue();
+                value2 = pixelArray[k][3].shortValue();
+                valueArray=bicubicInpainting(value_, value0, value1, value2, weightArray[k], null);
+                break;
+            case DataBuffer.TYPE_INT:
+            	value_ = pixelArray[k][0].intValue();
+                value0 = pixelArray[k][1].intValue();
+                value1 = pixelArray[k][2].intValue();
+                value2 = pixelArray[k][3].intValue();
+                valueArray=bicubicInpainting(value_, value0, value1, value2, weightArray[k], null);
+                break;
+            case DataBuffer.TYPE_FLOAT:
+            	value_f = pixelArray[k][0].floatValue();
+                value0f = pixelArray[k][1].floatValue();
+                value1f = pixelArray[k][2].floatValue();
+                value2f = pixelArray[k][3].floatValue();
+                valueArrayF=bicubicInpaintingFloat(value_f, value0f, value1f, value2f, weightArray[k], null);
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+            	value_d = pixelArray[k][0].doubleValue();
+                value0d = pixelArray[k][1].doubleValue();
+                value1d = pixelArray[k][2].doubleValue();
+                value2d = pixelArray[k][3].doubleValue();
+                valueArrayD=bicubicInpaintingDouble(value_d, value0d, value1d, value2d, weightArray[k], null);
+                break;
+            }
+        
+
             for (int h = 0; h < rowSum.length; h++) {
                 switch (dataType) {
                 case DataBuffer.TYPE_BYTE:
-                    value = pixelArray[k][h].byteValue() & 0xff;
-                    rowSum[k] += (long) dataHi[offsetX + h] * value * ((long) weightArray[k][h]);
-                    break;
                 case DataBuffer.TYPE_USHORT:
-                    value = pixelArray[k][h].shortValue() & 0xffff;
-                    rowSum[k] += (long) dataHi[offsetX + h] * value * ((long) weightArray[k][h]);
-                    break;
                 case DataBuffer.TYPE_SHORT:
-                    value = pixelArray[k][h].shortValue();
-                    rowSum[k] += (long) dataHi[offsetX + h] * value * ((long) weightArray[k][h]);
-                    break;
                 case DataBuffer.TYPE_INT:
-                    value = pixelArray[k][h].intValue();
-                    rowSum[k] += (long) dataHi[offsetX + h] * value * ((long) weightArray[k][h]);
+                    rowSum[k] += dataHi[offsetX + h] * valueArray[h];
                     break;
                 case DataBuffer.TYPE_FLOAT:
-                    valuef = pixelArray[k][h].floatValue();
-                    rowSumF[k] += dataHf[offsetX + h] * valuef * (weightArray[k][h]);
+                    rowSumF[k] += dataHf[offsetX + h] * valueArrayF[h];
                     break;
                 case DataBuffer.TYPE_DOUBLE:
-                    valued = pixelArray[k][h].doubleValue();
-                    rowSumD[k] += dataHd[offsetX + h] * valued * (weightArray[k][h]);
+                    rowSumD[k] += dataHd[offsetX + h] * valueArrayD[h];
                     break;
                 }
             }
             // Rounding
             rowSum[k] = (rowSum[k] + round) >> precisionBits;
+
+        }
+
+        //Inpainting of the no data values by substituting them with the neighbor values        
+        long[] valueArrayV=null;  
+        float[] valueArrayVF=null;  
+        double[] valueArrayVD=null;  
+        
+        switch (dataType) {
+        case DataBuffer.TYPE_BYTE:
+        case DataBuffer.TYPE_USHORT:
+        case DataBuffer.TYPE_SHORT:
+        case DataBuffer.TYPE_INT:
+        	valueArrayV=bicubicInpainting(rowSum[0], rowSum[1], rowSum[2], rowSum[3], null,weight0);
+            break;
+        case DataBuffer.TYPE_FLOAT:
+        	valueArrayVF=bicubicInpaintingFloat(rowSumF[0], rowSumF[1], rowSumF[2], rowSumF[3], null,weight0);
+            break;
+        case DataBuffer.TYPE_DOUBLE:
+        	valueArrayVD=bicubicInpaintingDouble(rowSumD[0], rowSumD[1], rowSumD[2], rowSumD[3], null,weight0);
+            break;
+        }
+        
+        
+        for(int k=0;k<rowSum.length; k++){
             // Updating value
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
             case DataBuffer.TYPE_USHORT:
             case DataBuffer.TYPE_SHORT:
             case DataBuffer.TYPE_INT:
-                temp += (long) dataVi[offsetY + k] * rowSum[k];
+                temp += (long) dataVi[offsetY + k] * valueArrayV[k];
                 break;
             case DataBuffer.TYPE_FLOAT:
-                tempf += dataVf[offsetY + k] * rowSumF[k];
+                tempf += dataVf[offsetY + k] * valueArrayVF[k];
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                tempd += dataVd[offsetY + k] * rowSumD[k];
+                tempd += dataVd[offsetY + k] * valueArrayVD[k];
                 break;
             }
         }
@@ -638,6 +729,448 @@ public class InterpTest extends TestCase {
         return 0;
     }
 
+    
+    
+    //This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
+    private long[] bicubicInpainting(long s_, long s0, long s1, long s2, int[] weightArray, boolean[] weight0){
+    	if(weightArray == null){
+    		weightArray=new int[4];
+    		if(s_==0 && weight0[0]){
+    			weightArray[0]=0;
+    		}else{
+    			weightArray[0]=1;
+    		}
+    		if(s0==0 && weight0[1]){
+    			weightArray[1]=0;
+    		}else{
+    			weightArray[1]=1;
+    		}
+    		if(s1==0 && weight0[2]){
+    			weightArray[2]=0;
+    		}else{
+    			weightArray[2]=1;
+    		}
+    		if(s2==0 && weight0[3]){
+    			weightArray[3]=0;
+    		}else{
+    			weightArray[3]=1;
+    		}
+    	}
+    	
+    	int[][] array = {weightArray};
+    	//empty array containing the final values of the selected 4 pixels
+    	long[] emptyArray=new long[4];
+    	
+    	//Calculation of the number of data
+    	int sum = (int) sumWeight(array);
+    	// mean value used in calculations
+    	long meanValue=0;
+    	switch(sum){
+    	// All the 4 pixels are no data, an array of 0 data is returned
+    	case 0:
+    		return emptyArray;
+		// Only one pixel is a valid data, all the pixel of the line have the same value.
+    	case 1:
+    		long validData=0;
+    		if(weightArray[0]==1){
+    			validData=s_;
+    		}else if(weightArray[1]==1){
+    			validData=s0;
+    		}else if(weightArray[2]==1){
+    			validData=s1;
+    		}else{
+    			validData=s2;
+    		}    		
+    		emptyArray[0]=validData;
+    		emptyArray[1]=validData;
+    		emptyArray[2]=validData;
+    		emptyArray[3]=validData;    		
+    		return emptyArray;
+		// Only 2 pixels are valid data. If the No Data are on the border, they takes the value of the adjacent pixel,
+    	// else , they take an average of the 2 neighbor pixels with valid data. A String representation is provided for a better 
+		// comprehension. 0 is no Data and x is valid data.
+    	case 2:
+    		
+    		// 0 0 x x
+    		if(weightArray[0]==0 && weightArray[1]==0){
+    			emptyArray[0]=s1;
+        		emptyArray[1]=s1;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s2;
+        	// 0 x 0 x
+    		}else if(weightArray[0]==0 && weightArray[2]==0){
+    			meanValue= (s0 + s2)/2;
+    			emptyArray[0]=s0;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=meanValue;
+        		emptyArray[3]=s2;
+        	// 0 x x 0
+    		}else if(weightArray[0]==0 && weightArray[3]==0){
+    			emptyArray[0]=s0;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s1;
+        	// x 0 0 x
+    		}else if(weightArray[1]==0 && weightArray[2]==0){
+    			meanValue= (s_ + s2)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=meanValue;
+        		emptyArray[2]=meanValue;
+        		emptyArray[3]=s2;
+        	// x 0 x 0
+    		}else if(weightArray[1]==0 && weightArray[3]==0){
+    			meanValue= (s_ + s1)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=meanValue;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s1;
+        	// x x 0 0
+    		}else{
+    			emptyArray[0]=s_;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s0;
+        		emptyArray[3]=s0;
+    		}
+    		return emptyArray;
+    	// Only one pixel is a No Data. If it is at the boundaries, then it replicates the value
+    	// of the adjacent pixel, else if takes an average of the 2 neighbor pixels.A String representation is provided for a better 
+    	// comprehension. 0 is no Data and x is valid data.
+    	case 3:    		
+    		// 0 x x x
+    		if(weightArray[0]==0){
+    			emptyArray[0]=s0;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s2;
+        	// x 0 x x
+    		}else if(weightArray[1]==0){
+    			meanValue= (s_ + s1)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=meanValue;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s2;
+        	// x x 0 x
+    		}else if(weightArray[2]==0){
+    			meanValue= (s0 + s2)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=meanValue;
+        		emptyArray[3]=s2;
+        	// x x x 0
+    		}else{
+    			emptyArray[0]=s_;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s1;
+    		} 
+    		return emptyArray;
+		// Absence of No Data, the pixels are returned.
+    	case 4:
+    		emptyArray[0]=s_;
+    		emptyArray[1]=s0;
+    		emptyArray[2]=s1;
+    		emptyArray[3]=s2;    		
+    		return emptyArray;
+		default:
+			throw new IllegalArgumentException("The input array cannot have more than 4 pixels");
+    	}
+    }
+     
+    
+    //This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
+    private float[] bicubicInpaintingFloat(float s_, float s0, float s1, float s2, int[] weightArray, boolean[] weight0){
+    	if(weightArray == null){
+    		weightArray=new int[4];
+    		if(s_==0 && weight0[0]){
+    			weightArray[0]=0;
+    		}else{
+    			weightArray[0]=1;
+    		}
+    		if(s0==0 && weight0[1]){
+    			weightArray[1]=0;
+    		}else{
+    			weightArray[1]=1;
+    		}
+    		if(s1==0 && weight0[2]){
+    			weightArray[2]=0;
+    		}else{
+    			weightArray[2]=1;
+    		}
+    		if(s2==0 && weight0[3]){
+    			weightArray[3]=0;
+    		}else{
+    			weightArray[3]=1;
+    		}
+    	}
+    	
+    	int[][] array = {weightArray};
+    	//empty array containing the final values of the selected 4 pixels
+    	float[] emptyArray=new float[4];
+    	
+    	//Calculation of the number of data
+    	int sum = (int) sumWeight(array);
+    	// mean value used in calculations
+    	float meanValue=0;
+    	switch(sum){
+    	// All the 4 pixels are no data, an array of 0 data is returned
+    	case 0:
+    		return emptyArray;
+		// Only one pixel is a valid data, all the pixel of the line have the same value.
+    	case 1:
+    		float validData=0;
+    		if(weightArray[0]==1){
+    			validData=s_;
+    		}else if(weightArray[1]==1){
+    			validData=s0;
+    		}else if(weightArray[2]==1){
+    			validData=s1;
+    		}else{
+    			validData=s2;
+    		}    		
+    		emptyArray[0]=validData;
+    		emptyArray[1]=validData;
+    		emptyArray[2]=validData;
+    		emptyArray[3]=validData;    		
+    		return emptyArray;
+		// Only 2 pixels are valid data. If the No Data are on the border, they takes the value of the adjacent pixel,
+    	// else , they take an average of the 2 neighbor pixels with valid data. A String representation is provided for a better 
+		// comprehension. 0 is no Data and x is valid data.
+    	case 2:
+    		
+    		// 0 0 x x
+    		if(weightArray[0]==0 && weightArray[1]==0){
+    			emptyArray[0]=s1;
+        		emptyArray[1]=s1;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s2;
+        	// 0 x 0 x
+    		}else if(weightArray[0]==0 && weightArray[2]==0){
+    			meanValue= (s0 + s2)/2;
+    			emptyArray[0]=s0;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=meanValue;
+        		emptyArray[3]=s2;
+        	// 0 x x 0
+    		}else if(weightArray[0]==0 && weightArray[3]==0){
+    			emptyArray[0]=s0;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s1;
+        	// x 0 0 x
+    		}else if(weightArray[1]==0 && weightArray[2]==0){
+    			meanValue= (s_ + s2)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=meanValue;
+        		emptyArray[2]=meanValue;
+        		emptyArray[3]=s2;
+        	// x 0 x 0
+    		}else if(weightArray[1]==0 && weightArray[3]==0){
+    			meanValue= (s_ + s1)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=meanValue;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s1;
+        	// x x 0 0
+    		}else{
+    			emptyArray[0]=s_;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s0;
+        		emptyArray[3]=s0;
+    		}
+    		return emptyArray;
+    	// Only one pixel is a No Data. If it is at the boundaries, then it replicates the value
+    	// of the adjacent pixel, else if takes an average of the 2 neighbor pixels.A String representation is provided for a better 
+    	// comprehension. 0 is no Data and x is valid data.
+    	case 3:    		
+    		// 0 x x x
+    		if(weightArray[0]==0){
+    			emptyArray[0]=s0;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s2;
+        	// x 0 x x
+    		}else if(weightArray[1]==0){
+    			meanValue= (s_ + s1)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=meanValue;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s2;
+        	// x x 0 x
+    		}else if(weightArray[2]==0){
+    			meanValue= (s0 + s2)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=meanValue;
+        		emptyArray[3]=s2;
+        	// x x x 0
+    		}else{
+    			emptyArray[0]=s_;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s1;
+    		} 
+    		return emptyArray;
+		// Absence of No Data, the pixels are returned.
+    	case 4:
+    		emptyArray[0]=s_;
+    		emptyArray[1]=s0;
+    		emptyArray[2]=s1;
+    		emptyArray[3]=s2;    		
+    		return emptyArray;
+		default:
+			throw new IllegalArgumentException("The input array cannot have more than 4 pixels");
+    	}
+    }
+    
+    //This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
+    private double[] bicubicInpaintingDouble(double s_, double s0, double s1, double s2, int[] weightArray, boolean[] weight0){
+    	if(weightArray == null){
+    		weightArray=new int[4];
+    		if(s_==0 && weight0[0]){
+    			weightArray[0]=0;
+    		}else{
+    			weightArray[0]=1;
+    		}
+    		if(s0==0 && weight0[1]){
+    			weightArray[1]=0;
+    		}else{
+    			weightArray[1]=1;
+    		}
+    		if(s1==0 && weight0[2]){
+    			weightArray[2]=0;
+    		}else{
+    			weightArray[2]=1;
+    		}
+    		if(s2==0 && weight0[3]){
+    			weightArray[3]=0;
+    		}else{
+    			weightArray[3]=1;
+    		}
+    	}
+    	
+    	int[][] array = {weightArray};
+    	//empty array containing the final values of the selected 4 pixels
+    	double[] emptyArray=new double[4];
+    	
+    	//Calculation of the number of data
+    	int sum = (int) sumWeight(array);
+    	// mean value used in calculations
+    	double meanValue=0;
+    	switch(sum){
+    	// All the 4 pixels are no data, an array of 0 data is returned
+    	case 0:
+    		return emptyArray;
+		// Only one pixel is a valid data, all the pixel of the line have the same value.
+    	case 1:
+    		double validData=0;
+    		if(weightArray[0]==1){
+    			validData=s_;
+    		}else if(weightArray[1]==1){
+    			validData=s0;
+    		}else if(weightArray[2]==1){
+    			validData=s1;
+    		}else{
+    			validData=s2;
+    		}    		
+    		emptyArray[0]=validData;
+    		emptyArray[1]=validData;
+    		emptyArray[2]=validData;
+    		emptyArray[3]=validData;    		
+    		return emptyArray;
+		// Only 2 pixels are valid data. If the No Data are on the border, they takes the value of the adjacent pixel,
+    	// else , they take an average of the 2 neighbor pixels with valid data. A String representation is provided for a better 
+		// comprehension. 0 is no Data and x is valid data.
+    	case 2:
+    		
+    		// 0 0 x x
+    		if(weightArray[0]==0 && weightArray[1]==0){
+    			emptyArray[0]=s1;
+        		emptyArray[1]=s1;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s2;
+        	// 0 x 0 x
+    		}else if(weightArray[0]==0 && weightArray[2]==0){
+    			meanValue= (s0 + s2)/2;
+    			emptyArray[0]=s0;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=meanValue;
+        		emptyArray[3]=s2;
+        	// 0 x x 0
+    		}else if(weightArray[0]==0 && weightArray[3]==0){
+    			emptyArray[0]=s0;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s1;
+        	// x 0 0 x
+    		}else if(weightArray[1]==0 && weightArray[2]==0){
+    			meanValue= (s_ + s2)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=meanValue;
+        		emptyArray[2]=meanValue;
+        		emptyArray[3]=s2;
+        	// x 0 x 0
+    		}else if(weightArray[1]==0 && weightArray[3]==0){
+    			meanValue= (s_ + s1)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=meanValue;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s1;
+        	// x x 0 0
+    		}else{
+    			emptyArray[0]=s_;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s0;
+        		emptyArray[3]=s0;
+    		}
+    		return emptyArray;
+    	// Only one pixel is a No Data. If it is at the boundaries, then it replicates the value
+    	// of the adjacent pixel, else if takes an average of the 2 neighbor pixels.A String representation is provided for a better 
+    	// comprehension. 0 is no Data and x is valid data.
+    	case 3:    		
+    		// 0 x x x
+    		if(weightArray[0]==0){
+    			emptyArray[0]=s0;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s2;
+        	// x 0 x x
+    		}else if(weightArray[1]==0){
+    			meanValue= (s_ + s1)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=meanValue;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s2;
+        	// x x 0 x
+    		}else if(weightArray[2]==0){
+    			meanValue= (s0 + s2)/2;
+    			emptyArray[0]=s_;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=meanValue;
+        		emptyArray[3]=s2;
+        	// x x x 0
+    		}else{
+    			emptyArray[0]=s_;
+        		emptyArray[1]=s0;
+        		emptyArray[2]=s1;
+        		emptyArray[3]=s1;
+    		} 
+    		return emptyArray;
+		// Absence of No Data, the pixels are returned.
+    	case 4:
+    		emptyArray[0]=s_;
+    		emptyArray[1]=s0;
+    		emptyArray[2]=s1;
+    		emptyArray[3]=s2;    		
+    		return emptyArray;
+		default:
+			throw new IllegalArgumentException("The input array cannot have more than 4 pixels");
+    	}
+    }
+    
+    
+    
+    
+    
     // --------------------------------Bilinear-Bicubic----------------
     private void bilinearBicubicMethod(int dataType, boolean roiUsed, boolean useROIAccessor,
             boolean bilinearUsed) {
@@ -691,6 +1224,16 @@ public class InterpTest extends TestCase {
                 }
                 weightArray = roiBoundCheck(dataType, pixelArray, weightArray, bilinearUsed);
             }
+            
+            sum = sumWeight(weightArray);
+            if(sum>0){
+            	for (int i = 0; i < weightArray.length; i++) {
+                    for (int j = 0; j < weightArray.length; j++) {
+                    	weightArray[i][j]=1;
+                    }
+                }
+            }
+            
         } else {
             // Expected value
             switch (dataType) {
@@ -869,13 +1412,14 @@ public class InterpTest extends TestCase {
     public int[][] roiAccessorCheck(int dataType, Number[][] pixelArray, int[][] weightArray,
             boolean bilinearUsed) {
         int[][] weightArrayIndex = weightArray;
+        int roiDataLength = roiDataArray[dataType].length;
         // get the 4/16 weight
         for (int i = 0; i < pixelArray.length; i++) {
             for (int j = 0; j < pixelArray.length; j++) {
-                int roiDataLength = roiDataArray[dataType].length;
+                
                 if (bilinearUsed) {
                     weightArrayIndex[i][j] = posx + j + posYroi
-                            + (i * roiAccessor.getScanlineStride());
+                            + (i * roiAccessor.getScanlineStride());                                        
                 } else {
                     weightArrayIndex[i][j] = posx + (j - 1) + posYroi
                             + ((i - 1) * roiAccessor.getScanlineStride());
@@ -884,13 +1428,28 @@ public class InterpTest extends TestCase {
                         .intValue()) : 0);
             }
         }
+        
+        if(bilinearUsed&&(weightArrayIndex[0][0]>roiDataLength || roiDataArray[dataType][weightArrayIndex[0][0]].intValue()==0)){
+        	for (int i = 0; i < pixelArray.length; i++) {
+                for (int j = 0; j < pixelArray.length; j++) {
+                	weightArray[i][j] =0;
+                }
+            }
+        }else if(!bilinearUsed&&(weightArrayIndex[1][1]>roiDataLength || roiDataArray[dataType][weightArrayIndex[1][1]].intValue()==0)){
+        	for (int i = 0; i < pixelArray.length; i++) {
+                for (int j = 0; j < pixelArray.length; j++) {
+                	weightArray[i][j] =0;
+                }
+            }
+        }
+        
         return weightArray;
     }
 
     public int sumWeight(int[][] weightArray) {
         int sum = 0;
         for (int i = 0; i < weightArray.length; i++) {
-            for (int j = 0; j < weightArray.length; j++) {
+            for (int j = 0; j < weightArray[i].length; j++) {
                 sum += weightArray[i][j];
             }
         }
@@ -1144,7 +1703,13 @@ public class InterpTest extends TestCase {
         }
 
         // Random X position
-        srcXInt += (int) ((Math.random() + srcRect.x) * (srcRect.width - 1));
+        double value=0;
+        if(Math.random()>0.5){
+            value = 0.6d;
+        }else{
+            value = 0.4d;
+        }
+        srcXInt += (int) ((value ) * (srcRect.width - 1)+ srcRect.x);
 
         // common denominator between the source x denominator and the scale fractional denominator
         long commonXDenom = sxDenom * invScaleXRationalDenom;
@@ -1182,7 +1747,7 @@ public class InterpTest extends TestCase {
         }
 
         // Random Y position
-        srcYInt += (int) ((Math.random() + srcRect.y) * (srcRect.height - 1));
+        srcYInt += (int) ((value ) * (srcRect.height - 1) + srcRect.y);
 
         // common denominator between the source y denominator and the scale fractional denominator
         long commonYDenom = syDenom * invScaleYRationalDenom;
@@ -1381,15 +1946,15 @@ public class InterpTest extends TestCase {
                     s0L = 0;
                 } else if (w00 == 0) { // w01 = 1
                     if (s1Long) {
-                        s0L = s01*xfracCompl + (s01 << subsampleBits);
+                        s0L = -s01*xfracCompl + (s01 << subsampleBits);
                     } else {
-                        s0L = s01*xfracCompl + ((long) s01 << subsampleBits);
+                        s0L = -s01*xfracCompl + ((long) s01 << subsampleBits);
                     }
                 } else if (w01 == 0) {// w00 = 1
                     if (s0Long) {
-                        s0L = s00*xfrac + (s00 << subsampleBits);
+                        s0L = -s00*xfrac + (s00 << subsampleBits);
                     } else {
-                        s0L = s00*xfrac + ((long) s00 << subsampleBits);
+                        s0L = -s00*xfrac + ((long) s00 << subsampleBits);
                     }
                 } else {// w00 = 1 & W01 = 1
                     if (s0Long) {
@@ -1409,15 +1974,15 @@ public class InterpTest extends TestCase {
                     s1L = 0;
                 } else if (w10 == 0) { // w11 = 1
                     if (s1Long) {
-                        s1L = s11*xfracCompl + (s11 << subsampleBits);
+                        s1L = -s11*xfracCompl + (s11 << subsampleBits);
                     } else {
-                        s1L = s11*xfracCompl + ((long) s11 << subsampleBits);
+                        s1L = -s11*xfracCompl + ((long) s11 << subsampleBits);
                     }
                 } else if (w11 == 0) { // w10 = 1
                     if (s0Long) {// - (s10 * xfrac); //s10;
-                        s1L = s10*xfrac + (s10 << subsampleBits);
+                        s1L = -s10*xfrac + (s10 << subsampleBits);
                     } else {
-                        s1L = s10*xfrac + ((long) s10 << subsampleBits);
+                        s1L = -s10*xfrac + ((long) s10 << subsampleBits);
                     }
                 } else {
                     if (s0Long) {
@@ -1431,10 +1996,10 @@ public class InterpTest extends TestCase {
                     }
                 }
                 if (w00 == 0 && w01 == 0) {
-                    s = (int) ((s1L*yfracCompl + (s1L << subsampleBits) + round2) >> shift2);
+                    s = (int) ((-s1L*yfracCompl + (s1L << subsampleBits) + round2) >> shift2);
                 } else {
                     if (w10 == 0 && w11 == 0) {
-                        s = (int) ((s0L*yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                        s = (int) ((-s0L*yfrac + (s0L << subsampleBits) + round2) >> shift2);
                     } else {
                         s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
                     }
@@ -1445,9 +2010,9 @@ public class InterpTest extends TestCase {
                 if (w00 == 0 && w01 == 0) {
                     s0 = 0;
                 } else if (w00 == 0) { // w01 = 1
-                    s0 = s01*xfracCompl + (s01 << subsampleBits);
+                    s0 = -s01*xfracCompl + (s01 << subsampleBits);
                 } else if (w01 == 0) {// w00 = 1
-                    s0 = s00*xfrac + (s00 << subsampleBits);// s00;
+                    s0 = -s00*xfrac + (s00 << subsampleBits);// s00;
                 } else {// w00 = 1 & W01 = 1
                     s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
                 }
@@ -1457,18 +2022,18 @@ public class InterpTest extends TestCase {
                 if (w10 == 0 && w11 == 0) {
                     s1 = 0;
                 } else if (w10 == 0) { // w11 = 1
-                    s1 = s11*xfracCompl + (s11 << subsampleBits);
+                    s1 = -s11*xfracCompl + (s11 << subsampleBits);
                 } else if (w11 == 0) { // w10 = 1
-                    s1 = s10*xfrac + (s10 << subsampleBits);// - (s10 * xfrac); //s10;
+                    s1 = -s10*xfrac + (s10 << subsampleBits);// - (s10 * xfrac); //s10;
                 } else {
                     s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
                 }
 
                 if (w00 == 0 && w01 == 0) {
-                    s = (s1*yfracCompl + (s1 << subsampleBits) + round2) >> shift2;
+                    s = (-s1*yfracCompl + (s1 << subsampleBits) + round2) >> shift2;
                 } else {
                     if (w10 == 0 && w11 == 0) {
-                        s = (s0*yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                        s = (-s0*yfrac + (s0 << subsampleBits) + round2) >> shift2;
                     } else {
                         s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
                     }
@@ -1536,9 +2101,9 @@ public class InterpTest extends TestCase {
             if (w00 == 0 && w01 == 0) {
                 s0 = 0;
             } else if (w00 == 0) { // w01 = 1
-                s0 = s01*xfracCompl;
+                s0 = s01*xfrac;
             } else if (w01 == 0) {// w00 = 1
-                s0 = s00*xfrac;// s00;
+                s0 = s00*xfracCompl;// s00;
             } else {// w00 = 1 & W01 = 1
                 s0 = (s01 - s00) * xfrac + s00;
             }
@@ -1548,18 +2113,18 @@ public class InterpTest extends TestCase {
             if (w10 == 0 && w11 == 0) {
                 s1 = 0;
             } else if (w10 == 0) { // w11 = 1
-                s1 = s11*xfracCompl;
+                s1 = s11*xfrac;
             } else if (w11 == 0) { // w10 = 1
-                s1 = s10*xfrac;// - (s10 * xfrac); //s10;
+                s1 = s10*xfracCompl;// - (s10 * xfrac); //s10;
             } else {
                 s1 = (s11 - s10) * xfrac + s10;
             }
 
             if (w00 == 0 && w01 == 0) {
-                s = s1*yfracCompl;
+                s = s1*yfrac;
             } else {
                 if (w10 == 0 && w11 == 0) {
-                    s = s0*yfrac;
+                    s = s0*yfracCompl;
                 } else {
                     s = (s1 - s0) * yfrac + s0;
                 }

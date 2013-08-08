@@ -1,6 +1,7 @@
 package it.geosolutions.jaiext.affine;
 
 
+
 //import org.junit.Ignore;
 import org.junit.Test;
 
@@ -27,7 +28,10 @@ public class BilinearAffineTest extends TestAffine{
         boolean setDestinationNoData = true;
               
         testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
-                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP, TestSelection.NO_ROI_ONLY_DATA);
+                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP, TestSelection.NO_ROI_ONLY_DATA,ScaleType.MAGNIFY);
+        
+        testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
+                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP, TestSelection.NO_ROI_ONLY_DATA,ScaleType.REDUCTION);
     }
 
     @Test
@@ -41,7 +45,9 @@ public class BilinearAffineTest extends TestAffine{
         boolean setDestinationNoData = true;
               
         testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
-                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP,TestSelection.ROI_ACCESSOR_ONLY_DATA);
+                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP,TestSelection.ROI_ACCESSOR_ONLY_DATA,ScaleType.MAGNIFY);
+        testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
+                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP, TestSelection.ROI_ACCESSOR_ONLY_DATA,ScaleType.REDUCTION);
     }
 
     @Test
@@ -55,7 +61,9 @@ public class BilinearAffineTest extends TestAffine{
         boolean setDestinationNoData = true;
               
         testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
-                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP,TestSelection.ROI_ONLY_DATA);
+                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP,TestSelection.ROI_ONLY_DATA,ScaleType.MAGNIFY);
+        testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
+                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP, TestSelection.ROI_ONLY_DATA,ScaleType.REDUCTION);
     }
     
     @Test
@@ -69,7 +77,9 @@ public class BilinearAffineTest extends TestAffine{
         boolean setDestinationNoData = true;
               
         testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
-                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP,TestSelection.ROI_ACCESSOR_NO_DATA);
+                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP,TestSelection.ROI_ACCESSOR_NO_DATA,ScaleType.MAGNIFY);
+        testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
+                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP, TestSelection.ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
     }
 
     @Test
@@ -82,6 +92,9 @@ public class BilinearAffineTest extends TestAffine{
         boolean setDestinationNoData = true;
                       
         testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
-                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA);
+                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.MAGNIFY);
+        testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
+                ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
+        
     }
 }

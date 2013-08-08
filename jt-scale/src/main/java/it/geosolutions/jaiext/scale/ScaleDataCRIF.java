@@ -20,17 +20,23 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.DataBuffer;
+import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderContext;
 import java.awt.image.renderable.RenderableImage;
+
 import javax.media.jai.BorderExtender;
 import javax.media.jai.CRIFImpl;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
+import javax.media.jai.InterpolationNearest;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ScaleOpImage;
+
 import com.sun.media.jai.mlib.MlibScaleRIF;
 import com.sun.media.jai.opimage.CopyOpImage;
 import com.sun.media.jai.opimage.RIFUtil;
@@ -38,12 +44,12 @@ import com.sun.media.jai.opimage.RIFUtil;
 /**
  * @see ScaleOpImage
  */
-public class ScaleNoDataCRIF extends CRIFImpl {
+public class ScaleDataCRIF extends CRIFImpl {
 
     private static final float TOLERANCE = 0.01F;
 
     /** Constructor. */
-    public ScaleNoDataCRIF() {
+    public ScaleDataCRIF() {
         super("scale");
     }
 
@@ -121,21 +127,34 @@ public class ScaleNoDataCRIF extends CRIFImpl {
         } catch (Exception e) {
             // Eat exception and proceed with pure java approach
         }
+        
+        SampleModel sm = source.getSampleModel();
 
-        if (interp instanceof InterpolationNearestNew) {
-            return new ScaleNoDataOpImage(source, layout, renderHints, extender,
+        boolean isBinary =  (sm instanceof MultiPixelPackedSampleModel)
+                && (sm.getSampleSize(0) == 1)
+                && (sm.getDataType() == DataBuffer.TYPE_BYTE
+                        || sm.getDataType() == DataBuffer.TYPE_USHORT || sm.getDataType() == DataBuffer.TYPE_INT);
+        
+        
+        if (interp instanceof InterpolationNearestNew ) {
+            return new ScaleDataOpImage(source, layout, renderHints, extender,
                     (InterpolationNearestNew) interp, xScale, yScale, xTrans, yTrans,
                     useRoiAccessor);
-        } else if (interp instanceof InterpolationBilinearNew) {
-            return new ScaleNoDataOpImage(source, layout, renderHints, extender,
+        
+            //TODO FIXME
+            //}
+        //else if((interp instanceof InterpolationNearestNew)&& !isBinary){
+            //return new ScaleNearestOpImage(source, layout, renderHints, extender, interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
+        }else if (interp instanceof InterpolationBilinearNew) {
+            return new ScaleDataOpImage(source, layout, renderHints, extender,
                     (InterpolationBilinearNew) interp, xScale, yScale, xTrans, yTrans,
                     useRoiAccessor);
         } else if (interp instanceof InterpolationBicubicNew) {
-            return new ScaleNoDataOpImage(source, layout, renderHints, extender,
+            return new ScaleDataOpImage(source, layout, renderHints, extender,
                     (InterpolationBicubicNew) interp, xScale, yScale, xTrans, yTrans,
                     useRoiAccessor);
         } else {
-            return new ScaleNoDataOpImage(source, layout, renderHints, extender, interp, xScale,
+            return new ScaleDataOpImage(source, layout, renderHints, extender, interp, xScale,
                     yScale, xTrans, yTrans, useRoiAccessor);
         }
     }

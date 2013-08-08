@@ -12,6 +12,8 @@
     <interactive.tests>false</interactive.tests>
     <test.maxHeapSize>512M</test.maxHeapSize>
     <jt.version>1.2.0</jt.version>
+	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <geotools.version>10-SNAPSHOT</geotools.version>
   </properties>
 
   <!-- ======================================================== -->
@@ -373,6 +375,12 @@
   <dependency>
 	<groupId>junit</groupId>
 	<artifactId>junit</artifactId>
+	<scope>test</scope>
+  </dependency>
+ <dependency>
+    <groupId>org.geotools</groupId>
+    <artifactId>gt-sample-data</artifactId>
+    <version>${geotools.version}</version>
 	<scope>test</scope>
   </dependency>
 </dependencies>

@@ -42,6 +42,16 @@ public class InterpolationNearestNew extends Interpolation {
     /** This value is the destination NO DATA values for binary images */
     private int black;
 
+    /** Boolean for checking if No data is NaN*/
+    private boolean isRangeNaN=false;
+    
+    /** Boolean for checking if No data is Positive Infinity*/
+    private boolean isPositiveInf=false;
+    
+    /** Boolean for checking if No data is Negative Infinity*/
+    private boolean isNegativeInf=false;
+    
+    
     // Method overriding. Performs the default nearest-neighbor interpolation without NO DATA or ROI control.
     @Override
     public int interpolateH(int[] samples, int arg1) {
@@ -66,7 +76,19 @@ public class InterpolationNearestNew extends Interpolation {
             double destinationNoData, int dataType) {
         super(1, 1, 0, 0, 0, 0, 0, 0);
         if (noDataRange != null) {
-            this.noDataRange = noDataRange;
+            this.noDataRange = noDataRange;            
+            if((dataType==DataBuffer.TYPE_FLOAT||dataType==DataBuffer.TYPE_DOUBLE)){
+            	// If the range goes from -Inf to Inf No Data is NaN
+            	if(!noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinNegInf()){
+            		isRangeNaN=true;
+            	// If the range is a positive infinite point isPositiveInf flag is set
+            	}else if(noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinInf()){
+            		isPositiveInf=true;
+            	// If the range is a negative infinite point isNegativeInf flag is set
+            	}else if(noDataRange.isPoint() && noDataRange.isMaxNegInf() && noDataRange.isMinNegInf()){
+            		isNegativeInf=true;
+            	}
+            }        
         }
         this.useROIAccessor = useROIAccessor;
         this.destinationNoData = destinationNoData;
@@ -94,7 +116,21 @@ public class InterpolationNearestNew extends Interpolation {
     }
 
     public void setNoDataRange(Range noDataRange) {
-        this.noDataRange = noDataRange;
+        if (noDataRange != null) {
+            this.noDataRange = noDataRange;            
+            if((dataType==DataBuffer.TYPE_FLOAT||dataType==DataBuffer.TYPE_DOUBLE)){
+            	// If the range goes from -Inf to Inf No Data is NaN
+            	if(!noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinNegInf()){
+            		isRangeNaN=true;
+            	// If the range is a positive infinite point isPositiveInf flag is set
+            	}else if(noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinInf()){
+            		isPositiveInf=true;
+            	// If the range is a negative infinite point isNegativeInf flag is set
+            	}else if(noDataRange.isPoint() && noDataRange.isMaxNegInf() && noDataRange.isMinNegInf()){
+            		isNegativeInf=true;
+            	}
+            }        
+        }
     }
 
     public int getDataType() {
@@ -110,7 +146,7 @@ public class InterpolationNearestNew extends Interpolation {
     }
 
     // method for calculating the nearest-neighbor interpolation (no Binary data).
-    public Number interpolate(RasterAccessor src, Integer bandIndex, int dnumband, int posx,
+    public Number interpolate(RasterAccessor src, int bandIndex, int dnumband, int posx,
             int posy, Integer yROIValue, RasterAccessor roiAccessor, boolean setNoData) {
         // src data and destination data
         Number destData = null;
@@ -144,7 +180,14 @@ public class InterpolationNearestNew extends Interpolation {
             break;
         case DataBuffer.TYPE_FLOAT:
             float srcDataFloat = src.getFloatDataArray(bandIndex)[posx + posy];
-            if ((noDataRange != null && ((Range<Float>) noDataRange).contains(srcDataFloat))
+            // Additional control due to the fact that Range<T> can't contain NaN, Positive Inf and Negative Inf
+            if(isRangeNaN && Float.isNaN(srcDataFloat)){
+            	return destinationNoData;
+            }else if(isPositiveInf && srcDataFloat==Float.POSITIVE_INFINITY){
+            	return destinationNoData;
+            }else if(isNegativeInf && srcDataFloat==Float.NEGATIVE_INFINITY){
+            	return destinationNoData;
+            }else if ((noDataRange != null && ((Range<Float>) noDataRange).contains(srcDataFloat))
                     || setNoData) {
                 return destinationNoData;
             }
@@ -152,7 +195,13 @@ public class InterpolationNearestNew extends Interpolation {
             break;
         case DataBuffer.TYPE_DOUBLE:
             double srcDataDouble = src.getDoubleDataArray(bandIndex)[posx + posy];
-            if ((noDataRange != null && ((Range<Double>) noDataRange).contains(srcDataDouble))
+            if(isRangeNaN && Double.isNaN(srcDataDouble)){
+            	return destinationNoData;
+            }else if(isPositiveInf && srcDataDouble==Double.POSITIVE_INFINITY){
+            	return destinationNoData;
+            }else if(isNegativeInf && srcDataDouble==Double.NEGATIVE_INFINITY){
+            	return destinationNoData;
+            }else if ((noDataRange != null && ((Range<Double>) noDataRange).contains(srcDataDouble))
                     || setNoData) {
                 return destinationNoData;
             }
