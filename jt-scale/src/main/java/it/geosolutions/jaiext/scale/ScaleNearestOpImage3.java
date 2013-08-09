@@ -23,14 +23,21 @@ import org.jaitools.numeric.Range;
 
 import com.sun.media.jai.util.Rational;
 
-public class ScaleNearestOpImage extends ScaleOpImage {
+/**
+ * This test class contains the same code of the ScaleNearestOpImage class but with a difference inside the byteLoop. The code is more compact and
+ * avoid the use of multiple cycles for every case(presence or absence of ROI and No Data) and also the y positions are not precalculated but are
+ * calculated during the loop on the y direction inside the byteLoop() method. The inconvenient with this class is that its performance are worst than
+ * that of the ScaleNearestOpImage class. For this reason this class is never used inside the project, but is kept for future modification.
+ * */
 
-    public ScaleNearestOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+public class ScaleNearestOpImage3 extends ScaleOpImage {
+
+    public ScaleNearestOpImage3(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
-        super(source, layout, configuration, true, extender, ((InterpolationNearestNew)interp).getInterpNearest(), scaleX, scaleY, transX,
-                transY, useRoiAccessor);
-        scaleOpInitialization(source,interp);
+        super(source, layout, configuration, true, extender, ((InterpolationNearestNew) interp)
+                .getInterpNearest(), scaleX, scaleY, transX, transY, useRoiAccessor);
+        scaleOpInitialization(source, interp);
     }
 
     private void scaleOpInitialization(RenderedImage source, Interpolation interp) {
@@ -46,7 +53,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         }
 
         SampleModel sm = source.getSampleModel();
-        
+
         // selection of the inverse scale parameters both for the x and y axis
         if (invScaleXRational.num > invScaleXRational.denom) {
             invScaleXInt = invScaleXRational.num / invScaleXRational.denom;
@@ -67,9 +74,9 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         // Interpolator settings
         interpolator = interp;
 
-        if (interpolator instanceof InterpolationNearestNew) {            
+        if (interpolator instanceof InterpolationNearestNew) {
             interpN = (InterpolationNearestNew) interpolator;
-            this.interp=interpN.getInterpNearest();
+            this.interp = interpN.getInterpNearest();
             interpN.setROIdata(roiBounds, roiIter);
             noData = interpN.getNoDataRange();
             if (noData != null) {
@@ -90,7 +97,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             } else if (hasROI) {
                 destinationNoDataDouble = interpN.getDestinationNoData();
             }
-        } 
+        }
         // subsample bits used for the bilinear and bicubic interpolation
         subsampleBits = interp.getSubsampleBitsH();
 
@@ -104,14 +111,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         // Number of subsample positions
         one = 1 << subsampleBits;
 
-
         // Get the width and height and padding of the Interpolation kernel.
         interp_width = interp.getWidth();
         interp_height = interp.getHeight();
         interp_left = interp.getLeftPadding();
         interp_top = interp.getTopPadding();
-
-        
 
         // Selection of the destination No Data
         switch (sm.getDataType()) {
@@ -151,13 +155,12 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                         || sm.getDataType() == DataBuffer.TYPE_USHORT || sm.getDataType() == DataBuffer.TYPE_INT);
 
     }
-    
-    
+
     @Override
-    protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect){
+    protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
         computeRect(sources, dest, destRect, null);
     }
-    
+
     @Override
     protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect,
             Raster[] rois) {
@@ -209,47 +212,47 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             yposRoi = new int[dheight];
 
         }
-        
+
         // Initialization of the x and y fractional array
         int[] xfracValues = new int[dwidth];
         int[] yfracValues = new int[dheight];
-        
-        preComputePositionsInt(destRect, srcRect.x, srcRect.y, srcPixelStride, 
-                srcScanlineStride, xpos, ypos, xfracValues, yfracValues, roiScanlineStride, yposRoi);
+
+        preComputePositionsInt(destRect, srcRect.x, srcRect.y, srcPixelStride, srcScanlineStride,
+                xpos, ypos, xfracValues, yfracValues, roiScanlineStride, yposRoi);
         // destination data type
         dataType = dest.getSampleModel().getDataType();
 
         // This methods differs only for the presence of the roi or if the image is a binary one
-        
-            // if is binary
-            // computeLoopBynary(srcAccessor, source, dest, destRect, xpos, ypos,yposRoi, xfracvalues,
-            // yfracvalues,roi,yposRoi,srcRect.x, srcRect.y);
-        
-            switch (dataType) {
-            case DataBuffer.TYPE_BYTE:
-                byteLoop(srcAccessor,srcRect, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
-                break;
-            case DataBuffer.TYPE_USHORT:
-                ushortLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                shortLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
-                break;
-            case DataBuffer.TYPE_INT:
-                intLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                floatLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                doubleLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
-                break;
-            }
-        
+
+        // if is binary
+        // computeLoopBynary(srcAccessor, source, dest, destRect, xpos, ypos,yposRoi, xfracvalues,
+        // yfracvalues,roi,yposRoi,srcRect.x, srcRect.y);
+
+        switch (dataType) {
+        case DataBuffer.TYPE_BYTE:
+            byteLoop(srcAccessor, srcRect, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            break;
+        case DataBuffer.TYPE_USHORT:
+            ushortLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            break;
+        case DataBuffer.TYPE_SHORT:
+            shortLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            break;
+        case DataBuffer.TYPE_INT:
+            intLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            break;
+        case DataBuffer.TYPE_FLOAT:
+            floatLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            break;
+        case DataBuffer.TYPE_DOUBLE:
+            doubleLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            break;
+        }
+
     }
 
-    private void byteLoop(RasterAccessor src, Rectangle srcRect,Rectangle dstRect, RasterAccessor dst, int[] xpos,
-            int[] ypos, RasterAccessor roi, int[] yposRoi) {
+    private void byteLoop(RasterAccessor src, Rectangle srcRect, Rectangle dstRect,
+            RasterAccessor dst, int[] xpos, int[] ypos, RasterAccessor roi, int[] yposRoi) {
 
         // BandOffsets
         final int srcScanlineStride = src.getScanlineStride();
@@ -270,7 +273,6 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
         final byte[][] dstDataArrays = dst.getByteDataArrays();
 
-
         final byte[] roiDataArray;
         final int roiDataLength;
         final int roiScanLineStride;
@@ -280,20 +282,16 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             roiScanLineStride = roi.getScanlineStride();
         } else {
             roiDataArray = null;
-            roiDataLength = 0;    
+            roiDataLength = 0;
             roiScanLineStride = 0;
         }
 
         // No Data Range
         Range<Byte> rangeND = (Range<Byte>) noData;
 
-        
-
         // Loop variables based on the destination rectangle to be calculated.
-        final int dx = dstRect.x;
         final int dy = dstRect.y;
-        
-        final int srcRectX = srcRect.x;
+
         final int srcRectY = srcRect.y;
 
         // Initially the y source value is calculated by the destination value and then performing the inverse
@@ -325,128 +323,62 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         srcYFrac *= invScaleYRationalDenom;
         long newInvScaleYFrac = invScaleYFrac * syDenom;
 
-        // Initially the x source value is calculated by the destination value and then performing the inverse
-        // scale operation on it.
-        long sxNum = dx, sxDenom = 1;
-
-        // Subtract the X translation factor sx -= transX
-        sxNum = sxNum * transXRationalDenom - transXRationalNum * sxDenom;
-        sxDenom *= transXRationalDenom;
-
-        // Add 0.5
-        sxNum = 2 * sxNum + sxDenom;
-        sxDenom *= 2;
-
-        // Multply by invScaleX
-        sxNum *= invScaleXRationalNum;
-        sxDenom *= invScaleXRationalDenom;
-
-        // Separate the x source coordinate into integer and fractional part
-        int srcXInt = Rational.floor(sxNum, sxDenom);
-        long srcXFrac = sxNum % sxDenom;
-        if (srcXInt < 0) {
-            srcXFrac = sxDenom + srcXFrac;
-        }
-
-        // Normalize - Get a common denominator for the fracs of
-        // src and invScaleX
-        long commonXDenom = sxDenom * invScaleXRationalDenom;
-        srcXFrac *= invScaleXRationalDenom;
-        long newInvScaleXFrac = invScaleXFrac * sxDenom;
-
-        // Store of the x positions
-        for (int i = 0; i < dwidth; i++) {
-            
-                xpos[i] = (srcXInt - srcRectX) * srcPixelStride;
-            // Move onto the next source pixel.
-
-            // Add the integral part of invScaleX to the integral part
-            // of srcX
-            srcXInt += invScaleXInt;
-
-            // Add the fractional part of invScaleX to the fractional part
-            // of srcX
-            srcXFrac += newInvScaleXFrac;
-
-            // If the fractional part is now greater than equal to the
-            // denominator, divide so as to reduce the numerator to be less
-            // than the denominator and add the overflow to the integral part.
-            if (srcXFrac >= commonXDenom) {
-                srcXInt += 1;
-                srcXFrac -= commonXDenom;
-            }
-        }
-        // Store of the y positions
-        for (int i = 0; i < dheight; i++) {
-
-            // Calculate the source position in the source data array.
-            if (isBinary) {
-                ypos[i] = srcYInt;
-            } else {
-                ypos[i] = (srcYInt - srcRectY) * srcScanlineStride;
-            }
-
-            // If roi is present, the y position roi value is calculated
-            if (useRoiAccessor) {
-                    yposRoi[i] = (srcYInt - srcRectY) * roiScanLineStride;
-                
-            }
-            // Move onto the next source pixel.
-
-            // Add the integral part of invScaleY to the integral part
-            // of srcY
-            srcYInt += invScaleYInt;
-
-            // Add the fractional part of invScaleY to the fractional part
-            // of srcY
-            srcYFrac += newInvScaleYFrac;
-
-            // If the fractional part is now greater than equal to the
-            // denominator, divide so as to reduce the numerator to be less
-            // than the denominator and add the overflow to the integral part.
-            if (srcYFrac >= commonYDenom) {
-                srcYInt += 1;
-                srcYFrac -= commonYDenom;
-            }
-        }
-        
-        
-        
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
         final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
-            for (int k = 0; k < dnumBands; k++) {
 
-                final byte[] srcData = srcDataArrays[k];
-                final byte[] dstData = dstDataArrays[k];
-                // Line and band Offset initialization
-                int dstlineOffset = dstBandOffsets[k];
-                int bandOffset = bandOffsets[k];
-                // cycle on the y values
-                for (int j = 0; j < dheight; j++) {
-                    // pixel offset initialization
-                    int dstPixelOffset = dstlineOffset;
-                    // y position selection
-                    int posy = ypos[j] + bandOffset;
-                    // cycle on the x values
-                    for (int i = 0; i < dwidth; i++) {
-                        // x position selection
-                        
-                        
-                        int posx = xpos[i];
-                        int pos = posx + posy;
+            // cycle on the y values
+            for (int j = 0; j < dheight; j++) {
+
+                // Calculate the source position in the source data array.
+                int posy = (srcYInt - srcRectY) * srcScanlineStride;
+                // Move onto the next source pixel.
+
+                // Add the integral part of invScaleY to the integral part
+                // of srcY
+                srcYInt += invScaleYInt;
+
+                // Add the fractional part of invScaleY to the fractional part
+                // of srcY
+                srcYFrac += newInvScaleYFrac;
+
+                // If the fractional part is now greater than equal to the
+                // denominator, divide so as to reduce the numerator to be less
+                // than the denominator and add the overflow to the integral part.
+                if (srcYFrac >= commonYDenom) {
+                    srcYInt += 1;
+                    srcYFrac -= commonYDenom;
+                }
+
+                // cycle on the x values
+                for (int i = 0; i < dwidth; i++) {
+
+                    // x position selection
+                    for (int k = 0; k < dnumBands; k++) {
+                        final byte[] srcData = srcDataArrays[k];
+                        final byte[] dstData = dstDataArrays[k];
+
+                        // Line and band Offset initialization
+                        final int dstBandOffset = dstBandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
+
+                        final int dstPixelOffsetFinal = dstBandOffset + j * srcScanlineStride + i
+                                * srcPixelStride;
+
+                        // y position selection
+                        final int posyfinal = posy + bandOffset;
+
+                        final int pos = xpos[i] + posyfinal;
+
                         // The interpolated value is saved in the destination array
-                        dstData[dstPixelOffset] = srcData[pos];
+                        dstData[dstPixelOffsetFinal] = srcData[pos];
 
-                        // destination pixel offset update
-                        dstPixelOffset += dstPixelStride;
                     }
-                    // destination line offset update
-                    dstlineOffset += dstScanlineStride;
                 }
             }
+
         } else {
             if (caseB) {
                 if (useRoiAccessor) {
@@ -473,7 +405,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 int pos = posx + posy;
 
                                 int windex = (posx / dnumBands) + posyROI;
-                                
+
                                 int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
 
                                 if (w == 0) {
@@ -512,7 +444,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 int pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy-bandOffset)/ srcScanlineStride;
+                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     int w = roiIter.getSample(x0, y0, 0) & 0xff;
@@ -607,7 +539,8 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                         dstData[dstPixelOffset] = destinationNoDataByte;
                                     } else {
                                         int windex = (posx / dnumBands) + posyROI;
-                                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff
+                                                : 0;
 
                                         if (w == 0) {
                                             // The destination no data value is saved in the destination array
@@ -652,7 +585,8 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     } else {
                                         // PixelPositions
                                         int x0 = src.getX() + posx / srcPixelStride;
-                                        int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                        int y0 = src.getY() + (posy - bandOffset)
+                                                / srcScanlineStride;
 
                                         if (roiBounds.contains(x0, y0)) {
                                             int w = roiIter.getSample(x0, y0, 0) & 0xff;
@@ -817,7 +751,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     w = roiIter.getSample(x0, y0, 0) & 0xffff;
@@ -961,7 +895,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0) & 0xffff;
@@ -1125,7 +1059,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     w = roiIter.getSample(x0, y0, 0);
@@ -1269,7 +1203,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0);
@@ -1432,7 +1366,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     w = roiIter.getSample(x0, y0, 0);
@@ -1576,7 +1510,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0);
@@ -1740,7 +1674,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     w = roiIter.getSample(x0, y0, 0);
@@ -1899,7 +1833,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0);
@@ -2063,7 +1997,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     w = roiIter.getSample(x0, y0, 0);
@@ -2222,7 +2156,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0);
