@@ -52,11 +52,11 @@ public class ComparisonTest {
 
     /** Number of benchmark iterations (Default 1) */
     private final static Integer BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.BenchmarkCycles", 1);
+            "JAI.Ext.BenchmarkCycles", 100000);
 
     /** Number of not benchmark iterations (Default 0) */
     private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.NotBenchmarkCycles", 0);
+            "JAI.Ext.NotBenchmarkCycles", 5000);
 
     /** Default subsampling bits used for the bilinear and bicubic interpolation */
     private final static int DEFAULT_SUBSAMPLE_BITS = 8;
@@ -206,72 +206,72 @@ public class ComparisonTest {
     // Last 12 test. DESCRIPTOR TESTS
 
     @Test
-    public void testNearestScaleDataDescriptor() {
+    public void testNearestNewScaleDescriptor() {
         testInterpolators(interpNearNew, true, true, false);
     }
 
     @Test
-    public void testNearestScaleDescriptor() {
+    public void testNearestOldScaleDescriptor() {
         testInterpolators(interpNearOld, true, true, true);
     }
 
     @Test
     @Ignore
-    public void testBilinearScaleDataDescriptor() {
+    public void testBilinearNewScaleDescriptor() {
         testInterpolators(interpBicNew, true, true, false);
     }
 
     @Test
     @Ignore
-    public void testBilinearScaleDescriptor() {
+    public void testBilinearOldScaleDescriptor() {
         testInterpolators(interpBilOld, true, true, true);
     }
 
     @Test
     @Ignore
-    public void testBicubicScaleDataDescriptor() {
+    public void testBicubicNewScaleDescriptor() {
         testInterpolators(interpBicNew, true, true, false);
     }
 
     @Test
     @Ignore
-    public void testBicubicScaleDescriptor() {
+    public void testBicubicOldScaleDescriptor() {
         testInterpolators(interpBicOld, true, true, true);
     }
 
     @Test
     @Ignore
-    public void testNearestScaleDataDescriptorReduction() {
+    public void testNearestNewScaleDescriptorReduction() {
         testInterpolators(interpBicNew, false, true, false);
     }
 
     @Test
     @Ignore
-    public void testNearestScaleDescriptorReduction() {
+    public void testNearestOldScaleDescriptorReduction() {
         testInterpolators(interpNearOld, false, true, true);
     }
 
     @Test
     @Ignore
-    public void testBilinearScaleDataDescriptorReduction() {
+    public void testBilinearNewScaleDescriptorReduction() {
         testInterpolators(interpBicNew, false, true, false);
     }
 
     @Test
     @Ignore
-    public void testBilinearScaleDescriptorReduction() {
+    public void testBilinearOldScaleDescriptorReduction() {
         testInterpolators(interpBilOld, false, true, true);
     }
 
     @Test
     @Ignore
-    public void testBicubicScaleDataDescriptorReduction() {
+    public void testBicubicNewScaleDescriptorReduction() {
         testInterpolators(interpBicNew, false, true, false);
     }
 
     @Test
     @Ignore
-    public void testBicubicScaleDescriptorReduction() {
+    public void testBicubicOldScaleDescriptorReduction() {
         testInterpolators(interpBicOld, false, true, true);
     }
 
@@ -297,9 +297,9 @@ public class ComparisonTest {
 
         if (testDescriptor) {
             if (old) {
-                description = "Scale";
+                description = "Old Scale";
             } else {
-                description = "ScaleData";
+                description = "New Scale";
             }
         } else {
             if (!old) {
@@ -369,30 +369,30 @@ public class ComparisonTest {
             JAI.getDefaultInstance().getTileCache().flush();
         }
         // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION * 1E-9;
+        double meanValue = mean / BENCHMARK_ITERATION * 1E-6;
 
         // Max and Min values stored as double
-        double maxD = max * 1E-9;
-        double minD = min * 1E-9;
+        double maxD = max * 1E-6;
+        double minD = min * 1E-6;
         // Comparison between the mean times
         System.out.println("\n" + reduction);
         if (testDescriptor) {
             // Output print of the
             System.out.println("\n" + interpType);
             System.out.println("\nMean value for " + description + "Descriptor : " + meanValue
-                    + " sec.");
+                    + " msec.");
             System.out.println("Maximum value for " + description + "Descriptor : " + maxD
-                    + " sec.");
+                    + " msec.");
             System.out.println("Minimum value for " + description + "Descriptor : " + minD
-                    + " sec.");
+                    + " msec.");
         } else {
             // Output print of the
             System.out.println("\nMean value for Interpolator" + interpType + description + " : "
-                    + meanValue + " sec.");
+                    + meanValue + " msec.");
             System.out.println("Maximum value for Interpolator" + interpType + description + " : "
-                    + maxD + " sec.");
+                    + maxD + " msec.");
             System.out.println("Minimum value for Interpolator" + interpType + description + " : "
-                    + minD + " sec.");
+                    + minD + " msec.");
         }
 
     }

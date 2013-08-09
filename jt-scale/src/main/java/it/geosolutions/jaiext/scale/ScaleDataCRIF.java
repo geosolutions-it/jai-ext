@@ -136,15 +136,13 @@ public class ScaleDataCRIF extends CRIFImpl {
                         || sm.getDataType() == DataBuffer.TYPE_USHORT || sm.getDataType() == DataBuffer.TYPE_INT);
         
         
-        if (interp instanceof InterpolationNearestNew ) {
+        if (interp instanceof InterpolationNearestNew && isBinary) {
             return new ScaleDataOpImage(source, layout, renderHints, extender,
                     (InterpolationNearestNew) interp, xScale, yScale, xTrans, yTrans,
                     useRoiAccessor);
-        
-            //TODO FIXME
-            //}
-        //else if((interp instanceof InterpolationNearestNew)&& !isBinary){
-            //return new ScaleNearestOpImage(source, layout, renderHints, extender, interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
+        }else if((interp instanceof InterpolationNearestNew)&& !isBinary){
+            return new ScaleNearestOpImage(source, layout, renderHints, extender, 
+                    interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
         }else if (interp instanceof InterpolationBilinearNew) {
             return new ScaleDataOpImage(source, layout, renderHints, extender,
                     (InterpolationBilinearNew) interp, xScale, yScale, xTrans, yTrans,

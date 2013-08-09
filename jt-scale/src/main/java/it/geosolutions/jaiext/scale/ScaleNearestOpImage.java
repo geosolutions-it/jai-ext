@@ -1,7 +1,5 @@
 package it.geosolutions.jaiext.scale;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
 import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
 
 import java.awt.Rectangle;
@@ -18,7 +16,6 @@ import java.util.Map;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationTable;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
@@ -29,7 +26,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
     public ScaleNearestOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
-        super(source, layout, configuration, true, extender, interp, scaleX, scaleY, transX,
+        super(source, layout, configuration, true, extender, ((InterpolationNearestNew)interp).getInterpNearest(), scaleX, scaleY, transX,
                 transY, useRoiAccessor);
         scaleOpInitialization(source,interp);
     }
@@ -46,6 +43,8 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             colorModel = srcColorModel;
         }
 
+        SampleModel sm = source.getSampleModel();
+        
         // selection of the inverse scale parameters both for the x and y axis
         if (invScaleXRational.num > invScaleXRational.denom) {
             invScaleXInt = invScaleXRational.num / invScaleXRational.denom;
@@ -74,7 +73,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             if (noData != null) {
                 hasNoData = true;
                 destinationNoDataDouble = interpN.getDestinationNoData();
-                if ((dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)) {
+                if ((sm.getDataType() == DataBuffer.TYPE_FLOAT || sm.getDataType() == DataBuffer.TYPE_DOUBLE)) {
                     // If the range goes from -Inf to Inf No Data is NaN
                     if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
                         isRangeNaN = true;
@@ -89,54 +88,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             } else if (hasROI) {
                 destinationNoDataDouble = interpN.getDestinationNoData();
             }
-        } else if (interpolator instanceof InterpolationBilinearNew) {
-            interpB = (InterpolationBilinearNew) interpolator;
-            this.interp=interpB.getInterpBilinear();
-            interpB.setROIdata(roiBounds, roiIter);
-            noData = interpB.getNoDataRange();
-            if (noData != null) {
-                hasNoData = true;
-                destinationNoDataDouble = interpB.getDestinationNoData();
-                if ((dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)) {
-                    // If the range goes from -Inf to Inf No Data is NaN
-                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
-                        isRangeNaN = true;
-                        // If the range is a positive infinite point isPositiveInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
-                        isPositiveInf = true;
-                        // If the range is a negative infinite point isNegativeInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
-                        isNegativeInf = true;
-                    }
-                }
-            } else if (hasROI) {
-                destinationNoDataDouble = interpB.getDestinationNoData();
-            }
-        } else if (interpolator instanceof InterpolationBicubicNew) {
-            interpBN = (InterpolationBicubicNew) interpolator;
-            this.interp=interpBN.getInterpBiCubic();
-            interpBN.setROIdata(roiBounds, roiIter);
-            noData = interpBN.getNoDataRange();
-            if (noData != null) {
-                hasNoData = true;
-                destinationNoDataDouble = interpBN.getDestinationNoData();
-                if ((dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)) {
-                    // If the range goes from -Inf to Inf No Data is NaN
-                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
-                        isRangeNaN = true;
-                        // If the range is a positive infinite point isPositiveInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
-                        isPositiveInf = true;
-                        // If the range is a negative infinite point isNegativeInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
-                        isNegativeInf = true;
-                    }
-                }
-            } else if (hasROI) {
-                destinationNoDataDouble = interpBN.getDestinationNoData();
-            }
-        }
-
+        } 
         // subsample bits used for the bilinear and bicubic interpolation
         subsampleBits = interp.getSubsampleBitsH();
 
@@ -146,18 +98,10 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         // Subsampling related variables
         shift2 = 2 * subsampleBits;
         round2 = 1 << (shift2 - 1);
-        // Interpolation table used in the bicubic interpolation
-        if (interpolator instanceof InterpolationTable) {
-            InterpolationTable interpTable = (InterpolationTable) interpolator;
-            precisionBits = interpTable.getPrecisionBits();
-        }
 
         // Number of subsample positions
         one = 1 << subsampleBits;
 
-        if (precisionBits > 0) {
-            round = 1 << (precisionBits - 1);
-        }
 
         // Get the width and height and padding of the Interpolation kernel.
         interp_width = interp.getWidth();
@@ -165,7 +109,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         interp_left = interp.getLeftPadding();
         interp_top = interp.getTopPadding();
 
-        SampleModel sm = source.getSampleModel();
+        
 
         // Selection of the destination No Data
         switch (sm.getDataType()) {
@@ -250,7 +194,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         Raster roi = null;
 
         // ROI calculation only if the roi raster is present
-        if (rois != null) {
+        if (useRoiAccessor) {
             // Selection of the roi raster
             roi = rois[0];
             // creation of the rasterAccessor
@@ -274,10 +218,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         dataType = dest.getSampleModel().getDataType();
 
         // This methods differs only for the presence of the roi or if the image is a binary one
-        if (isBinary) {
+        
+            // if is binary
             // computeLoopBynary(srcAccessor, source, dest, destRect, xpos, ypos,yposRoi, xfracvalues,
             // yfracvalues,roi,yposRoi,srcRect.x, srcRect.y);
-        } else {
+        
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
                 byteLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
@@ -298,54 +243,54 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                 doubleLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
                 break;
             }
-        }
+        
     }
 
     private void byteLoop(RasterAccessor src, Rectangle dstRect, RasterAccessor dst, int[] xpos,
             int[] ypos, RasterAccessor roi, int[] yposRoi) {
 
         // BandOffsets
-        int srcScanlineStride = src.getScanlineStride();
-        int srcPixelStride = src.getPixelStride();
-        int bandOffsets[] = src.getBandOffsets();
+        final int srcScanlineStride = src.getScanlineStride();
+        final int srcPixelStride = src.getPixelStride();
+        final int bandOffsets[] = src.getBandOffsets();
         // Destination rectangle dimensions
-        int dwidth = dstRect.width;
-        int dheight = dstRect.height;
+        final int dwidth = dstRect.width;
+        final int dheight = dstRect.height;
         // Destination image band numbers
-        int dnumBands = dst.getNumBands();
+        final int dnumBands = dst.getNumBands();
         // Destination bandOffsets, PixelStride and ScanLineStride
-        int dstBandOffsets[] = dst.getBandOffsets();
-        int dstPixelStride = dst.getPixelStride();
-        int dstScanlineStride = dst.getScanlineStride();
+        final int dstBandOffsets[] = dst.getBandOffsets();
+        final int dstPixelStride = dst.getPixelStride();
+        final int dstScanlineStride = dst.getScanlineStride();
 
         // Destination and source data arrays (for all bands)
-        byte[][] srcDataArrays = src.getByteDataArrays();
+        final byte[][] srcDataArrays = src.getByteDataArrays();
 
-        byte[][] dstDataArrays = dst.getByteDataArrays();
+        final byte[][] dstDataArrays = dst.getByteDataArrays();
 
-        // Destination and source data arrays (for a single band)
-        byte[] dstData = null;
-        byte[] srcData = null;
 
-        byte[] roiDataArray = null;
-        int roiDataLength = 0;
-
-        int w, posx, posy, pos, posyROI, windex;
-
+        final byte[] roiDataArray;
+        final int roiDataLength;
         if (useRoiAccessor) {
             roiDataArray = roi.getByteDataArray(0);
             roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiDataLength = 0;            
         }
 
         // No Data Range
         Range<Byte> rangeND = (Range<Byte>) noData;
 
-        if (!hasROI && !hasNoData) {
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+        if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
 
-                srcData = srcDataArrays[k];
-                dstData = dstDataArrays[k];
+                final byte[] srcData = srcDataArrays[k];
+                final byte[] dstData = dstDataArrays[k];
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
                 int bandOffset = bandOffsets[k];
@@ -354,12 +299,12 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                     // pixel offset initialization
                     int dstPixelOffset = dstlineOffset;
                     // y position selection
-                    posy = ypos[j] + bandOffset;
+                    int posy = ypos[j] + bandOffset;
                     // cycle on the x values
                     for (int i = 0; i < dwidth; i++) {
                         // x position selection
-                        posx = xpos[i];
-                        pos = posx + posy;
+                        int posx = xpos[i];
+                        int pos = posx + posy;
                         // The interpolated value is saved in the destination array
                         dstData[dstPixelOffset] = srcData[pos];
 
@@ -371,12 +316,12 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                 }
             }
         } else {
-            if (hasROI && !hasNoData) {
+            if (caseB) {
                 if (useRoiAccessor) {
                     // for all bands
                     for (int k = 0; k < dnumBands; k++) {
-                        srcData = srcDataArrays[k];
-                        dstData = dstDataArrays[k];
+                        final byte[] srcData = srcDataArrays[k];
+                        final byte[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -385,19 +330,19 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            posy = ypos[j] + bandOffset;
+                            int posy = ypos[j] + bandOffset;
                             // roi y position initialization
-                            posyROI = yposRoi[j];
+                            int posyROI = yposRoi[j];
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                posx = xpos[i];
+                                int posx = xpos[i];
 
-                                pos = posx + posy;
+                                int pos = posx + posy;
 
-                                windex = (posx / dnumBands) + posyROI;
+                                int windex = (posx / dnumBands) + posyROI;
                                 
-                                w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
 
                                 if (w == 0) {
                                     // The destination no data value is saved in the destination array
@@ -417,8 +362,8 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                 } else {
                     // for all bands
                     for (int k = 0; k < dnumBands; k++) {
-                        srcData = srcDataArrays[k];
-                        dstData = dstDataArrays[k];
+                        final byte[] srcData = srcDataArrays[k];
+                        final byte[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -427,18 +372,18 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            posy = ypos[j] + bandOffset;
+                            int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                posx = xpos[i];
-                                pos = posx + posy;
+                                int posx = xpos[i];
+                                int pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + posy / srcScanlineStride;
+                                int y0 = src.getY() + (posy-bandOffset)/ srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
-                                    w = roiIter.getSample(x0, y0, 0) & 0xff;
+                                    int w = roiIter.getSample(x0, y0, 0) & 0xff;
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataByte;
@@ -459,51 +404,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                     }
 
                 }
-            } else if (!hasROI && hasNoData) {
-                // for all bands
-                for (int k = 0; k < dnumBands; k++) {
-
-                    srcData = srcDataArrays[k];
-                    dstData = dstDataArrays[k];
-
-                    // Line and band Offset initialization
-                    int dstlineOffset = dstBandOffsets[k];
-                    int bandOffset = bandOffsets[k];
-                    // cycle on the y values
-                    for (int j = 0; j < dheight; j++) {
-                        // pixel offset initialization
-                        int dstPixelOffset = dstlineOffset;
-                        // y position selection
-                        posy = ypos[j] + bandOffset;
-                        // cycle on the x values
-                        for (int i = 0; i < dwidth; i++) {
-                            // x position selection
-                            posx = xpos[i];
-                            pos = posx + posy;
-                            byte value = srcData[pos];
-
-                            if (rangeND.contains(value)) {
-                                // The destination no data value is saved in the destination array
-                                dstData[dstPixelOffset] = destinationNoDataByte;
-                            } else {
-                                // The interpolated value is saved in the destination array
-                                dstData[dstPixelOffset] = value;
-                            }
-
-                            // destination pixel offset update
-                            dstPixelOffset += dstPixelStride;
-                        }
-                        // destination line offset update
-                        dstlineOffset += dstScanlineStride;
-                    }
-                }
-            } else if (hasROI && hasNoData) {
-                if (useRoiAccessor) {
+            } else {
+                if (caseC) {
                     // for all bands
                     for (int k = 0; k < dnumBands; k++) {
 
-                        srcData = srcDataArrays[k];
-                        dstData = dstDataArrays[k];
+                        final byte[] srcData = srcDataArrays[k];
+                        final byte[] dstData = dstDataArrays[k];
+
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -512,33 +420,22 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            posy = ypos[j] + bandOffset;
-                            // roi y position initialization
-                            posyROI = yposRoi[j];
+                            int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                posx = xpos[i];
-
-                                pos = posx + posy;
-
+                                int posx = xpos[i];
+                                int pos = posx + posy;
                                 byte value = srcData[pos];
 
                                 if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataByte;
                                 } else {
-                                    windex = (posx / dnumBands) + posyROI;
-                                    w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
-
-                                    if (w == 0) {
-                                        // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
-                                    } else {
-                                        // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = value;
-                                    }
+                                    // The interpolated value is saved in the destination array
+                                    dstData[dstPixelOffset] = value;
                                 }
+
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
                             }
@@ -546,38 +443,40 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else {
-                    // for all bands
-                    for (int k = 0; k < dnumBands; k++) {
+                } else if (hasROI && hasNoData) {
+                    if (useRoiAccessor) {
+                        // for all bands
+                        for (int k = 0; k < dnumBands; k++) {
 
-                        srcData = srcDataArrays[k];
-                        dstData = dstDataArrays[k];
-                        // Line and band Offset initialization
-                        int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
-                        // cycle on the y values
-                        for (int j = 0; j < dheight; j++) {
-                            // pixel offset initialization
-                            int dstPixelOffset = dstlineOffset;
-                            // y position selection
-                            posy = ypos[j] + bandOffset;
-                            // cycle on the x values
-                            for (int i = 0; i < dwidth; i++) {
-                                // x position selection
-                                posx = xpos[i];
-                                pos = posx + posy;
-                                byte value = srcData[pos];
+                            final byte[] srcData = srcDataArrays[k];
+                            final byte[] dstData = dstDataArrays[k];
+                            // Line and band Offset initialization
+                            int dstlineOffset = dstBandOffsets[k];
+                            int bandOffset = bandOffsets[k];
+                            // cycle on the y values
+                            for (int j = 0; j < dheight; j++) {
+                                // pixel offset initialization
+                                int dstPixelOffset = dstlineOffset;
+                                // y position selection
+                                int posy = ypos[j] + bandOffset;
+                                // roi y position initialization
+                                int posyROI = yposRoi[j];
+                                // cycle on the x values
+                                for (int i = 0; i < dwidth; i++) {
+                                    // x position selection
+                                    int posx = xpos[i];
 
-                                if (rangeND.contains(value)) {
-                                    // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
-                                } else {
-                                    // PixelPositions
-                                    int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + posy / srcScanlineStride;
+                                    int pos = posx + posy;
 
-                                    if (roiBounds.contains(x0, y0)) {
-                                        w = roiIter.getSample(x0, y0, 0) & 0xff;
+                                    byte value = srcData[pos];
+
+                                    if (rangeND.contains(value)) {
+                                        // The destination no data value is saved in the destination array
+                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                    } else {
+                                        int windex = (posx / dnumBands) + posyROI;
+                                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
                                         if (w == 0) {
                                             // The destination no data value is saved in the destination array
                                             dstData[dstPixelOffset] = destinationNoDataByte;
@@ -585,16 +484,64 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                             // The interpolated value is saved in the destination array
                                             dstData[dstPixelOffset] = value;
                                         }
-                                    } else {
+                                    }
+                                    // destination pixel offset update
+                                    dstPixelOffset += dstPixelStride;
+                                }
+                                // destination line offset update
+                                dstlineOffset += dstScanlineStride;
+                            }
+                        }
+                    } else {
+                        // for all bands
+                        for (int k = 0; k < dnumBands; k++) {
+
+                            final byte[] srcData = srcDataArrays[k];
+                            final byte[] dstData = dstDataArrays[k];
+                            // Line and band Offset initialization
+                            int dstlineOffset = dstBandOffsets[k];
+                            int bandOffset = bandOffsets[k];
+                            // cycle on the y values
+                            for (int j = 0; j < dheight; j++) {
+                                // pixel offset initialization
+                                int dstPixelOffset = dstlineOffset;
+                                // y position selection
+                                int posy = ypos[j] + bandOffset;
+                                // cycle on the x values
+                                for (int i = 0; i < dwidth; i++) {
+                                    // x position selection
+                                    int posx = xpos[i];
+                                    int pos = posx + posy;
+                                    byte value = srcData[pos];
+
+                                    if (rangeND.contains(value)) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataByte;
+                                    } else {
+                                        // PixelPositions
+                                        int x0 = src.getX() + posx / srcPixelStride;
+                                        int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+
+                                        if (roiBounds.contains(x0, y0)) {
+                                            int w = roiIter.getSample(x0, y0, 0) & 0xff;
+                                            if (w == 0) {
+                                                // The destination no data value is saved in the destination array
+                                                dstData[dstPixelOffset] = destinationNoDataByte;
+                                            } else {
+                                                // The interpolated value is saved in the destination array
+                                                dstData[dstPixelOffset] = value;
+                                            }
+                                        } else {
+                                            // The destination no data value is saved in the destination array
+                                            dstData[dstPixelOffset] = destinationNoDataByte;
+                                        }
                                     }
+                                    // destination pixel offset update
+                                    dstPixelOffset += dstPixelStride;
                                 }
-                                // destination pixel offset update
-                                dstPixelOffset += dstPixelStride;
+                                // destination line offset update
+                                dstlineOffset += dstScanlineStride;
                             }
-                            // destination line offset update
-                            dstlineOffset += dstScanlineStride;
                         }
                     }
                 }
@@ -738,7 +685,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + posy / srcScanlineStride;
+                                int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     w = roiIter.getSample(x0, y0, 0) & 0xffff;
@@ -882,7 +829,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + posy / srcScanlineStride;
+                                    int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0) & 0xffff;
@@ -1010,7 +957,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (w == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort;
                                 } else {
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = srcData[pos];
@@ -1046,20 +993,20 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + posy / srcScanlineStride;
+                                int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     w = roiIter.getSample(x0, y0, 0);
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort;
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = srcData[pos];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort;
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1096,7 +1043,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                             if (rangeND.contains(value)) {
                                 // The destination no data value is saved in the destination array
-                                dstData[dstPixelOffset] = destinationNoDataUShort;
+                                dstData[dstPixelOffset] = destinationNoDataShort;
                             } else {
                                 // The interpolated value is saved in the destination array
                                 dstData[dstPixelOffset] = value;
@@ -1139,14 +1086,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort;
                                 } else {
                                     windex = (posx / dnumBands) + posyROI;
                                     w = windex < roiDataLength ? roiDataArray[windex] : 0;
 
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort;
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = value;
@@ -1186,24 +1133,24 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort;
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + posy / srcScanlineStride;
+                                    int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0);
                                         if (w == 0) {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataUShort;
+                                            dstData[dstPixelOffset] = destinationNoDataShort;
                                         } else {
                                             // The interpolated value is saved in the destination array
                                             dstData[dstPixelOffset] = value;
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort;
                                     }
                                 }
                                 // destination pixel offset update
@@ -1353,7 +1300,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + posy / srcScanlineStride;
+                                int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     w = roiIter.getSample(x0, y0, 0);
@@ -1497,7 +1444,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + posy / srcScanlineStride;
+                                    int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0);
@@ -1661,7 +1608,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + posy / srcScanlineStride;
+                                int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     w = roiIter.getSample(x0, y0, 0);
@@ -1820,7 +1767,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + posy / srcScanlineStride;
+                                    int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0);
@@ -1984,7 +1931,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 pos = posx + posy;
                                 // PixelPositions
                                 int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + posy / srcScanlineStride;
+                                int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
                                     w = roiIter.getSample(x0, y0, 0);
@@ -2143,7 +2090,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + posy / srcScanlineStride;
+                                    int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0);

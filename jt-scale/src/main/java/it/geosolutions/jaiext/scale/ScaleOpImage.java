@@ -15,21 +15,14 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.Point2D;
-import java.awt.image.ColorModel;
-import java.awt.image.DataBuffer;
-import java.awt.image.IndexColorModel;
-import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Map;
-
 import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
 import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
-
 import javax.media.jai.BorderExtender;
 import javax.media.jai.GeometricOpImage;
 import javax.media.jai.ImageLayout;
@@ -39,16 +32,13 @@ import javax.media.jai.InterpolationBicubic;
 import javax.media.jai.InterpolationBicubic2;
 import javax.media.jai.InterpolationBilinear;
 import javax.media.jai.InterpolationNearest;
-import javax.media.jai.InterpolationTable;
 import javax.media.jai.JAI;
 import javax.media.jai.OpImage;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.WarpOpImage;
 import javax.media.jai.iterator.RandomIter;
-
 import org.jaitools.numeric.Range;
-
 import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.Rational;
 
@@ -258,6 +248,12 @@ public abstract class ScaleOpImage extends GeometricOpImage {
     protected boolean isPositiveInf = false;
 
     protected boolean isRangeNaN = false;
+    
+    protected boolean isNearestNew = false;
+
+    protected boolean isBilinearNew = false;
+
+    protected boolean isBicubicNew = false;
 
     final static BorderExtender roiExtender = BorderExtender
             .createInstance(BorderExtender.BORDER_ZERO);
@@ -450,7 +446,7 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
 
     // This method precompute the integer and fractional position of every pixel
-    protected void preComputePositionsInt(Rectangle destRect, int srcRectX, int srcRectY,
+    protected final void preComputePositionsInt(Rectangle destRect, int srcRectX, int srcRectY,
             int srcPixelStride, int srcScanlineStride, int xpos[], int ypos[], int[] xfracvalues,
             int[] yfracvalues, int roiScanlineStride, int[] yposRoi) {
 
@@ -478,9 +474,7 @@ public abstract class ScaleOpImage extends GeometricOpImage {
         syNum *= invScaleYRationalNum;
         syDenom *= invScaleYRationalDenom;
 
-        if (interpBN != null || interpB != null || interpolator instanceof InterpolationBilinear
-                || interpolator instanceof InterpolationBicubic
-                || interpolator instanceof InterpolationBicubic2) {
+        if (isBilinearNew || isBicubicNew) {
             // Subtract 0.5
             syNum = 2 * syNum - syDenom;
             syDenom *= 2;
@@ -515,9 +509,7 @@ public abstract class ScaleOpImage extends GeometricOpImage {
         sxNum *= invScaleXRationalNum;
         sxDenom *= invScaleXRationalDenom;
 
-        if (interpBN != null || interpB != null || interpolator instanceof InterpolationBilinear
-                || interpolator instanceof InterpolationBicubic
-                || interpolator instanceof InterpolationBicubic2) {
+        if (isBilinearNew || isBicubicNew) {
             // Subtract 0.5
             sxNum = 2 * sxNum - sxDenom;
             sxDenom *= 2;
@@ -545,7 +537,9 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             }
 
             // Calculate the yfrac value
-            xfracvalues[i] = (int) (((1.0f * srcXFrac) / commonXDenom) * one);
+            if(isBilinearNew || isBicubicNew){
+                xfracvalues[i] = (int) (((1.0f * srcXFrac) / commonXDenom) * one);
+            }
             // Move onto the next source pixel.
 
             // Add the integral part of invScaleX to the integral part
@@ -584,7 +578,10 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             }
 
             // Calculate the yfrac value
-            yfracvalues[i] = (int) (((float) srcYFrac / (float) commonYDenom) * one);
+            if(isBilinearNew || isBicubicNew){
+                yfracvalues[i] = (int) ((1.0f *srcYFrac / commonYDenom) * one);
+            }
+//            yfracvalues[i] = (int) ((1.0f *srcYFrac / commonYDenom) * one);
             // Move onto the next source pixel.
 
             // Add the integral part of invScaleY to the integral part
@@ -605,7 +602,7 @@ public abstract class ScaleOpImage extends GeometricOpImage {
         }
     }
 
-    protected void preComputePositionsFloat(Rectangle destRect, int srcRectX, int srcRectY,
+    protected final void preComputePositionsFloat(Rectangle destRect, int srcRectX, int srcRectY,
             int srcPixelStride, int srcScanlineStride, int xpos[], int ypos[], float[] xfracvalues,
             float[] yfracvalues, int roiScanlineStride, int[] yposRoi) {
 
@@ -697,7 +694,10 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             xpos[i] = (srcXInt - srcRectX) * srcPixelStride;
 
             // Calculate the yfrac value
-            xfracvalues[i] = (1.0f * srcXFrac) / commonXDenom;
+            if(isBilinearNew || isBicubicNew){
+                xfracvalues[i] = (1.0f * srcXFrac) / commonXDenom;
+            }
+//            xfracvalues[i] = (1.0f * srcXFrac) / commonXDenom;
             // Move onto the next source pixel.
 
             // Add the integral part of invScaleX to the integral part
@@ -729,7 +729,10 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             }
 
             // Calculate the yfrac value
-            yfracvalues[i] = (float) srcYFrac / (float) commonYDenom;
+            if(isBilinearNew || isBicubicNew){
+                yfracvalues[i] = 1.0f* srcYFrac / commonYDenom;
+            }
+//            yfracvalues[i] = (float) srcYFrac / (float) commonYDenom;
 
             // Move onto the next source pixel.
 

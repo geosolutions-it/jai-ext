@@ -116,7 +116,8 @@ public class ScaleDataOpImage extends ScaleOpImage {
         // Interpolator settings
         interpolator = interp;
 
-        if (interpolator instanceof InterpolationNearestNew) {            
+        if (interpolator instanceof InterpolationNearestNew) {
+            isNearestNew=true;
             interpN = (InterpolationNearestNew) interpolator;
             this.interp=interpN.getInterpNearest();
             interpN.setROIdata(roiBounds, roiIter);
@@ -140,6 +141,7 @@ public class ScaleDataOpImage extends ScaleOpImage {
                 destinationNoDataDouble = interpN.getDestinationNoData();
             }
         } else if (interpolator instanceof InterpolationBilinearNew) {
+            isBilinearNew=true;
             interpB = (InterpolationBilinearNew) interpolator;
             this.interp=interpB.getInterpBilinear();
             interpB.setROIdata(roiBounds, roiIter);
@@ -163,6 +165,7 @@ public class ScaleDataOpImage extends ScaleOpImage {
                 destinationNoDataDouble = interpB.getDestinationNoData();
             }
         } else if (interpolator instanceof InterpolationBicubicNew) {
+            isBicubicNew=true;
             interpBN = (InterpolationBicubicNew) interpolator;
             this.interp=interpBN.getInterpBiCubic();
             interpBN.setROIdata(roiBounds, roiIter);
