@@ -32,6 +32,9 @@ import com.sun.media.jai.util.Rational;
 
 public class ScaleNearestOpImage3 extends ScaleOpImage {
 
+    /** Nearest-Neighbor interpolator */
+    protected InterpolationNearestNew interpN = null;
+    
     public ScaleNearestOpImage3(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {

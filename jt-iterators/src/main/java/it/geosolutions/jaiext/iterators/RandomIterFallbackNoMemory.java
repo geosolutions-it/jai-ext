@@ -19,44 +19,40 @@ import java.awt.image.SampleModel;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.iterator.RandomIter;
 
-
 /**
  * @since EA2
  */
-public class RandomIterFallbackNoMemory implements RandomIter
-{
+public class RandomIterFallbackNoMemory implements RandomIter {
 
     protected RenderedImage im;
+
     protected Rectangle boundsRect;
 
     protected SampleModel sampleModel;
 
     protected int boundsX;
+
     protected int boundsY;
 
-    public RandomIterFallbackNoMemory(RenderedImage im, Rectangle bounds)
-    {
+    public RandomIterFallbackNoMemory(RenderedImage im, Rectangle bounds) {
         this.im = im;
 
-        Rectangle imBounds = new Rectangle(im.getMinX(), im.getMinY(),
-                im.getWidth(), im.getHeight());
+        Rectangle imBounds = new Rectangle(im.getMinX(), im.getMinY(), im.getWidth(),
+                im.getHeight());
         this.boundsRect = imBounds.intersection(bounds);
         this.sampleModel = im.getSampleModel();
-
 
         this.boundsX = boundsRect.x;
         this.boundsY = boundsRect.y;
     }
 
     /**
-     * Sets dataBuffer to the correct buffer for the pixel
-     * (x, y) = (xLocal + boundsRect.x, yLocal + boundsRect.y).
-     *
+     * Sets dataBuffer to the correct buffer for the pixel (x, y) = (xLocal + boundsRect.x, yLocal + boundsRect.y).
+     * 
      * @param xLocal the X coordinate in the local coordinate system.
      * @param yLocal the Y coordinate in the local coordinate system.
      */
-    private Raster makeCurrent(int xLocal, int yLocal)
-    {
+    private Raster makeCurrent(int xLocal, int yLocal) {
         final int tileWidth = im.getTileWidth();
         final int tileHeight = im.getTileHeight();
         final int tileGridXOffset = im.getTileGridXOffset();
@@ -67,8 +63,7 @@ public class RandomIterFallbackNoMemory implements RandomIter
         return im.getTile(tileX, tileY);
     }
 
-    public int getSample(int x, int y, int b)
-    {
+    public int getSample(int x, int y, int b) {
         // get tile
         Raster tile = makeCurrent(x - boundsX, y - boundsY);
 
@@ -76,14 +71,11 @@ public class RandomIterFallbackNoMemory implements RandomIter
         final int sampleModelTranslateX = tile.getSampleModelTranslateX();
         final int sampleModelTranslateY = tile.getSampleModelTranslateY();
 
-        return sampleModel.getSample(x - sampleModelTranslateX,
-                y - sampleModelTranslateY,
-                b,
+        return sampleModel.getSample(x - sampleModelTranslateX, y - sampleModelTranslateY, b,
                 tile.getDataBuffer());
     }
 
-    public float getSampleFloat(int x, int y, int b)
-    {
+    public float getSampleFloat(int x, int y, int b) {
         // get tile
         Raster tile = makeCurrent(x - boundsX, y - boundsY);
 
@@ -91,14 +83,11 @@ public class RandomIterFallbackNoMemory implements RandomIter
         final int sampleModelTranslateX = tile.getSampleModelTranslateX();
         final int sampleModelTranslateY = tile.getSampleModelTranslateY();
 
-        return sampleModel.getSampleFloat(x - sampleModelTranslateX,
-                y - sampleModelTranslateY,
-                b,
+        return sampleModel.getSampleFloat(x - sampleModelTranslateX, y - sampleModelTranslateY, b,
                 tile.getDataBuffer());
     }
 
-    public double getSampleDouble(int x, int y, int b)
-    {
+    public double getSampleDouble(int x, int y, int b) {
         // get tile
         Raster tile = makeCurrent(x - boundsX, y - boundsY);
 
@@ -106,14 +95,11 @@ public class RandomIterFallbackNoMemory implements RandomIter
         final int sampleModelTranslateX = tile.getSampleModelTranslateX();
         final int sampleModelTranslateY = tile.getSampleModelTranslateY();
 
-        return sampleModel.getSampleDouble(x - sampleModelTranslateX,
-                y - sampleModelTranslateY,
-                b,
+        return sampleModel.getSampleDouble(x - sampleModelTranslateX, y - sampleModelTranslateY, b,
                 tile.getDataBuffer());
     }
 
-    public int[] getPixel(int x, int y, int[] iArray)
-    {
+    public int[] getPixel(int x, int y, int[] iArray) {
         // get tile
         Raster tile = makeCurrent(x - boundsX, y - boundsY);
 
@@ -121,14 +107,11 @@ public class RandomIterFallbackNoMemory implements RandomIter
         final int sampleModelTranslateX = tile.getSampleModelTranslateX();
         final int sampleModelTranslateY = tile.getSampleModelTranslateY();
 
-        return sampleModel.getPixel(x - sampleModelTranslateX,
-                y - sampleModelTranslateY,
-                iArray,
+        return sampleModel.getPixel(x - sampleModelTranslateX, y - sampleModelTranslateY, iArray,
                 tile.getDataBuffer());
     }
 
-    public float[] getPixel(int x, int y, float[] fArray)
-    {
+    public float[] getPixel(int x, int y, float[] fArray) {
         // get tile
         Raster tile = makeCurrent(x - boundsX, y - boundsY);
 
@@ -136,14 +119,11 @@ public class RandomIterFallbackNoMemory implements RandomIter
         final int sampleModelTranslateX = tile.getSampleModelTranslateX();
         final int sampleModelTranslateY = tile.getSampleModelTranslateY();
 
-        return sampleModel.getPixel(x - sampleModelTranslateX,
-                y - sampleModelTranslateY,
-                fArray,
+        return sampleModel.getPixel(x - sampleModelTranslateX, y - sampleModelTranslateY, fArray,
                 tile.getDataBuffer());
     }
 
-    public double[] getPixel(int x, int y, double[] dArray)
-    {
+    public double[] getPixel(int x, int y, double[] dArray) {
         // get tile
         Raster tile = makeCurrent(x - boundsX, y - boundsY);
 
@@ -151,12 +131,10 @@ public class RandomIterFallbackNoMemory implements RandomIter
         final int sampleModelTranslateX = tile.getSampleModelTranslateX();
         final int sampleModelTranslateY = tile.getSampleModelTranslateY();
 
-        return sampleModel.getPixel(x - sampleModelTranslateX,
-                y - sampleModelTranslateY,
-                dArray,
+        return sampleModel.getPixel(x - sampleModelTranslateX, y - sampleModelTranslateY, dArray,
                 tile.getDataBuffer());
     }
 
-    public void done(){
+    public void done() {
     }
 }

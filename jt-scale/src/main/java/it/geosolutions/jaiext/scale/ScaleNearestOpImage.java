@@ -1,7 +1,6 @@
 package it.geosolutions.jaiext.scale;
 
 import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
-
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -12,19 +11,20 @@ import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Map;
-
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
-
 import org.jaitools.numeric.Range;
-
-import com.sun.media.jai.util.Rational;
 
 public class ScaleNearestOpImage extends ScaleOpImage {
 
+    /** Nearest-Neighbor interpolator */
+    protected InterpolationNearestNew interpN = null;
+    
+    protected final byte[] byteLookupTable=new byte[255];
+    
     public ScaleNearestOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
@@ -45,7 +45,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             colorModel = srcColorModel;
         }
 
+        
+        
         SampleModel sm = source.getSampleModel();
+        // Source image data Type
+        int srcDataType = sm.getDataType();
         
         // selection of the inverse scale parameters both for the x and y axis
         if (invScaleXRational.num > invScaleXRational.denom) {
@@ -75,7 +79,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             if (noData != null) {
                 hasNoData = true;
                 destinationNoDataDouble = interpN.getDestinationNoData();
-                if ((sm.getDataType() == DataBuffer.TYPE_FLOAT || sm.getDataType() == DataBuffer.TYPE_DOUBLE)) {
+                if ((srcDataType == DataBuffer.TYPE_FLOAT || srcDataType == DataBuffer.TYPE_DOUBLE)) {
                     // If the range goes from -Inf to Inf No Data is NaN
                     if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
                         isRangeNaN = true;
@@ -114,9 +118,23 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         
 
         // Selection of the destination No Data
-        switch (sm.getDataType()) {
+        switch (srcDataType) {
         case DataBuffer.TYPE_BYTE:
             destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
+            // Creation of a lookuptable containing the values to use for no data
+            if(hasNoData){
+                
+                Range<Byte> noDataByte = ((Range<Byte>)noData);
+                
+                for(int i = 0; i<byteLookupTable.length;i++){
+                    byte value = (byte)i;
+                    if(noDataByte.contains(value)){
+                        byteLookupTable[i]=destinationNoDataByte;
+                    }else{
+                        byteLookupTable[i]=value;
+                    }
+                }  
+            }  
             break;
         case DataBuffer.TYPE_USHORT:
             destinationNoDataUShort = (short) (((short) destinationNoDataDouble) & 0xffff);
@@ -147,8 +165,8 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         //
         isBinary = (sm instanceof MultiPixelPackedSampleModel)
                 && (sm.getSampleSize(0) == 1)
-                && (sm.getDataType() == DataBuffer.TYPE_BYTE
-                        || sm.getDataType() == DataBuffer.TYPE_USHORT || sm.getDataType() == DataBuffer.TYPE_INT);
+                && (srcDataType == DataBuffer.TYPE_BYTE
+                        || srcDataType == DataBuffer.TYPE_USHORT || srcDataType == DataBuffer.TYPE_INT);
 
     }
     
@@ -273,144 +291,13 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
         final byte[] roiDataArray;
         final int roiDataLength;
-        final int roiScanLineStride;
         if (useRoiAccessor) {
             roiDataArray = roi.getByteDataArray(0);
             roiDataLength = roiDataArray.length;
-            roiScanLineStride = roi.getScanlineStride();
         } else {
             roiDataArray = null;
             roiDataLength = 0;    
-            roiScanLineStride = 0;
         }
-
-        // No Data Range
-        Range<Byte> rangeND = (Range<Byte>) noData;
-
-        
-
-        // Loop variables based on the destination rectangle to be calculated.
-        final int dx = dstRect.x;
-        final int dy = dstRect.y;
-        
-        final int srcRectX = srcRect.x;
-        final int srcRectY = srcRect.y;
-
-        // Initially the y source value is calculated by the destination value and then performing the inverse
-        // scale operation on it.
-        long syNum = dy, syDenom = 1;
-
-        // Subtract the X translation factor sy -= transY
-        syNum = syNum * transYRationalDenom - transYRationalNum * syDenom;
-        syDenom *= transYRationalDenom;
-
-        // Add 0.5
-        syNum = 2 * syNum + syDenom;
-        syDenom *= 2;
-
-        // Multply by invScaleX
-        syNum *= invScaleYRationalNum;
-        syDenom *= invScaleYRationalDenom;
-
-        // Separate the y source coordinate into integer and fractional part
-        int srcYInt = Rational.floor(syNum, syDenom);
-        long srcYFrac = syNum % syDenom;
-        if (srcYInt < 0) {
-            srcYFrac = syDenom + srcYFrac;
-        }
-
-        // Normalize - Get a common denominator for the fracs of
-        // src and invScaleY
-        long commonYDenom = syDenom * invScaleYRationalDenom;
-        srcYFrac *= invScaleYRationalDenom;
-        long newInvScaleYFrac = invScaleYFrac * syDenom;
-
-        // Initially the x source value is calculated by the destination value and then performing the inverse
-        // scale operation on it.
-        long sxNum = dx, sxDenom = 1;
-
-        // Subtract the X translation factor sx -= transX
-        sxNum = sxNum * transXRationalDenom - transXRationalNum * sxDenom;
-        sxDenom *= transXRationalDenom;
-
-        // Add 0.5
-        sxNum = 2 * sxNum + sxDenom;
-        sxDenom *= 2;
-
-        // Multply by invScaleX
-        sxNum *= invScaleXRationalNum;
-        sxDenom *= invScaleXRationalDenom;
-
-        // Separate the x source coordinate into integer and fractional part
-        int srcXInt = Rational.floor(sxNum, sxDenom);
-        long srcXFrac = sxNum % sxDenom;
-        if (srcXInt < 0) {
-            srcXFrac = sxDenom + srcXFrac;
-        }
-
-        // Normalize - Get a common denominator for the fracs of
-        // src and invScaleX
-        long commonXDenom = sxDenom * invScaleXRationalDenom;
-        srcXFrac *= invScaleXRationalDenom;
-        long newInvScaleXFrac = invScaleXFrac * sxDenom;
-
-        // Store of the x positions
-        for (int i = 0; i < dwidth; i++) {
-            
-                xpos[i] = (srcXInt - srcRectX) * srcPixelStride;
-            // Move onto the next source pixel.
-
-            // Add the integral part of invScaleX to the integral part
-            // of srcX
-            srcXInt += invScaleXInt;
-
-            // Add the fractional part of invScaleX to the fractional part
-            // of srcX
-            srcXFrac += newInvScaleXFrac;
-
-            // If the fractional part is now greater than equal to the
-            // denominator, divide so as to reduce the numerator to be less
-            // than the denominator and add the overflow to the integral part.
-            if (srcXFrac >= commonXDenom) {
-                srcXInt += 1;
-                srcXFrac -= commonXDenom;
-            }
-        }
-        // Store of the y positions
-        for (int i = 0; i < dheight; i++) {
-
-            // Calculate the source position in the source data array.
-            if (isBinary) {
-                ypos[i] = srcYInt;
-            } else {
-                ypos[i] = (srcYInt - srcRectY) * srcScanlineStride;
-            }
-
-            // If roi is present, the y position roi value is calculated
-            if (useRoiAccessor) {
-                    yposRoi[i] = (srcYInt - srcRectY) * roiScanLineStride;
-                
-            }
-            // Move onto the next source pixel.
-
-            // Add the integral part of invScaleY to the integral part
-            // of srcY
-            srcYInt += invScaleYInt;
-
-            // Add the fractional part of invScaleY to the fractional part
-            // of srcY
-            srcYFrac += newInvScaleYFrac;
-
-            // If the fractional part is now greater than equal to the
-            // denominator, divide so as to reduce the numerator to be less
-            // than the denominator and add the overflow to the integral part.
-            if (srcYFrac >= commonYDenom) {
-                srcYInt += 1;
-                srcYFrac -= commonYDenom;
-            }
-        }
-        
-        
         
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -558,16 +445,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 // x position selection
                                 int posx = xpos[i];
                                 int pos = posx + posy;
-                                byte value = srcData[pos];
+                                
+                                int value = srcData[pos];
 
-                                if (rangeND.contains(value)) {
-                                    // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
-                                } else {
-                                    // The interpolated value is saved in the destination array
-                                    dstData[dstPixelOffset] = value;
-                                }
-
+                                dstData[dstPixelOffset] = byteLookupTable[value];
+                                
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
                             }
@@ -600,9 +482,9 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                     int pos = posx + posy;
 
-                                    byte value = srcData[pos];
+                                    int value = srcData[pos];
 
-                                    if (rangeND.contains(value)) {
+                                    if (byteLookupTable[value]==destinationNoDataByte) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataByte;
                                     } else {
@@ -614,7 +496,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                             dstData[dstPixelOffset] = destinationNoDataByte;
                                         } else {
                                             // The interpolated value is saved in the destination array
-                                            dstData[dstPixelOffset] = value;
+                                            dstData[dstPixelOffset] = byteLookupTable[value];
                                         }
                                     }
                                     // destination pixel offset update
@@ -644,9 +526,9 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     // x position selection
                                     int posx = xpos[i];
                                     int pos = posx + posy;
-                                    byte value = srcData[pos];
+                                    int value = srcData[pos];
 
-                                    if (rangeND.contains(value)) {
+                                    if (byteLookupTable[value]==destinationNoDataByte) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataByte;
                                     } else {
@@ -661,7 +543,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                                 dstData[dstPixelOffset] = destinationNoDataByte;
                                             } else {
                                                 // The interpolated value is saved in the destination array
-                                                dstData[dstPixelOffset] = value;
+                                                dstData[dstPixelOffset] = byteLookupTable[value];
                                             }
                                         } else {
                                             // The destination no data value is saved in the destination array

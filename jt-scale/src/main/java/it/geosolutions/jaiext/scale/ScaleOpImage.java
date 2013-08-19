@@ -174,15 +174,6 @@ public abstract class ScaleOpImage extends GeometricOpImage {
     /** Interpolator provided to the Scale operator */
     protected Interpolation interpolator = null;
 
-    /** Nearest-Neighbor interpolator */
-    protected InterpolationNearestNew interpN = null;
-
-    /** Bilinear interpolator */
-    protected InterpolationBilinearNew interpB = null;
-
-    /** Bicubic interpolator */
-    protected InterpolationBicubicNew interpBN = null;
-
     /** Boolean for checking if the image is binary or not */
     protected boolean isBinary;
 
@@ -239,22 +230,22 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
     /** Destination value for No Data float */
     protected float destinationNoDataFloat = 0;
-
+    
     /** Destination value for No Data double */
     protected double destinationNoDataDouble = 0;
-
+    /** Boolean for checking if the no data is negative infinity*/
     protected boolean isNegativeInf = false;
-
+    /** Boolean for checking if the no data is positive infinity*/
     protected boolean isPositiveInf = false;
-
+    /** Boolean for checking if the no data is NaN*/
     protected boolean isRangeNaN = false;
-    
+    /** Boolean for checking if the interpolator is Nearest*/
     protected boolean isNearestNew = false;
-
+    /** Boolean for checking if the interpolator is Bilinear*/
     protected boolean isBilinearNew = false;
-
+    /** Boolean for checking if the interpolator is Bicubic*/
     protected boolean isBicubicNew = false;
-
+    /** ROI Border Extender*/
     final static BorderExtender roiExtender = BorderExtender
             .createInstance(BorderExtender.BORDER_ZERO);
 
@@ -630,9 +621,7 @@ public abstract class ScaleOpImage extends GeometricOpImage {
         syNum *= invScaleYRationalNum;
         syDenom *= invScaleYRationalDenom;
 
-        if (interpBN != null || interpB != null || interpolator instanceof InterpolationBilinear
-                || interpolator instanceof InterpolationBicubic
-                || interpolator instanceof InterpolationBicubic2) {
+        if (isBilinearNew || isBicubicNew) {
             // Subtract 0.5
             syNum = 2 * syNum - syDenom;
             syDenom *= 2;
@@ -667,9 +656,7 @@ public abstract class ScaleOpImage extends GeometricOpImage {
         sxNum *= invScaleXRationalNum;
         sxDenom *= invScaleXRationalDenom;
 
-        if (interpBN != null || interpB != null || interpolator instanceof InterpolationBilinear
-                || interpolator instanceof InterpolationBicubic
-                || interpolator instanceof InterpolationBicubic2) {
+        if (isBilinearNew || isBicubicNew) {
             // Subtract 0.5
             sxNum = 2 * sxNum - sxDenom;
             sxDenom *= 2;

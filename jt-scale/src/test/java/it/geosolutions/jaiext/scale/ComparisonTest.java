@@ -48,16 +48,16 @@ import org.junit.Test;
  * </ul>
  * 
  */
-public class ComparisonTest {
+public class ComparisonTest{
 
     /** Number of benchmark iterations (Default 1) */
     private final static Integer BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.BenchmarkCycles", 100000);
+            "JAI.Ext.BenchmarkCycles", 1);
 
     /** Number of not benchmark iterations (Default 0) */
     private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.NotBenchmarkCycles", 5000);
-
+            "JAI.Ext.NotBenchmarkCycles", 0);
+    
     /** Default subsampling bits used for the bilinear and bicubic interpolation */
     private final static int DEFAULT_SUBSAMPLE_BITS = 8;
 
@@ -106,7 +106,17 @@ public class ComparisonTest {
     @BeforeClass
     public static void initialSetup() throws FileNotFoundException, IOException {
         int dataType = DataBuffer.TYPE_BYTE;
-
+       
+        // Selection of the RGB image
+        ParameterBlockJAI pbj = new ParameterBlockJAI("ImageRead");
+        //String file = "../jt-utilities/src/test/resources/it/geosolutions/jaiext/images/testImageLittle.tif";
+        File file = TestData.file(ComparisonTest.class, "testImageLittle.tif");
+        pbj.setParameter("Input", file);
+        image = JAI.create("ImageRead", pbj);
+        
+        hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,
+                BorderExtender.createInstance(BorderExtender.BORDER_COPY));
+        
         // Interpolators instantiation
         interpNearOld = new InterpolationNearest();
         interpNearNew = new InterpolationNearestNew(null, false, destinationNoData, dataType);
@@ -118,16 +128,6 @@ public class ComparisonTest {
         interpBicOld = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
         interpBicNew = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, null, false, dataType,
                 dataType, false, DEFAULT_PRECISION_BITS);
-
-        // Selection of the RGB image
-        ParameterBlockJAI pbj = new ParameterBlockJAI("ImageRead");
-        //String file = "../jt-utilities/src/test/resources/it/geosolutions/jaiext/images/testImageLittle.tif";
-        File file = TestData.file(ComparisonTest.class, "testImageLittle.tif");
-        pbj.setParameter("Input", file);
-        image = JAI.create("ImageRead", pbj);
-
-        hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,
-                BorderExtender.createInstance(BorderExtender.BORDER_COPY));
     }
 
     // First 12 test. INTERPOLATOR TESTS
@@ -206,11 +206,13 @@ public class ComparisonTest {
     // Last 12 test. DESCRIPTOR TESTS
 
     @Test
+    @Ignore
     public void testNearestNewScaleDescriptor() {
         testInterpolators(interpNearNew, true, true, false);
     }
 
     @Test
+    @Ignore
     public void testNearestOldScaleDescriptor() {
         testInterpolators(interpNearOld, true, true, true);
     }
@@ -218,7 +220,7 @@ public class ComparisonTest {
     @Test
     @Ignore
     public void testBilinearNewScaleDescriptor() {
-        testInterpolators(interpBicNew, true, true, false);
+        testInterpolators(interpBilNew, true, true, false);
     }
 
     @Test
@@ -228,13 +230,11 @@ public class ComparisonTest {
     }
 
     @Test
-    @Ignore
     public void testBicubicNewScaleDescriptor() {
         testInterpolators(interpBicNew, true, true, false);
     }
 
     @Test
-    @Ignore
     public void testBicubicOldScaleDescriptor() {
         testInterpolators(interpBicOld, true, true, true);
     }
@@ -242,7 +242,7 @@ public class ComparisonTest {
     @Test
     @Ignore
     public void testNearestNewScaleDescriptorReduction() {
-        testInterpolators(interpBicNew, false, true, false);
+        testInterpolators(interpNearNew, false, true, false);
     }
 
     @Test
@@ -254,7 +254,7 @@ public class ComparisonTest {
     @Test
     @Ignore
     public void testBilinearNewScaleDescriptorReduction() {
-        testInterpolators(interpBicNew, false, true, false);
+        testInterpolators(interpBilNew, false, true, false);
     }
 
     @Test
@@ -322,7 +322,7 @@ public class ComparisonTest {
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image with the interpolator
         PlanarImage imageScale;
-
+        
         long mean = 0;
         long max = Long.MIN_VALUE;
         long min = Long.MAX_VALUE;

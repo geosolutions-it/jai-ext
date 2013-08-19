@@ -32,6 +32,9 @@ import org.jaitools.numeric.Range;
 
 public class ScaleNearestOpImage2 extends ScaleOpImage {
 
+    /** Nearest-Neighbor interpolator */
+    protected InterpolationNearestNew interpN = null;
+    
     private final boolean nullROINoData ;
     private final boolean nullNoDataNotNullROI;
     private final boolean notNullNoDataNullROI;

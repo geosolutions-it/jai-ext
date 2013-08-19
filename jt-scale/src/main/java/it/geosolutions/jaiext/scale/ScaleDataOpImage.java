@@ -43,7 +43,14 @@ import com.sun.media.jai.util.Rational;
 // @SuppressWarnings("unchecked")
 public class ScaleDataOpImage extends ScaleOpImage {
 
+    /** Nearest-Neighbor interpolator */
+    protected InterpolationNearestNew interpN = null;
 
+    /** Bilinear interpolator */
+    protected InterpolationBilinearNew interpB = null;
+
+    /** Bicubic interpolator */
+    protected InterpolationBicubicNew interpBN = null;
 
     // Simple constructor used for interpolators different from InterpolationNearest2, InterpolationBilinear2, InterpolationBicubicNew
     public ScaleDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,

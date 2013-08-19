@@ -143,11 +143,15 @@ public class ScaleDataCRIF extends CRIFImpl {
         }else if((interp instanceof InterpolationNearestNew)&& !isBinary){
             return new ScaleNearestOpImage(source, layout, renderHints, extender, 
                     interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
-        }else if (interp instanceof InterpolationBilinearNew) {
+        }else if (interp instanceof InterpolationBilinearNew && !isBinary) {
+            return new ScaleBilinearOpImage(source, layout, renderHints,  extender, interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
+        }else if (interp instanceof InterpolationBilinearNew && isBinary) {
             return new ScaleDataOpImage(source, layout, renderHints, extender,
                     (InterpolationBilinearNew) interp, xScale, yScale, xTrans, yTrans,
                     useRoiAccessor);
-        } else if (interp instanceof InterpolationBicubicNew) {
+        } else if (interp instanceof InterpolationBicubicNew && !isBinary && (sm.getDataType() == DataBuffer.TYPE_BYTE)) {
+            return new ScaleBicubicOpImage(source, layout, renderHints, extender, interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
+        }else if (interp instanceof InterpolationBicubicNew  && (sm.getDataType() != DataBuffer.TYPE_BYTE)) {
             return new ScaleDataOpImage(source, layout, renderHints, extender,
                     (InterpolationBicubicNew) interp, xScale, yScale, xTrans, yTrans,
                     useRoiAccessor);
