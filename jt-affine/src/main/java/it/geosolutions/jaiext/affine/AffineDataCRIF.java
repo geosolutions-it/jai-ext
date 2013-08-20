@@ -11,30 +11,36 @@
  */
 package it.geosolutions.jaiext.affine;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
-import it.geosolutions.jaiext.scale.ScaleDataOpImage;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.scale.ScaleGeneralOpImage;
+import it.geosolutions.jaiext.translate.TranslateIntOpImage;
 import it.geosolutions.jaiext.utilities.ImageUtilities;
+
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.DataBuffer;
+import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderContext;
 import java.awt.image.renderable.RenderableImage;
+
 import javax.media.jai.BorderExtender;
 import javax.media.jai.CRIFImpl;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
+
 import com.sun.media.jai.mlib.MlibAffineRIF;
 import com.sun.media.jai.opimage.CopyOpImage;
 import com.sun.media.jai.opimage.RIFUtil;
-import com.sun.media.jai.opimage.TranslateIntOpImage;
 
 /**
  * @since EA4
@@ -150,6 +156,14 @@ public class AffineDataCRIF extends CRIFImpl {
             return new TranslateIntOpImage(source, renderHints, (int) tr[4], (int) tr[5]);
         }
 
+        // control if the image is binary
+        SampleModel sm = source.getSampleModel();
+
+        boolean isBinary =  (sm instanceof MultiPixelPackedSampleModel)
+                && (sm.getSampleSize(0) == 1)
+                && (sm.getDataType() == DataBuffer.TYPE_BYTE
+                        || sm.getDataType() == DataBuffer.TYPE_USHORT || sm.getDataType() == DataBuffer.TYPE_INT);
+        
         //
         // Check and see if the affine transform is in fact doing
         // a Scale operation. In which case call Scale which is more
@@ -157,48 +171,53 @@ public class AffineDataCRIF extends CRIFImpl {
         //
         if ((tr[0] > 0.0) && (tr[2] == 0.0) && (tr[1] == 0.0) && (tr[3] > 0.0)) {
             // It's a scale
-            if (interp instanceof InterpolationNearestNew) {
+            if (interp instanceof InterpolationNearest) {
 
-                InterpolationNearestNew interpN = (InterpolationNearestNew) interp;
+                InterpolationNearest interpN = (InterpolationNearest) interp;
 
-                return new ScaleDataOpImage(source, layout, renderHints, extender, interpN,
+                return new ScaleGeneralOpImage(source, layout, renderHints, extender, interpN,
                         (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
 
-            } else if (interp instanceof InterpolationBilinearNew) {
+            } else if (interp instanceof InterpolationBilinear) {
 
-                InterpolationBilinearNew interpB = (InterpolationBilinearNew) interp;
+                InterpolationBilinear interpB = (InterpolationBilinear) interp;
 
-                return new ScaleDataOpImage(source, layout, renderHints, extender, interpB,
+                return new ScaleGeneralOpImage(source, layout, renderHints, extender, interpB,
                         (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
-            } else if (interp instanceof InterpolationBicubicNew) {
-                InterpolationBicubicNew interpBN = (InterpolationBicubicNew) interp;
+            } else if (interp instanceof InterpolationBicubic) {
+                InterpolationBicubic interpBN = (InterpolationBicubic) interp;
 
-                return new ScaleDataOpImage(source, layout, renderHints, extender, interpBN,
+                return new ScaleGeneralOpImage(source, layout, renderHints, extender, interpBN,
                         (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
             } else {
-                return new ScaleDataOpImage(source, layout, renderHints, extender, interp,
+                return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp,
                         (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
             }
         }
-
         // Have to do Affine
-        if (interp instanceof InterpolationNearestNew) {
+        if (interp instanceof InterpolationNearest && !isBinary && sm.getDataType()==DataBuffer.TYPE_BYTE) {
 
-            InterpolationNearestNew interpN = (InterpolationNearestNew) interp;
+            InterpolationNearest interpN = (InterpolationNearest) interp;
+
+            return new AffineNearestOpImage(source, extender, renderHints, layout, transform, interpN, useROIAccessor, setDestinationNoData);
+
+        } else if (interp instanceof InterpolationNearest) {
+
+            InterpolationNearest interpN = (InterpolationNearest) interp;
 
             return new AffineDataOpImage(source, extender, renderHints, layout, transform,
                     interpN, useROIAccessor, setDestinationNoData);
 
-        } else if (interp instanceof InterpolationBilinearNew) {
+        } else if (interp instanceof InterpolationBilinear) {
 
-            InterpolationBilinearNew interpB = (InterpolationBilinearNew) interp;
+            InterpolationBilinear interpB = (InterpolationBilinear) interp;
 
             return new AffineDataOpImage(source, extender, renderHints, layout, transform,
                     interpB, useROIAccessor, setDestinationNoData);
 
-        } else if (interp instanceof InterpolationBicubicNew) {
+        } else if (interp instanceof InterpolationBicubic) {
 
-            InterpolationBicubicNew interpBN = (InterpolationBicubicNew) interp;
+            InterpolationBicubic interpBN = (InterpolationBicubic) interp;
 
             return new AffineDataOpImage(source, extender, renderHints, layout, transform,
                     interpBN, useROIAccessor, setDestinationNoData);

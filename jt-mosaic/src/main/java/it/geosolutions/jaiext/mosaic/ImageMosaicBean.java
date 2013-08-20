@@ -8,7 +8,7 @@ import javax.media.jai.ROI;
 import org.jaitools.numeric.Range;
 
 /**
- * This class implements a Java Bean used as input values container of the for the MosaicDataOpImage class. Inside this class are contained the
+ * This class implements a Java Bean used as input values container of the for the MosaicOpImage class. Inside this class are contained the
  * following values:
  * 
  * <ul>

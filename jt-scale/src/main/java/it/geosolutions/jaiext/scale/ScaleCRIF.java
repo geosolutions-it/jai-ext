@@ -11,9 +11,10 @@
  */
 package it.geosolutions.jaiext.scale;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.translate.TranslateIntOpImage;
 import it.geosolutions.jaiext.utilities.ImageUtilities;
 
 import java.awt.Rectangle;
@@ -32,7 +33,6 @@ import javax.media.jai.BorderExtender;
 import javax.media.jai.CRIFImpl;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationNearest;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ScaleOpImage;
@@ -44,12 +44,12 @@ import com.sun.media.jai.opimage.RIFUtil;
 /**
  * @see ScaleOpImage
  */
-public class ScaleDataCRIF extends CRIFImpl {
+public class ScaleCRIF extends CRIFImpl {
 
     private static final float TOLERANCE = 0.01F;
 
     /** Constructor. */
-    public ScaleDataCRIF() {
+    public ScaleCRIF() {
         super("scale");
     }
 
@@ -136,27 +136,27 @@ public class ScaleDataCRIF extends CRIFImpl {
                         || sm.getDataType() == DataBuffer.TYPE_USHORT || sm.getDataType() == DataBuffer.TYPE_INT);
         
         
-        if (interp instanceof InterpolationNearestNew && isBinary) {
-            return new ScaleDataOpImage(source, layout, renderHints, extender,
-                    (InterpolationNearestNew) interp, xScale, yScale, xTrans, yTrans,
+        if (interp instanceof InterpolationNearest && isBinary) {
+            return new ScaleGeneralOpImage(source, layout, renderHints, extender,
+                    (InterpolationNearest) interp, xScale, yScale, xTrans, yTrans,
                     useRoiAccessor);
-        }else if((interp instanceof InterpolationNearestNew)&& !isBinary){
+        }else if((interp instanceof InterpolationNearest)&& !isBinary){
             return new ScaleNearestOpImage(source, layout, renderHints, extender, 
                     interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
-        }else if (interp instanceof InterpolationBilinearNew && !isBinary) {
+        }else if (interp instanceof InterpolationBilinear && !isBinary) {
             return new ScaleBilinearOpImage(source, layout, renderHints,  extender, interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
-        }else if (interp instanceof InterpolationBilinearNew && isBinary) {
-            return new ScaleDataOpImage(source, layout, renderHints, extender,
-                    (InterpolationBilinearNew) interp, xScale, yScale, xTrans, yTrans,
+        }else if (interp instanceof InterpolationBilinear && isBinary) {
+            return new ScaleGeneralOpImage(source, layout, renderHints, extender,
+                    (InterpolationBilinear) interp, xScale, yScale, xTrans, yTrans,
                     useRoiAccessor);
-        } else if (interp instanceof InterpolationBicubicNew && !isBinary && (sm.getDataType() == DataBuffer.TYPE_BYTE)) {
+        } else if (interp instanceof InterpolationBicubic && !isBinary) {
             return new ScaleBicubicOpImage(source, layout, renderHints, extender, interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
-        }else if (interp instanceof InterpolationBicubicNew  && (sm.getDataType() != DataBuffer.TYPE_BYTE)) {
-            return new ScaleDataOpImage(source, layout, renderHints, extender,
-                    (InterpolationBicubicNew) interp, xScale, yScale, xTrans, yTrans,
+        }else if (interp instanceof InterpolationBicubic  && isBinary) {
+            return new ScaleGeneralOpImage(source, layout, renderHints, extender,
+                    (InterpolationBicubic) interp, xScale, yScale, xTrans, yTrans,
                     useRoiAccessor);
         } else {
-            return new ScaleDataOpImage(source, layout, renderHints, extender, interp, xScale,
+            return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp, xScale,
                     yScale, xTrans, yTrans, useRoiAccessor);
         }
     }

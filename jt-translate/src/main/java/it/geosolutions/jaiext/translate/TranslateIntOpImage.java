@@ -9,7 +9,7 @@
  * $Date: 2005/02/11 04:56:46 $
  * $State: Exp $
  */
-package it.geosolutions.jaiext.scale;
+package it.geosolutions.jaiext.translate;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.Raster;

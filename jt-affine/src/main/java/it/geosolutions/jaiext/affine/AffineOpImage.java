@@ -12,6 +12,7 @@
 package it.geosolutions.jaiext.affine;
 
 
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 
 import java.awt.Point;
@@ -27,12 +28,13 @@ import javax.media.jai.BorderExtender;
 import javax.media.jai.GeometricOpImage;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationNearest;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.util.ImagingException;
 import javax.media.jai.util.ImagingListener;
+
+import org.jaitools.numeric.Range;
 
 import com.sun.media.jai.util.ImageUtil;
  
@@ -54,8 +56,12 @@ import com.sun.media.jai.util.ImageUtil;
  * </ul>
  *
  */
-class AffineOpImage extends GeometricOpImage {
+abstract class AffineOpImage extends GeometricOpImage {
 
+    /** ROI extender */
+    final static BorderExtender roiExtender = BorderExtender
+            .createInstance(BorderExtender.BORDER_ZERO);
+    
     /**
      * Unsigned short Max Value
      */
@@ -86,8 +92,41 @@ class AffineOpImage extends GeometricOpImage {
     protected Rectangle theDest;
 
     /** Cache the ImagingListener. */
-    private ImagingListener listener;
+    protected ImagingListener listener;
 
+    /** Destination value for No Data byte */
+    protected byte destinationNoDataByte = 0;
+
+    /** Destination value for No Data ushort */
+    protected short destinationNoDataUShort = 0;
+
+    /** Destination value for No Data short */
+    protected short destinationNoDataShort = 0;
+
+    /** Destination value for No Data int */
+    protected int destinationNoDataInt = 0;
+
+    /** Destination value for No Data float */
+    protected float destinationNoDataFloat = 0;
+    
+    /** Destination value for No Data double */
+    protected double destinationNoDataDouble = 0;
+    /** Boolean for checking if the no data is negative infinity*/
+    protected boolean isNegativeInf = false;
+    /** Boolean for checking if the no data is positive infinity*/
+    protected boolean isPositiveInf = false;
+    /** Boolean for checking if the no data is NaN*/
+    protected boolean isRangeNaN = false;
+    /** Boolean for checking if the interpolator is Nearest*/
+    protected boolean isNearestNew = false;
+    /** Boolean for checking if the interpolator is Bilinear*/
+    protected boolean isBilinearNew = false;
+    /** Boolean for checking if the interpolator is Bicubic*/
+    protected boolean isBicubicNew = false;
+    
+    /** Value indicating if roi RasterAccessor should be used on computations */
+    protected boolean useROIAccessor;
+    
     /**
      * Scanline walking : variables & constants
      */
@@ -114,7 +153,13 @@ class AffineOpImage extends GeometricOpImage {
     protected final Rectangle roiBounds;
 
     protected final boolean hasROI;
+    
+    /** Boolean for checking if no data range is present */
+    protected boolean hasNoData = false;
 
+    /** No Data Range */
+    protected Range noData;
+    
     /**
      * Computes floor(num/denom) using integer arithmetic.
      * denom must not be equal to 0.
@@ -640,16 +685,35 @@ class AffineOpImage extends GeometricOpImage {
 	}
 
         Raster[] sources = new Raster[1];
+        Raster[] rois = new Raster[1];
 
-        // Get the source data
+        // SourceImage
+        PlanarImage srcIMG = getSourceImage(0);
+        
+        // Get the source and ROI data
         if (extender == null) {
-            sources[0] = getSourceImage(0).getData(srcRect);
+            sources[0] = srcIMG.getData(srcRect);
+            if (hasROI && useROIAccessor) {
+                // If roi accessor is used, the roi must be calculated only in the intersection between the source
+                // image and the roi image.
+                //Rectangle roiComputableBounds = srcRect.intersection(srcROIImage.getBounds());
+                rois[0] = srcROIImage.getExtendedData(srcRect, roiExtender);
+            }
         } else {
-            sources[0] = getSourceImage(0).getExtendedData(srcRect, extender);
+            sources[0] = srcIMG.getExtendedData(srcRect, extender);
+            if (hasROI && useROIAccessor) {
+                rois[0] = srcROIImage.getExtendedData(srcRect, roiExtender);
+            }
         }
 
-        // Compute destination tile
-        computeRect(sources, dest, destRect);
+        // Compute the destination tile.
+        if (hasROI && useROIAccessor) {
+            // Compute the destination tile.
+            computeRect(sources, dest, destRect, rois);
+        } else {
+            computeRect(sources, dest, destRect);
+        }
+
 
         // Recycle the source tile
         if(getSourceImage(0).overlapsMultipleTiles(srcRect)) {
@@ -658,6 +722,8 @@ class AffineOpImage extends GeometricOpImage {
 
         return dest;
     }
+
+    protected abstract void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect,Raster[] rois); 
 
     @Override
     public synchronized void dispose() {

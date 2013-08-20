@@ -1,8 +1,8 @@
 package it.geosolutions.jaiext.interpolators;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 
 import java.awt.Rectangle;
@@ -370,7 +370,7 @@ public class InterpTest extends TestCase {
 
     // --------------------------------Nearest-Neighbor-----------------
     private void nearestMethod(int dataType, boolean roiUsed, boolean useROIAccessor) {
-        InterpolationNearestNew interpN = null;
+        InterpolationNearest interpN = null;
         Number expected = null;
         Number testInterpolationValue = null;
         switch (dataType) {
@@ -439,7 +439,7 @@ public class InterpTest extends TestCase {
                     }
                     break;
                 }
-                interpN = new InterpolationNearestNew(null, useROIAccessor, destinationNoData,
+                interpN = new InterpolationNearest(null, useROIAccessor, destinationNoData,
                         dataType);
                 testInterpolationValue = interpN.interpolate(src[dataType], 0, 1, posx, posy,
                         posYroi, roiAccessor, false);
@@ -451,7 +451,7 @@ public class InterpTest extends TestCase {
                 if (!roiBounds.contains(x0, y0)) {
                     expected = destinationNoData;
                 }
-                interpN = new InterpolationNearestNew(null, useROIAccessor, destinationNoData,
+                interpN = new InterpolationNearest(null, useROIAccessor, destinationNoData,
                         dataType);
                 interpN.setROIdata(roiBounds, roiIter);
                 testInterpolationValue = interpN.interpolate(src[dataType], 0, 1, posx, posy, null,
@@ -465,7 +465,7 @@ public class InterpTest extends TestCase {
                 if (noDataRangeB.contains(expected.byteValue())) {
                     expected = destinationNoData;
                 }
-                interpN = new InterpolationNearestNew(noDataRangeB, useROIAccessor,
+                interpN = new InterpolationNearest(noDataRangeB, useROIAccessor,
                         destinationNoData, dataType);
                 break;
             case DataBuffer.TYPE_USHORT:
@@ -475,7 +475,7 @@ public class InterpTest extends TestCase {
                 if (noDataRangeS.contains(expected.shortValue())) {
                     expected = destinationNoData;
                 }
-                interpN = new InterpolationNearestNew(noDataRangeS, useROIAccessor,
+                interpN = new InterpolationNearest(noDataRangeS, useROIAccessor,
                         destinationNoData, dataType);
                 break;
             case DataBuffer.TYPE_INT:
@@ -484,7 +484,7 @@ public class InterpTest extends TestCase {
                 if (noDataRangeI.contains(expected.intValue())) {
                     expected = destinationNoData;
                 }
-                interpN = new InterpolationNearestNew(noDataRangeI,  useROIAccessor,
+                interpN = new InterpolationNearest(noDataRangeI,  useROIAccessor,
                         destinationNoData, dataType);
                 break;
             case DataBuffer.TYPE_FLOAT:
@@ -493,7 +493,7 @@ public class InterpTest extends TestCase {
                 if (noDataRangeF.contains(expected.floatValue())) {
                     expected = destinationNoData;
                 }
-                interpN = new InterpolationNearestNew(noDataRangeF, useROIAccessor,
+                interpN = new InterpolationNearest(noDataRangeF, useROIAccessor,
                         destinationNoData, dataType);
                 break;
             case DataBuffer.TYPE_DOUBLE:
@@ -501,7 +501,7 @@ public class InterpTest extends TestCase {
                 if (noDataRangeD.contains(expected.doubleValue())) {
                     expected = destinationNoData;
                 }
-                interpN = new InterpolationNearestNew(noDataRangeD,  useROIAccessor,
+                interpN = new InterpolationNearest(noDataRangeD,  useROIAccessor,
                         destinationNoData, dataType);
                 break;
             }
@@ -515,7 +515,7 @@ public class InterpTest extends TestCase {
     }
 
     private Number bicubicCalculation(int dataType, Number[][] pixelArray, int[][] weightArray,
-            InterpolationBicubicNew interpBN) {
+            InterpolationBicubic interpBN) {
         // Retrieval of the interpolation tables
         int[] dataHi = interpBN.getHorizontalTableData();
         int[] dataVi = interpBN.getVerticalTableData();
@@ -1174,8 +1174,8 @@ public class InterpTest extends TestCase {
     // --------------------------------Bilinear-Bicubic----------------
     private void bilinearBicubicMethod(int dataType, boolean roiUsed, boolean useROIAccessor,
             boolean bilinearUsed) {
-        InterpolationBilinearNew interpB = null;
-        InterpolationBicubicNew interpBN = null;
+        InterpolationBilinear interpB = null;
+        InterpolationBicubic interpBN = null;
         Number expected = 0;
         Number testInterpolationValue = null;
         Number[][] pixelArray = pixelCalculation(bilinearUsed, dataType);
@@ -1193,13 +1193,13 @@ public class InterpTest extends TestCase {
         if (roiUsed) {
             if (useROIAccessor) {
                 if (bilinearUsed) {
-                    interpB = new InterpolationBilinearNew(subsampleBits, null,  true,
+                    interpB = new InterpolationBilinear(subsampleBits, null,  true,
                             destinationNoData, dataType);
                     // Interpolation
                     testInterpolationValue = interpB.interpolate(src[dataType], 0, 1, posx, posy,
                             fracvalues, posYroi, roiAccessor, false);
                 } else {
-                    interpBN = new InterpolationBicubicNew(subsampleBits, null,  true,
+                    interpBN = new InterpolationBicubic(subsampleBits, null,  true,
                             destinationNoData, dataType, false, precisionBits);                    
                     // Interpolation
                     testInterpolationValue = interpBN.interpolate(src[dataType], 0, 1, posx, posy,
@@ -1208,14 +1208,14 @@ public class InterpTest extends TestCase {
                 weightArray = roiAccessorCheck(dataType, pixelArray, weightArray, bilinearUsed);
             } else {
                 if (bilinearUsed) {
-                    interpB = new InterpolationBilinearNew(subsampleBits, null,  false,
+                    interpB = new InterpolationBilinear(subsampleBits, null,  false,
                             destinationNoData, dataType);
                     interpB.setROIdata(roiBounds, roiIter);
                     // Interpolation
                     testInterpolationValue = interpB.interpolate(src[dataType], 0, 1, posx, posy,
                             fracvalues, null, null, false);
                 } else {
-                    interpBN = new InterpolationBicubicNew(subsampleBits, null,  false,
+                    interpBN = new InterpolationBicubic(subsampleBits, null,  false,
                             destinationNoData, dataType, false, precisionBits);
                     interpBN.setROIdata(roiBounds, roiIter);
                     // Interpolation
@@ -1240,10 +1240,10 @@ public class InterpTest extends TestCase {
             case DataBuffer.TYPE_BYTE:
                 Range<Byte> noDataRangeB = new Range<Byte>((byte) noData, true, (byte) noData, true);
                 if (bilinearUsed) {
-                    interpB = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeB,
+                    interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeB,
                              useROIAccessor, destinationNoData, dataType);
                 } else {
-                    interpBN = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeB,
+                    interpBN = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRangeB,
                             useROIAccessor, destinationNoData, dataType, false,
                             precisionBits);
                 }
@@ -1253,13 +1253,13 @@ public class InterpTest extends TestCase {
             case DataBuffer.TYPE_SHORT:
                 Range<Short> noDataRangeS = new Range<Short>((short) noData, true, (short) noData,
                         true);
-                interpB = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeS, 
+                interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeS, 
                         useROIAccessor, destinationNoData, dataType);
                 if (bilinearUsed) {
-                    interpB = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeS,
+                    interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeS,
                              useROIAccessor, destinationNoData, dataType);
                 } else {
-                    interpBN = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeS,
+                    interpBN = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRangeS,
                              useROIAccessor, destinationNoData, dataType, false,
                             precisionBits);
                 }
@@ -1268,13 +1268,13 @@ public class InterpTest extends TestCase {
             case DataBuffer.TYPE_INT:
                 Range<Integer> noDataRangeI = new Range<Integer>((int) noData, true, (int) noData,
                         true);
-                interpB = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeI, 
+                interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeI, 
                         useROIAccessor, destinationNoData, dataType);
                 if (bilinearUsed) {
-                    interpB = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeI,
+                    interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeI,
                              useROIAccessor, destinationNoData, dataType);
                 } else {
-                    interpBN = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeI,
+                    interpBN = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRangeI,
                              useROIAccessor, destinationNoData, dataType, false,
                             precisionBits);
                 }
@@ -1283,13 +1283,13 @@ public class InterpTest extends TestCase {
             case DataBuffer.TYPE_FLOAT:
                 Range<Float> noDataRangeF = new Range<Float>((float) noData, true, (float) noData,
                         true);
-                interpB = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeF, 
+                interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeF, 
                         useROIAccessor, destinationNoData, dataType);
                 if (bilinearUsed) {
-                    interpB = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeF,
+                    interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeF,
                              useROIAccessor, destinationNoData, dataType);
                 } else {
-                    interpBN = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeF,
+                    interpBN = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRangeF,
                              useROIAccessor, destinationNoData, dataType,  false,
                             precisionBits);
                 }
@@ -1297,13 +1297,13 @@ public class InterpTest extends TestCase {
                 break;
             case DataBuffer.TYPE_DOUBLE:
                 Range<Double> noDataRangeD = new Range<Double>(noData, true, noData, true);
-                interpB = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeD, 
+                interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeD, 
                         useROIAccessor, destinationNoData, dataType);
                 if (bilinearUsed) {
-                    interpB = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeD,
+                    interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeD,
                              useROIAccessor, destinationNoData, dataType);
                 } else {
-                    interpBN = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, noDataRangeD,
+                    interpBN = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRangeD,
                              useROIAccessor, destinationNoData, dataType, false,
                             precisionBits);
                 }

@@ -8,15 +8,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 
 import javax.media.jai.BorderExtender;
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationBicubic;
-import javax.media.jai.InterpolationBilinear;
-import javax.media.jai.InterpolationNearest;
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.PlanarImage;
@@ -24,6 +21,7 @@ import javax.media.jai.operator.AffineDescriptor;
 
 import org.geotools.test.TestData;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -69,22 +67,22 @@ public class ComparisonTest {
     private static AffineTransform transform;
 
     /** JAI nearest Interpolator */
-    private static InterpolationNearest interpNearOld;
+    private static javax.media.jai.InterpolationNearest interpNearOld;
 
     /** New nearest Interpolator */
-    private static InterpolationNearestNew interpNearNew;
+    private static InterpolationNearest interpNearNew;
 
     /** JAI bilinear Interpolator */
-    private static InterpolationBilinear interpBilOld;
+    private static javax.media.jai.InterpolationBilinear interpBilOld;
 
     /** New bilinear Interpolator */
-    private static InterpolationBilinearNew interpBilNew;
+    private static InterpolationBilinear interpBilNew;
 
     /** JAI bicubic Interpolator */
-    private static InterpolationBicubic interpBicOld;
+    private static javax.media.jai.InterpolationBicubic interpBicOld;
 
     /** New bicubic Interpolator */
-    private static InterpolationBicubicNew interpBicNew;
+    private static InterpolationBicubic interpBicNew;
 
     /** Image to elaborate */
     private static RenderedImage image;
@@ -97,15 +95,15 @@ public class ComparisonTest {
         int dataType = DataBuffer.TYPE_BYTE;
 
         // Interpolators instantiation
-        interpNearOld = new InterpolationNearest();
-        interpNearNew = new InterpolationNearestNew(null, false, destinationNoData, dataType);
+        interpNearOld = new javax.media.jai.InterpolationNearest();
+        interpNearNew = new InterpolationNearest(null, false, destinationNoData, dataType);
 
-        interpBilOld = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS);
-        interpBilNew = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, null, false,
+        interpBilOld = new javax.media.jai.InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS);
+        interpBilNew = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, null, false,
                 destinationNoData, dataType);
 
-        interpBicOld = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
-        interpBicNew = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, null, false, dataType,
+        interpBicOld = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
+        interpBicNew = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, null, false, dataType,
                 dataType, false, DEFAULT_PRECISION_BITS);
 
         // Selection of the RGB image
@@ -124,62 +122,72 @@ public class ComparisonTest {
     }
 
     @Test
+    @Ignore
     public void testNearestInterp() {
         testInterpolators(interpNearNew, false, false);
     }
 
     @Test
+    @Ignore
     public void testNearestInterpStandard() {
         testInterpolators(interpNearOld, false, true);
     }
 
     @Test
+    @Ignore
     public void testBilinearInterp() {
         testInterpolators(interpBilNew, false, false);
     }
 
     @Test
+    @Ignore
     public void testBilinearInterpStandard() {
         testInterpolators(interpBilNew, false, true);
     }
 
     @Test
+    @Ignore
     public void testBicubicInterp() {
         testInterpolators(interpBicNew, false, false);
     }
 
     @Test
+    @Ignore
     public void testBicubicInterpStandard() {
         testInterpolators(interpBicOld, false, true);
     }
 
     @Test
-    public void testNearestScaleDataDescriptor() {
-        testInterpolators(interpNearOld, true, false);
+    public void testNearestNewAffineDescriptor() {
+        testInterpolators(interpNearNew, true, false);
     }
 
     @Test
-    public void testNearestScaleDescriptor() {
+    public void testNearestOldAffineDescriptor() {
         testInterpolators(interpNearOld, true, true);
     }
 
     @Test
-    public void testBilinearScaleDataDescriptor() {
-        testInterpolators(interpBilOld, true, false);
+    @Ignore
+    public void testBilinearNewAffineDescriptor() {
+        testInterpolators(interpBilNew, true, false);
     }
 
     @Test
-    public void testBilinearScaleDescriptor() {
+    @Ignore
+    public void testBilinearOldAffineDescriptor() {
         testInterpolators(interpBilOld, true, true);
     }
 
     @Test
-    public void testBicubicScaleDataDescriptor() {
-        testInterpolators(interpBicOld, true, false);
+    @Ignore
+    public void testBicubicNewAffineDescriptor() {
+        testInterpolators(interpBicNew, true, false);
     }
 
     @Test
-    public void testBicubicScaleDescriptor() {
+    @Ignore
+    public void testBicubicOldAffineDescriptor() {
         testInterpolators(interpBicOld, true, true);
     }
 
@@ -187,13 +195,13 @@ public class ComparisonTest {
 
         String interpType = "";
 
-        if (interp instanceof InterpolationBilinear || interp instanceof InterpolationBilinearNew) {
+        if (interp instanceof javax.media.jai.InterpolationBilinear || interp instanceof InterpolationBilinear) {
             interpType = "Bilinear";
-        } else if (interp instanceof InterpolationBicubic
-                || interp instanceof InterpolationBicubicNew) {
+        } else if (interp instanceof javax.media.jai.InterpolationBicubic
+                || interp instanceof InterpolationBicubic) {
             interpType = "Bicubic";
-        } else if (interp instanceof InterpolationNearest
-                || interp instanceof InterpolationNearestNew) {
+        } else if (interp instanceof javax.media.jai.InterpolationNearest
+                || interp instanceof InterpolationNearest) {
             interpType = "Nearest";
         }
 
@@ -201,9 +209,9 @@ public class ComparisonTest {
 
         if (testDescriptor) {
             if (old) {
-                description = "Affine";
+                description = "Old Affine";
             } else {
-                description = "AffineData";
+                description = "New Affine";
             }
         } else {
             if (!old) {
@@ -237,7 +245,7 @@ public class ComparisonTest {
             } else {
                 if (old) {
                     imageAffine = AffineDataDescriptor.create(image, transform, interp,
-                            destinationNoDataArray, null, false, false, hints);
+                            destinationNoDataArray, null, false, true, hints);
                 } else {
                     imageAffine = AffineDataDescriptor.create(image, transform, interp, null, null,
                             false, false, hints);
@@ -268,29 +276,29 @@ public class ComparisonTest {
             JAI.getDefaultInstance().getTileCache().flush();
         }
         // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION * 1E-9;
+        double meanValue = mean / BENCHMARK_ITERATION * 1E-6;
 
         // Max and Min values stored as double
-        double maxD = max * 1E-9;
-        double minD = min * 1E-9;
+        double maxD = max * 1E-6;
+        double minD = min * 1E-6;
         // Comparison between the mean times
         if (testDescriptor) {
             // Output print of the
             System.out.println("\n" + interpType);
             System.out.println("\nMean value for " + description + "Descriptor : " + meanValue
-                    + " sec.");
+                    + " msec.");
             System.out.println("Maximum value for " + description + "Descriptor : " + maxD
-                    + " sec.");
+                    + " msec.");
             System.out.println("Minimum value for " + description + "Descriptor : " + minD
-                    + " sec.");
+                    + " msec.");
         } else {
             // Output print of the
             System.out.println("\nMean value for Interpolator" + interpType + description + " : "
-                    + meanValue + " sec.");
+                    + meanValue + " msec.");
             System.out.println("Maximum value for Interpolator" + interpType + description + " : "
-                    + maxD + " sec.");
+                    + maxD + " msec.");
             System.out.println("Minimum value for Interpolator" + interpType + description + " : "
-                    + minD + " sec.");
+                    + minD + " msec.");
         }
 
     }

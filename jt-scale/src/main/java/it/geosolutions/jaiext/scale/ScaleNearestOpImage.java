@@ -1,6 +1,6 @@
 package it.geosolutions.jaiext.scale;
 
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -21,14 +21,14 @@ import org.jaitools.numeric.Range;
 public class ScaleNearestOpImage extends ScaleOpImage {
 
     /** Nearest-Neighbor interpolator */
-    protected InterpolationNearestNew interpN = null;
+    protected InterpolationNearest interpN = null;
     
     protected final byte[] byteLookupTable=new byte[255];
     
     public ScaleNearestOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
-        super(source, layout, configuration, true, extender, ((InterpolationNearestNew)interp).getInterpNearest(), scaleX, scaleY, transX,
+        super(source, layout, configuration, true, extender, interp, scaleX, scaleY, transX,
                 transY, useRoiAccessor);
         scaleOpInitialization(source,interp);
     }
@@ -71,9 +71,9 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         // Interpolator settings
         interpolator = interp;
 
-        if (interpolator instanceof InterpolationNearestNew) {            
-            interpN = (InterpolationNearestNew) interpolator;
-            this.interp=interpN.getInterpNearest();
+        if (interpolator instanceof InterpolationNearest) {            
+            interpN = (InterpolationNearest) interpolator;
+            this.interp=interpN;
             interpN.setROIdata(roiBounds, roiIter);
             noData = interpN.getNoDataRange();
             if (noData != null) {
@@ -602,7 +602,10 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         // No Data Range
         Range<Short> rangeND = (Range<Short>) noData;
 
-        if (!hasROI && !hasNoData) {
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+        if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
 
@@ -634,7 +637,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                 }
             }
         } else {
-            if (hasROI && !hasNoData) {
+            if (caseB) {
                 if (useRoiAccessor) {
                     // for all bands
                     for (int k = 0; k < dnumBands; k++) {
@@ -722,7 +725,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                         }
                     }
                 }
-            } else if (!hasROI && hasNoData) {
+            } else if (caseC) {
                 // for all bands
                 for (int k = 0; k < dnumBands; k++) {
 
@@ -910,7 +913,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         // No Data Range
         Range<Short> rangeND = (Range<Short>) noData;
 
-        if (!hasROI && !hasNoData) {
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+        
+        if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
 
@@ -942,7 +949,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                 }
             }
         } else {
-            if (hasROI && !hasNoData) {
+            if (caseB) {
                 if (useRoiAccessor) {
                     // for all bands
                     for (int k = 0; k < dnumBands; k++) {
@@ -1030,7 +1037,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                         }
                     }
                 }
-            } else if (!hasROI && hasNoData) {
+            } else if (caseC) {
                 // for all bands
                 for (int k = 0; k < dnumBands; k++) {
 
@@ -1217,7 +1224,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         // No Data Range
         Range<Integer> rangeND = (Range<Integer>) noData;
 
-        if (!hasROI && !hasNoData) {
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+        
+        if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
 
@@ -1249,7 +1260,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                 }
             }
         } else {
-            if (hasROI && !hasNoData) {
+            if (caseB) {
                 if (useRoiAccessor) {
                     // for all bands
                     for (int k = 0; k < dnumBands; k++) {
@@ -1337,7 +1348,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                         }
                     }
                 }
-            } else if (!hasROI && hasNoData) {
+            } else if (caseC) {
                 // for all bands
                 for (int k = 0; k < dnumBands; k++) {
 
@@ -1525,7 +1536,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         // No Data Range
         Range<Float> rangeND = (Range<Float>) noData;
 
-        if (!hasROI && !hasNoData) {
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+        
+        if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
 
@@ -1557,7 +1572,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                 }
             }
         } else {
-            if (hasROI && !hasNoData) {
+            if (caseB) {
                 if (useRoiAccessor) {
                     // for all bands
                     for (int k = 0; k < dnumBands; k++) {
@@ -1645,7 +1660,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                         }
                     }
                 }
-            } else if (!hasROI && hasNoData) {
+            } else if (caseC) {
                 // for all bands
                 for (int k = 0; k < dnumBands; k++) {
 
@@ -1670,11 +1685,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                             float value = srcData[pos];
 
-                            if ((isNegativeInf && value == Float.NEGATIVE_INFINITY)
-                                    || (isPositiveInf && value == Float.NEGATIVE_INFINITY)
-                                    || (isRangeNaN && Float.isNaN(value))) {
-                                // The destination no data value is saved in the destination array
-                                dstData[dstPixelOffset] = destinationNoDataFloat;
+                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                if(value == Float.NEGATIVE_INFINITY || value == Float.NEGATIVE_INFINITY ||Float.isNaN(value)){
+                                 // The destination no data value is saved in the destination array
+                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                }                                
                             } else if (rangeND.contains(value)) {
                                 // The destination no data value is saved in the destination array
                                 dstData[dstPixelOffset] = destinationNoDataFloat;
@@ -1718,11 +1733,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 float value = srcData[pos];
 
-                                if ((isNegativeInf && value == Float.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && value == Float.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Float.isNaN(value))) {
-                                    // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(value == Float.NEGATIVE_INFINITY || value == Float.NEGATIVE_INFINITY ||Float.isNaN(value)){
+                                     // The destination no data value is saved in the destination array
+                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    }                                
                                 } else if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataFloat;
@@ -1770,11 +1785,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 float value = srcData[pos];
 
-                                if ((isNegativeInf && value == Float.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && value == Float.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Float.isNaN(value))) {
-                                    // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(value == Float.NEGATIVE_INFINITY || value == Float.NEGATIVE_INFINITY ||Float.isNaN(value)){
+                                     // The destination no data value is saved in the destination array
+                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    }                                
                                 } else if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataFloat;
@@ -1848,7 +1863,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         // No Data Range
         Range<Double> rangeND = (Range<Double>) noData;
 
-        if (!hasROI && !hasNoData) {
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+        
+        if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
 
@@ -1880,7 +1899,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                 }
             }
         } else {
-            if (hasROI && !hasNoData) {
+            if (caseB) {
                 if (useRoiAccessor) {
                     // for all bands
                     for (int k = 0; k < dnumBands; k++) {
@@ -1968,7 +1987,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                         }
                     }
                 }
-            } else if (!hasROI && hasNoData) {
+            } else if (caseC) {
                 // for all bands
                 for (int k = 0; k < dnumBands; k++) {
 
@@ -1993,11 +2012,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                             double value = srcData[pos];
 
-                            if ((isNegativeInf && value == Double.NEGATIVE_INFINITY)
-                                    || (isPositiveInf && value == Double.NEGATIVE_INFINITY)
-                                    || (isRangeNaN && Double.isNaN(value))) {
-                                // The destination no data value is saved in the destination array
-                                dstData[dstPixelOffset] = destinationNoDataDouble;
+                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                if(value == Double.NEGATIVE_INFINITY || value == Double.NEGATIVE_INFINITY ||Double.isNaN(value)){
+                                 // The destination no data value is saved in the destination array
+                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                }                                
                             } else if (rangeND.contains(value)) {
                                 // The destination no data value is saved in the destination array
                                 dstData[dstPixelOffset] = destinationNoDataDouble;
@@ -2041,11 +2060,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 double value = srcData[pos];
 
-                                if ((isNegativeInf && value == Double.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && value == Double.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Double.isNaN(value))) {
-                                    // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(value == Double.NEGATIVE_INFINITY || value == Double.NEGATIVE_INFINITY ||Double.isNaN(value)){
+                                     // The destination no data value is saved in the destination array
+                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    }                                
                                 } else if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataDouble;
@@ -2093,11 +2112,11 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 double value = srcData[pos];
 
-                                if ((isNegativeInf && value == Double.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && value == Double.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Double.isNaN(value))) {
-                                    // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(value == Double.NEGATIVE_INFINITY || value == Double.NEGATIVE_INFINITY ||Double.isNaN(value)){
+                                     // The destination no data value is saved in the destination array
+                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    }                                
                                 } else if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataDouble;

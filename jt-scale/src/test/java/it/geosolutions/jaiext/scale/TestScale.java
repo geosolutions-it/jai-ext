@@ -18,10 +18,10 @@ import javax.media.jai.ROIShape;
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.jaitools.numeric.Range;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
-import it.geosolutions.jaiext.scale.ScaleDataDescriptor;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.scale.ScaleDescriptor;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 /**
@@ -166,12 +166,12 @@ public class TestScale extends TestBase {
         switch (interpType) {
         case NEAREST_INTERP:
             // Nearest-Neighbor
-            interp = new InterpolationNearestNew(noDataRange, useROIAccessor, destinationNoData,
+            interp = new InterpolationNearest(noDataRange, useROIAccessor, destinationNoData,
                     dataType);
             break;
         case BILINEAR_INTERP:
             // Bilinear
-            interp = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRange,
+            interp = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRange,
                     useROIAccessor, destinationNoData, dataType);
 
             if (hints != null) {
@@ -185,7 +185,7 @@ public class TestScale extends TestBase {
             break;
         case BICUBIC_INTERP:
             // Bicubic
-            interp = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, noDataRange,
+            interp = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRange,
                     useROIAccessor, destinationNoData, dataType, bicubic2Disabled,
                     DEFAULT_PRECISION_BITS);
 
@@ -203,7 +203,7 @@ public class TestScale extends TestBase {
         }
 
         // Scale operation
-        RenderedImage destinationIMG = ScaleDataDescriptor.create(sourceImage, scaleX, scaleY,
+        RenderedImage destinationIMG = ScaleDescriptor.create(sourceImage, scaleX, scaleY,
                 transX, transY, interp, roi, useROIAccessor, hints);
 
         if (INTERACTIVE && dataType == DataBuffer.TYPE_BYTE

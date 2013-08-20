@@ -3,7 +3,7 @@ package it.geosolutions.jaiext.affine;
 import static org.junit.Assert.*;
 import it.geosolutions.jaiext.affine.AffineDataDescriptor;
 import it.geosolutions.jaiext.affine.AffinePropertyGenerator;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.image.DataBuffer;
@@ -39,7 +39,7 @@ public class CoverageClassTest extends TestAffine {
 
         // Interpolator initialization
         // Nearest-Neighbor
-        InterpolationNearestNew interpNear = new InterpolationNearestNew(noDataRange,
+        InterpolationNearest interpNear = new InterpolationNearest(noDataRange,
                 useROIAccessor, destinationNoData, dataType);
 
         // ROI creation
@@ -126,7 +126,7 @@ public class CoverageClassTest extends TestAffine {
         byte imageValue = 127;
         
         // Nearest-Neighbor
-        InterpolationNearestNew interpNear = new InterpolationNearestNew(noDataRange,
+        InterpolationNearest interpNear = new InterpolationNearest(noDataRange,
                 useROIAccessor, destinationNoData, dataType);
 
         RenderedImage testIMG = createTestImage(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, imageValue,
@@ -174,7 +174,7 @@ public class CoverageClassTest extends TestAffine {
         byte imageValue = 127;
         
         // Nearest-Neighbor
-        InterpolationNearestNew interpNear = new InterpolationNearestNew(noDataRange,
+        InterpolationNearest interpNear = new InterpolationNearest(noDataRange,
                 useROIAccessor, destinationNoData, dataType);
 
         RenderedImage testIMG = createTestImage(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, imageValue,

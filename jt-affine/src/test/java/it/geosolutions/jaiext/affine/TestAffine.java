@@ -20,9 +20,9 @@ import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.jaitools.numeric.Range;
 
 import it.geosolutions.jaiext.affine.AffineDataDescriptor;
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 /**
@@ -127,15 +127,15 @@ public class TestAffine extends TestBase {
         RenderedImage destinationIMG = null;
 
         // Interpolator initialization
-        InterpolationNearestNew interpN = null;
-        InterpolationBilinearNew interpB = null;
-        InterpolationBicubicNew interpBN = null;
+        InterpolationNearest interpN = null;
+        InterpolationBilinear interpB = null;
+        InterpolationBicubic interpBN = null;
 
         // Interpolators
         switch (interpType) {
         case NEAREST_INTERP:
             // Nearest-Neighbor
-            interpN = new InterpolationNearestNew(noDataRange, useROIAccessor, destinationNoData,
+            interpN = new InterpolationNearest(noDataRange, useROIAccessor, destinationNoData,
                     dataType);
 
             // Affine operation
@@ -145,7 +145,7 @@ public class TestAffine extends TestBase {
             break;
         case BILINEAR_INTERP:
             // Bilinear
-            interpB = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, noDataRange,
+            interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRange,
                     useROIAccessor, destinationNoData, dataType);
 
             if (hints != null) {
@@ -163,7 +163,7 @@ public class TestAffine extends TestBase {
             break;
         case BICUBIC_INTERP:
             // Bicubic
-            interpBN = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, noDataRange,
+            interpBN = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRange,
                     useROIAccessor, destinationNoData, dataType, bicubic2Disabled,
                     DEFAULT_PRECISION_BITS);
 

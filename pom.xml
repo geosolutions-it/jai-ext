@@ -511,5 +511,6 @@
     <module>jt-warp</module>
     <module>jt-iterators</module>
     <module>jt-mosaic</module>
+    <module>jt-translate</module>
   </modules>
 </project>

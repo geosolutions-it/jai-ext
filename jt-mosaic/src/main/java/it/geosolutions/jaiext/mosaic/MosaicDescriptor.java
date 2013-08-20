@@ -8,7 +8,6 @@ import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
 import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.RenderedOp;
-import javax.media.jai.operator.MosaicDescriptor;
 import javax.media.jai.operator.MosaicType;
 import javax.media.jai.registry.RenderedRegistryMode;
 import org.jaitools.JAITools;
@@ -83,7 +82,7 @@ import com.sun.media.jai.opimage.MosaicOpImage;
  * 
  * @see MosaicOpImage
  */
-public class MosaicDataDescriptor extends OperationDescriptorImpl {
+public class MosaicDescriptor extends OperationDescriptorImpl {
 
 /** serialVersionUID */
 private static final long serialVersionUID = 2718297230579888333L;
@@ -132,7 +131,7 @@ private static final Object[] paramDefaults = { null, MOSAIC_TYPE_OVERLAY,
         new Number[] { 0.0 } };
 
 /** Constructor. */
-public MosaicDataDescriptor() {
+public MosaicDescriptor() {
     super(resources, new String[] { RenderedRegistryMode.MODE_NAME }, 0,
             paramNames, paramClasses, paramDefaults, null);
 }

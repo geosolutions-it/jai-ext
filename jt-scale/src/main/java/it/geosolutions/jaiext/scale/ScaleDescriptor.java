@@ -10,8 +10,8 @@
  * $State: Exp $
  */
 package it.geosolutions.jaiext.scale;
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -22,7 +22,6 @@ import java.util.logging.Logger;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.GeometricOpImage;
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationBicubic;
 import javax.media.jai.InterpolationBicubic2;
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
@@ -120,7 +119,7 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
             Rectangle dstBounds = op.getBounds();
             PlanarImage roiImage = null;
             
-            if (interp instanceof InterpolationBilinearNew) {
+            if (interp instanceof InterpolationBilinear) {
 	            // Setting constant image to be scaled as a ROI
 	            
 	            ImageLayout2 layout = new ImageLayout2();
@@ -156,11 +155,11 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
 	            // input image.
 //	            if (interp instanceof InterpolationBilinear){ 
 	   
-	            InterpolationBilinearNew interpolator=(InterpolationBilinearNew) interp;
+	            InterpolationBilinear interpolator=(InterpolationBilinear) interp;
 	            
-	            InterpolationBilinearNew interpBilinear=new InterpolationBilinearNew(interpolator.getSubsampleBitsH(), null, false, 0, interpolator.getDataType());	                    
+	            InterpolationBilinear interpBilinear=new InterpolationBilinear(interpolator.getSubsampleBitsH(), null, false, 0, interpolator.getDataType());	                    
 	            
-	            roiImage = new ScaleDataOpImage(constantImage, null,scalingHints,extender, interpBilinear,sx, sy, tx, ty,  false);
+	            roiImage = new ScaleGeneralOpImage(constantImage, null,scalingHints,extender, interpBilinear,sx, sy, tx, ty,  false);
 	            
 //	            roiImage = new ScaleBilinearOpImage(constantImage, extender, scalingHints, layout, sx, sy, tx, ty, interp, false);
 	            
@@ -178,11 +177,9 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
 				
 
 				if (interp != null) {
-					if (interp instanceof InterpolationBicubic || interp instanceof InterpolationBicubic2){											    
-					    paramBlock.add(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
-					} else if(interp instanceof InterpolationBicubicNew){
-					    InterpolationBicubicNew interpBicubic=(InterpolationBicubicNew)interp;
-					    InterpolationBilinearNew interpBilinear= new InterpolationBilinearNew(interpBicubic.getSubsampleBitsH(), null, false, 0, interpBicubic.getDataType());
+					 if(interp instanceof InterpolationBicubic){
+					    InterpolationBicubic interpBicubic=(InterpolationBicubic)interp;
+					    InterpolationBilinear interpBilinear= new InterpolationBilinear(interpBicubic.getSubsampleBitsH(), null, false, 0, interpBicubic.getDataType());
 					    paramBlock.add(interpBilinear);
 					}else{
 						paramBlock.add(interp);
@@ -301,10 +298,10 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
  * <p> This new version of the "Scale" operation adds the ROI support and No Data
  * support for every image type and even for Binary images. This extension becames
  * possible with 3 new Interpolation extensions, each of them is an evolution
- * of the classic interpolation method: InterpolationNearestNew, InterpolationBilinearNew,
- * InterpolationBicubicNew. The No Data Range used must be defined inside the interpolator,
+ * of the classic interpolation method: InterpolationNearest, InterpolationBilinear,
+ * InterpolationBicubic. The No Data Range used must be defined inside the interpolator,
  * at the interpolator creation time, while the ROI support is handled inside the 
- * ScaleDataOpImage.
+ * ScaleGeneralOpImage.
  * 
  *
  * <p><table border=1>
@@ -348,9 +345,9 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
  * @see javax.media.jai.OperationDescriptor
  */
 
-public class ScaleDataDescriptor extends OperationDescriptorImpl {
+public class ScaleDescriptor extends OperationDescriptorImpl {
     
-    private final static Logger LOGGER = Logger.getLogger(ScaleDataDescriptor.class.toString());
+    private final static Logger LOGGER = Logger.getLogger(ScaleDescriptor.class.toString());
 
     /**
      * The resource strings that provide the general documentation
@@ -393,13 +390,13 @@ public class ScaleDataDescriptor extends OperationDescriptorImpl {
     };
 
     /** Constructor. */
-    public ScaleDataDescriptor() {
+    public ScaleDescriptor() {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
     }
 
-    /** Returns <code>true</code> since renderable operation is supported. */
+    /** Returns <code>false</code> since renderable operation is supported but never tested. */
     public boolean isRenderableSupported() {
-        return true;
+        return false;
     }
 
     /**

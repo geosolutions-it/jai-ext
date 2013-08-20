@@ -3,9 +3,9 @@ package it.geosolutions.jaiext.affine;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import it.geosolutions.jaiext.affine.AffineDataDescriptor;
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.Rectangle;
@@ -178,11 +178,11 @@ public class ImageRGBTest extends TestAffine {
         switch (interpType) {
         case NEAREST_INTERP:
             // Nearest-Neighbor
-            interp = new InterpolationNearestNew(null, useROIAccessor, destinationNoData, dataType);
+            interp = new InterpolationNearest(null, useROIAccessor, destinationNoData, dataType);
             break;
         case BILINEAR_INTERP:
             // Bilinear
-            interp = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
+            interp = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
                     destinationNoData, dataType);
 
             if (hints != null) {
@@ -196,7 +196,7 @@ public class ImageRGBTest extends TestAffine {
             break;
         case BICUBIC_INTERP:
             // Bicubic
-            interp = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
+            interp = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
                     destinationNoData, dataType, bicubic2Disabled, DEFAULT_PRECISION_BITS);
 
             if (hints != null) {

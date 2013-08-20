@@ -4,13 +4,12 @@ import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationBilinear;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.iterator.RandomIter;
 
 import org.jaitools.numeric.Range;
 
-public class InterpolationBilinearNew extends Interpolation {
+public class InterpolationBilinear extends Interpolation {
 
     /** serialVersionUID */
     private static final long serialVersionUID = 5238694001611785385L;
@@ -93,7 +92,7 @@ public class InterpolationBilinearNew extends Interpolation {
      * Simple interpolator object used for Bilinear interpolation. On construction it is possible to set a range for no data values that will be
      * considered in the interpolation method.
      */
-    public InterpolationBilinearNew(int subsampleBits, Range noDataRange,
+    public InterpolationBilinear(int subsampleBits, Range noDataRange,
             boolean useROIAccessor, double destinationNoData, int dataType) {
 
         super(2, 2, 0, 1, 0, 1, subsampleBits, subsampleBits);
@@ -164,15 +163,7 @@ public class InterpolationBilinearNew extends Interpolation {
     
     public int getDataType() {
         return dataType;
-    }
-    
-    /* Interpolator Bilinear getter, must be used on creation only for ScaleOpImage Constructor */
-    public synchronized InterpolationBilinear getInterpBilinear() {
-        if (interpBilinear == null) {
-            interpBilinear = new InterpolationBilinear();
-        }
-        return interpBilinear;
-    }
+    }   
 
     /** This method performs a bilinear interpolation of a pixel inside a not-Binary image. */
     public Number interpolate(RasterAccessor src, int bandIndex, int dnumbands, int posX, int posY,

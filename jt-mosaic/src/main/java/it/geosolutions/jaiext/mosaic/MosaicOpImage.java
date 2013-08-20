@@ -31,15 +31,15 @@ import com.sun.media.jai.util.ImageUtil;
 
 /**
  * This class takes an array of <code>RenderedImage</code> and creates a mosaic of them. If the image pixels are No Data values, they are not
- * calculated and the MosaicDataOpImage searches for the pixels of the other source images in the same location. If all the pixels in the same
+ * calculated and the MosaicOpImage searches for the pixels of the other source images in the same location. If all the pixels in the same
  * location are No Data, the destination image pixel will be a destination No Data value. This feature is combined with the ROI support and alpha
- * channel support(leaved unchanged). No Data support has been added both in the BLEND and OVERLAY mosaic type. The MosaicDataOpImage behavior is
+ * channel support(leaved unchanged). No Data support has been added both in the BLEND and OVERLAY mosaic type. The MosaicOpImage behavior is
  * equal to that of the old MosaicOpImage, the only difference is the No Data support. The input values of the first one are different because a Java
  * Bean is used for storing all of them in a unique block instead of different variables as the second one. This Java Bean is described in the
  * ImageMosaicBean class. Inside this class, other Java Beans are used for simplifying the image data transport between the various method.
  */
 //@SuppressWarnings("unchecked")
-public class MosaicDataOpImage extends OpImage {
+public class MosaicOpImage extends OpImage {
     /**
      * Default value for the destination image if every pixel in the same location is a no data
      */
@@ -210,7 +210,7 @@ public class MosaicDataOpImage extends OpImage {
     /**
      * This constructor takes the source images, the layout, the rendering hints, and the parameters and initialize variables.
      */
-    public MosaicDataOpImage(List sources, ImageLayout layout, Map renderingHints,
+    public MosaicOpImage(List sources, ImageLayout layout, Map renderingHints,
             ImageMosaicBean[] images, MosaicType mosaicTypeSelected, Number[] destinationNoData) {
         // OpImage constructor
         super((Vector) sources, checkLayout(sources, layout), renderingHints, true);

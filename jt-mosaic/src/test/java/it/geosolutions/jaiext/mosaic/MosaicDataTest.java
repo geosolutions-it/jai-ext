@@ -2,8 +2,8 @@ package it.geosolutions.jaiext.mosaic;
 
 import static org.junit.Assert.*;
 import it.geosolutions.jaiext.mosaic.ImageMosaicBean;
-import it.geosolutions.jaiext.mosaic.MosaicDataDescriptor;
-import it.geosolutions.jaiext.mosaic.MosaicDataOpImage;
+import it.geosolutions.jaiext.mosaic.MosaicDescriptor;
+import it.geosolutions.jaiext.mosaic.MosaicOpImage;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -21,7 +21,6 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROIShape;
-import javax.media.jai.operator.MosaicDescriptor;
 import javax.media.jai.operator.MosaicType;
 import javax.media.jai.operator.TranslateDescriptor;
 import org.jaitools.numeric.Range;
@@ -29,7 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * This test class is used for checking the functionality of the MosaicDataOpImage. Every test is performed on all the DataBuffer types. The mosaic
+ * This test class is used for checking the functionality of the MosaicOpImage. Every test is performed on all the DataBuffer types. The mosaic
  * operations are calculated in the OVERLAY mode. The first 3 series of tests execute a mosaic operation between:
  * <ul>
  * <li>two image with No Data values</li>
@@ -56,7 +55,7 @@ public class MosaicDataTest {
     // Default initialization set to false
     public final static boolean DEFAULT_SETUP_INITALIZATION = false;
 
-    private final static MosaicType DEFAULT_MOSAIC_TYPE = MosaicDescriptor.MOSAIC_TYPE_OVERLAY;
+    private final static MosaicType DEFAULT_MOSAIC_TYPE = javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY;
 
     // the default image dimensions;
     public final static float DEFAULT_WIDTH = 512;
@@ -768,7 +767,7 @@ public class MosaicDataTest {
         mosaicArray = new RenderedImage[0];
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDataDescriptor.create(mosaicArray, helpBean,
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, null);
 
         try {
@@ -810,7 +809,7 @@ public class MosaicDataTest {
         mosaicArray = new RenderedImage[0];
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDataDescriptor.create(mosaicArray, helpBean,
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, renderingHints);
 
         try {
@@ -898,7 +897,7 @@ public class MosaicDataTest {
         mosaicArray = new RenderedImage[0];
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDataDescriptor.create(mosaicArray, helpBean,
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, renderingHints);
 
         try {
@@ -935,7 +934,7 @@ public class MosaicDataTest {
                 DataDisplacement.DATA_DATA, false, false);
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDataDescriptor.create(mosaicArray, helpBean,
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, renderingHints);
 
         try {
@@ -971,7 +970,7 @@ public class MosaicDataTest {
         ImageMosaicBean[] helpBean = new ImageMosaicBean[1];
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDataDescriptor.create(mosaicArray, helpBean,
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, renderingHints);
 
         try {
@@ -1005,7 +1004,7 @@ public class MosaicDataTest {
         helpBean[0].setAlphaChannel(newAlphaChannel);
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDataDescriptor.create(mosaicArray, helpBean,
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, renderingHints);
 
         try {
@@ -1080,10 +1079,10 @@ public class MosaicDataTest {
         ImageMosaicBean[] helpBean = testBean.getInnerBean3Band();
 
         if (sourceRect) {
-            Rectangle rect = new MosaicDataOpImage(mosaicList, layout, renderingHints, helpBean,
+            Rectangle rect = new MosaicOpImage(mosaicList, layout, renderingHints, helpBean,
                     DEFAULT_MOSAIC_TYPE, destinationValues).mapSourceRect(testRect, index);
         } else {
-            Rectangle rect = new MosaicDataOpImage(mosaicList, layout, renderingHints, helpBean,
+            Rectangle rect = new MosaicOpImage(mosaicList, layout, renderingHints, helpBean,
                     DEFAULT_MOSAIC_TYPE, destinationValues).mapDestRect(testRect, index);
         }
 
@@ -1556,10 +1555,10 @@ public class MosaicDataTest {
 
         if (overlay) {
             // MosaicNoData operation
-            image5 = MosaicDataDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
+            image5 = MosaicDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
                     destinationValues, hints);
         } else {
-            image5 = MosaicDataDescriptor.create(mosaicArray, helpBean,
+            image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                     MosaicDescriptor.MOSAIC_TYPE_BLEND, destinationValues, hints);
         }
 
@@ -1682,7 +1681,7 @@ public class MosaicDataTest {
         // Creates an array for the destination band values
         Number[] destinationValues = testBean.getDestinationNoData();
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDataDescriptor.create(mosaicArray, helpBean,
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, hints);
 
         int dataType = image5.getSampleModel().getDataType();
@@ -1788,7 +1787,7 @@ public class MosaicDataTest {
         // Creates an array for the destination band values
         Number[] destinationValues = testBean.getDestinationNoData();
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDataDescriptor.create(mosaicArray, helpBean,
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, hints);
 
         int minXTile = image5.getMinTileX();
@@ -1867,7 +1866,7 @@ public class MosaicDataTest {
         // Creates an array for the destination band values
         Number[] destinationValues = testBean.getDestinationNoData();
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDataDescriptor.create(mosaicArray, helpBean,
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, hints);
 
         int dataType = image5.getSampleModel().getDataType();

@@ -2,15 +2,13 @@ package it.geosolutions.jaiext.interpolators;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
-
-import javax.media.jai.InterpolationBicubic;
 import javax.media.jai.InterpolationTable;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.iterator.RandomIter;
 
 import org.jaitools.numeric.Range;
 
-public class InterpolationBicubicNew extends InterpolationTable {
+public class InterpolationBicubic extends InterpolationTable {
 
     /** serialVersionUID */
     private static final long serialVersionUID = -3699824574811467489L;
@@ -64,7 +62,7 @@ public class InterpolationBicubicNew extends InterpolationTable {
      * Simple interpolator object used for Bicubic/Bicubic2 interpolation. On construction it is possible to set a range for no data values that will
      * be considered in the interpolation method.
      */
-    public InterpolationBicubicNew(int subsampleBits, Range noDataRange, 
+    public InterpolationBicubic(int subsampleBits, Range noDataRange, 
             boolean useROIAccessor, double destinationNoData, int dataType, boolean bicubic2Disabled, int precisionBits) {
 
         super(1, 1, 4, 4, subsampleBits, subsampleBits, precisionBits, dataHelper(subsampleBits,
@@ -135,15 +133,7 @@ public class InterpolationBicubicNew extends InterpolationTable {
     
     public int getDataType() {
         return dataType;
-    }
-    
-    /* Interpolator nearest getter, must be used on creation only for ScaleOpImage Constructor */
-    public synchronized InterpolationBicubic getInterpBiCubic() {
-        if (interpBiCubic == null) {
-            interpBiCubic = new InterpolationBicubic(subsampleBitsH);
-        }
-        return interpBiCubic;
-    }
+    }    
 
     public static float[] dataHelper(int subsampleBits, boolean bicubic2Disabled) {
 

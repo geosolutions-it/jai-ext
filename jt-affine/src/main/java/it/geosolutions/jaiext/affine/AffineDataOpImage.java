@@ -1,8 +1,8 @@
 package it.geosolutions.jaiext.affine;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -24,7 +24,6 @@ import java.util.Map;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationNearest;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.RasterAccessor;
@@ -37,14 +36,14 @@ public class AffineDataOpImage extends AffineOpImage {
     final static BorderExtender roiExtender = BorderExtender
             .createInstance(BorderExtender.BORDER_ZERO);
 
-    /** This field is not null only if it belongs to the InterpolationNearestNew class */
-    private InterpolationNearestNew interpN;
+    /** This field is not null only if it belongs to the InterpolationNearest class */
+    private InterpolationNearest interpN;
 
-    /** This field is not null only if it belongs to the InterpolationBilinearNew class */
-    private InterpolationBilinearNew interpB;
+    /** This field is not null only if it belongs to the InterpolationBilinear class */
+    private InterpolationBilinear interpB;
 
     /** This field is not null only if it belongs to the InterpolationBicubicNew class */
-    private InterpolationBicubicNew interpBN;
+    private InterpolationBicubic interpBN;
 
     /** Value describing if the image is a binary one */
     private boolean isBinary;
@@ -88,30 +87,28 @@ public class AffineDataOpImage extends AffineOpImage {
     /** Destination No Data value for binary image */
     private int black;
 
-    /** Constructor used for interpolator of the class InterpolationNearestNew */
+    /** Constructor used for interpolator of the class InterpolationNearest */
     public AffineDataOpImage(RenderedImage source, BorderExtender extender, Map config,
-            ImageLayout layout, AffineTransform transform, InterpolationNearestNew interp,
+            ImageLayout layout, AffineTransform transform, InterpolationNearest interp,
             boolean useROIAccessor, boolean setDestinationNoData) {
-        super(source, extender, configHelper(config, source), layout, transform, interp
-                .getInterpNearest(), null);
+        super(source, extender, configHelper(config, source), layout, transform, interp, null);
         affineOpInitialization(source, interp, layout, useROIAccessor, setDestinationNoData);
     }
 
-    /** Constructor used for interpolator of the class InterpolationBilinearNew */
+    /** Constructor used for interpolator of the class InterpolationBilinear */
     public AffineDataOpImage(RenderedImage source, BorderExtender extender, Map config,
-            ImageLayout layout, AffineTransform transform, InterpolationBilinearNew interp,
+            ImageLayout layout, AffineTransform transform, InterpolationBilinear interp,
             boolean useROIAccessor, boolean setDestinationNoData) {
         super(source, extender, configHelper(config, source), layout, transform, interp
-                .getInterpBilinear(), null);
+                , null);
         affineOpInitialization(source, interp, layout, useROIAccessor, setDestinationNoData);
     }
 
     /** Constructor used for interpolator of the class InterpolationBicubicNew */
     public AffineDataOpImage(RenderedImage source, BorderExtender extender, Map config,
-            ImageLayout layout, AffineTransform transform, InterpolationBicubicNew interp,
+            ImageLayout layout, AffineTransform transform, InterpolationBicubic interp,
             boolean useROIAccessor, boolean setDestinationNoData) {
-        super(source, extender, configHelper(config, source), layout, transform, interp
-                .getInterpBiCubic(), null);
+        super(source, extender, configHelper(config, source), layout, transform, interp, null);
         affineOpInitialization(source, interp, layout, useROIAccessor, setDestinationNoData);
     }
 
@@ -203,16 +200,16 @@ public class AffineDataOpImage extends AffineOpImage {
         // Interpolator settings
         interpolator = interp;
         // If both roiBounds and roiIter are not null, they are used in calculation
-        if (interpolator instanceof InterpolationNearestNew) {
-            interpN = (InterpolationNearestNew) interpolator;
+        if (interpolator instanceof InterpolationNearest) {
+            interpN = (InterpolationNearest) interpolator;
             interpN.setROIdata(roiBounds, roiIter);
             destinationNoData = interpN.getDestinationNoData();
-        } else if (interpolator instanceof InterpolationBilinearNew) {
-            interpB = (InterpolationBilinearNew) interpolator;
+        } else if (interpolator instanceof InterpolationBilinear) {
+            interpB = (InterpolationBilinear) interpolator;
             interpB.setROIdata(roiBounds, roiIter);
             destinationNoData = interpB.getDestinationNoData();
-        } else if (interpolator instanceof InterpolationBicubicNew) {
-            interpBN = (InterpolationBicubicNew) interpolator;
+        } else if (interpolator instanceof InterpolationBicubic) {
+            interpBN = (InterpolationBicubic) interpolator;
             interpBN.setROIdata(roiBounds, roiIter);
             destinationNoData = interpBN.getDestinationNoData();
         } else if (backgroundValues != null) {
@@ -237,7 +234,7 @@ public class AffineDataOpImage extends AffineOpImage {
         interp_bottom = interp_height - interp_top - 1;
 
         // ROIAccessor can be used only if the interpolator is one of the types:
-        // InterpolationNearestNew, InterpolationBilinearNew, InterpolationBicubicNew.
+        // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
         if (hasROI && (interpN != null || interpB != null || interpBN != null)) {
             this.useROIAccessor = useROIAccessor;
         } else {
@@ -444,7 +441,7 @@ public class AffineDataOpImage extends AffineOpImage {
             int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
-        // InterpolationNearestNew, InterpolationBilinearNew, InterpolationBicubicNew.
+        // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
         int[][] samples = new int[interp_height][interp_width];
 
         // Integral fractional values for a general interpolator
@@ -906,7 +903,7 @@ public class AffineDataOpImage extends AffineOpImage {
             int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
-        // InterpolationNearestNew, InterpolationBilinearNew, InterpolationBicubicNew.
+        // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
         int[][] samples = new int[interp_height][interp_width];
 
         // Integral fractional values for a general interpolator
@@ -1369,7 +1366,7 @@ public class AffineDataOpImage extends AffineOpImage {
             int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
-        // InterpolationNearestNew, InterpolationBilinearNew, InterpolationBicubicNew.
+        // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
         int[][] samples = new int[interp_height][interp_width];
 
         // Integral fractional values for a general interpolator
@@ -1620,7 +1617,7 @@ public class AffineDataOpImage extends AffineOpImage {
             int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
-        // InterpolationNearestNew, InterpolationBilinearNew, InterpolationBicubicNew.
+        // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
         int[][] samples = new int[interp_height][interp_width];
 
         // Integral fractional values for a general interpolator
@@ -2077,7 +2074,7 @@ public class AffineDataOpImage extends AffineOpImage {
             int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
-        // InterpolationNearestNew, InterpolationBilinearNew, InterpolationBicubicNew.
+        // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
         float[][] samples = new float[interp_height][interp_width];
 
         // Integral fractional values for a general interpolator
@@ -2314,7 +2311,7 @@ public class AffineDataOpImage extends AffineOpImage {
             int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
-        // InterpolationNearestNew, InterpolationBilinearNew, InterpolationBicubicNew.
+        // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
         double[][] samples = new double[interp_height][interp_width];
 
         // Integral fractional values for a general interpolator

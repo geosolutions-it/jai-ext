@@ -1,8 +1,8 @@
 package it.geosolutions.jaiext.scale;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
@@ -21,9 +21,7 @@ import java.util.Map;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationBicubic;
 import javax.media.jai.InterpolationBicubic2;
-import javax.media.jai.InterpolationBilinear;
 import javax.media.jai.InterpolationTable;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
@@ -33,27 +31,27 @@ import com.sun.media.jai.util.Rational;
 /**
  * This class is an extends the functionality of the ScaleOpImage class by adding the support for No Data values and by extending the ROI support for
  * all the image types and for binary images. The interpolation type performed by the scale operation is indicated by the Interpolation Object used.
- * For Nearest-Neighbor, Bilinear, Bicubic/Bicubic2 interpolation type, the new Interpolation class InterpolationNearestNew, InterpolationBilinearNew,
- * InterpolationBicubicNew should be used for having optimized calculation on the scale operation, ROI and No Data support. If these special
+ * For Nearest-Neighbor, Bilinear, Bicubic/Bicubic2 interpolation type, the new Interpolation class InterpolationNearest, InterpolationBilinear,
+ * InterpolationBicubic should be used for having optimized calculation on the scale operation, ROI and No Data support. If these special
  * Interpolation objects are not used, the interpolation is performed by using the interpolate() method of the interpolator used in the selected
  * kernel, but without ROI and No Data support. Another main difference from the old Scale operations is the reduction of all the operations to one
  * singular class instead of having various different classes. 
  */
 
 // @SuppressWarnings("unchecked")
-public class ScaleDataOpImage extends ScaleOpImage {
+public class ScaleGeneralOpImage extends ScaleOpImage {
 
     /** Nearest-Neighbor interpolator */
-    protected InterpolationNearestNew interpN = null;
+    protected InterpolationNearest interpN = null;
 
     /** Bilinear interpolator */
-    protected InterpolationBilinearNew interpB = null;
+    protected InterpolationBilinear interpB = null;
 
     /** Bicubic interpolator */
-    protected InterpolationBicubicNew interpBN = null;
+    protected InterpolationBicubic interpBN = null;
 
-    // Simple constructor used for interpolators different from InterpolationNearest2, InterpolationBilinear2, InterpolationBicubicNew
-    public ScaleDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+    // Simple constructor used for interpolators different from InterpolationNearest2, InterpolationBilinear2, InterpolationBicubic
+    public ScaleGeneralOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
 
@@ -62,29 +60,29 @@ public class ScaleDataOpImage extends ScaleOpImage {
         scaleOpInitialization(source,interp);
     }
 
-    public ScaleDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
-            BorderExtender extender, InterpolationNearestNew interp, float scaleX, float scaleY,
+    public ScaleGeneralOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+            BorderExtender extender, InterpolationNearest interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
 
-        super(source, layout, configuration, true, extender, interp.getInterpNearest(), scaleX,
+        super(source, layout, configuration, true, extender, interp, scaleX,
                 scaleY, transX, transY, useRoiAccessor);  
         scaleOpInitialization(source,interp);
     }
 
-    public ScaleDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
-            BorderExtender extender, InterpolationBilinearNew interp, float scaleX, float scaleY,
+    public ScaleGeneralOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+            BorderExtender extender, InterpolationBilinear interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
 
-        super(source, layout, configuration, true, extender, interp.getInterpBilinear(), scaleX,
+        super(source, layout, configuration, true, extender, interp, scaleX,
                 scaleY, transX, transY, useRoiAccessor);
         scaleOpInitialization(source,interp);
     }
 
-    public ScaleDataOpImage(RenderedImage source, ImageLayout layout, Map configuration,
-            BorderExtender extender, InterpolationBicubicNew interp, float scaleX, float scaleY,
+    public ScaleGeneralOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+            BorderExtender extender, InterpolationBicubic interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
 
-        super(source, layout, configuration, true, extender, interp.getInterpBiCubic(), scaleX,
+        super(source, layout, configuration, true, extender, interp, scaleX,
                 scaleY, transX, transY, useRoiAccessor);
         scaleOpInitialization(source,interp);
     }
@@ -123,10 +121,10 @@ public class ScaleDataOpImage extends ScaleOpImage {
         // Interpolator settings
         interpolator = interp;
 
-        if (interpolator instanceof InterpolationNearestNew) {
+        if (interpolator instanceof InterpolationNearest) {
             isNearestNew=true;
-            interpN = (InterpolationNearestNew) interpolator;
-            this.interp=interpN.getInterpNearest();
+            interpN = (InterpolationNearest) interpolator;
+            this.interp=interpN;
             interpN.setROIdata(roiBounds, roiIter);
             noData = interpN.getNoDataRange();
             if (noData != null) {
@@ -147,10 +145,10 @@ public class ScaleDataOpImage extends ScaleOpImage {
             } else if (hasROI) {
                 destinationNoDataDouble = interpN.getDestinationNoData();
             }
-        } else if (interpolator instanceof InterpolationBilinearNew) {
+        } else if (interpolator instanceof InterpolationBilinear) {
             isBilinearNew=true;
-            interpB = (InterpolationBilinearNew) interpolator;
-            this.interp=interpB.getInterpBilinear();
+            interpB = (InterpolationBilinear) interpolator;
+            this.interp=interpB;
             interpB.setROIdata(roiBounds, roiIter);
             noData = interpB.getNoDataRange();
             if (noData != null) {
@@ -171,10 +169,10 @@ public class ScaleDataOpImage extends ScaleOpImage {
             } else if (hasROI) {
                 destinationNoDataDouble = interpB.getDestinationNoData();
             }
-        } else if (interpolator instanceof InterpolationBicubicNew) {
+        } else if (interpolator instanceof InterpolationBicubic) {
             isBicubicNew=true;
-            interpBN = (InterpolationBicubicNew) interpolator;
-            this.interp=interpBN.getInterpBiCubic();
+            interpBN = (InterpolationBicubic) interpolator;
+            this.interp=interpBN;
             interpBN.setROIdata(roiBounds, roiIter);
             noData = interpBN.getNoDataRange();
             if (noData != null) {
@@ -982,7 +980,7 @@ public class ScaleDataOpImage extends ScaleOpImage {
                     } else {
                         throw new UnsupportedOperationException(
                                 "Binary interpolation not supported by interpolator different from"
-                                        + "the ones that belong to InterpolationNearest2, InterpolationBilinear2 or InterpolationBicubicNew"
+                                        + "the ones that belong to InterpolationNearest2, InterpolationBilinear2 or InterpolationBicubic"
                                         + "class.");
                     }
 

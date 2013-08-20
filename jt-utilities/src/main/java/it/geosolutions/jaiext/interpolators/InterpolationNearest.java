@@ -3,13 +3,12 @@ package it.geosolutions.jaiext.interpolators;
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationNearest;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.iterator.RandomIter;
 
 import org.jaitools.numeric.Range;
 
-public class InterpolationNearestNew extends Interpolation {
+public class InterpolationNearest extends Interpolation {
 
     /** serialVersionUID */
     private static final long serialVersionUID = -6994369085300227735L;
@@ -72,7 +71,7 @@ public class InterpolationNearestNew extends Interpolation {
      * Simple interpolator object used for Nearest-Neighbor interpolation. On construction it is possible to set a range for no data values that will
      * be considered in the interpolation method.
      */
-    public InterpolationNearestNew(Range noDataRange, boolean useROIAccessor,
+    public InterpolationNearest(Range noDataRange, boolean useROIAccessor,
             double destinationNoData, int dataType) {
         super(1, 1, 0, 0, 0, 0, 0, 0);
         if (noDataRange != null) {
@@ -135,14 +134,6 @@ public class InterpolationNearestNew extends Interpolation {
 
     public int getDataType() {
         return dataType;
-    }
-
-    /* Interpolator nearest getter, must be used on creation only for ScaleOpImage Constructor */
-    public synchronized InterpolationNearest getInterpNearest() {
-        if (interpNearest == null) {
-            interpNearest = new InterpolationNearest();
-        }
-        return interpNearest;
     }
 
     // method for calculating the nearest-neighbor interpolation (no Binary data).

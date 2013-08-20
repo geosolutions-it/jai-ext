@@ -1,6 +1,6 @@
 package it.geosolutions.jaiext.scale;
 
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
@@ -33,7 +33,7 @@ import org.jaitools.numeric.Range;
 public class ScaleNearestOpImage2 extends ScaleOpImage {
 
     /** Nearest-Neighbor interpolator */
-    protected InterpolationNearestNew interpN = null;
+    protected InterpolationNearest interpN = null;
     
     private final boolean nullROINoData ;
     private final boolean nullNoDataNotNullROI;
@@ -42,8 +42,8 @@ public class ScaleNearestOpImage2 extends ScaleOpImage {
     public ScaleNearestOpImage2(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
-        super(source, layout, configuration, true, extender, ((InterpolationNearestNew) interp)
-                .getInterpNearest(), scaleX, scaleY, transX, transY, useRoiAccessor);
+        super(source, layout, configuration, true, extender, interp, 
+                scaleX, scaleY, transX, transY, useRoiAccessor);
         
      // If the source has an IndexColorModel, override the default setting
         // in OpImage. The dest shall have exactly the same SampleModel and
@@ -78,10 +78,10 @@ public class ScaleNearestOpImage2 extends ScaleOpImage {
         // Interpolator settings
         interpolator = interp;
 
-        if (interpolator instanceof InterpolationNearestNew) {
+        if (interpolator instanceof InterpolationNearest) {
             isNearestNew = true;
-            interpN = (InterpolationNearestNew) interpolator;
-            this.interp = interpN.getInterpNearest();
+            interpN = (InterpolationNearest) interpolator;
+            this.interp = interpN;
             interpN.setROIdata(roiBounds, roiIter);
             noData = interpN.getNoDataRange();
             if (noData != null) {

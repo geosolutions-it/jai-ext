@@ -1,10 +1,10 @@
 package it.geosolutions.jaiext.scale;
 
 import static org.junit.Assert.*;
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
-import it.geosolutions.jaiext.scale.ScaleDataDescriptor;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.scale.ScaleDescriptor;
 import it.geosolutions.jaiext.scale.ScalePropertyGenerator;
 
 import java.awt.Rectangle;
@@ -21,16 +21,16 @@ import org.junit.Test;
 
 /**
  * This test-class extends the TestScale class and is used for extending the code-coverage of the project. In this test-class
- * are checked the getProperty() method of the ScaleDataDescriptor class and the capability of the ScaleDataCRIF.create() 
+ * are checked the getProperty() method of the ScaleDescriptor class and the capability of the ScaleCRIF.create() 
  * method to call the TranslateIntOpImage class or the CopyOpImage class when the requested operation is simply a translation
  * or a copy of the source image without ROI object. 
  */
 public class CoverageClassTest extends TestScale {
 
-    // this test-case is used for testing the getProperty() method of the ScaleDataDescriptor class
+    // this test-case is used for testing the getProperty() method of the ScaleDescriptor class
     @Test
     public void testROIProperty() {
-        ScaleDataDescriptor descriptor = new ScaleDataDescriptor();
+        ScaleDescriptor descriptor = new ScaleDescriptor();
         ScalePropertyGenerator propertyGenerator = (ScalePropertyGenerator) descriptor
                 .getPropertyGenerators()[0];
 
@@ -41,13 +41,13 @@ public class CoverageClassTest extends TestScale {
 
         // Interpolators initialization
         // Nearest-Neighbor
-        InterpolationNearestNew interpNear = new InterpolationNearestNew(noDataRange,
+        InterpolationNearest interpNear = new InterpolationNearest(noDataRange,
                 useROIAccessor, destinationNoData, dataType);
         // Bilinear
-        InterpolationBilinearNew interpBil = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS,
+        InterpolationBilinear interpBil = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS,
                 noDataRange, useROIAccessor, destinationNoData, dataType);
         // Bicubic
-        InterpolationBicubicNew interpBic = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS,
+        InterpolationBicubic interpBic = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS,
                 noDataRange, useROIAccessor, destinationNoData, dataType, bicubic2Disabled,
                 DEFAULT_PRECISION_BITS);
 
@@ -64,13 +64,13 @@ public class CoverageClassTest extends TestScale {
         RenderedOp testIMG = NullDescriptor.create(testImg, null);
 
         // Scaled images
-        RenderedImage scaleImgNear = ScaleDataDescriptor.create(testIMG, scaleX, scaleY, transX,
+        RenderedImage scaleImgNear = ScaleDescriptor.create(testIMG, scaleX, scaleY, transX,
                 transY, interpNear, roi, useROIAccessor, null);
 
-        RenderedImage scaleImgBil = ScaleDataDescriptor.create(testIMG, scaleX, scaleY, transX,
+        RenderedImage scaleImgBil = ScaleDescriptor.create(testIMG, scaleX, scaleY, transX,
                 transY, interpBil, roi, useROIAccessor, null);
 
-        RenderedImage scaleImgBic = ScaleDataDescriptor.create(testIMG, scaleX, scaleY, transX,
+        RenderedImage scaleImgBic = ScaleDescriptor.create(testIMG, scaleX, scaleY, transX,
                 transY, interpBic, roi, useROIAccessor, null);
 
         scaleImgNear.getTile(0, 0);
@@ -129,14 +129,14 @@ public class CoverageClassTest extends TestScale {
         byte imageValue = 127;
         
         // Nearest-Neighbor
-        InterpolationNearestNew interpNear = new InterpolationNearestNew(noDataRange,
+        InterpolationNearest interpNear = new InterpolationNearest(noDataRange,
                 useROIAccessor, destinationNoData, dataType);
 
         RenderedImage testIMG = createTestImage(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, imageValue,
                 false);
 
         // Scaled images
-        PlanarImage scaleImgNear = ScaleDataDescriptor.create(testIMG, xScale, yScale, xTrans,
+        PlanarImage scaleImgNear = ScaleDescriptor.create(testIMG, xScale, yScale, xTrans,
                 yTrans, interpNear, null, useROIAccessor, null);
         scaleImgNear.getTiles();
         
@@ -167,14 +167,14 @@ public class CoverageClassTest extends TestScale {
         byte imageValue = 127;
         
         // Nearest-Neighbor
-        InterpolationNearestNew interpNear = new InterpolationNearestNew(noDataRange,
+        InterpolationNearest interpNear = new InterpolationNearest(noDataRange,
                 useROIAccessor, destinationNoData, dataType);
 
         RenderedImage testIMG = createTestImage(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, imageValue,
                 false);
 
         // Scaled images
-        PlanarImage scaleImgNear = ScaleDataDescriptor.create(testIMG, xScale, yScale, xTrans,
+        PlanarImage scaleImgNear = ScaleDescriptor.create(testIMG, xScale, yScale, xTrans,
                 yTrans, interpNear, null, useROIAccessor, null);
         scaleImgNear.getTiles();
         

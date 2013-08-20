@@ -1,6 +1,6 @@
 package it.geosolutions.jaiext.scale;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
@@ -25,13 +25,13 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
     protected final byte[] byteLookupTable = new byte[255];
 
     /** Bilinear interpolator */
-    protected InterpolationBilinearNew interpB = null;
+    protected InterpolationBilinear interpB = null;
 
     public ScaleBilinearOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
-        super(source, layout, configuration, true, extender, ((InterpolationBilinearNew) interp)
-                .getInterpBilinear(), scaleX, scaleY, transX, transY, useRoiAccessor);
+        super(source, layout, configuration, true, extender, interp
+                , scaleX, scaleY, transX, transY, useRoiAccessor);
         scaleOpInitialization(source, interp);
     }
 
@@ -71,10 +71,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         // Interpolator settings
         interpolator = interp;
 
-        if (interpolator instanceof InterpolationBilinearNew) {
+        if (interpolator instanceof InterpolationBilinear) {
             isBilinearNew = true;
-            interpB = (InterpolationBilinearNew) interpolator;
-            this.interp = interpB.getInterpBilinear();
+            interpB = (InterpolationBilinear) interpolator;
+            this.interp = interpB;
             interpB.setROIdata(roiBounds, roiIter);
             noData = interpB.getNoDataRange();
             if (noData != null) {
@@ -2254,38 +2254,38 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if ((isNegativeInf && s00 == Float.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && s00 == Float.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Float.isNaN(s00))) {
-                                    // The destination no data value is saved in the destination array
-                                    w00 = 0;
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
+                                     // The destination no data value is saved in the destination array
+                                        w00 = 0;
+                                    }                                
                                 }else if (rangeND.contains(s00)) {
                                     w00 = 0;
                                 }
 
-                                if ((isNegativeInf && s01 == Float.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && s01 == Float.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Float.isNaN(s01))) {
-                                    // The destination no data value is saved in the destination array
-                                    w01 = 0;
-                                }if (rangeND.contains(s01)) {
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
+                                     // The destination no data value is saved in the destination array
+                                        w01 = 0;
+                                    }                                
+                                }else if (rangeND.contains(s01)) {
                                     w01 = 0;
                                 }
                                                                 
-                                if ((isNegativeInf && s10 == Float.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && s10 == Float.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Float.isNaN(s10))) {
-                                    // The destination no data value is saved in the destination array
-                                    w10 = 0;
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
+                                     // The destination no data value is saved in the destination array
+                                        w10 = 0;
+                                    }                                
                                 }else if (rangeND.contains(s10)) {
                                     w10 = 0;
                                 }
                                 
-                                if ((isNegativeInf && s11 == Float.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && s11 == Float.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Float.isNaN(s11))) {
-                                    // The destination no data value is saved in the destination array
-                                    w11 = 0;
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
+                                     // The destination no data value is saved in the destination array
+                                        w11 = 0;
+                                    }                                
                                 }else if (rangeND.contains(s11)) {
                                     w11 = 0;
                                 }
@@ -2353,44 +2353,52 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         dstData[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
                                         
-                                        if ((isNegativeInf && s00 == Float.NEGATIVE_INFINITY)
-                                                || (isPositiveInf && s00 == Float.NEGATIVE_INFINITY)
-                                                || (isRangeNaN && Float.isNaN(s00))) {
-                                            // The destination no data value is saved in the destination array
-                                            w00 = 0;
+                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                            if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
+                                             // The destination no data value is saved in the destination array
+                                                w00 = 0;
+                                            }else {
+                                                w00 = 1;
+                                            }                                
                                         }else if (rangeND.contains(s00)) {
                                             w00 = 0;
                                         }else {
                                             w00 = 1;
                                         }
 
-                                        if ((isNegativeInf && s01 == Float.NEGATIVE_INFINITY)
-                                                || (isPositiveInf && s01 == Float.NEGATIVE_INFINITY)
-                                                || (isRangeNaN && Float.isNaN(s01))) {
-                                            // The destination no data value is saved in the destination array
-                                            w01 = 0;
+                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                            if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
+                                             // The destination no data value is saved in the destination array
+                                                w01 = 0;
+                                            }else {
+                                                w01 = 1;
+                                            }                                
                                         }if (rangeND.contains(s01)) {
                                             w01 = 0;
                                         }else {
                                             w01 = 1;
                                         }
                                                                         
-                                        if ((isNegativeInf && s10 == Float.NEGATIVE_INFINITY)
-                                                || (isPositiveInf && s10 == Float.NEGATIVE_INFINITY)
-                                                || (isRangeNaN && Float.isNaN(s10))) {
-                                            // The destination no data value is saved in the destination array
-                                            w10 = 0;
+                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                            if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
+                                             // The destination no data value is saved in the destination array
+                                                w10 = 0;
+                                            }else {
+                                                w10 = 1;
+                                            }                                
                                         }else if (rangeND.contains(s10)) {
                                             w10 = 0;
                                         }else {
                                             w10 = 1;
                                         }
                                         
-                                        if ((isNegativeInf && s11 == Float.NEGATIVE_INFINITY)
-                                                || (isPositiveInf && s11 == Float.NEGATIVE_INFINITY)
-                                                || (isRangeNaN && Float.isNaN(s11))) {
-                                            // The destination no data value is saved in the destination array
-                                            w11 = 0;
+                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                            if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
+                                             // The destination no data value is saved in the destination array
+                                                w11 = 0;
+                                            }else {
+                                                w11 = 1;
+                                            }                                
                                         }else if (rangeND.contains(s11)) {
                                             w11 = 0;
                                         }else {
@@ -2450,44 +2458,52 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final float s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            if ((isNegativeInf && s00 == Float.NEGATIVE_INFINITY)
-                                                    || (isPositiveInf && s00 == Float.NEGATIVE_INFINITY)
-                                                    || (isRangeNaN && Float.isNaN(s00))) {
-                                                // The destination no data value is saved in the destination array
-                                                w00 = 0;
+                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                                if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
+                                                 // The destination no data value is saved in the destination array
+                                                    w00 = 0;
+                                                }else {
+                                                    w00 = 1;
+                                                }                                
                                             }else if (rangeND.contains(s00)) {
                                                 w00 = 0;
                                             }else {
                                                 w00 = 1;
                                             }
 
-                                            if ((isNegativeInf && s01 == Float.NEGATIVE_INFINITY)
-                                                    || (isPositiveInf && s01 == Float.NEGATIVE_INFINITY)
-                                                    || (isRangeNaN && Float.isNaN(s01))) {
-                                                // The destination no data value is saved in the destination array
-                                                w01 = 0;
+                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                                if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
+                                                 // The destination no data value is saved in the destination array
+                                                    w01 = 0;
+                                                }else {
+                                                    w01 = 1;
+                                                }                                
                                             }if (rangeND.contains(s01)) {
                                                 w01 = 0;
                                             }else {
                                                 w01 = 1;
                                             }
                                                                             
-                                            if ((isNegativeInf && s10 == Float.NEGATIVE_INFINITY)
-                                                    || (isPositiveInf && s10 == Float.NEGATIVE_INFINITY)
-                                                    || (isRangeNaN && Float.isNaN(s10))) {
-                                                // The destination no data value is saved in the destination array
-                                                w10 = 0;
+                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                                if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
+                                                 // The destination no data value is saved in the destination array
+                                                    w10 = 0;
+                                                }else {
+                                                    w10 = 1;
+                                                }                                
                                             }else if (rangeND.contains(s10)) {
                                                 w10 = 0;
                                             }else {
                                                 w10 = 1;
                                             }
                                             
-                                            if ((isNegativeInf && s11 == Float.NEGATIVE_INFINITY)
-                                                    || (isPositiveInf && s11 == Float.NEGATIVE_INFINITY)
-                                                    || (isRangeNaN && Float.isNaN(s11))) {
-                                                // The destination no data value is saved in the destination array
-                                                w11 = 0;
+                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                                if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
+                                                 // The destination no data value is saved in the destination array
+                                                    w11 = 0;
+                                                }else {
+                                                    w11 = 1;
+                                                }                                
                                             }else if (rangeND.contains(s11)) {
                                                 w11 = 0;
                                             }else {
@@ -2764,38 +2780,38 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if ((isNegativeInf && s00 == Double.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && s00 == Double.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Double.isNaN(s00))) {
-                                    // The destination no data value is saved in the destination array
-                                    w00 = 0;
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
+                                     // The destination no data value is saved in the destination array
+                                        w00 = 0;
+                                    }                                
                                 }else if (rangeND.contains(s00)) {
                                     w00 = 0;
                                 }
 
-                                if ((isNegativeInf && s01 == Double.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && s01 == Double.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Double.isNaN(s01))) {
-                                    // The destination no data value is saved in the destination array
-                                    w01 = 0;
-                                }if (rangeND.contains(s01)) {
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
+                                     // The destination no data value is saved in the destination array
+                                        w01 = 0;
+                                    }                                
+                                }else if (rangeND.contains(s01)) {
                                     w01 = 0;
                                 }
                                                                 
-                                if ((isNegativeInf && s10 == Double.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && s10 == Double.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Double.isNaN(s10))) {
-                                    // The destination no data value is saved in the destination array
-                                    w10 = 0;
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
+                                     // The destination no data value is saved in the destination array
+                                        w10 = 0;
+                                    }                                
                                 }else if (rangeND.contains(s10)) {
                                     w10 = 0;
                                 }
                                 
-                                if ((isNegativeInf && s11 == Double.NEGATIVE_INFINITY)
-                                        || (isPositiveInf && s11 == Double.NEGATIVE_INFINITY)
-                                        || (isRangeNaN && Double.isNaN(s11))) {
-                                    // The destination no data value is saved in the destination array
-                                    w11 = 0;
+                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                    if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
+                                     // The destination no data value is saved in the destination array
+                                        w11 = 0;
+                                    }                                
                                 }else if (rangeND.contains(s11)) {
                                     w11 = 0;
                                 }
@@ -2862,44 +2878,52 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
-                                        if ((isNegativeInf && s00 == Double.NEGATIVE_INFINITY)
-                                                || (isPositiveInf && s00 == Double.NEGATIVE_INFINITY)
-                                                || (isRangeNaN && Double.isNaN(s00))) {
-                                            // The destination no data value is saved in the destination array
-                                            w00 = 0;
+                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                            if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
+                                             // The destination no data value is saved in the destination array
+                                                w00 = 0;
+                                            }else {
+                                                w00 = 1;
+                                            }                                
                                         }else if (rangeND.contains(s00)) {
                                             w00 = 0;
                                         }else {
                                             w00 = 1;
                                         }
 
-                                        if ((isNegativeInf && s01 == Double.NEGATIVE_INFINITY)
-                                                || (isPositiveInf && s01 == Double.NEGATIVE_INFINITY)
-                                                || (isRangeNaN && Double.isNaN(s01))) {
-                                            // The destination no data value is saved in the destination array
-                                            w01 = 0;
+                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                            if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
+                                             // The destination no data value is saved in the destination array
+                                                w01 = 0;
+                                            }else {
+                                                w01 = 1;
+                                            }                                
                                         }if (rangeND.contains(s01)) {
                                             w01 = 0;
                                         }else {
                                             w01 = 1;
                                         }
                                                                         
-                                        if ((isNegativeInf && s10 == Double.NEGATIVE_INFINITY)
-                                                || (isPositiveInf && s10 == Double.NEGATIVE_INFINITY)
-                                                || (isRangeNaN && Double.isNaN(s10))) {
-                                            // The destination no data value is saved in the destination array
-                                            w10 = 0;
+                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                            if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
+                                             // The destination no data value is saved in the destination array
+                                                w10 = 0;
+                                            }else {
+                                                w10 = 1;
+                                            }                                
                                         }else if (rangeND.contains(s10)) {
                                             w10 = 0;
                                         }else {
                                             w10 = 1;
                                         }
                                         
-                                        if ((isNegativeInf && s11 == Double.NEGATIVE_INFINITY)
-                                                || (isPositiveInf && s11 == Double.NEGATIVE_INFINITY)
-                                                || (isRangeNaN && Double.isNaN(s11))) {
-                                            // The destination no data value is saved in the destination array
-                                            w11 = 0;
+                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                            if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
+                                             // The destination no data value is saved in the destination array
+                                                w11 = 0;
+                                            }else {
+                                                w11 = 1;
+                                            }                                
                                         }else if (rangeND.contains(s11)) {
                                             w11 = 0;
                                         }else {
@@ -2960,44 +2984,52 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final double s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            if ((isNegativeInf && s00 == Double.NEGATIVE_INFINITY)
-                                                    || (isPositiveInf && s00 == Double.NEGATIVE_INFINITY)
-                                                    || (isRangeNaN && Double.isNaN(s00))) {
-                                                // The destination no data value is saved in the destination array
-                                                w00 = 0;
+                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                                if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
+                                                 // The destination no data value is saved in the destination array
+                                                    w00 = 0;
+                                                }else {
+                                                    w00 = 1;
+                                                }                                
                                             }else if (rangeND.contains(s00)) {
                                                 w00 = 0;
                                             }else {
                                                 w00 = 1;
                                             }
 
-                                            if ((isNegativeInf && s01 == Double.NEGATIVE_INFINITY)
-                                                    || (isPositiveInf && s01 == Double.NEGATIVE_INFINITY)
-                                                    || (isRangeNaN && Double.isNaN(s01))) {
-                                                // The destination no data value is saved in the destination array
-                                                w01 = 0;
+                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                                if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
+                                                 // The destination no data value is saved in the destination array
+                                                    w01 = 0;
+                                                }else {
+                                                    w01 = 1;
+                                                }                                
                                             }if (rangeND.contains(s01)) {
                                                 w01 = 0;
                                             }else {
                                                 w01 = 1;
                                             }
                                                                             
-                                            if ((isNegativeInf && s10 == Double.NEGATIVE_INFINITY)
-                                                    || (isPositiveInf && s10 == Double.NEGATIVE_INFINITY)
-                                                    || (isRangeNaN && Double.isNaN(s10))) {
-                                                // The destination no data value is saved in the destination array
-                                                w10 = 0;
+                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                                if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
+                                                 // The destination no data value is saved in the destination array
+                                                    w10 = 0;
+                                                }else {
+                                                    w10 = 1;
+                                                }                                
                                             }else if (rangeND.contains(s10)) {
                                                 w10 = 0;
                                             }else {
                                                 w10 = 1;
                                             }
                                             
-                                            if ((isNegativeInf && s11 == Double.NEGATIVE_INFINITY)
-                                                    || (isPositiveInf && s11 == Double.NEGATIVE_INFINITY)
-                                                    || (isRangeNaN && Double.isNaN(s11))) {
-                                                // The destination no data value is saved in the destination array
-                                                w11 = 0;
+                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
+                                                if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
+                                                 // The destination no data value is saved in the destination array
+                                                    w11 = 0;
+                                                }else {
+                                                    w11 = 1;
+                                                }                                
                                             }else if (rangeND.contains(s11)) {
                                                 w11 = 0;
                                             }else {

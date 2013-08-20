@@ -1,6 +1,6 @@
 package it.geosolutions.jaiext.scale;
 
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
@@ -33,13 +33,12 @@ import com.sun.media.jai.util.Rational;
 public class ScaleNearestOpImage3 extends ScaleOpImage {
 
     /** Nearest-Neighbor interpolator */
-    protected InterpolationNearestNew interpN = null;
+    protected InterpolationNearest interpN = null;
     
     public ScaleNearestOpImage3(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
-        super(source, layout, configuration, true, extender, ((InterpolationNearestNew) interp)
-                .getInterpNearest(), scaleX, scaleY, transX, transY, useRoiAccessor);
+        super(source, layout, configuration, true, extender, interp, scaleX, scaleY, transX, transY, useRoiAccessor);
         scaleOpInitialization(source, interp);
     }
 
@@ -77,9 +76,9 @@ public class ScaleNearestOpImage3 extends ScaleOpImage {
         // Interpolator settings
         interpolator = interp;
 
-        if (interpolator instanceof InterpolationNearestNew) {
-            interpN = (InterpolationNearestNew) interpolator;
-            this.interp = interpN.getInterpNearest();
+        if (interpolator instanceof InterpolationNearest) {
+            interpN = (InterpolationNearest) interpolator;
+            this.interp = interpN;
             interpN.setROIdata(roiBounds, roiIter);
             noData = interpN.getNoDataRange();
             if (noData != null) {

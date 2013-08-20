@@ -9,6 +9,7 @@ jt-warp/target/*
 jt-iterators/target/*
 jt-utilities/target/*
 jt-mosaic/target/*
+jt-translate/target/*
 concurrent-tile-cache/src/test/resources/it/geosolutions/logfiles
 concurrent-tile-cache/target/*
 concurrent-tile-cache/bin/*

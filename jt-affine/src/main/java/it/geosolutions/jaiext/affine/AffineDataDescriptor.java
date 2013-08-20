@@ -201,7 +201,7 @@ class AffinePropertyGenerator extends PropertyGeneratorImpl {
  * <p> This new version of the "Affine" operation adds the ROI support and No Data
  * support for every image type and even for Binary images. This extension becames
  * possible with 3 new Interpolation extensions, each of them is an evolution
- * of the classic interpolation method: InterpolationNearestNew, InterpolationBilinearNew,
+ * of the classic interpolation method: InterpolationNearest, InterpolationBilinear,
  * InterpolationBicubicNew. The No Data Range used must be defined inside the interpolator,
  * at the interpolator creation time, while the ROI support is handled inside the 
  * AffineDataOpImage.
@@ -296,9 +296,9 @@ public class AffineDataDescriptor extends OperationDescriptorImpl {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
     }
 
-    /** Returns <code>true</code> since renderable operation is supported. */
+    /** Returns <code>false</code> since renderable operation is supported but never tested. */
     public boolean isRenderableSupported() {
-        return true;
+        return false;
     }
 
     /**

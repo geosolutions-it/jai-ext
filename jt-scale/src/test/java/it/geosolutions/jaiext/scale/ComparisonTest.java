@@ -7,19 +7,15 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 
 import javax.media.jai.BorderExtender;
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationBicubic;
-import javax.media.jai.InterpolationBilinear;
-import javax.media.jai.InterpolationNearest;
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.PlanarImage;
-import javax.media.jai.operator.ScaleDescriptor;
 
 import org.geotools.test.TestData;
 import org.junit.BeforeClass;
@@ -42,7 +38,7 @@ import org.junit.Test;
  * <ul>
  * </ul>
  * <ul>
- * <li>Selection of the descriptor (ScaleDescriptor or ScaleDataDescriptor)</li>
+ * <li>Selection of the descriptor (new ScaleDescriptor or old ScaleDescriptor)</li>
  * <li>Image Magnification\Reduction</li>
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
@@ -80,22 +76,22 @@ public class ComparisonTest{
     private float yScale = 1.5f;
 
     /** JAI nearest Interpolator */
-    private static InterpolationNearest interpNearOld;
+    private static javax.media.jai.InterpolationNearest interpNearOld;
 
     /** New nearest Interpolator */
-    private static InterpolationNearestNew interpNearNew;
+    private static InterpolationNearest interpNearNew;
 
     /** JAI bilinear Interpolator */
-    private static InterpolationBilinear interpBilOld;
+    private static javax.media.jai.InterpolationBilinear interpBilOld;
 
     /** New bilinear Interpolator */
-    private static InterpolationBilinearNew interpBilNew;
+    private static InterpolationBilinear interpBilNew;
 
     /** JAI bicubic Interpolator */
-    private static InterpolationBicubic interpBicOld;
+    private static javax.media.jai.InterpolationBicubic interpBicOld;
 
     /** New bicubic Interpolator */
-    private static InterpolationBicubicNew interpBicNew;
+    private static InterpolationBicubic interpBicNew;
 
     /** Image to elaborate */
     private static RenderedImage image;
@@ -118,15 +114,15 @@ public class ComparisonTest{
                 BorderExtender.createInstance(BorderExtender.BORDER_COPY));
         
         // Interpolators instantiation
-        interpNearOld = new InterpolationNearest();
-        interpNearNew = new InterpolationNearestNew(null, false, destinationNoData, dataType);
+        interpNearOld = new javax.media.jai.InterpolationNearest();
+        interpNearNew = new InterpolationNearest(null, false, destinationNoData, dataType);
 
-        interpBilOld = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS);
-        interpBilNew = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, null, false,
+        interpBilOld = new javax.media.jai.InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS);
+        interpBilNew = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, null, false,
                 destinationNoData, dataType);
 
-        interpBicOld = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
-        interpBicNew = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, null, false, dataType,
+        interpBicOld = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
+        interpBicNew = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, null, false, dataType,
                 dataType, false, DEFAULT_PRECISION_BITS);
     }
 
@@ -309,13 +305,13 @@ public class ComparisonTest{
 
         String interpType = "";
 
-        if (interp instanceof InterpolationBilinear || interp instanceof InterpolationBilinearNew) {
+        if (interp instanceof InterpolationBilinear || interp instanceof InterpolationBilinear) {
             interpType = "Bilinear";
         } else if (interp instanceof InterpolationBicubic
-                || interp instanceof InterpolationBicubicNew) {
+                || interp instanceof InterpolationBicubic) {
             interpType = "Bicubic";
         } else if (interp instanceof InterpolationNearest
-                || interp instanceof InterpolationNearestNew) {
+                || interp instanceof InterpolationNearest) {
             interpType = "Nearest";
         }
         // Total cycles number
@@ -333,14 +329,14 @@ public class ComparisonTest{
             // creation of the image with the selected interpolator
             if (testDescriptor) {
                 if (old) {
-                    imageScale = ScaleDescriptor.create(image, scaleX, scaleY, xTrans, yTrans,
+                    imageScale = javax.media.jai.operator.ScaleDescriptor.create(image, scaleX, scaleY, xTrans, yTrans,
                             interp, hints);
                 } else {
-                    imageScale = ScaleDataDescriptor.create(image, scaleX, scaleY, xTrans, yTrans,
+                    imageScale = ScaleDescriptor.create(image, scaleX, scaleY, xTrans, yTrans,
                             interp, null, false, hints);
                 }
             } else {
-                imageScale = ScaleDataDescriptor.create(image, scaleX, scaleY, xTrans, yTrans,
+                imageScale = ScaleDescriptor.create(image, scaleX, scaleY, xTrans, yTrans,
                         interp, null, false, hints);
             }
 

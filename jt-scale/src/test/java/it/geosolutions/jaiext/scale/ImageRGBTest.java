@@ -1,10 +1,10 @@
 package it.geosolutions.jaiext.scale;
 
 import static org.junit.Assert.*;
-import it.geosolutions.jaiext.interpolators.InterpolationBicubicNew;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinearNew;
-import it.geosolutions.jaiext.interpolators.InterpolationNearestNew;
-import it.geosolutions.jaiext.scale.ScaleDataDescriptor;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.scale.ScaleDescriptor;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -155,11 +155,11 @@ public class ImageRGBTest extends TestScale {
         switch (interpType) {
         case NEAREST_INTERP:
             // Nearest-Neighbor
-            interp = new InterpolationNearestNew(null, useROIAccessor, destinationNoData, dataType);
+            interp = new InterpolationNearest(null, useROIAccessor, destinationNoData, dataType);
             break;
         case BILINEAR_INTERP:
             // Bilinear
-            interp = new InterpolationBilinearNew(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
+            interp = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
                     destinationNoData, dataType);
             if (hints != null) {
                 hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender
@@ -172,7 +172,7 @@ public class ImageRGBTest extends TestScale {
             break;
         case BICUBIC_INTERP:
             // Bicubic
-            interp = new InterpolationBicubicNew(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
+            interp = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
                     destinationNoData, dataType, bicubic2Disabled, DEFAULT_PRECISION_BITS);
             if (hints != null) {
                 hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender
@@ -187,7 +187,7 @@ public class ImageRGBTest extends TestScale {
         }
 
         // Scale operation
-        RenderedImage destinationIMG = ScaleDataDescriptor.create(sourceImage, scaleX, scaleY,
+        RenderedImage destinationIMG = ScaleDescriptor.create(sourceImage, scaleX, scaleY,
                 transX, transY, interp, roi, useROIAccessor, hints);
 
         if (INTERACTIVE && TEST_SELECTOR == interpType.getType()
