@@ -2,6 +2,10 @@ package it.geosolutions.jaiext.affine;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
@@ -18,12 +22,6 @@ import javax.media.jai.ROIShape;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.jaitools.numeric.Range;
-
-import it.geosolutions.jaiext.affine.AffineDataDescriptor;
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.testclasses.TestBase;
 
 /**
  * This test-class is an extension of the TestBase class inside the jt-utilities project. By calling the testGlobalAffine() method with the selected
@@ -141,6 +139,7 @@ public class TestAffine extends TestBase {
             // Affine operation
             destinationIMG = AffineDataDescriptor.create(sourceImage, transform, interpN, null,
                     (ROI) roi, useROIAccessor, setDestinationNoData, hints);
+//            destinationIMG = AffineDescriptor.create(sourceImage, transform, new javax.media.jai.InterpolationNearest(), null,hints);
 
             break;
         case BILINEAR_INTERP:

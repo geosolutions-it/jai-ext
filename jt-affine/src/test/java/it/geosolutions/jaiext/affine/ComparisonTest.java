@@ -103,7 +103,7 @@ public class ComparisonTest {
                 destinationNoData, dataType);
 
         interpBicOld = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
-        interpBicNew = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, null, false, dataType,
+        interpBicNew = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, null, false, destinationNoData,
                 dataType, false, DEFAULT_PRECISION_BITS);
 
         // Selection of the RGB image
@@ -158,23 +158,23 @@ public class ComparisonTest {
     }
 
     @Test
+    @Ignore
     public void testNearestNewAffineDescriptor() {
         testInterpolators(interpNearNew, true, false);
     }
 
     @Test
+    @Ignore
     public void testNearestOldAffineDescriptor() {
         testInterpolators(interpNearOld, true, true);
     }
 
     @Test
-    @Ignore
     public void testBilinearNewAffineDescriptor() {
         testInterpolators(interpBilNew, true, false);
     }
 
     @Test
-    @Ignore
     public void testBilinearOldAffineDescriptor() {
         testInterpolators(interpBilOld, true, true);
     }
@@ -300,6 +300,5 @@ public class ComparisonTest {
             System.out.println("Minimum value for Interpolator" + interpType + description + " : "
                     + minD + " msec.");
         }
-
     }
 }

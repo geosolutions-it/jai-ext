@@ -221,7 +221,6 @@ public class TranslateDescriptor extends OperationDescriptorImpl {
      * @param source0 <code>RenderedImage</code> source 0.
      * @param xTrans The displacement in X direction. May be <code>null</code>.
      * @param yTrans The displacement in Y direction. May be <code>null</code>.
-     * @param interpolation The interpolation method. May be <code>null</code>.
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @return The <code>RenderedOp</code> destination.
      * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.

@@ -195,20 +195,26 @@ public class AffineDataCRIF extends CRIFImpl {
             }
         }
         // Have to do Affine
-        if (interp instanceof InterpolationNearest && !isBinary && sm.getDataType()==DataBuffer.TYPE_BYTE) {
+        if (interp instanceof InterpolationNearest && !isBinary) {
 
             InterpolationNearest interpN = (InterpolationNearest) interp;
 
-            return new AffineNearestOpImage(source, extender, renderHints, layout, transform, interpN, useROIAccessor, setDestinationNoData);
+            return new AffineNearestOpImage(source, extender, renderHints, layout, transform, interpN, setDestinationNoData, useROIAccessor);
 
-        } else if (interp instanceof InterpolationNearest) {
+        } else if (interp instanceof InterpolationNearest && isBinary) {
 
             InterpolationNearest interpN = (InterpolationNearest) interp;
 
             return new AffineDataOpImage(source, extender, renderHints, layout, transform,
                     interpN, useROIAccessor, setDestinationNoData);
 
-        } else if (interp instanceof InterpolationBilinear) {
+        } else if (interp instanceof InterpolationBilinear && !isBinary) {
+
+            InterpolationBilinear interpB = (InterpolationBilinear) interp;
+
+            return new AffineBilinearOpImage(source, extender, renderHints, layout, transform, interpB, backgroundValues, setDestinationNoData, useROIAccessor);
+
+        }else if (interp instanceof InterpolationBilinear && isBinary) {
 
             InterpolationBilinear interpB = (InterpolationBilinear) interp;
 

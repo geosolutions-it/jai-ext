@@ -65,7 +65,7 @@ abstract class AffineOpImage extends GeometricOpImage {
     /**
      * Unsigned short Max Value
      */
-    protected static final int USHORT_MAX = Short.MAX_VALUE - Short.MIN_VALUE;
+    protected static final int USHORT_MAX_VALUE = Short.MAX_VALUE - Short.MIN_VALUE;
 
     /**
      * The forward AffineTransform describing the image transformation.
@@ -696,8 +696,9 @@ abstract class AffineOpImage extends GeometricOpImage {
             if (hasROI && useROIAccessor) {
                 // If roi accessor is used, the roi must be calculated only in the intersection between the source
                 // image and the roi image.
-                //Rectangle roiComputableBounds = srcRect.intersection(srcROIImage.getBounds());
-                rois[0] = srcROIImage.getExtendedData(srcRect, roiExtender);
+                Rectangle roiComputableBounds = srcRect.intersection(srcROIImage.getBounds());
+                rois[0] = srcROIImage.getData(roiComputableBounds);
+                //rois[0] = srcROIImage.getExtendedData(srcRect, roiExtender);
             }
         } else {
             sources[0] = srcIMG.getExtendedData(srcRect, extender);

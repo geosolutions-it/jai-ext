@@ -1084,8 +1084,8 @@ public class AffineDataOpImage extends AffineOpImage {
                             // Clamp
                             if (result < 0.0f) {
                                 s = 0;
-                            } else if (result > USHORT_MAX) {
-                                s = USHORT_MAX;
+                            } else if (result > USHORT_MAX_VALUE) {
+                                s = USHORT_MAX_VALUE;
                             } else {
                                 s = (int) result;
                             }

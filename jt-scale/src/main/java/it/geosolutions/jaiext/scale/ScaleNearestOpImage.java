@@ -1689,6 +1689,9 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 if(value == Float.NEGATIVE_INFINITY || value == Float.NEGATIVE_INFINITY ||Float.isNaN(value)){
                                  // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataFloat;
+                                }else {
+                                    // The interpolated value is saved in the destination array
+                                    dstData[dstPixelOffset] = value;
                                 }                                
                             } else if (rangeND.contains(value)) {
                                 // The destination no data value is saved in the destination array
@@ -1737,7 +1740,18 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     if(value == Float.NEGATIVE_INFINITY || value == Float.NEGATIVE_INFINITY ||Float.isNaN(value)){
                                      // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataFloat;
-                                    }                                
+                                    } else {
+                                        windex = (posx / dnumBands) + posyROI;
+                                        w = windex < roiDataLength ? roiDataArray[windex] : 0;
+
+                                        if (w == 0) {
+                                            // The destination no data value is saved in the destination array
+                                            dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        } else {
+                                            // The interpolated value is saved in the destination array
+                                            dstData[dstPixelOffset] = value;
+                                        }
+                                    }                               
                                 } else if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataFloat;
@@ -1789,6 +1803,24 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     if(value == Float.NEGATIVE_INFINITY || value == Float.NEGATIVE_INFINITY ||Float.isNaN(value)){
                                      // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    }else {
+                                        // PixelPositions
+                                        int x0 = src.getX() + posx / srcPixelStride;
+                                        int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+
+                                        if (roiBounds.contains(x0, y0)) {
+                                            w = roiIter.getSample(x0, y0, 0);
+                                            if (w == 0) {
+                                                // The destination no data value is saved in the destination array
+                                                dstData[dstPixelOffset] = destinationNoDataFloat;
+                                            } else {
+                                                // The interpolated value is saved in the destination array
+                                                dstData[dstPixelOffset] = value;
+                                            }
+                                        } else {
+                                            // The destination no data value is saved in the destination array
+                                            dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        }
                                     }                                
                                 } else if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -2016,6 +2048,9 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                 if(value == Double.NEGATIVE_INFINITY || value == Double.NEGATIVE_INFINITY ||Double.isNaN(value)){
                                  // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataDouble;
+                                }else {
+                                    // The interpolated value is saved in the destination array
+                                    dstData[dstPixelOffset] = value;
                                 }                                
                             } else if (rangeND.contains(value)) {
                                 // The destination no data value is saved in the destination array
@@ -2064,6 +2099,17 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     if(value == Double.NEGATIVE_INFINITY || value == Double.NEGATIVE_INFINITY ||Double.isNaN(value)){
                                      // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    }else {
+                                        windex = (posx / dnumBands) + posyROI;
+                                        w = windex < roiDataLength ? roiDataArray[windex] : 0;
+
+                                        if (w == 0) {
+                                            // The destination no data value is saved in the destination array
+                                            dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        } else {
+                                            // The interpolated value is saved in the destination array
+                                            dstData[dstPixelOffset] = value;
+                                        }
                                     }                                
                                 } else if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -2116,6 +2162,24 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     if(value == Double.NEGATIVE_INFINITY || value == Double.NEGATIVE_INFINITY ||Double.isNaN(value)){
                                      // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    }else {
+                                        // PixelPositions
+                                        int x0 = src.getX() + posx / srcPixelStride;
+                                        int y0 = src.getY() + (posy-bandOffset) / srcScanlineStride;
+
+                                        if (roiBounds.contains(x0, y0)) {
+                                            w = roiIter.getSample(x0, y0, 0);
+                                            if (w == 0) {
+                                                // The destination no data value is saved in the destination array
+                                                dstData[dstPixelOffset] = destinationNoDataDouble;
+                                            } else {
+                                                // The interpolated value is saved in the destination array
+                                                dstData[dstPixelOffset] = value;
+                                            }
+                                        } else {
+                                            // The destination no data value is saved in the destination array
+                                            dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        }
                                     }                                
                                 } else if (rangeND.contains(value)) {
                                     // The destination no data value is saved in the destination array
