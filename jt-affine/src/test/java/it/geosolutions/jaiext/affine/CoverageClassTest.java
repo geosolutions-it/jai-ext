@@ -1,7 +1,7 @@
 package it.geosolutions.jaiext.affine;
 
 import static org.junit.Assert.*;
-import it.geosolutions.jaiext.affine.AffineDataDescriptor;
+import it.geosolutions.jaiext.affine.AffineDescriptor;
 import it.geosolutions.jaiext.affine.AffinePropertyGenerator;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import java.awt.Rectangle;
@@ -19,16 +19,16 @@ import org.junit.Test;
 
 /**
  * This test-class extends the TestAffine class and is used for extending the code-coverage of the project. In this test-class
- * are checked the getProperty() method of the AffineDataDescriptor class and the capability of the AffineDataCRIF.create() 
+ * are checked the getProperty() method of the AffineDescriptor class and the capability of the AffineCRIF.create() 
  * method to call the TranslateIntOpImage class or the CopyOpImage class when the requested operation is simply a translation
  * or a copy of the source image without ROI object. 
  */
 public class CoverageClassTest extends TestAffine {
 
-    // this test-case is used for testing the getProperty() method of the AffineDataDescriptor class
+    // this test-case is used for testing the getProperty() method of the AffineDescriptor class
     @Test
     public void testROIProperty() {
-        AffineDataDescriptor descriptor = new AffineDataDescriptor();
+        AffineDescriptor descriptor = new AffineDescriptor();
         AffinePropertyGenerator propertyGenerator = (AffinePropertyGenerator) descriptor
                 .getPropertyGenerators()[0];
 
@@ -63,7 +63,7 @@ public class CoverageClassTest extends TestAffine {
         transform.concatenate(AffineTransform.getTranslateInstance(transX, transY));
                                  
         // Affine transformated images
-        RenderedOp affineImgNear = AffineDataDescriptor.create(testIMG, transform, interpNear, null, roi, useROIAccessor, setDestinationNoData, null); 
+        RenderedOp affineImgNear = AffineDescriptor.create(testIMG, transform, interpNear, null, roi, useROIAccessor, setDestinationNoData, null); 
 
         affineImgNear.getTile(0, 0);
 
@@ -137,7 +137,7 @@ public class CoverageClassTest extends TestAffine {
         AffineTransform transform = AffineTransform.getTranslateInstance(transX, transY);
       
         // Affine transformated images
-        PlanarImage  affineImgNear = AffineDataDescriptor.create(testIMG, transform, interpNear, null, null, useROIAccessor, setDestinationNoData, null); 
+        PlanarImage  affineImgNear = AffineDescriptor.create(testIMG, transform, interpNear, null, null, useROIAccessor, setDestinationNoData, null); 
 
         affineImgNear.getTiles();
         
@@ -185,7 +185,7 @@ public class CoverageClassTest extends TestAffine {
         AffineTransform transform = new AffineTransform();
       
         // Affine transformated images
-        PlanarImage  affineImgNear = AffineDataDescriptor.create(testIMG, transform, interpNear, null, null, useROIAccessor, setDestinationNoData, null); 
+        PlanarImage  affineImgNear = AffineDescriptor.create(testIMG, transform, interpNear, null, null, useROIAccessor, setDestinationNoData, null); 
 
         affineImgNear.getTiles();
         

@@ -46,12 +46,12 @@ import com.sun.media.jai.opimage.RIFUtil;
  * @since EA4
  * @see AffineOpimage, ScaleOpImage
  */
-public class AffineDataCRIF extends CRIFImpl {
+public class AffineCRIF extends CRIFImpl {
 
     private static final float TOLERANCE = 0.01F;
 
     /** Constructor. */
-    public AffineDataCRIF() {
+    public AffineCRIF() {
         super("affine");
     }
 
@@ -205,7 +205,7 @@ public class AffineDataCRIF extends CRIFImpl {
 
             InterpolationNearest interpN = (InterpolationNearest) interp;
 
-            return new AffineDataOpImage(source, extender, renderHints, layout, transform,
+            return new AffineGeneralOpImage(source, extender, renderHints, layout, transform,
                     interpN, useROIAccessor, setDestinationNoData);
 
         } else if (interp instanceof InterpolationBilinear && !isBinary) {
@@ -218,17 +218,22 @@ public class AffineDataCRIF extends CRIFImpl {
 
             InterpolationBilinear interpB = (InterpolationBilinear) interp;
 
-            return new AffineDataOpImage(source, extender, renderHints, layout, transform,
+            return new AffineGeneralOpImage(source, extender, renderHints, layout, transform,
                     interpB, useROIAccessor, setDestinationNoData);
 
-        } else if (interp instanceof InterpolationBicubic) {
+        } else if (interp instanceof InterpolationBicubic && !isBinary ) {
 
             InterpolationBicubic interpBN = (InterpolationBicubic) interp;
 
-            return new AffineDataOpImage(source, extender, renderHints, layout, transform,
+            return new AffineBicubicOpImage(source, extender, renderHints, layout, transform, interpBN, backgroundValues, setDestinationNoData, useROIAccessor);
+        }else if (interp instanceof InterpolationBicubic && isBinary) {
+
+            InterpolationBicubic interpBN = (InterpolationBicubic) interp;
+
+            return new AffineGeneralOpImage(source, extender, renderHints, layout, transform,
                     interpBN, useROIAccessor, setDestinationNoData);
         } else {
-            return new AffineDataOpImage(source, extender, renderHints, layout, transform,
+            return new AffineGeneralOpImage(source, extender, renderHints, layout, transform,
                     interp, backgroundValues, setDestinationNoData);
         }
 

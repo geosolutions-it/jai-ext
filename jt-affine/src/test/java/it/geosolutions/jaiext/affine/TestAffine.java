@@ -137,7 +137,7 @@ public class TestAffine extends TestBase {
                     dataType);
 
             // Affine operation
-            destinationIMG = AffineDataDescriptor.create(sourceImage, transform, interpN, null,
+            destinationIMG = AffineDescriptor.create(sourceImage, transform, interpN, null,
                     (ROI) roi, useROIAccessor, setDestinationNoData, hints);
 //            destinationIMG = AffineDescriptor.create(sourceImage, transform, new javax.media.jai.InterpolationNearest(), null,hints);
 
@@ -156,7 +156,7 @@ public class TestAffine extends TestBase {
             }
 
             // Affine operation
-            destinationIMG = AffineDataDescriptor.create(sourceImage, transform, interpB, null,
+            destinationIMG = AffineDescriptor.create(sourceImage, transform, interpB, null,
                     (ROI) roi, useROIAccessor, setDestinationNoData, hints);
 
             break;
@@ -175,7 +175,7 @@ public class TestAffine extends TestBase {
             }
 
             // Affine operation
-            destinationIMG = AffineDataDescriptor.create(sourceImage, transform, interpBN, null,
+            destinationIMG = AffineDescriptor.create(sourceImage, transform, interpBN, null,
                     (ROI) roi, useROIAccessor, setDestinationNoData, hints);
 
             break;

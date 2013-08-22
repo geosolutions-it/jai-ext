@@ -21,7 +21,7 @@ import javax.media.jai.RasterFormatTag;
 import org.jaitools.numeric.Range;
 
 public class ScaleBilinearOpImage extends ScaleOpImage {
-
+    /**Byte lookuptable used if no data are present*/
     protected final byte[] byteLookupTable = new byte[255];
 
     /** Bilinear interpolator */

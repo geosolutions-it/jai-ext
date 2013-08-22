@@ -2,7 +2,7 @@ package it.geosolutions.jaiext.affine;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import it.geosolutions.jaiext.affine.AffineDataDescriptor;
+import it.geosolutions.jaiext.affine.AffineDescriptor;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
@@ -212,7 +212,7 @@ public class ImageRGBTest extends TestAffine {
             break;
         }
         // Affine operation
-        RenderedImage destinationIMG = AffineDataDescriptor.create(sourceImage, transform, interp,
+        RenderedImage destinationIMG = AffineDescriptor.create(sourceImage, transform, interp,
                 null, (ROI) roi, useROIAccessor, setDestinationNoData, hints);
 
         if (INTERACTIVE && TEST_SELECTOR == interpType.getType()

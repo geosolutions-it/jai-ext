@@ -3,7 +3,7 @@ package it.geosolutions.jaiext.mosaic;
 import static org.junit.Assert.*;
 import it.geosolutions.jaiext.mosaic.ImageMosaicBean;
 import it.geosolutions.jaiext.mosaic.MosaicDescriptor;
-import it.geosolutions.jaiext.mosaic.MosaicOpImage;
+import it.geosolutions.jaiext.mosaic.MosaicOpImage2;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -28,7 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * This test class is used for checking the functionality of the MosaicOpImage. Every test is performed on all the DataBuffer types. The mosaic
+ * This test class is used for checking the functionality of the MosaicOpImage2. Every test is performed on all the DataBuffer types. The mosaic
  * operations are calculated in the OVERLAY mode. The first 3 series of tests execute a mosaic operation between:
  * <ul>
  * <li>two image with No Data values</li>
@@ -50,7 +50,7 @@ import org.junit.Test;
  * </ul> 
  */
 
-public class MosaicDataTest {
+public class MosaicTest {
 
     // Default initialization set to false
     public final static boolean DEFAULT_SETUP_INITALIZATION = false;
@@ -62,7 +62,7 @@ public class MosaicDataTest {
 
     public final static float DEFAULT_HEIGTH = 512;
 
-    public final static Logger LOGGER = Logger.getLogger(MosaicDataTest.class.toString());
+    public final static Logger LOGGER = Logger.getLogger(MosaicTest.class.toString());
 
     // default tolerance for comparison
     public final static double DEFAULT_DELTA = 1.5d;
@@ -759,7 +759,7 @@ public class MosaicDataTest {
         RenderedImage[] mosaicArray = new RenderedImage[3];
 
         // Creates an array for the destination band values
-        Number[] destinationValues = { testBean.getDestinationNoData()[0] };
+        double[] destinationValues = { testBean.getDestinationNoData()[0] };
 
         // Updates the innerBean
         ImageMosaicBean[] helpBean = testBean.getInnerBean3Band();
@@ -795,7 +795,7 @@ public class MosaicDataTest {
         RenderedImage[] mosaicArray = new RenderedImage[3];
 
         // Creates an array for the destination band values
-        Number[] destinationValues = { testBean.getDestinationNoData()[0] };
+        double[] destinationValues = { testBean.getDestinationNoData()[0] };
 
         // Setting of the new RenderingHints
         RenderingHints renderingHints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
@@ -830,7 +830,7 @@ public class MosaicDataTest {
         RenderedImage[] mosaicArray = new RenderedImage[3];
 
         // Creates an array for the destination band values
-        Number[] destinationValues = { testBean.getDestinationNoData()[0] };
+        double[] destinationValues = { testBean.getDestinationNoData()[0] };
 
         // Updates the innerBean
         ImageMosaicBean[] helpBean = testBean.getInnerBean3Band();
@@ -918,7 +918,7 @@ public class MosaicDataTest {
         RenderedImage[] mosaicArray = new RenderedImage[2];
 
         // Creates an array for the destination band values
-        Number[] destinationValues = { testBean.getDestinationNoData()[0] };
+        double[] destinationValues = { testBean.getDestinationNoData()[0] };
 
         // Updates the innerBean
         ImageMosaicBean[] helpBean = testBean.getInnerBean3Band();
@@ -955,7 +955,7 @@ public class MosaicDataTest {
         RenderedImage[] mosaicArray = new RenderedImage[2];
 
         // Creates an array for the destination band values
-        Number[] destinationValues = { testBean.getDestinationNoData()[0] };
+        double[] destinationValues = { testBean.getDestinationNoData()[0] };
 
         ImageLayout layout = (ImageLayout) hints.get(JAI.KEY_IMAGE_LAYOUT);
         RenderingHints renderingHints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
@@ -991,7 +991,7 @@ public class MosaicDataTest {
         RenderedImage[] mosaicArray = testBean.getImage3Bands();
 
         // Creates an array for the destination band values
-        Number[] destinationValues = { testBean.getDestinationNoData()[0] };
+        double[] destinationValues = { testBean.getDestinationNoData()[0] };
 
         ImageLayout layout = (ImageLayout) hints.get(JAI.KEY_IMAGE_LAYOUT);
         RenderingHints renderingHints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
@@ -1070,7 +1070,7 @@ public class MosaicDataTest {
         }
 
         // Creates an array for the destination band values
-        Number[] destinationValues = { testBean.getDestinationNoData()[0] };
+        double[] destinationValues = { testBean.getDestinationNoData()[0] };
 
         ImageLayout layout = (ImageLayout) hints.get(JAI.KEY_IMAGE_LAYOUT);
         RenderingHints renderingHints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
@@ -1340,7 +1340,7 @@ public class MosaicDataTest {
         Number[] sourceND = new Number[3];
         Number[] validData = new Number[3];
         // one destination ND value for band(destination is only one image)
-        Number[] destinationND = new Number[3];
+        double[] destinationND = new double[3];
         // source no data values
         if (nullNoData) {
             sourceND[0] = null;
@@ -1380,7 +1380,7 @@ public class MosaicDataTest {
     }
 
     private MosaicBean imageSettings3Images(Number[] validData, Number[] sourceNodata,
-            Number[] destinationNoDataValue, int dataType, boolean roiAlphaNotNull) {
+            double[] destinationNoDataValue, int dataType, boolean roiAlphaNotNull) {
 
         MosaicBean tempMosaicBean = new MosaicBean();
 
@@ -1551,7 +1551,7 @@ public class MosaicDataTest {
         helpBean[2].setImage(mosaicArray[2]);
 
         // Creates an array for the destination band values
-        Number[] destinationValues = testBean.getDestinationNoData();
+        double[] destinationValues = testBean.getDestinationNoData();
 
         if (overlay) {
             // MosaicNoData operation
@@ -1679,7 +1679,7 @@ public class MosaicDataTest {
         helpBean[0].setImage(mosaicArray[0]);
         helpBean[1].setImage(mosaicArray[1]);
         // Creates an array for the destination band values
-        Number[] destinationValues = testBean.getDestinationNoData();
+        double[] destinationValues = testBean.getDestinationNoData();
         // MosaicNoData operation
         RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, hints);
@@ -1785,7 +1785,7 @@ public class MosaicDataTest {
         helpBean[0].setImage(mosaicArray[0]);
         helpBean[1].setImage(mosaicArray[1]);
         // Creates an array for the destination band values
-        Number[] destinationValues = testBean.getDestinationNoData();
+        double[] destinationValues = testBean.getDestinationNoData();
         // MosaicNoData operation
         RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, hints);
@@ -1864,7 +1864,7 @@ public class MosaicDataTest {
         helpBean[0].setImage(mosaicArray[0]);
         helpBean[1].setImage(mosaicArray[1]);
         // Creates an array for the destination band values
-        Number[] destinationValues = testBean.getDestinationNoData();
+        double[] destinationValues = testBean.getDestinationNoData();
         // MosaicNoData operation
         RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
                 DEFAULT_MOSAIC_TYPE, destinationValues, hints);
@@ -2018,7 +2018,7 @@ public class MosaicDataTest {
         beanContainer = new MosaicBean[6][3];
         Number[] sourceND = new Number[2];
         Number[] validData = new Number[2];
-        Number[] destinationND = new Number[3];
+        double[] destinationND = new double[3];
         // source no data values
         sourceND[0] = 50;
         sourceND[1] = 50;
@@ -2040,7 +2040,7 @@ public class MosaicDataTest {
     }
 
     private MosaicBean imageSettings(Number[] validData, Number[] sourceNodata,
-            Number[] destinationNoDataValue, int dataType, int imageDataNoData) {
+            double[] destinationNoDataValue, int dataType, int imageDataNoData) {
 
         DataDisplacement dd = DataDisplacement.values()[imageDataNoData];
 
@@ -2270,7 +2270,7 @@ public class MosaicDataTest {
         private ImageMosaicBean[] innerBean;
 
         // destination no data values
-        private Number[] destinationNoData;
+        private double[] destinationNoData;
 
         // source valid data values
         private Number[] sourceValidData;
@@ -2303,11 +2303,11 @@ public class MosaicDataTest {
             this.innerBean = innerBean;
         }
 
-        public Number[] getDestinationNoData() {
+        public double[] getDestinationNoData() {
             return destinationNoData;
         }
 
-        public void setDestinationNoData(Number[] destinationNoData) {
+        public void setDestinationNoData(double[] destinationNoData) {
             this.destinationNoData = destinationNoData;
         }
 

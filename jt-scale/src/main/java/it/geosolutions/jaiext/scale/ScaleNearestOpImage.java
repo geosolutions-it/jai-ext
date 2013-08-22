@@ -22,7 +22,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
     /** Nearest-Neighbor interpolator */
     protected InterpolationNearest interpN = null;
-    
+    /**Byte lookuptable used if no data are present*/
     protected final byte[] byteLookupTable=new byte[255];
     
     public ScaleNearestOpImage(RenderedImage source, ImageLayout layout, Map configuration,

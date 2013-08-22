@@ -30,7 +30,7 @@ import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 import com.sun.media.jai.util.ImageUtil;
 
-public class AffineDataOpImage extends AffineOpImage {
+public class AffineGeneralOpImage extends AffineOpImage {
 
     /** ROI extender */
     final static BorderExtender roiExtender = BorderExtender
@@ -88,7 +88,7 @@ public class AffineDataOpImage extends AffineOpImage {
     private int black;
 
     /** Constructor used for interpolator of the class InterpolationNearest */
-    public AffineDataOpImage(RenderedImage source, BorderExtender extender, Map config,
+    public AffineGeneralOpImage(RenderedImage source, BorderExtender extender, Map config,
             ImageLayout layout, AffineTransform transform, InterpolationNearest interp,
             boolean useROIAccessor, boolean setDestinationNoData) {
         super(source, extender, configHelper(config, source), layout, transform, interp, null);
@@ -96,7 +96,7 @@ public class AffineDataOpImage extends AffineOpImage {
     }
 
     /** Constructor used for interpolator of the class InterpolationBilinear */
-    public AffineDataOpImage(RenderedImage source, BorderExtender extender, Map config,
+    public AffineGeneralOpImage(RenderedImage source, BorderExtender extender, Map config,
             ImageLayout layout, AffineTransform transform, InterpolationBilinear interp,
             boolean useROIAccessor, boolean setDestinationNoData) {
         super(source, extender, configHelper(config, source), layout, transform, interp
@@ -105,7 +105,7 @@ public class AffineDataOpImage extends AffineOpImage {
     }
 
     /** Constructor used for interpolator of the class InterpolationBicubicNew */
-    public AffineDataOpImage(RenderedImage source, BorderExtender extender, Map config,
+    public AffineGeneralOpImage(RenderedImage source, BorderExtender extender, Map config,
             ImageLayout layout, AffineTransform transform, InterpolationBicubic interp,
             boolean useROIAccessor, boolean setDestinationNoData) {
         super(source, extender, configHelper(config, source), layout, transform, interp, null);
@@ -113,7 +113,7 @@ public class AffineDataOpImage extends AffineOpImage {
     }
 
     /** Constructor used for any kind of Interpolation object */
-    public AffineDataOpImage(RenderedImage source, BorderExtender extender, Map config,
+    public AffineGeneralOpImage(RenderedImage source, BorderExtender extender, Map config,
             ImageLayout layout, AffineTransform transform, Interpolation interp,
             double[] destinationNoData, boolean setDestinationNoData) {
         super(source, extender, configHelper(config, source), layout, transform, interp,

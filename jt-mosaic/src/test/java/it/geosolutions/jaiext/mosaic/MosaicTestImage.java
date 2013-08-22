@@ -1,19 +1,15 @@
 package it.geosolutions.jaiext.mosaic;
 
-import java.awt.BorderLayout;
-import java.awt.Container;
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
+import java.io.IOException;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
-import javax.media.jai.operator.MosaicDescriptor;
 import javax.media.jai.operator.NullDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-
-import com.sun.media.jai.widget.DisplayJAI;
+import org.geotools.renderedimage.viewer.RenderedImageBrowser;
+import org.junit.Test;
 
 /**
  * Simple class for displaying a mosaic of 2 images with the first image is translated by half of his dimension. The mosaic operation used is the old
@@ -24,15 +20,15 @@ import com.sun.media.jai.widget.DisplayJAI;
  */
 public class MosaicTestImage {
 
-    static public void main(String[] args) {
-        new MosaicTestImage().testSimpleMosaicOperation();
-    }
+    private static final boolean INTERACTIVE = Boolean.getBoolean("JAI.Ext.Interactive");
+    
+    private static final boolean NEW_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.NewDescriptor");
 
-    public static RenderedImage getSyntheticDouble(double value) {
-        final float width = 512;
-        final float height = 512;
+    public static RenderedImage getSyntheticByte(byte value) {
+        final float width = 256;
+        final float height = 256;
         ParameterBlock pb = new ParameterBlock();
-        Double[] array = new Double[] { value };
+        Byte[] array = new Byte[] { value };
         pb.add(width);
         pb.add(height);
         pb.add(array);
@@ -41,11 +37,25 @@ public class MosaicTestImage {
 
     }
 
-    public void testSimpleMosaicOperation() {
+    @Test
+    public void testOldMosaicOperation() {
+        if(NEW_DESCRIPTOR){
+            testSimpleMosaicOperation(NEW_DESCRIPTOR);
+        }       
+    }
+    
+    @Test
+    public void testNewMosaicOperation() {
+        if(!NEW_DESCRIPTOR){
+            testSimpleMosaicOperation(!NEW_DESCRIPTOR);
+        }
+    }
+    
+    
+    public void testSimpleMosaicOperation(boolean newDescriptor) {
         // image creation
-        RenderedImage image1 = getSyntheticDouble((double) 9999);
-        RenderedImage image2 = getSyntheticDouble((double) 1500);
-        int height = image1.getHeight();
+        RenderedImage image1 = getSyntheticByte((byte) 99);
+        RenderedImage image2 = getSyntheticByte((byte) 15);
         int width = image1.getWidth();
         // layout creation (same height of the source images, doubled width)
         ImageLayout layout = new ImageLayout(0, 0, image1.getWidth() + image2.getWidth(),
@@ -54,30 +64,40 @@ public class MosaicTestImage {
         RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
         // background values and threshold
         double[] background = { 0 };
-        double[][] threshold = { { 1000 }, { 1000 } };
+        double[][] threshold = { { 0 }, { 0 } };
         // translation of the first image
         RenderedImage image3 = TranslateDescriptor.create(image1, width * 0.1F, 0F, null, hints);
         // No op for the second image
         RenderedImage image4 = NullDescriptor.create(image2, hints);
         // array creation
         RenderedImage[] sources = { image4, image3 };
-        RenderedImage image5 = MosaicDescriptor.create(sources,
-                MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, null, threshold, background, hints);
+        RenderedImage image5;
+        if(newDescriptor){
+            ImageMosaicBean[] beanArray = new ImageMosaicBean[2];
+            ImageMosaicBean bean1 =new ImageMosaicBean();
+            bean1.setImage(image4);
+            ImageMosaicBean bean2 =new ImageMosaicBean();
+            bean2.setImage(image3);
+            
+            beanArray[0]= bean1;
+            beanArray[1]= bean2;
+            
+            image5 = MosaicDescriptor.create(sources,
+                    beanArray, javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY, background, hints);            
+        }else{
+            image5 = javax.media.jai.operator.MosaicDescriptor.create(sources,
+                    javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, null, threshold, background, hints);
+        }
         // Operations for showing the mosaic image
-        JFrame frame = new JFrame();
-        frame.setTitle("Image5");
-        // Get the JFrame's ContentPane.
-        Container contentPane = frame.getContentPane();
-        contentPane.setLayout(new BorderLayout());
-        // Create an instance of DisplayJAI.
-        DisplayJAI dj = new DisplayJAI(image5);
-        // Add to the JFrame's ContentPane an instance of JScrollPane containing the
-        // DisplayJAI instance.
-        contentPane.add(new JScrollPane(dj), BorderLayout.CENTER);
-        // Set the closing operation so the application is finished.
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(600, 600); // adjust the frame size.
-        frame.setVisible(true);
+        if (INTERACTIVE) {
+            RenderedImageBrowser.showChain(image5, false, false);
+            try {
+                System.in.read();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        
     }
 
 }

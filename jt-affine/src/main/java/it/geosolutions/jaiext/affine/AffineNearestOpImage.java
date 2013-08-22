@@ -27,7 +27,7 @@ public class AffineNearestOpImage extends AffineOpImage {
 
     /** Nearest-Neighbor interpolator */
     protected InterpolationNearest interpN = null;
-
+    /**Byte lookuptable used if no data are present*/
     protected final byte[] byteLookupTable = new byte[255];
 
     /** ROI extender */
@@ -4768,120 +4768,4 @@ public class AffineNearestOpImage extends AffineOpImage {
             }
         }
     }
-
-    // Scanline clipping stuff
-
-    /**
-     * Sets clipMinX, clipMaxX based on s_ix, s_iy, ifracx, ifracy, dst_min_x, and dst_min_y. Padding factors are added and subtracted from the source
-     * bounds as given by src_rect_{x,y}{1,2}. For example, for nearest-neighbor interpo the padding factors should be set to (0, 0, 0, 0); for
-     * bilinear, (0, 1, 0, 1); and for bicubic, (1, 2, 1, 2).
-     * 
-     * <p>
-     * The returned Range object will be for the Integer class and will contain extrema equivalent to clipMinX and clipMaxX.
-     */
-    protected javax.media.jai.util.Range performScanlineClipping(float src_rect_x1,
-            float src_rect_y1, float src_rect_x2, float src_rect_y2, int s_ix, int s_iy,
-            int ifracx, int ifracy, int dst_min_x, int dst_max_x, int lpad, int rpad, int tpad,
-            int bpad) {
-        int clipMinX = dst_min_x;
-        int clipMaxX = dst_max_x;
-
-        long xdenom = incx * geom_frac_max + ifracdx;
-        if (xdenom != 0) {
-            long clipx1 = (long) src_rect_x1 + lpad;
-            long clipx2 = (long) src_rect_x2 - rpad;
-
-            long x1 = ((clipx1 - s_ix) * geom_frac_max - ifracx) + dst_min_x * xdenom;
-            long x2 = ((clipx2 - s_ix) * geom_frac_max - ifracx) + dst_min_x * xdenom;
-
-            // Moving backwards, switch roles of left and right edges
-            if (xdenom < 0) {
-                long tmp = x1;
-                x1 = x2;
-                x2 = tmp;
-            }
-
-            int dx1 = ceilRatio(x1, xdenom);
-            clipMinX = Math.max(clipMinX, dx1);
-
-            int dx2 = floorRatio(x2, xdenom) + 1;
-            clipMaxX = Math.min(clipMaxX, dx2);
-        } else {
-            // xdenom == 0, all points have same x coordinate as the first
-            if (s_ix < src_rect_x1 || s_ix >= src_rect_x2) {
-                clipMinX = clipMaxX = dst_min_x;
-                return new javax.media.jai.util.Range(Integer.class, new Integer(clipMinX),
-                        new Integer(clipMaxX));
-            }
-        }
-
-        long ydenom = incy * geom_frac_max + ifracdy;
-        if (ydenom != 0) {
-            long clipy1 = (long) src_rect_y1 + tpad;
-            long clipy2 = (long) src_rect_y2 - bpad;
-
-            long y1 = ((clipy1 - s_iy) * geom_frac_max - ifracy) + dst_min_x * ydenom;
-            long y2 = ((clipy2 - s_iy) * geom_frac_max - ifracy) + dst_min_x * ydenom;
-
-            // Moving backwards, switch roles of top and bottom edges
-            if (ydenom < 0) {
-                long tmp = y1;
-                y1 = y2;
-                y2 = tmp;
-            }
-
-            int dx1 = ceilRatio(y1, ydenom);
-            clipMinX = Math.max(clipMinX, dx1);
-
-            int dx2 = floorRatio(y2, ydenom) + 1;
-            clipMaxX = Math.min(clipMaxX, dx2);
-        } else {
-            // ydenom == 0, all points have same y coordinate as the first
-            if (s_iy < src_rect_y1 || s_iy >= src_rect_y2) {
-                clipMinX = clipMaxX = dst_min_x;
-            }
-        }
-
-        if (clipMinX > dst_max_x)
-            clipMinX = dst_max_x;
-        if (clipMaxX < dst_min_x)
-            clipMaxX = dst_min_x;
-
-        return new javax.media.jai.util.Range(Integer.class, new Integer(clipMinX), new Integer(
-                clipMaxX));
-    }
-
-    /**
-     * Sets s_ix, s_iy, ifracx, ifracy to their values at x == clipMinX from their initial values at x == dst_min_x.
-     * 
-     * <p>
-     * The return Point array will contain the updated values of s_ix and s_iy in the first element and those of ifracx and ifracy in the second
-     * element.
-     */
-    protected Point[] advanceToStartOfScanline(int dst_min_x, int clipMinX, int s_ix, int s_iy,
-            int ifracx, int ifracy) {
-        // Skip output up to clipMinX
-        long skip = clipMinX - dst_min_x;
-        long dx = ((long) ifracx + skip * ifracdx) / geom_frac_max;
-        long dy = ((long) ifracy + skip * ifracdy) / geom_frac_max;
-        s_ix += skip * incx + (int) dx;
-        s_iy += skip * incy + (int) dy;
-
-        long lfracx = ifracx + skip * ifracdx;
-        if (lfracx >= 0) {
-            ifracx = (int) (lfracx % geom_frac_max);
-        } else {
-            ifracx = (int) (-(-lfracx % geom_frac_max));
-        }
-
-        long lfracy = ifracy + skip * ifracdy;
-        if (lfracy >= 0) {
-            ifracy = (int) (lfracy % geom_frac_max);
-        } else {
-            ifracy = (int) (-(-lfracy % geom_frac_max));
-        }
-
-        return new Point[] { new Point(s_ix, s_iy), new Point(ifracx, ifracy) };
-    }
-
 }

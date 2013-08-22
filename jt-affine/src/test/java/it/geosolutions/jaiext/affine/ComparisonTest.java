@@ -17,7 +17,6 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.PlanarImage;
-import javax.media.jai.operator.AffineDescriptor;
 
 import org.geotools.test.TestData;
 import org.junit.BeforeClass;
@@ -39,7 +38,7 @@ import org.junit.Test;
  * <ul>
  * </ul>
  * <ul>
- * <li>Selection of the descriptor (AffineDescriptor or AffineDataDescriptor)</li>
+ * <li>Selection of the descriptor (AffineDescriptor or AffineDescriptor)</li>
  * <li>Image Rotation</li>
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
@@ -170,23 +169,23 @@ public class ComparisonTest {
     }
 
     @Test
+    @Ignore
     public void testBilinearNewAffineDescriptor() {
         testInterpolators(interpBilNew, true, false);
     }
 
     @Test
+    @Ignore
     public void testBilinearOldAffineDescriptor() {
         testInterpolators(interpBilOld, true, true);
     }
 
     @Test
-    @Ignore
     public void testBicubicNewAffineDescriptor() {
         testInterpolators(interpBicNew, true, false);
     }
 
     @Test
-    @Ignore
     public void testBicubicOldAffineDescriptor() {
         testInterpolators(interpBicOld, true, true);
     }
@@ -236,18 +235,18 @@ public class ComparisonTest {
             // creation of the image with the selected interpolator
             if (testDescriptor) {
                 if (old) {
-                    imageAffine = AffineDescriptor.create(image, transform, interp,
+                    imageAffine = javax.media.jai.operator.AffineDescriptor.create(image, transform, interp,
                             destinationNoDataArray, hints);
                 } else {
-                    imageAffine = AffineDataDescriptor.create(image, transform, interp,
+                    imageAffine = AffineDescriptor.create(image, transform, interp,
                             destinationNoDataArray, null, false, false, hints);
                 }
             } else {
                 if (old) {
-                    imageAffine = AffineDataDescriptor.create(image, transform, interp,
+                    imageAffine = AffineDescriptor.create(image, transform, interp,
                             destinationNoDataArray, null, false, true, hints);
                 } else {
-                    imageAffine = AffineDataDescriptor.create(image, transform, interp, null, null,
+                    imageAffine = AffineDescriptor.create(image, transform, interp, null, null,
                             false, false, hints);
                 }
             }

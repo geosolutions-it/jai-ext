@@ -80,7 +80,7 @@ import com.sun.media.jai.opimage.MosaicOpImage;
  * <p>
  * The ROI and alpha mosaic type are equal to those of the classic MosaicOp.
  * 
- * @see MosaicOpImage
+ * @see MosaicOpImage2
  */
 public class MosaicDescriptor extends OperationDescriptorImpl {
 
@@ -116,11 +116,11 @@ private static final String[][] resources = {
         { "DocURL", "wiki github non already available" },
         { "Version", "1.0" }, { "arg0Desc", "ImageMosaicBean " },
         { "arg1Desc", "Mosaic Type" },
-        { "arg2Desc", "Destination no data  Value" } };
+        { "arg2Desc", "Destination no data  Values" } };
 
 /** The parameter class. Used for the constructor. */
 private static final Class[] paramClasses = { ImageMosaicBean[].class,
-        MosaicType.class, Number[].class };
+        MosaicType.class, double[].class };
 
 /** The parameter name list. Used for the constructor. */
 private static final String[] paramNames = { "imageMosaicBean", "mosaicType",
@@ -128,7 +128,7 @@ private static final String[] paramNames = { "imageMosaicBean", "mosaicType",
 
 /** The parameter values. Used for the constructor. */
 private static final Object[] paramDefaults = { null, MOSAIC_TYPE_OVERLAY,
-        new Number[] { 0.0 } };
+        new double[] { 0.0 } };
 
 /** Constructor. */
 public MosaicDescriptor() {
@@ -199,7 +199,7 @@ public boolean validateParameters(ParameterBlock pb) {
  */
 public static RenderedOp create(RenderedImage[] sources,
         ImageMosaicBean[] bean, MosaicType mosaicType,
-        Number[] destinationNoData, RenderingHints renderingHints) {
+        double[] destinationNoData, RenderingHints renderingHints) {
     ParameterBlockJAI pb = new ParameterBlockJAI("MosaicNoData", RenderedRegistryMode.MODE_NAME);
 
     // All the source images are added to the parameter block.

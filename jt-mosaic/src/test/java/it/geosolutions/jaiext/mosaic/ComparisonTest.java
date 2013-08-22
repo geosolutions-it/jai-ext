@@ -139,14 +139,14 @@ public class ComparisonTest {
 
             if (old) {
                 // background values and threshold
-                double[] background = { destinationNoData };
+                double[] background = { destinationNoData, destinationNoData };
                 double[][] threshold = { { 0 }, { 0 } };
                 imageScale = javax.media.jai.operator.MosaicDescriptor.create(images, mosaicType,
                         null, null, threshold, background, hints);
             } else {
 
 
-                Number[] destnodata = { destinationNoData, destinationNoData };
+                double[] destnodata = { destinationNoData, destinationNoData };
 
                 imageScale = MosaicDescriptor.create(images, beanArray, mosaicType, destnodata, hints);
             }

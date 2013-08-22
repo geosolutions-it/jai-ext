@@ -42,7 +42,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
     /** Bicubic Vertical coefficients for double type */
     private double[] dataVd;
-
+    /**Byte lookuptable used if no data are present*/
     private final byte[] byteLookupTable = new byte[255];
 
     public ScaleBicubicOpImage(RenderedImage source, ImageLayout layout, Map configuration,
@@ -253,21 +253,12 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
         int[] xfracValues = new int[dwidth];
         int[] yfracValues = new int[dheight];
 
-        // Initialization of the x and y fractional array
-        float[] xfracValuesFloat = new float[dwidth];
-        float[] yfracValuesFloat = new float[dheight];
         // destination data type
         dataType = dest.getSampleModel().getDataType();
 
-        if (dataType < DataBuffer.TYPE_FLOAT) {
             preComputePositionsInt(destRect, srcRect.x, srcRect.y, srcPixelStride,
                     srcScanlineStride, xpos, ypos, xfracValues, yfracValues, roiScanlineStride,
                     yposRoi);
-        } else {
-            preComputePositionsFloat(destRect, srcRect.x, srcRect.y, srcPixelStride,
-                    srcScanlineStride, xpos, ypos, xfracValuesFloat, yfracValuesFloat,
-                    roiScanlineStride, yposRoi);
-        }
 
         // This methods differs only for the presence of the roi or if the image is a binary one
 
@@ -289,12 +280,12 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                     roiAccessor, yposRoi, roiScanlineStride);
             break;
         case DataBuffer.TYPE_FLOAT:
-            floatLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracValuesFloat,
-                    yfracValuesFloat, roiAccessor, yposRoi, roiScanlineStride);
+            floatLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracValues,
+                    yfracValues, roiAccessor, yposRoi, roiScanlineStride);
             break;
         case DataBuffer.TYPE_DOUBLE:
-            doubleLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracValuesFloat,
-                    yfracValuesFloat, roiAccessor, yposRoi, roiScanlineStride);
+            doubleLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracValues,
+                    yfracValues, roiAccessor, yposRoi, roiScanlineStride);
             break;
         }
 
@@ -530,7 +521,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     int offsetX = 4 * xfrac[i];
                                     // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                     // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                    // and by roiscanlinestride on the y axis.
+                                    // and by 1 on the y axis.
                                     for (int h = 0; h < 4; h++) {
                                         for (int z = 0; z < 4; z++) {
                                             // Selection of one pixel
@@ -2809,8 +2800,8 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
     }
 
     private void floatLoop(RasterAccessor src, Rectangle dstRect,
-            RasterAccessor dst, int[] xpos, int[] ypos, float[] xfrac,
-            float[] yfrac, RasterAccessor roi, int[] yposRoi,
+            RasterAccessor dst, int[] xpos, int[] ypos, int[] xfrac,
+            int[] yfrac, RasterAccessor roi, int[] yposRoi,
             int roiScanlineStride) {
 
         // BandOffsets
@@ -2863,7 +2854,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                     // y position selection
                     int posy = ypos[j] + bandOffset;
                     // Y offset initialization
-                    int offsetY = (int) (4 * yfrac[j]);
+                    int offsetY = 4 * yfrac[j];
 
                     // cycle on the x values
                     for (int i = 0; i < dwidth; i++) {
@@ -2873,7 +2864,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                         double sum = 0;
                         // X offset initialization
-                        int offsetX = (int) (4 * xfrac[i]);
+                        int offsetX = 4 * xfrac[i];
                         // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                         for (int h = 0; h < 4; h++) {
                             // Row temporary sum initialization
@@ -2923,7 +2914,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             // y position selection
                             int posy = ypos[j] + bandOffset;
                             // Y offset initialization
-                            int offsetY = (int) (4 * yfrac[j]);
+                            int offsetY = 4 * yfrac[j];
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
@@ -2942,7 +2933,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 } else {
                                     int temp = 0;
                                     // X offset initialization
-                                    int offsetX = (int) (4 * xfrac[i]);
+                                    int offsetX = 4 * xfrac[i];
                                     // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                     // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                     // and by roiscanlinestride on the y axis.
@@ -3011,7 +3002,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             // y position selection
                             int posy = ypos[j] + bandOffset;
                             // Y offset initialization
-                            int offsetY = (int) (4 * yfrac[j]);
+                            int offsetY = 4 * yfrac[j];
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
@@ -3031,7 +3022,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                     int temp = 0;
                                     // X offset initialization
-                                    int offsetX = (int) (4 * xfrac[i]);
+                                    int offsetX = 4 * xfrac[i];
                                     // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                     // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                     // and by roiscanlinestride on the y axis.
@@ -3102,7 +3093,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             // y position selection
                             int posy = ypos[j] + bandOffset;
                             // Y offset initialization
-                            int offsetY = (int) (4 * yfrac[j]);
+                            int offsetY = 4 * yfrac[j];
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
@@ -3119,7 +3110,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                 int temp = 0;
                                 // X offset initialization
-                                int offsetX = (int) (4 * xfrac[i]);
+                                int offsetX = 4 * xfrac[i];
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by roiscanlinestride on the y axis.
@@ -3130,7 +3121,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 + (h - 1) * srcScanlineStride];
 
                                         if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
+                                            if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
                                              // The destination no data value is saved in the destination array
                                                 weightArray[h][z] = 0;
                                             }else{
@@ -3212,7 +3203,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 // y position selection
                                 int posy = ypos[j] + bandOffset;
                                 // Y offset initialization
-                                int offsetY = (int) (4 * yfrac[j]);
+                                int offsetY = 4 * yfrac[j];
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
@@ -3237,7 +3228,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         int tempND = 0;
                                         int tempROI = 0;
                                         // X offset initialization
-                                        int offsetX = (int) (4 * xfrac[i]);
+                                        int offsetX = 4 * xfrac[i];
                                         // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                         // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                         // and by roiscanlinestride on the y axis.
@@ -3257,7 +3248,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 }
 
                                                 if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                    if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
+                                                    if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
                                                      // The destination no data value is saved in the destination array
                                                         weightArray[h][z] = 0;
                                                     }else{
@@ -3341,7 +3332,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 // y position selection
                                 int posy = ypos[j] + bandOffset;
                                 // Y offset initialization
-                                int offsetY = (int) (4 * yfrac[j]);
+                                int offsetY = 4 * yfrac[j];
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
@@ -3365,7 +3356,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         int tempND = 0;
                                         int tempROI = 0;
                                         // X offset initialization
-                                        int offsetX = (int) (4 * xfrac[i]);
+                                        int offsetX = 4 * xfrac[i];
                                         // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                         // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                         // and by roiscanlinestride on the y axis.
@@ -3380,7 +3371,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                         y0 + z - 1, 0);
 
                                                 if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                    if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
+                                                    if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
                                                      // The destination no data value is saved in the destination array
                                                         weightArray[h][z] = 0;
                                                     }else{
@@ -3459,8 +3450,8 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
     }
 
     private void doubleLoop(RasterAccessor src, Rectangle dstRect,
-            RasterAccessor dst, int[] xpos, int[] ypos, float[] xfrac,
-            float[] yfrac, RasterAccessor roi, int[] yposRoi,
+            RasterAccessor dst, int[] xpos, int[] ypos, int[] xfrac,
+            int[] yfrac, RasterAccessor roi, int[] yposRoi,
             int roiScanlineStride) {
 
         // BandOffsets
@@ -3513,7 +3504,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                     // y position selection
                     int posy = ypos[j] + bandOffset;
                     // Y offset initialization
-                    int offsetY = (int) (4 * yfrac[j]);
+                    int offsetY = 4 * yfrac[j];
 
                     // cycle on the x values
                     for (int i = 0; i < dwidth; i++) {
@@ -3523,7 +3514,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                         double sum = 0;
                         // X offset initialization
-                        int offsetX = (int) (4 * xfrac[i]);
+                        int offsetX = 4 * xfrac[i];
                         // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                         for (int h = 0; h < 4; h++) {
                             // Row temporary sum initialization
@@ -3566,7 +3557,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             // y position selection
                             int posy = ypos[j] + bandOffset;
                             // Y offset initialization
-                            int offsetY = (int) (4 * yfrac[j]);
+                            int offsetY = 4 * yfrac[j];
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
@@ -3585,7 +3576,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 } else {
                                     int temp = 0;
                                     // X offset initialization
-                                    int offsetX = (int) (4 * xfrac[i]);
+                                    int offsetX = 4 * xfrac[i];
                                     // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                     // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                     // and by roiscanlinestride on the y axis.
@@ -3647,7 +3638,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             // y position selection
                             int posy = ypos[j] + bandOffset;
                             // Y offset initialization
-                            int offsetY = (int) (4 * yfrac[j]);
+                            int offsetY = 4 * yfrac[j];
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
@@ -3667,7 +3658,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                     int temp = 0;
                                     // X offset initialization
-                                    int offsetX = (int) (4 * xfrac[i]);
+                                    int offsetX = 4 * xfrac[i];
                                     // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                     // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                     // and by roiscanlinestride on the y axis.
@@ -3731,7 +3722,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             // y position selection
                             int posy = ypos[j] + bandOffset;
                             // Y offset initialization
-                            int offsetY = (int) (4 * yfrac[j]);
+                            int offsetY = 4 * yfrac[j];
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
@@ -3748,7 +3739,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                 int temp = 0;
                                 // X offset initialization
-                                int offsetX = (int) (4 * xfrac[i]);
+                                int offsetX = 4 * xfrac[i];
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by roiscanlinestride on the y axis.
@@ -3759,7 +3750,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 + (h - 1) * srcScanlineStride];
 
                                         if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
+                                            if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
                                              // The destination no data value is saved in the destination array
                                                 weightArray[h][z] = 0;
                                             }else{
@@ -3834,7 +3825,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 // y position selection
                                 int posy = ypos[j] + bandOffset;
                                 // Y offset initialization
-                                int offsetY = (int) (4 * yfrac[j]);
+                                int offsetY = 4 * yfrac[j];
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
@@ -3859,7 +3850,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         int tempND = 0;
                                         int tempROI = 0;
                                         // X offset initialization
-                                        int offsetX = (int) (4 * xfrac[i]);
+                                        int offsetX = 4 * xfrac[i];
                                         // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                         // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                         // and by roiscanlinestride on the y axis.
@@ -3879,7 +3870,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 }
 
                                                 if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                    if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
+                                                    if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
                                                      // The destination no data value is saved in the destination array
                                                         weightArray[h][z] = 0;
                                                     }else{
@@ -3955,7 +3946,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 // y position selection
                                 int posy = ypos[j] + bandOffset;
                                 // Y offset initialization
-                                int offsetY = (int) (4 * yfrac[j]);
+                                int offsetY = 4 * yfrac[j];
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
@@ -3979,7 +3970,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         int tempND = 0;
                                         int tempROI = 0;
                                         // X offset initialization
-                                        int offsetX = (int) (4 * xfrac[i]);
+                                        int offsetX = 4 * xfrac[i];
                                         // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                         // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                         // and by roiscanlinestride on the y axis.
@@ -3994,7 +3985,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                         y0 + z - 1, 0);
 
                                                 if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                    if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
+                                                    if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
                                                      // The destination no data value is saved in the destination array
                                                         weightArray[h][z] = 0;
                                                     }else{

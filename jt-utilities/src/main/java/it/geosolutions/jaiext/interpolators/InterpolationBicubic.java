@@ -392,8 +392,8 @@ public class InterpolationBicubic extends InterpolationTable {
             kernelArrayF[3][2] = s21f = srcDataFloat[posxhigh + posyhigh2];
             kernelArrayF[3][3] = s22f = srcDataFloat[posxhigh2 + posyhigh2];
 
-            xfrac = fracValues[0].intValue();
-            yfrac = fracValues[1].intValue();
+            xfrac = (int) (fracValues[0].floatValue()*subsampleBitsH);
+            yfrac = (int) (fracValues[1].floatValue()*subsampleBitsH);
 
             offsetX = 4 * xfrac;
             offsetY = 4 * yfrac;
@@ -421,8 +421,8 @@ public class InterpolationBicubic extends InterpolationTable {
             kernelArrayD[3][2] = s21d = srcDataDouble[posxhigh + posyhigh2];
             kernelArrayD[3][3] = s22d = srcDataDouble[posxhigh2 + posyhigh2];
 
-            xfrac = fracValues[0].intValue();
-            yfrac = fracValues[1].intValue();
+            xfrac = (int) (fracValues[0].doubleValue()*subsampleBitsH);
+            yfrac = (int) (fracValues[1].doubleValue()*subsampleBitsH);
 
             offsetX = 4 * xfrac;
             offsetY = 4 * yfrac;
