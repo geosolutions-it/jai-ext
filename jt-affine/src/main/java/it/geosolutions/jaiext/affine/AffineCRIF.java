@@ -1,14 +1,3 @@
-/*
- * $RCSfile: AffineCRIF.java,v $
- *
- * Copyright (c) 2005 Sun Microsystems, Inc. All rights reserved.
- *
- * Use is subject to license terms.
- *
- * $Revision: 1.1 $
- * $Date: 2005/02/11 04:56:13 $
- * $State: Exp $
- */
 package it.geosolutions.jaiext.affine;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;

@@ -12,7 +12,6 @@ import javax.media.jai.operator.MosaicType;
 import javax.media.jai.registry.RenderedRegistryMode;
 import org.jaitools.JAITools;
 
-import com.sun.media.jai.opimage.MosaicOpImage;
 
 /**
  * This class is very similar to the Mosaic operation because it returns a
@@ -88,20 +87,6 @@ public class MosaicDescriptor extends OperationDescriptorImpl {
 private static final long serialVersionUID = 2718297230579888333L;
 
 /**
- * With this mosaic type, the destination pixel value is calculated as weigthed
- * sum of all the source pixels in the same position. (This mosaic type is
- * equals to that of the standard Mosaic operation).
- */
-public static final MosaicType MOSAIC_TYPE_BLEND = MosaicDescriptor.MOSAIC_TYPE_BLEND;
-
-/**
- * With this mosaic type, the destination pixel value is calculated as the first
- * pixel source in the same position without no data. (This mosaic type is
- * equals to that of the standard Mosaic operation).
- */
-public static final MosaicType MOSAIC_TYPE_OVERLAY = MosaicDescriptor.MOSAIC_TYPE_OVERLAY;
-
-/**
  * The resource strings that indicates the global name, local name, vendor, a
  * simple operation description, the documentation URL, the version number and a
  * simple description of the operation parameters.
@@ -127,7 +112,7 @@ private static final String[] paramNames = { "imageMosaicBean", "mosaicType",
         "destinationNoData" };
 
 /** The parameter values. Used for the constructor. */
-private static final Object[] paramDefaults = { null, MOSAIC_TYPE_OVERLAY,
+private static final Object[] paramDefaults = { null, javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY,
         new double[] { 0.0 } };
 
 /** Constructor. */
@@ -170,7 +155,7 @@ public boolean validateParameters(ParameterBlock pb) {
          */
         case 2:
             MosaicType mosaic = (MosaicType) pb.getObjectParameter(i);
-            if (mosaic != MOSAIC_TYPE_BLEND || mosaic != MOSAIC_TYPE_OVERLAY) {
+            if (mosaic != javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_BLEND || mosaic != javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
                 return false;
             }
             break;

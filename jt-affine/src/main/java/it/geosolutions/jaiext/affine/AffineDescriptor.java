@@ -1,14 +1,3 @@
-/*
- * $RCSfile: AffineDescriptor.java,v $
- *
- * Copyright (c) 2005 Sun Microsystems, Inc. All rights reserved.
- *
- * Use is subject to license terms.
- *
- * $Revision: 1.1 $
- * $Date: 2005/02/11 04:57:29 $
- * $State: Exp $
- */
 package it.geosolutions.jaiext.affine;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;

@@ -1559,7 +1559,7 @@ public class MosaicTest {
                     destinationValues, hints);
         } else {
             image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                    MosaicDescriptor.MOSAIC_TYPE_BLEND, destinationValues, hints);
+                    javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_BLEND, destinationValues, hints);
         }
 
         int dataType = image5.getSampleModel().getDataType();

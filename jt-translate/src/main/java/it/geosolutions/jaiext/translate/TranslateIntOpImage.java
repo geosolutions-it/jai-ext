@@ -1,14 +1,3 @@
-/*
- * $RCSfile: TranslateIntOpImage.java,v $
- *
- * Copyright (c) 2005 Sun Microsystems, Inc. All rights reserved.
- *
- * Use is subject to license terms.
- *
- * $Revision: 1.1 $
- * $Date: 2005/02/11 04:56:46 $
- * $State: Exp $
- */
 package it.geosolutions.jaiext.translate;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -23,9 +12,6 @@ import javax.media.jai.OpImage;
 
 /**
  * An OpImage to translate an image by in integral number of pixels.
- *
- * <p> The translation is accomplished by simply shifting the tile
- * grid.
  */
 public final class TranslateIntOpImage extends OpImage {
 
@@ -116,7 +102,8 @@ public final class TranslateIntOpImage extends OpImage {
 
     /**
      * Override computeTile() simply to invoke getTile().  Required
-     * so that the TileScheduler may invoke computeTile().
+     * so that the TileScheduler may invoke computeTile(). This appens
+     * because the computation of the tile is inside the getTile() method. 
      */
     public Raster computeTile(int tileX, int tileY) {
         return getTile(tileX, tileY);

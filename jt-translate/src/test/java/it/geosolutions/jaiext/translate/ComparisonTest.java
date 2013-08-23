@@ -10,24 +10,14 @@ import javax.media.jai.PlanarImage;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+
 /**
- * This test class is used for compare the timing between the new Nearest,Bilinear and Bicubic interpolators and their JAI version on the scale
- * operation. No Roi or No Data range are used. If the user wants to change the number of the benchmark cycles or of the not benchmark cycles, should
- * only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles parameters. Inside this test class the first 12 tests are
- * executed in the same manner:
+ * This test class is used for compare the timing between the new and the old versions of the translate descriptor . If the user wants to change the
+ * number of the benchmark cycles or of the not benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or
+ * JAI.Ext.NotBenchmarkCycles parameters. Inside this test class the 2 tests are executed in the same manner:
  * <ul>
- * <li>Selection of the interpolator (Standard or New)</li>
- * <li>Image Magnification\Reduction</li>
- * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
- * </ul>
- * 
- * The second 12 tests are quite different because the interpolator used is always one of the 3 JAI interpolators but the other operations are
- * similar:
- * <ul>
- * </ul>
- * <ul>
- * <li>Selection of the descriptor (new ScaleDescriptor or old ScaleDescriptor)</li>
- * <li>Image Magnification\Reduction</li>
+ * <li>Selection of the Descriptor</li>
+ * <li>Image Translation</li>
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
  * 
@@ -57,7 +47,7 @@ public class ComparisonTest {
     @BeforeClass
     public static void initialSetup() throws FileNotFoundException, IOException {
         // Selection of the image
-        image = getSyntheticImage((byte)100);
+        image = getSyntheticImage((byte) 100);
 
         // Interpolators instantiation
         interpNearOld = new javax.media.jai.InterpolationNearest();
@@ -88,7 +78,7 @@ public class ComparisonTest {
 
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
-        // Image 
+        // Image
         PlanarImage imageTranslate;
 
         long mean = 0;
@@ -144,7 +134,7 @@ public class ComparisonTest {
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
 
     }
-    
+
     public static RenderedImage getSyntheticImage(byte value) {
         final float width = 256;
         final float height = 256;
@@ -156,5 +146,5 @@ public class ComparisonTest {
         // Create the constant operation.
         return JAI.create("constant", pb);
     }
-    
+
 }
