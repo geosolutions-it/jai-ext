@@ -9,13 +9,14 @@ import java.awt.image.SampleModel;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.iterator.RandomIter;
 
+
 /**
- * Slight modified version of JAI {@link RandomIterFallbackNoCacheNoArray} that uses byte vectors to handle indexes rather than int vector. This way we use 4x4
+ * Slight modified version of JAI {@link RandomIterFallbackNoCacheNoArray} that uses short vectors to handle indexes rather than int vector. This way we use 2x2
  * times less memory in the iterator
  * 
  * @author Simone Giannecchini, GeoSolutions SAS
  */
-public class RandomIterFallbackByte implements RandomIter {
+public class RandomIterFallbackShort implements RandomIter {
 
     protected RenderedImage im;
 
@@ -37,11 +38,11 @@ public class RandomIterFallbackByte implements RandomIter {
 
     protected int boundsY;
 
-    protected byte[] xTiles;
+    protected short[] xTiles;
 
-    protected byte[] yTiles;
+    protected short[] yTiles;
 
-    public RandomIterFallbackByte(RenderedImage im, Rectangle bounds) {
+    public RandomIterFallbackShort(RenderedImage im, Rectangle bounds) {
         this.im = im;
 
         Rectangle imBounds = new Rectangle(im.getMinX(), im.getMinY(), im.getWidth(),
@@ -56,14 +57,14 @@ public class RandomIterFallbackByte implements RandomIter {
 
         this.boundsX = boundsRect.x;
         this.boundsY = boundsRect.y;
-        this.xTiles = new byte[width];
-        this.yTiles = new byte[height];
+        this.xTiles = new short[width];
+        this.yTiles = new short[height];
 
         int tileWidth = im.getTileWidth();
         int tileGridXOffset = im.getTileGridXOffset();
         int minTileX = PlanarImage.XToTileX(x, tileGridXOffset, tileWidth);
         int offsetX = x - PlanarImage.tileXToX(minTileX, tileGridXOffset, tileWidth);
-        byte tileX = (byte) (minTileX & 0xff);
+        short tileX = (short) (minTileX & 0xffff);
 
         for (int i = 0; i < width; i++) {
             xTiles[i] = tileX;
@@ -78,7 +79,7 @@ public class RandomIterFallbackByte implements RandomIter {
         int tileGridYOffset = im.getTileGridYOffset();
         int minTileY = PlanarImage.YToTileY(y, tileGridYOffset, tileHeight);
         int offsetY = y - PlanarImage.tileYToY(minTileY, tileGridYOffset, tileHeight);
-        byte tileY = (byte) (minTileY & 0xff);
+        short tileY =  (short) (minTileY & 0xffff);
 
         for (int i = 0; i < height; i++) {
             yTiles[i] = tileY;

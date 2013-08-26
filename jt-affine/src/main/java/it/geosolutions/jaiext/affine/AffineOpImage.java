@@ -465,7 +465,7 @@ abstract class AffineOpImage extends GeometricOpImage {
                     srcROIImage.getWidth()+lpad+rpad,
                     srcROIImage.getHeight()+tpad+bpad);
             Raster data = srcROIImage.getExtendedData(rect, BorderExtender.createInstance(BorderExtender.BORDER_ZERO));
-            roiIter= RandomIterFactory.create(data, data.getBounds());
+            roiIter= RandomIterFactory.create(data, data.getBounds(),false,true);
             roiBounds=srcROIImage.getBounds();
             hasROI=true;
             

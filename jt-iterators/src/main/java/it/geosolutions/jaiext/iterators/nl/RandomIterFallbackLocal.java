@@ -1,4 +1,4 @@
-package it.geosolutions.jaiext.iterators;
+package it.geosolutions.jaiext.iterators.nl;
 
 import java.awt.Rectangle;
 import java.awt.image.Raster;
@@ -8,10 +8,8 @@ import java.awt.image.SampleModel;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.iterator.RandomIter;
 
-import com.sun.media.jai.iterator.RandomIterFallback;
-
 /**
- * Modified version of JAI {@link RandomIterFallback} that uses a ThreadLocal object for storing the current tile used in iterations.
+ * Modified version of JAI {@link RandomIterFallbackNoCacheNoArray} that uses a ThreadLocal object for storing the current tile used in iterations.
  */
 public class RandomIterFallbackLocal implements RandomIter {
 
@@ -50,7 +48,6 @@ public class RandomIterFallbackLocal implements RandomIter {
 
     public RandomIterFallbackLocal(RenderedImage im, Rectangle bounds) {
         this.im = im;
-
         Rectangle imBounds = new Rectangle(im.getMinX(), im.getMinY(), im.getWidth(),
                 im.getHeight());
         this.boundsRect = imBounds.intersection(bounds);

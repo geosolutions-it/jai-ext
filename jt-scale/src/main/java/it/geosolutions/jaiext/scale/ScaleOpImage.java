@@ -982,7 +982,7 @@ public abstract class ScaleOpImage extends GeometricOpImage {
                     srcROIImage.getHeight() + tpad + bpad);
             Raster data = srcROIImage.getExtendedData(rect,
                     BorderExtender.createInstance(BorderExtender.BORDER_ZERO));
-            roiIter = RandomIterFactory.create(data, data.getBounds());
+            roiIter = RandomIterFactory.create(data, data.getBounds(),false,true);
             hasROI = true;
             roiBounds = srcROIImage.getBounds();
             this.useRoiAccessor = useRoiAccessor;

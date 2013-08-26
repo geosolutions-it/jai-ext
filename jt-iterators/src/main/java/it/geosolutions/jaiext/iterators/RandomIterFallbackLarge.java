@@ -9,11 +9,8 @@ import java.util.Arrays;
 
 import javax.media.jai.PlanarImage;
 import javax.media.jai.iterator.RandomIter;
-
-import com.sun.media.jai.iterator.RandomIterFallback;
-
 /**
- * Slight modified version of JAI {@link RandomIterFallback} that uses byte vectors to handle indexes rather than int vector. This way we use 4x4
+ * Slight modified version of JAI {@link RandomIterFallbackNoCacheNoArray} that uses byte vectors to handle indexes rather than int vector. This way we use 4x4
  * times less memory in the iterator
  * 
  * @author Simone Giannecchini, GeoSolutions SAS

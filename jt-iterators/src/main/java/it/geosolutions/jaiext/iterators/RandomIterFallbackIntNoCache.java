@@ -1,14 +1,3 @@
-/*
- * $RCSfile: RandomIterFallback.java,v $
- *
- * Copyright (c) 2005 Sun Microsystems, Inc. All rights reserved.
- *
- * Use is subject to license terms.
- *
- * $Revision: 1.1 $
- * $Date: 2005/02/11 04:55:43 $
- * $State: Exp $
- */
 package it.geosolutions.jaiext.iterators;
 
 import java.awt.Rectangle;
@@ -20,9 +9,10 @@ import javax.media.jai.PlanarImage;
 import javax.media.jai.iterator.RandomIter;
 
 /**
- * @since EA2
+ * Modified version of JAI {@link RandomIterFallbackByte} that stores the tile positions in a int array. The current tile is not cached but it is
+ * calculated every time.
  */
-public class RandomIterFallbackNoMemory implements RandomIter {
+public class RandomIterFallbackIntNoCache implements RandomIter {
 
     protected RenderedImage im;
 
@@ -34,7 +24,11 @@ public class RandomIterFallbackNoMemory implements RandomIter {
 
     protected int boundsY;
 
-    public RandomIterFallbackNoMemory(RenderedImage im, Rectangle bounds) {
+    private int[] xTiles;
+
+    private int[] yTiles;
+
+    public RandomIterFallbackIntNoCache(RenderedImage im, Rectangle bounds) {
         this.im = im;
 
         Rectangle imBounds = new Rectangle(im.getMinX(), im.getMinY(), im.getWidth(),
@@ -44,6 +38,42 @@ public class RandomIterFallbackNoMemory implements RandomIter {
 
         this.boundsX = boundsRect.x;
         this.boundsY = boundsRect.y;
+
+        int width = boundsRect.width;
+        int height = boundsRect.height;
+
+        this.xTiles = new int[width];
+        this.yTiles = new int[height];
+
+        int tileWidth = im.getTileWidth();
+        int tileGridXOffset = im.getTileGridXOffset();
+        int minTileX = PlanarImage.XToTileX(boundsX, tileGridXOffset, tileWidth);
+        int offsetX = boundsX - PlanarImage.tileXToX(minTileX, tileGridXOffset, tileWidth);
+        int tileX = minTileX;
+
+        for (int i = 0; i < width; i++) {
+            xTiles[i] = tileX;
+            ++offsetX;
+            if (offsetX == tileWidth) {
+                ++tileX;
+                offsetX = 0;
+            }
+        }
+
+        int tileHeight = im.getTileHeight();
+        int tileGridYOffset = im.getTileGridYOffset();
+        int minTileY = PlanarImage.YToTileY(boundsY, tileGridYOffset, tileHeight);
+        int offsetY = boundsY - PlanarImage.tileYToY(minTileY, tileGridYOffset, tileHeight);
+        int tileY = minTileY;
+
+        for (int i = 0; i < height; i++) {
+            yTiles[i] = tileY;
+            ++offsetY;
+            if (offsetY == tileHeight) {
+                ++tileY;
+                offsetY = 0;
+            }
+        }
     }
 
     /**
@@ -53,12 +83,9 @@ public class RandomIterFallbackNoMemory implements RandomIter {
      * @param yLocal the Y coordinate in the local coordinate system.
      */
     private Raster makeCurrent(int xLocal, int yLocal) {
-        final int tileWidth = im.getTileWidth();
-        final int tileHeight = im.getTileHeight();
-        final int tileGridXOffset = im.getTileGridXOffset();
-        final int tileGridYOffset = im.getTileGridYOffset();
-        final int tileX = PlanarImage.XToTileX(xLocal, tileGridXOffset, tileWidth);
-        final int tileY = PlanarImage.YToTileY(yLocal, tileGridYOffset, tileHeight);
+
+        final int tileX = xTiles[xLocal];
+        final int tileY = yTiles[yLocal];
 
         return im.getTile(tileX, tileY);
     }
@@ -136,5 +163,7 @@ public class RandomIterFallbackNoMemory implements RandomIter {
     }
 
     public void done() {
+        xTiles = null;
+        yTiles = null;
     }
 }

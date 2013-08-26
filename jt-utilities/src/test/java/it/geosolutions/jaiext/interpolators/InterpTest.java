@@ -1621,7 +1621,7 @@ public class InterpTest extends TestCase {
         Raster roiData = roiImage.getExtendedData(testRaster.getBounds(),
                 BorderExtender.createInstance(BorderExtender.BORDER_ZERO));
 
-        roiIter = RandomIterFactory.create(roiData, testRaster.getBounds());
+        roiIter = RandomIterFactory.create(roiData, testRaster.getBounds(),false,true);
 
         // roi raster accessor creation
 

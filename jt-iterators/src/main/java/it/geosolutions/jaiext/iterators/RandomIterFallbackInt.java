@@ -9,10 +9,9 @@ import java.awt.image.SampleModel;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.iterator.RandomIter;
 
-import com.sun.media.jai.iterator.RandomIterFallback;
 
 /**
- * Slight modified version of JAI {@link RandomIterFallback} that uses int vectors to handle indexes. It is useful when we have so many tiles that we
+ * Slight modified version of JAI {@link RandomIterFallbackNoCacheNoArray} that uses int vectors to handle indexes. It is useful when we have so many tiles that we
  * cannot actually use byte indexes.
  * 
  * 

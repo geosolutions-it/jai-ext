@@ -14,6 +14,7 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROIShape;
+import javax.media.jai.RenderedOp;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.jaitools.numeric.Range;
@@ -350,6 +351,10 @@ public class TestScale extends TestBase {
         assertEquals((int) (DEFAULT_WIDTH * scaleX), destinationIMG.getWidth());
         // height
         assertEquals((int) (DEFAULT_HEIGHT * scaleY), destinationIMG.getHeight());
+        
+        if(destinationIMG instanceof RenderedOp){
+            ((RenderedOp)destinationIMG).dispose();
+        }
 
     }
 
