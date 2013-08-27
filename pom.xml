@@ -512,5 +512,6 @@
     <module>jt-iterators</module>
     <module>jt-mosaic</module>
     <module>jt-translate</module>
+    <module>jt-lookup</module>
   </modules>
 </project>
