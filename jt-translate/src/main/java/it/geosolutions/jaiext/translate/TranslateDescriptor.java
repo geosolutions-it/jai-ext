@@ -10,6 +10,7 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
 import javax.media.jai.ParameterBlockJAI;
+import javax.media.jai.PropertyGenerator;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
@@ -207,6 +208,19 @@ public class TranslateDescriptor extends OperationDescriptorImpl {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
     }
 
+    
+    /**
+     * Returns an array of <code>PropertyGenerators</code> implementing
+     * property inheritance for the "Translate" operation
+     *
+     * @return  An array of property generators.
+     */
+    public PropertyGenerator[] getPropertyGenerators() {
+        PropertyGenerator[] pg = new PropertyGenerator[1];
+        pg[0] = new TranslatePropertyGenerator();
+        return pg;
+    }
+    
     /**
      * Translate an image to a new location.
      * 

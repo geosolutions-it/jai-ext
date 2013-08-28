@@ -19,9 +19,7 @@ import org.jaitools.numeric.Range;
 
 import com.sun.media.jai.util.DataBufferUtils;
 
-
-
-public abstract class LookupTable implements Serializable{
+public abstract class LookupTable implements Serializable {
 
     /** The table data. */
     protected transient DataBuffer data;
@@ -52,7 +50,7 @@ public abstract class LookupTable implements Serializable{
     protected boolean hasNoData;
 
     protected boolean hasROI;
-    
+
     /**
      * Constructs a single-banded byte lookup table. The index offset is 0.
      * 
@@ -468,8 +466,7 @@ public abstract class LookupTable implements Serializable{
         this.initOffsets(data.length, offsets);
         this.data = DataBufferUtils.createDataBufferDouble(data, data[0].length);
     }
-    
-    
+
     /**
      * Returns the table data as a DataBuffer.
      */
@@ -776,8 +773,7 @@ public abstract class LookupTable implements Serializable{
         this.useROIAccessor = useROIAccessor;
         this.srcROIImage = srcROIImage;
     }
-    
+
     protected abstract void lookup(Raster source, WritableRaster dst, Rectangle rect, Raster roi);
-    
-    
+
 }

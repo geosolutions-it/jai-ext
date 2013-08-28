@@ -181,9 +181,8 @@ public abstract class TestBase {
             sm = new MultiPixelPackedSampleModel(dataType, width, height, 1);
             numBands = 1;
         } else {
-            sm = new ComponentSampleModel(dataType, width, height, 3, width, new int[] { 0,
-                    imageDim, imageDim * 2 });
-
+                sm = new ComponentSampleModel(dataType, width, height, 3, width, new int[] { 0,
+                        imageDim, imageDim * 2 });            
         }
 
         switch (dataType) {

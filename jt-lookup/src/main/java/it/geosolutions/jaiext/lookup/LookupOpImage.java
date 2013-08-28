@@ -25,7 +25,7 @@ public class LookupOpImage extends ColormapOpImage {
     private boolean hasNoData;
 
     public LookupOpImage(RenderedImage source, ImageLayout layout, Map configuration,
-            LookupTable lookupTable, double destinationNoData,ROI roi, boolean useRoiAccessor, Range noData) {
+            LookupTable lookupTable, double destinationNoData,ROI roi, Range noData, boolean useRoiAccessor) {
         super(source, layout, configuration, true);
         // Addition of the lookup table
         this.lookupTable = lookupTable;

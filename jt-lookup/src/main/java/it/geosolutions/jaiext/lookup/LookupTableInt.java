@@ -14,110 +14,110 @@ import javax.media.jai.RasterFormatTag;
 
 import org.jaitools.numeric.Range;
 
-public class LookupTableUShort extends LookupTable {
+public class LookupTableInt extends LookupTable {
 
-    public LookupTableUShort(byte[] data) {
+    public LookupTableInt(byte[] data) {
         super(data);
     }
 
-    public LookupTableUShort(byte[] data, int offset) {
+    public LookupTableInt(byte[] data, int offset) {
         super(data, offset);
     }
 
-    public LookupTableUShort(byte[][] data) {
+    public LookupTableInt(byte[][] data) {
         super(data);
     }
 
-    public LookupTableUShort(byte[][] data, int offset) {
+    public LookupTableInt(byte[][] data, int offset) {
         super(data, offset);
     }
 
-    public LookupTableUShort(byte[][] data, int[] offsets) {
+    public LookupTableInt(byte[][] data, int[] offsets) {
         super(data, offsets);
     }
 
-    public LookupTableUShort(short[] data, boolean isUShort) {
+    public LookupTableInt(short[] data, boolean isUShort) {
         super(data, isUShort);
     }
 
-    public LookupTableUShort(short[] data, int offset, boolean isUShort) {
+    public LookupTableInt(short[] data, int offset, boolean isUShort) {
         super(data, offset, isUShort);
     }
 
-    public LookupTableUShort(short[][] data, boolean isUShort) {
+    public LookupTableInt(short[][] data, boolean isUShort) {
         super(data, isUShort);
     }
 
-    public LookupTableUShort(short[][] data, int offset, boolean isUShort) {
+    public LookupTableInt(short[][] data, int offset, boolean isUShort) {
         super(data, offset, isUShort);
     }
 
-    public LookupTableUShort(short[][] data, int[] offsets, boolean isUShort) {
+    public LookupTableInt(short[][] data, int[] offsets, boolean isUShort) {
         super(data, offsets, isUShort);
     }
 
-    public LookupTableUShort(int[] data) {
+    public LookupTableInt(int[] data) {
         super(data);
     }
 
-    public LookupTableUShort(int[] data, int offset) {
+    public LookupTableInt(int[] data, int offset) {
         super(data, offset);
     }
 
-    public LookupTableUShort(int[][] data) {
+    public LookupTableInt(int[][] data) {
         super(data);
     }
 
-    public LookupTableUShort(int[][] data, int offset) {
+    public LookupTableInt(int[][] data, int offset) {
         super(data, offset);
     }
 
-    public LookupTableUShort(int[][] data, int[] offsets) {
+    public LookupTableInt(int[][] data, int[] offsets) {
         super(data, offsets);
     }
 
-    public LookupTableUShort(float[] data) {
+    public LookupTableInt(float[] data) {
         super(data);
     }
 
-    public LookupTableUShort(float[] data, int offset) {
+    public LookupTableInt(float[] data, int offset) {
         super(data, offset);
     }
 
-    public LookupTableUShort(float[][] data) {
+    public LookupTableInt(float[][] data) {
         super(data);
     }
 
-    public LookupTableUShort(float[][] data, int offset) {
+    public LookupTableInt(float[][] data, int offset) {
         super(data, offset);
     }
 
-    public LookupTableUShort(float[][] data, int[] offsets) {
+    public LookupTableInt(float[][] data, int[] offsets) {
         super(data, offsets);
     }
 
-    public LookupTableUShort(double[] data) {
+    public LookupTableInt(double[] data) {
         super(data);
     }
 
-    public LookupTableUShort(double[] data, int offset) {
+    public LookupTableInt(double[] data, int offset) {
         super(data, offset);
     }
 
-    public LookupTableUShort(double[][] data) {
+    public LookupTableInt(double[][] data) {
         super(data);
     }
 
-    public LookupTableUShort(double[][] data, int offset) {
+    public LookupTableInt(double[][] data, int offset) {
         super(data, offset);
     }
 
-    public LookupTableUShort(double[][] data, int[] offsets) {
+    public LookupTableInt(double[][] data, int[] offsets) {
         super(data, offsets);
     }
 
     /**
-     * Performs table lookup on a source UShort Raster, writing the result into a supplied WritableRaster. The destination must have a data type and
+     * Performs table lookup on a source Integer Raster, writing the result into a supplied WritableRaster. The destination must have a data type and
      * SampleModel appropriate to the results of the lookup operation. The table lookup operation is performed within a specified rectangle. If ROI or
      * no Data are present then they are taken into account.
      * 
@@ -208,7 +208,7 @@ public class LookupTableUShort extends LookupTable {
         int srcPixelStride = s.getPixelStride();
         int[] srcBandOffsets = s.getBandOffsets();
 
-        short[][] sSrcData = s.getShortDataArrays();
+        int[][] iSrcData = s.getIntDataArrays();
 
         if (srcNumBands < dstNumBands) {
             int offset0 = srcBandOffsets[0];
@@ -216,10 +216,10 @@ public class LookupTableUShort extends LookupTable {
             for (int i = 0; i < dstNumBands; i++) {
                 srcBandOffsets[i] = offset0;
             }
-            short[] sData0 = sSrcData[0];
-            sSrcData = new short[dstNumBands][];
+            int[] iData0 = iSrcData[0];
+            iSrcData = new int[dstNumBands][];
             for (int i = 0; i < dstNumBands; i++) {
-                sSrcData[i] = sData0;
+                iSrcData[i] = iData0;
             }
         }
 
@@ -291,36 +291,36 @@ public class LookupTableUShort extends LookupTable {
 
         switch (dstDataType) {
         case DataBuffer.TYPE_BYTE:
-            lookup(srcLineStride, srcPixelStride, srcBandOffsets, sSrcData, dstWidth, dstHeight,
+            lookup(srcLineStride, srcPixelStride, srcBandOffsets, iSrcData, dstWidth, dstHeight,
                     dstNumBands, dstLineStride, dstPixelStride, dstBandOffsets, bDstData,
                     tblOffsets, bTblData, roiAccessor, rect);
             break;
 
         case DataBuffer.TYPE_USHORT:
-            lookup(true, srcLineStride, srcPixelStride, srcBandOffsets, sSrcData, dstWidth,
+            lookup(true, srcLineStride, srcPixelStride, srcBandOffsets, iSrcData, dstWidth,
                     dstHeight, dstNumBands, dstLineStride, dstPixelStride, dstBandOffsets,
                     sDstData, tblOffsets, sTblData, roiAccessor, rect);
         case DataBuffer.TYPE_SHORT:
-            lookup(false, srcLineStride, srcPixelStride, srcBandOffsets, sSrcData, dstWidth,
+            lookup(false, srcLineStride, srcPixelStride, srcBandOffsets, iSrcData, dstWidth,
                     dstHeight, dstNumBands, dstLineStride, dstPixelStride, dstBandOffsets,
                     sDstData, tblOffsets, sTblData, roiAccessor, rect);
 
             break;
 
         case DataBuffer.TYPE_INT:
-            lookup(srcLineStride, srcPixelStride, srcBandOffsets, sSrcData, dstWidth, dstHeight,
+            lookup(srcLineStride, srcPixelStride, srcBandOffsets, iSrcData, dstWidth, dstHeight,
                     dstNumBands, dstLineStride, dstPixelStride, dstBandOffsets, iDstData,
                     tblOffsets, iTblData, roiAccessor, rect);
             break;
 
         case DataBuffer.TYPE_FLOAT:
-            lookup(srcLineStride, srcPixelStride, srcBandOffsets, sSrcData, dstWidth, dstHeight,
+            lookup(srcLineStride, srcPixelStride, srcBandOffsets, iSrcData, dstWidth, dstHeight,
                     dstNumBands, dstLineStride, dstPixelStride, dstBandOffsets, fDstData,
                     tblOffsets, fTblData, roiAccessor, rect);
             break;
 
         case DataBuffer.TYPE_DOUBLE:
-            lookup(srcLineStride, srcPixelStride, srcBandOffsets, sSrcData, dstWidth, dstHeight,
+            lookup(srcLineStride, srcPixelStride, srcBandOffsets, iSrcData, dstWidth, dstHeight,
                     dstNumBands, dstLineStride, dstPixelStride, dstBandOffsets, dDstData,
                     tblOffsets, dTblData, roiAccessor, rect);
             break;
@@ -329,9 +329,9 @@ public class LookupTableUShort extends LookupTable {
         d.copyDataToRaster();
     }
 
-    // ushort to byte
+    // int to byte
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
-            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, byte[][] bDstData, int[] tblOffsets,
             byte[][] bTblData, RasterAccessor roi, Rectangle destRect) {
 
@@ -349,7 +349,7 @@ public class LookupTableUShort extends LookupTable {
             roiLineStride = roi.getScanlineStride();
         }
 
-        Range<Short> rangeND = (Range<Short>) noData;
+        Range<Integer> rangeND = (Range<Integer>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -359,7 +359,7 @@ public class LookupTableUShort extends LookupTable {
         if (caseA) {
             if (caseNull) {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final byte[] d = bDstData[b];
 
                     int srcLineOffset = srcBandOffsets[b];
@@ -373,8 +373,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = (byte) (data.getElem(b,
-                                    (s[srcPixelOffset] & 0xFFFF)) & 0xFF);
+                            d[dstPixelOffset] = (byte) (data.getElem(b, (s[srcPixelOffset])) & 0xFF);
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -383,7 +382,7 @@ public class LookupTableUShort extends LookupTable {
                 }
             } else {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final byte[] d = bDstData[b];
                     final byte[] t = bTblData[b];
 
@@ -399,7 +398,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                            d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -411,7 +410,7 @@ public class LookupTableUShort extends LookupTable {
             if (useROIAccessor) {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final byte[] d = bDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -437,8 +436,8 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataByte;
                                 } else {
-                                    d[dstPixelOffset] = (byte) (data.getElem(b,
-                                            (s[srcPixelOffset] & 0xFFFF)) & 0xFF);
+                                    d[dstPixelOffset] = (byte) (data
+                                            .getElem(b, (s[srcPixelOffset])) & 0xFF);
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -448,7 +447,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         byte[] d = bDstData[b];
                         byte[] t = bTblData[b];
 
@@ -476,7 +475,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataByte;
                                 } else {
-                                    d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -488,7 +487,7 @@ public class LookupTableUShort extends LookupTable {
             } else {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final byte[] d = bDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -509,7 +508,7 @@ public class LookupTableUShort extends LookupTable {
                                         d[dstPixelOffset] = destinationNoDataByte;
                                     } else {
                                         d[dstPixelOffset] = (byte) (data.getElem(b,
-                                                (s[srcPixelOffset] & 0xFFFF)) & 0xFF);
+                                                (s[srcPixelOffset])) & 0xFF);
                                     }
                                 } else {
                                     d[dstPixelOffset] = destinationNoDataByte;
@@ -522,7 +521,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         byte[] d = bDstData[b];
                         byte[] t = bTblData[b];
 
@@ -543,8 +542,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataByte;
                                     } else {
-                                        d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF)
-                                                - tblOffset];
+                                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
                                     }
                                 } else {
                                     d[dstPixelOffset] = destinationNoDataByte;
@@ -560,7 +558,7 @@ public class LookupTableUShort extends LookupTable {
         } else if (caseC) {
             if (caseNull) {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final byte[] d = bDstData[b];
 
                     int srcLineOffset = srcBandOffsets[b];
@@ -575,12 +573,11 @@ public class LookupTableUShort extends LookupTable {
 
                         for (int x = 0; x < dstWidth; x++) {
 
-                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            int value = s[srcPixelOffset];
                             if (rangeND.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataByte;
                             } else {
-                                d[dstPixelOffset] = (byte) (data.getElem(b,
-                                        (s[srcPixelOffset] & 0xFFFF)) & 0xFF);
+                                d[dstPixelOffset] = (byte) (data.getElem(b, value) & 0xFF);
                             }
 
                             srcPixelOffset += srcPixelStride;
@@ -590,7 +587,7 @@ public class LookupTableUShort extends LookupTable {
                 }
             } else {
                 for (int b = 0; b < dstNumBands; b++) {
-                    short[] s = sSrcData[b];
+                    int[] s = iSrcData[b];
                     byte[] d = bDstData[b];
                     byte[] t = bTblData[b];
 
@@ -606,7 +603,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int x = 0; x < dstWidth; x++) {
-                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            int value = s[srcPixelOffset];
                             if (rangeND.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataByte;
                             } else {
@@ -623,7 +620,7 @@ public class LookupTableUShort extends LookupTable {
             if (useROIAccessor) {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final byte[] d = bDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -649,12 +646,11 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataByte;
                                 } else {
-                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    int value = s[srcPixelOffset];
                                     if (rangeND.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataByte;
                                     } else {
-                                        d[dstPixelOffset] = (byte) (data.getElem(b,
-                                                (s[srcPixelOffset] & 0xFFFF)) & 0xFF);
+                                        d[dstPixelOffset] = (byte) (data.getElem(b, value) & 0xFF);
                                     }
                                 }
 
@@ -665,7 +661,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         byte[] d = bDstData[b];
                         byte[] t = bTblData[b];
 
@@ -693,7 +689,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataByte;
                                 } else {
-                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    int value = s[srcPixelOffset];
                                     if (rangeND.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataByte;
                                     } else {
@@ -709,7 +705,7 @@ public class LookupTableUShort extends LookupTable {
             } else {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final byte[] d = bDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -729,12 +725,11 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataByte;
                                     } else {
-                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        int value = s[srcPixelOffset];
                                         if (rangeND.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataByte;
                                         } else {
-                                            d[dstPixelOffset] = (byte) (data.getElem(b,
-                                                    (s[srcPixelOffset] & 0xFFFF)) & 0xFF);
+                                            d[dstPixelOffset] = (byte) (data.getElem(b, value) & 0xFF);
                                         }
                                     }
                                 } else {
@@ -747,7 +742,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         byte[] d = bDstData[b];
                         byte[] t = bTblData[b];
 
@@ -769,7 +764,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataByte;
                                     } else {
-                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        int value = s[srcPixelOffset];
                                         if (rangeND.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataByte;
                                         } else {
@@ -789,9 +784,9 @@ public class LookupTableUShort extends LookupTable {
         }
     }
 
-    // ushort to ushort/short
+    // int to ushort/short
     private void lookup(boolean isUshort, int srcLineStride, int srcPixelStride,
-            int[] srcBandOffsets, short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands,
+            int[] srcBandOffsets, int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands,
             int dstLineStride, int dstPixelStride, int[] dstBandOffsets, short[][] sDstData,
             int[] tblOffsets, short[][] sTblData, RasterAccessor roi, Rectangle destRect) {
 
@@ -809,7 +804,7 @@ public class LookupTableUShort extends LookupTable {
             roiLineStride = roi.getScanlineStride();
         }
 
-        Range<Short> rangeND = (Range<Short>) noData;
+        Range<Integer> rangeND = (Range<Integer>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -819,7 +814,7 @@ public class LookupTableUShort extends LookupTable {
         if (caseA) {
             if (caseNull) {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final short[] d = sDstData[b];
 
                     int srcLineOffset = srcBandOffsets[b];
@@ -834,11 +829,9 @@ public class LookupTableUShort extends LookupTable {
 
                         for (int w = 0; w < dstWidth; w++) {
                             if (isUshort) {
-                                d[dstPixelOffset] = (short) (data.getElem(b,
-                                        (s[srcPixelOffset] & 0xFFFF)) & 0xFFFF);
+                                d[dstPixelOffset] = (short) (data.getElem(b, (s[srcPixelOffset])) & 0xFFFF);
                             } else {
-                                d[dstPixelOffset] = (short) (data.getElem(b,
-                                        (s[srcPixelOffset] & 0xFFFF)));
+                                d[dstPixelOffset] = (short) (data.getElem(b, (s[srcPixelOffset])));
                             }
 
                             srcPixelOffset += srcPixelStride;
@@ -848,7 +841,7 @@ public class LookupTableUShort extends LookupTable {
                 }
             } else {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final short[] d = sDstData[b];
                     final short[] t = sTblData[b];
 
@@ -864,7 +857,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                            d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -876,7 +869,7 @@ public class LookupTableUShort extends LookupTable {
             if (useROIAccessor) {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final short[] d = sDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -904,10 +897,10 @@ public class LookupTableUShort extends LookupTable {
                                 } else {
                                     if (isUshort) {
                                         d[dstPixelOffset] = (short) (data.getElem(b,
-                                                (s[srcPixelOffset] & 0xFFFF)) & 0xFFFF);
+                                                (s[srcPixelOffset])) & 0xFFFF);
                                     } else {
                                         d[dstPixelOffset] = (short) (data.getElem(b,
-                                                (s[srcPixelOffset] & 0xFFFF)));
+                                                (s[srcPixelOffset])));
                                     }
                                 }
 
@@ -918,7 +911,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         short[] d = sDstData[b];
                         short[] t = sTblData[b];
 
@@ -946,7 +939,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataShort;
                                 } else {
-                                    d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -958,7 +951,7 @@ public class LookupTableUShort extends LookupTable {
             } else {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final short[] d = sDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -980,10 +973,10 @@ public class LookupTableUShort extends LookupTable {
                                     } else {
                                         if (isUshort) {
                                             d[dstPixelOffset] = (short) (data.getElem(b,
-                                                    (s[srcPixelOffset] & 0xFFFF)) & 0xFFFF);
+                                                    (s[srcPixelOffset])) & 0xFFFF);
                                         } else {
                                             d[dstPixelOffset] = (short) (data.getElem(b,
-                                                    (s[srcPixelOffset] & 0xFFFF)));
+                                                    (s[srcPixelOffset])));
                                         }
                                     }
                                 } else {
@@ -997,7 +990,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         short[] d = sDstData[b];
                         short[] t = sTblData[b];
 
@@ -1018,8 +1011,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataShort;
                                     } else {
-                                        d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF)
-                                                - tblOffset];
+                                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
                                     }
                                 } else {
                                     d[dstPixelOffset] = destinationNoDataShort;
@@ -1035,7 +1027,7 @@ public class LookupTableUShort extends LookupTable {
         } else if (caseC) {
             if (caseNull) {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final short[] d = sDstData[b];
 
                     int srcLineOffset = srcBandOffsets[b];
@@ -1050,16 +1042,14 @@ public class LookupTableUShort extends LookupTable {
 
                         for (int x = 0; x < dstWidth; x++) {
 
-                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            int value = s[srcPixelOffset];
                             if (rangeND.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataShort;
                             } else {
                                 if (isUshort) {
-                                    d[dstPixelOffset] = (short) (data.getElem(b,
-                                            (s[srcPixelOffset] & 0xFFFF)) & 0xFFFF);
+                                    d[dstPixelOffset] = (short) (data.getElem(b, value) & 0xFFFF);
                                 } else {
-                                    d[dstPixelOffset] = (short) (data.getElem(b,
-                                            (s[srcPixelOffset] & 0xFFFF)));
+                                    d[dstPixelOffset] = (short) (data.getElem(b, value));
                                 }
                             }
 
@@ -1070,7 +1060,7 @@ public class LookupTableUShort extends LookupTable {
                 }
             } else {
                 for (int b = 0; b < dstNumBands; b++) {
-                    short[] s = sSrcData[b];
+                    int[] s = iSrcData[b];
                     short[] d = sDstData[b];
                     short[] t = sTblData[b];
 
@@ -1086,7 +1076,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int x = 0; x < dstWidth; x++) {
-                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            int value = s[srcPixelOffset];
                             if (rangeND.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataShort;
                             } else {
@@ -1103,7 +1093,7 @@ public class LookupTableUShort extends LookupTable {
             if (useROIAccessor) {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final short[] d = sDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -1129,16 +1119,14 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataShort;
                                 } else {
-                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    int value = s[srcPixelOffset];
                                     if (rangeND.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataShort;
                                     } else {
                                         if (isUshort) {
-                                            d[dstPixelOffset] = (short) (data.getElem(b,
-                                                    (s[srcPixelOffset] & 0xFFFF)) & 0xFFFF);
+                                            d[dstPixelOffset] = (short) (data.getElem(b, value) & 0xFFFF);
                                         } else {
-                                            d[dstPixelOffset] = (short) (data.getElem(b,
-                                                    (s[srcPixelOffset] & 0xFFFF)));
+                                            d[dstPixelOffset] = (short) (data.getElem(b, value));
                                         }
                                     }
                                 }
@@ -1150,7 +1138,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         short[] d = sDstData[b];
                         short[] t = sTblData[b];
 
@@ -1178,7 +1166,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataShort;
                                 } else {
-                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    int value = s[srcPixelOffset];
                                     if (rangeND.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataShort;
                                     } else {
@@ -1194,7 +1182,7 @@ public class LookupTableUShort extends LookupTable {
             } else {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final short[] d = sDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -1214,16 +1202,14 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataShort;
                                     } else {
-                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        int value = s[srcPixelOffset];
                                         if (rangeND.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataShort;
                                         } else {
                                             if (isUshort) {
-                                                d[dstPixelOffset] = (short) (data.getElem(b,
-                                                        (s[srcPixelOffset] & 0xFFFF)) & 0xFFFF);
+                                                d[dstPixelOffset] = (short) (data.getElem(b, value) & 0xFFFF);
                                             } else {
-                                                d[dstPixelOffset] = (short) (data.getElem(b,
-                                                        (s[srcPixelOffset] & 0xFFFF)));
+                                                d[dstPixelOffset] = (short) (data.getElem(b, value));
                                             }
                                         }
                                     }
@@ -1237,7 +1223,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         short[] d = sDstData[b];
                         short[] t = sTblData[b];
 
@@ -1259,7 +1245,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataShort;
                                     } else {
-                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        int value = s[srcPixelOffset];
                                         if (rangeND.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataShort;
                                         } else {
@@ -1279,9 +1265,9 @@ public class LookupTableUShort extends LookupTable {
         }
     }
 
-    // ushort to int
+    // int to int
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
-            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, int[][] iDstData, int[] tblOffsets,
             int[][] iTblData, RasterAccessor roi, Rectangle destRect) {
 
@@ -1299,7 +1285,7 @@ public class LookupTableUShort extends LookupTable {
             roiLineStride = roi.getScanlineStride();
         }
 
-        Range<Short> rangeND = (Range<Short>) noData;
+        Range<Integer> rangeND = (Range<Integer>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -1309,7 +1295,7 @@ public class LookupTableUShort extends LookupTable {
         if (caseA) {
             if (caseNull) {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final int[] d = iDstData[b];
 
                     int srcLineOffset = srcBandOffsets[b];
@@ -1323,7 +1309,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = data.getElem(b, s[srcPixelOffset] & 0xFFFF);
+                            d[dstPixelOffset] = data.getElem(b, s[srcPixelOffset]);
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -1332,7 +1318,7 @@ public class LookupTableUShort extends LookupTable {
                 }
             } else {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final int[] d = iDstData[b];
                     final int[] t = iTblData[b];
 
@@ -1348,7 +1334,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                            d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -1360,7 +1346,7 @@ public class LookupTableUShort extends LookupTable {
             if (useROIAccessor) {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final int[] d = iDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -1386,7 +1372,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
-                                    d[dstPixelOffset] = data.getElem(b, s[srcPixelOffset] & 0xFFFF);
+                                    d[dstPixelOffset] = data.getElem(b, s[srcPixelOffset]);
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -1396,7 +1382,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         int[] d = iDstData[b];
                         int[] t = iTblData[b];
 
@@ -1424,7 +1410,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
-                                    d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -1436,7 +1422,7 @@ public class LookupTableUShort extends LookupTable {
             } else {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final int[] d = iDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -1456,8 +1442,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        d[dstPixelOffset] = data.getElem(b,
-                                                s[srcPixelOffset] & 0xFFFF);
+                                        d[dstPixelOffset] = data.getElem(b, s[srcPixelOffset]);
                                     }
                                 } else {
                                     d[dstPixelOffset] = destinationNoDataInt;
@@ -1470,7 +1455,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         int[] d = iDstData[b];
                         int[] t = iTblData[b];
 
@@ -1491,8 +1476,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF)
-                                                - tblOffset];
+                                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
                                     }
                                 } else {
                                     d[dstPixelOffset] = destinationNoDataInt;
@@ -1508,7 +1492,7 @@ public class LookupTableUShort extends LookupTable {
         } else if (caseC) {
             if (caseNull) {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final int[] d = iDstData[b];
 
                     int srcLineOffset = srcBandOffsets[b];
@@ -1523,7 +1507,7 @@ public class LookupTableUShort extends LookupTable {
 
                         for (int x = 0; x < dstWidth; x++) {
 
-                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            int value = s[srcPixelOffset];
                             if (rangeND.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataInt;
                             } else {
@@ -1537,7 +1521,7 @@ public class LookupTableUShort extends LookupTable {
                 }
             } else {
                 for (int b = 0; b < dstNumBands; b++) {
-                    short[] s = sSrcData[b];
+                    int[] s = iSrcData[b];
                     int[] d = iDstData[b];
                     int[] t = iTblData[b];
 
@@ -1553,7 +1537,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int x = 0; x < dstWidth; x++) {
-                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            int value = s[srcPixelOffset];
                             if (rangeND.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataInt;
                             } else {
@@ -1570,7 +1554,7 @@ public class LookupTableUShort extends LookupTable {
             if (useROIAccessor) {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final int[] d = iDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -1596,7 +1580,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
-                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    int value = s[srcPixelOffset];
                                     if (rangeND.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
@@ -1611,7 +1595,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         int[] d = iDstData[b];
                         int[] t = iTblData[b];
 
@@ -1639,7 +1623,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
-                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    int value = s[srcPixelOffset];
                                     if (rangeND.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
@@ -1655,7 +1639,7 @@ public class LookupTableUShort extends LookupTable {
             } else {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final int[] d = iDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -1675,7 +1659,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        int value = s[srcPixelOffset];
                                         if (rangeND.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataInt;
                                         } else {
@@ -1692,7 +1676,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         int[] d = iDstData[b];
                         int[] t = iTblData[b];
 
@@ -1714,7 +1698,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        int value = s[srcPixelOffset];
                                         if (rangeND.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataInt;
                                         } else {
@@ -1734,9 +1718,9 @@ public class LookupTableUShort extends LookupTable {
         }
     }
 
-    // ushort to float
+    // int to float
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
-            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, float[][] fDstData, int[] tblOffsets,
             float[][] fTblData, RasterAccessor roi, Rectangle destRect) {
 
@@ -1754,7 +1738,7 @@ public class LookupTableUShort extends LookupTable {
             roiLineStride = roi.getScanlineStride();
         }
 
-        Range<Short> rangeND = (Range<Short>) noData;
+        Range<Integer> rangeND = (Range<Integer>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -1764,7 +1748,7 @@ public class LookupTableUShort extends LookupTable {
         if (caseA) {
             if (caseNull) {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final float[] d = fDstData[b];
 
                     int srcLineOffset = srcBandOffsets[b];
@@ -1778,7 +1762,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = data.getElemFloat(b, (s[srcPixelOffset] & 0xFFFF));
+                            d[dstPixelOffset] = data.getElemFloat(b, (s[srcPixelOffset]));
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -1787,7 +1771,7 @@ public class LookupTableUShort extends LookupTable {
                 }
             } else {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final float[] d = fDstData[b];
                     final float[] t = fTblData[b];
 
@@ -1803,7 +1787,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                            d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -1815,7 +1799,7 @@ public class LookupTableUShort extends LookupTable {
             if (useROIAccessor) {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final float[] d = fDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -1841,8 +1825,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
-                                    d[dstPixelOffset] = data.getElemFloat(b,
-                                            (s[srcPixelOffset] & 0xFFFF));
+                                    d[dstPixelOffset] = data.getElemFloat(b, (s[srcPixelOffset]));
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -1852,7 +1835,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         float[] d = fDstData[b];
                         float[] t = fTblData[b];
 
@@ -1880,7 +1863,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
-                                    d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -1892,7 +1875,7 @@ public class LookupTableUShort extends LookupTable {
             } else {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final float[] d = fDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -1913,7 +1896,7 @@ public class LookupTableUShort extends LookupTable {
                                         d[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
                                         d[dstPixelOffset] = data.getElemFloat(b,
-                                                (s[srcPixelOffset] & 0xFFFF));
+                                                (s[srcPixelOffset]));
                                     }
                                 } else {
                                     d[dstPixelOffset] = destinationNoDataFloat;
@@ -1926,7 +1909,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         float[] d = fDstData[b];
                         float[] t = fTblData[b];
 
@@ -1947,8 +1930,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
-                                        d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF)
-                                                - tblOffset];
+                                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
                                     }
                                 } else {
                                     d[dstPixelOffset] = destinationNoDataFloat;
@@ -1964,7 +1946,7 @@ public class LookupTableUShort extends LookupTable {
         } else if (caseC) {
             if (caseNull) {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final float[] d = fDstData[b];
 
                     int srcLineOffset = srcBandOffsets[b];
@@ -1979,7 +1961,7 @@ public class LookupTableUShort extends LookupTable {
 
                         for (int x = 0; x < dstWidth; x++) {
 
-                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            int value = s[srcPixelOffset];
                             if (rangeND.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataFloat;
                             } else {
@@ -1994,7 +1976,7 @@ public class LookupTableUShort extends LookupTable {
                 }
             } else {
                 for (int b = 0; b < dstNumBands; b++) {
-                    short[] s = sSrcData[b];
+                    int[] s = iSrcData[b];
                     float[] d = fDstData[b];
                     float[] t = fTblData[b];
 
@@ -2010,7 +1992,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int x = 0; x < dstWidth; x++) {
-                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            int value = s[srcPixelOffset];
                             if (rangeND.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataFloat;
                             } else {
@@ -2027,7 +2009,7 @@ public class LookupTableUShort extends LookupTable {
             if (useROIAccessor) {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final float[] d = fDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -2053,7 +2035,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
-                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    int value = s[srcPixelOffset];
                                     if (rangeND.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
@@ -2068,7 +2050,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         float[] d = fDstData[b];
                         float[] t = fTblData[b];
 
@@ -2096,7 +2078,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
-                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    int value = s[srcPixelOffset];
                                     if (rangeND.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
@@ -2112,7 +2094,7 @@ public class LookupTableUShort extends LookupTable {
             } else {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final float[] d = fDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -2132,12 +2114,11 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
-                                        short value = (short) (s[srcPixelOffset] & 0xFF);
+                                        int value = s[srcPixelOffset];
                                         if (rangeND.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataFloat;
                                         } else {
-                                            d[dstPixelOffset] = data.getElemFloat(b,
-                                                    (s[srcPixelOffset] & 0xFFFF));
+                                            d[dstPixelOffset] = data.getElemFloat(b, value);
                                         }
                                     }
                                 } else {
@@ -2150,7 +2131,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         float[] d = fDstData[b];
                         float[] t = fTblData[b];
 
@@ -2172,7 +2153,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
-                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        int value = s[srcPixelOffset];
                                         if (rangeND.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataFloat;
                                         } else {
@@ -2192,9 +2173,9 @@ public class LookupTableUShort extends LookupTable {
         }
     }
 
-    // ushort to double
+    // int to double
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
-            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, double[][] dDstData, int[] tblOffsets,
             double[][] dTblData, RasterAccessor roi, Rectangle destRect) {
 
@@ -2212,7 +2193,7 @@ public class LookupTableUShort extends LookupTable {
             roiLineStride = roi.getScanlineStride();
         }
 
-        Range<Short> rangeND = (Range<Short>) noData;
+        Range<Integer> rangeND = (Range<Integer>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -2222,7 +2203,7 @@ public class LookupTableUShort extends LookupTable {
         if (caseA) {
             if (caseNull) {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final double[] d = dDstData[b];
 
                     int srcLineOffset = srcBandOffsets[b];
@@ -2236,7 +2217,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = data.getElemDouble(b, (s[srcPixelOffset] & 0xFFFF));
+                            d[dstPixelOffset] = data.getElemDouble(b, (s[srcPixelOffset]));
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -2245,7 +2226,7 @@ public class LookupTableUShort extends LookupTable {
                 }
             } else {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final double[] d = dDstData[b];
                     final double[] t = dTblData[b];
 
@@ -2261,7 +2242,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                            d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -2273,7 +2254,7 @@ public class LookupTableUShort extends LookupTable {
             if (useROIAccessor) {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final double[] d = dDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -2299,8 +2280,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
-                                    d[dstPixelOffset] = data.getElemDouble(b,
-                                            (s[srcPixelOffset] & 0xFFFF));
+                                    d[dstPixelOffset] = data.getElemDouble(b, (s[srcPixelOffset]));
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -2310,7 +2290,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         double[] d = dDstData[b];
                         double[] t = dTblData[b];
 
@@ -2338,7 +2318,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
-                                    d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -2350,7 +2330,7 @@ public class LookupTableUShort extends LookupTable {
             } else {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final double[] d = dDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -2371,7 +2351,7 @@ public class LookupTableUShort extends LookupTable {
                                         d[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
                                         d[dstPixelOffset] = data.getElemDouble(b,
-                                                (s[srcPixelOffset] & 0xFFFF));
+                                                (s[srcPixelOffset]));
                                     }
                                 } else {
                                     d[dstPixelOffset] = destinationNoDataDouble;
@@ -2384,7 +2364,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         double[] d = dDstData[b];
                         double[] t = dTblData[b];
 
@@ -2405,8 +2385,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
-                                        d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF)
-                                                - tblOffset];
+                                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
                                     }
                                 } else {
                                     d[dstPixelOffset] = destinationNoDataDouble;
@@ -2422,7 +2401,7 @@ public class LookupTableUShort extends LookupTable {
         } else if (caseC) {
             if (caseNull) {
                 for (int b = 0; b < dstNumBands; b++) {
-                    final short[] s = sSrcData[b];
+                    final int[] s = iSrcData[b];
                     final double[] d = dDstData[b];
 
                     int srcLineOffset = srcBandOffsets[b];
@@ -2437,7 +2416,7 @@ public class LookupTableUShort extends LookupTable {
 
                         for (int x = 0; x < dstWidth; x++) {
 
-                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            int value = s[srcPixelOffset];
                             if (rangeND.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataDouble;
                             } else {
@@ -2452,7 +2431,7 @@ public class LookupTableUShort extends LookupTable {
                 }
             } else {
                 for (int b = 0; b < dstNumBands; b++) {
-                    short[] s = sSrcData[b];
+                    int[] s = iSrcData[b];
                     double[] d = dDstData[b];
                     double[] t = dTblData[b];
 
@@ -2468,7 +2447,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int x = 0; x < dstWidth; x++) {
-                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            int value = s[srcPixelOffset];
                             if (rangeND.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataDouble;
                             } else {
@@ -2485,7 +2464,7 @@ public class LookupTableUShort extends LookupTable {
             if (useROIAccessor) {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final double[] d = dDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -2511,7 +2490,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
-                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    int value = s[srcPixelOffset];
                                     if (rangeND.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
@@ -2526,7 +2505,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         double[] d = dDstData[b];
                         double[] t = dTblData[b];
 
@@ -2554,7 +2533,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
-                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    int value = s[srcPixelOffset];
                                     if (rangeND.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
@@ -2570,7 +2549,7 @@ public class LookupTableUShort extends LookupTable {
             } else {
                 if (caseNull) {
                     for (int b = 0; b < dstNumBands; b++) {
-                        final short[] s = sSrcData[b];
+                        final int[] s = iSrcData[b];
                         final double[] d = dDstData[b];
 
                         int srcLineOffset = srcBandOffsets[b];
@@ -2590,7 +2569,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
-                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        int value = s[srcPixelOffset];
                                         if (rangeND.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataDouble;
                                         } else {
@@ -2607,7 +2586,7 @@ public class LookupTableUShort extends LookupTable {
                     }
                 } else {
                     for (int b = 0; b < dstNumBands; b++) {
-                        short[] s = sSrcData[b];
+                        int[] s = iSrcData[b];
                         double[] d = dDstData[b];
                         double[] t = dTblData[b];
 
@@ -2629,7 +2608,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
-                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        int value = s[srcPixelOffset];
                                         if (rangeND.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataDouble;
                                         } else {
