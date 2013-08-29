@@ -1,9 +1,11 @@
 package it.geosolutions.jaiext.lookup;
 
+import static org.junit.Assert.assertFalse;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.io.IOException;
 
@@ -14,88 +16,149 @@ import javax.media.jai.ROIShape;
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.jaitools.numeric.Range;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-public class LookupTest extends TestBase {
+/**
+ * This testclass is used for checking the functionality of the LookupOpImage class. The tests are divided in 5 groups:
+ * <ul>
+ * <li>Tests without ROI and without no Data</li>
+ * <li>Tests with ROI (RoiAccessor not used) and without no Data</li>
+ * <li>Tests with ROI (RoiAccessor used) and without no Data</li>
+ * <li>Tests without ROI and with no Data</li>
+ * <li>Tests with ROI (RoiAccessor used) and with no Data</li>
+ * </ul>
+ * 
+ * All the tests are performed on all the image data types. If the source and destination images are byte images, then they can be printed to the
+ * screen by setting the JVM parameter JAI.Ext.Interactive to true, and selecting one of the 5 test-groups with the JVM integer parameter
+ * JAI.Ext.TestSelector. The user can choose between the following values:
+ * <ul>
+ * <li>0 No ROI only valid data</li>
+ * <li>1 Roi RasterAccessor and only valid data</li>
+ * <li>2 Roi without RasterAccessor and only valid data</li>
+ * <li>3 Roi RasterAccessor and No data</li>
+ * <li>5 No Data without ROI</li>
+ * </ul>
+ * 
+ * If the image is not printed to screen, then the PlanarImage.getTiles() method is called for forcing the calculation of all the image tiles. When
+ * all the tiles are calculated, other two test are done: the first tests if the ROI is well calculated, and the second checks that the image is
+ * filled with values.
+ */
 
+public class LookupTest extends TestBase {
+    /** Byte test image */
     private static RenderedImage testImageByte;
 
+    /** Ushort test image */
     private static RenderedImage testImageUShort;
 
+    /** Short test image */
     private static RenderedImage testImageShort;
 
+    /** Integer test image */
     private static RenderedImage testImageInt;
 
+    /** LookupTable from byte to byte */
     private static LookupTableByte byteToByteTable;
 
+    /** LookupTable from byte to ushort */
     private static LookupTableByte byteToUshortTable;
 
+    /** LookupTable from byte to short */
     private static LookupTableByte byteToShortTable;
 
+    /** LookupTable from byte to int */
     private static LookupTableByte byteToIntTable;
 
+    /** LookupTable from byte to float */
     private static LookupTableByte byteToFloatTable;
 
+    /** LookupTable from byte to double */
     private static LookupTableByte byteToDoubleTable;
 
+    /** LookupTable from ushort to byte */
     private static LookupTableUShort ushortToByteTable;
 
+    /** LookupTable from ushort to ushort */
     private static LookupTableUShort ushortToUshortTable;
 
+    /** LookupTable from ushort to short */
     private static LookupTableUShort ushortToShortTable;
 
+    /** LookupTable from ushort to int */
     private static LookupTableUShort ushortToIntTable;
 
+    /** LookupTable from ushort to float */
     private static LookupTableUShort ushortToFloatTable;
 
+    /** LookupTable from ushort to double */
     private static LookupTableUShort ushortToDoubleTable;
 
+    /** LookupTable from short to byte */
     private static LookupTableShort shortToByteTable;
 
+    /** LookupTable from short to ushort */
     private static LookupTableShort shortToUshortTable;
 
+    /** LookupTable from short to short */
     private static LookupTableShort shortToShortTable;
 
+    /** LookupTable from short to int */
     private static LookupTableShort shortToIntTable;
 
+    /** LookupTable from short to float */
     private static LookupTableShort shortToFloatTable;
 
+    /** LookupTable from short to double */
     private static LookupTableShort shortToDoubleTable;
 
+    /** LookupTable from int to byte */
     private static LookupTableInt intToByteTable;
 
+    /** LookupTable from int to ushort */
     private static LookupTableInt intToUshortTable;
 
+    /** LookupTable from int to short */
     private static LookupTableInt intToShortTable;
 
+    /** LookupTable from int to int */
     private static LookupTableInt intToIntTable;
 
+    /** LookupTable from int to float */
     private static LookupTableInt intToFloatTable;
 
+    /** LookupTable from int to double */
     private static LookupTableInt intToDoubleTable;
 
+    /** ROI used in tests */
     private static ROIShape roi;
 
+    /** Destination No Data value used */
     private static double destinationNoDataValue;
 
+    /** Byte no Data range */
     private static Range<Byte> rangeB;
 
+    /** UShort no Data range */
     private static Range<Short> rangeUS;
 
+    /** Short no Data range */
     private static Range<Short> rangeS;
 
+    /** Integer no Data range */
     private static Range<Integer> rangeI;
 
+    // Initial static method for preparing all the test data
     @BeforeClass
     public static void initialSetup() {
-        //Setting of an input parameter to be always false, avoiding the image to be totally filled by values
+        // Setting of an input parameter to be always false, avoiding the image to be totally filled by values
         IMAGE_FILLER = false;
         // Images initialization
+        // Byte Range goes from 0 to 255
         byte noDataB = (byte) 156;
         short noDataUS = 100;
         short noDataS = -100;
         int noDataI = -100;
+        // Test images creation
         testImageByte = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
                 noDataB, false);
         testImageUShort = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
@@ -104,241 +167,711 @@ public class LookupTest extends TestBase {
                 noDataS, false);
         testImageInt = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
                 false);
-        //Offset creation
-        int byteOffset = -100;
+        // Offset creation
+        int byteOffset = 0;
         int ushortOffset = 0;
         int shortOffset = noDataS;
         int intOffset = noDataI;
-        
+
         // Array Lookup creation
         int arrayLength = 201;
-        int startValue=-100;
-        
+        int startValue = -100;
+
         byte[] dataByteB = new byte[arrayLength];
         short[] dataByteUS = new short[arrayLength];
         short[] dataByteS = new short[arrayLength];
         int[] dataByteI = new int[arrayLength];
         float[] dataByteF = new float[arrayLength];
         double[] dataByteD = new double[arrayLength];
-        
+
         byte[] dataUShortB = new byte[arrayLength];
         short[] dataUShortUS = new short[arrayLength];
         short[] dataUShortS = new short[arrayLength];
         int[] dataUShortI = new int[arrayLength];
         float[] dataUShortF = new float[arrayLength];
         double[] dataUShortD = new double[arrayLength];
-        
+
         byte[] dataShortB = new byte[arrayLength];
         short[] dataShortUS = new short[arrayLength];
         short[] dataShortS = new short[arrayLength];
         int[] dataShortI = new int[arrayLength];
         float[] dataShortF = new float[arrayLength];
         double[] dataShortD = new double[arrayLength];
-        
+
         byte[] dataIntB = new byte[arrayLength];
         short[] dataIntUS = new short[arrayLength];
         short[] dataIntS = new short[arrayLength];
         int[] dataIntI = new int[arrayLength];
         float[] dataIntF = new float[arrayLength];
         double[] dataIntD = new double[arrayLength];
-        
-        for(int i = 0; i<arrayLength;i++){
-            //byte-to-all arrays
-            dataByteB[i]=0;
-            dataByteUS[i]=0;
-            dataByteS[i]=0;
-            dataByteI[i]=0;
-            dataByteF[i]=i/arrayLength;
-            dataByteD[i]=i/arrayLength*2;
-            
-            //ushort-to-all arrays
-            dataUShortB[i]=0;
-            dataUShortUS[i]=0;
-            dataUShortS[i]=0;
-            dataUShortI[i]=0;
-            dataUShortF[i]=i/arrayLength;
-            dataUShortD[i]=i/arrayLength*2;
-            
-            //short-to-all arrays
-            dataShortB[i]=0;
-            dataShortUS[i]=0;
-            dataShortS[i]=0;
-            dataShortI[i]=0;
-            dataShortF[i]=i/arrayLength;
-            dataShortD[i]=i/arrayLength*2;
-            
-            //int-to-all arrays
-            dataIntB[i]=0;
-            dataIntUS[i]=0;
-            dataIntS[i]=0;
-            dataIntI[i]=0;
-            dataIntF[i]=i/arrayLength;
-            dataIntD[i]=i/arrayLength*2;
-            
+        // Array construction
+        for (int i = 0; i < arrayLength; i++) {
+            // byte-to-all arrays
+            dataByteB[i] = 0;
+            dataByteUS[i] = 0;
+            dataByteS[i] = 0;
+            dataByteI[i] = 0;
+            dataByteF[i] = (i * 1.0f) / arrayLength;
+            dataByteD[i] = (i * 1.0d) / arrayLength * 2;
+
+            // ushort-to-all arrays
+            dataUShortB[i] = 0;
+            dataUShortUS[i] = 0;
+            dataUShortS[i] = 0;
+            dataUShortI[i] = 0;
+            dataUShortF[i] = (i * 1.0f) / arrayLength;
+            dataUShortD[i] = (i * 1.0d) / arrayLength * 2;
+
+            // short-to-all arrays
+            dataShortB[i] = 0;
+            dataShortUS[i] = 0;
+            dataShortS[i] = 0;
+            dataShortI[i] = 0;
+            dataShortF[i] = (i * 1.0f) / arrayLength;
+            dataShortD[i] = (i * 1.0d) / arrayLength * 2;
+
+            // int-to-all arrays
+            dataIntB[i] = 0;
+            dataIntUS[i] = 0;
+            dataIntS[i] = 0;
+            dataIntI[i] = 0;
+            dataIntF[i] = (i * 1.0f) / arrayLength;
+            dataIntD[i] = (i * 1.0d) / arrayLength * 2;
+
             int value = i + startValue;
-            
-            if(value == noDataI){
-                //byte-to-all arrays
-                dataByteB[i]=50;
-                dataByteUS[i]=50;
-                dataByteS[i]=50;
-                dataByteI[i]=50;
-                
-                //short-to-all arrays
-                dataShortB[i]=50;
-                dataShortUS[i]=50;
-                dataShortS[i]=50;
-                dataShortI[i]=50;
-                
-              //int-to-all arrays
-                dataIntB[i]=50;
-                dataIntUS[i]=50;
-                dataIntS[i]=50;
-                dataIntI[i]=50;
+
+            if (value == noDataI) {
+                // short-to-all arrays
+                dataShortB[i] = 50;
+                dataShortUS[i] = 50;
+                dataShortS[i] = 50;
+                dataShortI[i] = 50;
+
+                // int-to-all arrays
+                dataIntB[i] = 50;
+                dataIntUS[i] = 50;
+                dataIntS[i] = 50;
+                dataIntI[i] = 50;
             }
-            
-            if(i==noDataUS){
-                //ushort-to-all arrays
-                dataUShortB[i]=50;
-                dataUShortUS[i]=50;
-                dataUShortS[i]=50;
-                dataUShortI[i]=50;
+
+            if (i == noDataUS) {
+                // ushort-to-all arrays
+                dataUShortB[i] = 50;
+                dataUShortUS[i] = 50;
+                dataUShortS[i] = 50;
+                dataUShortI[i] = 50;
             }
-            
+
+            if (i == (noDataB & 0xFF)) {
+                // byte-to-all arrays
+                dataByteB[i] = 50;
+                dataByteUS[i] = 50;
+                dataByteS[i] = 50;
+                dataByteI[i] = 50;
+            }
+
         }
-        
+
         // LookupTables creation
-        byteToByteTable = new LookupTableByte(dataByteB,byteOffset);
-        byteToUshortTable = new LookupTableByte(dataByteUS,byteOffset,true);
-        byteToShortTable = new LookupTableByte(dataByteS,byteOffset,false);
-        byteToIntTable = new LookupTableByte(dataByteI,byteOffset);
-        byteToFloatTable = new LookupTableByte(dataByteF,byteOffset);
-        byteToDoubleTable = new LookupTableByte(dataByteD,byteOffset);
+        byteToByteTable = new LookupTableByte(dataByteB, byteOffset);
+        byteToUshortTable = new LookupTableByte(dataByteUS, byteOffset, true);
+        byteToShortTable = new LookupTableByte(dataByteS, byteOffset, false);
+        byteToIntTable = new LookupTableByte(dataByteI, byteOffset);
+        byteToFloatTable = new LookupTableByte(dataByteF, byteOffset);
+        byteToDoubleTable = new LookupTableByte(dataByteD, byteOffset);
 
-        ushortToByteTable = new LookupTableUShort(dataUShortB,ushortOffset);
-        ushortToUshortTable = new LookupTableUShort(dataUShortUS,ushortOffset,true);
-        ushortToShortTable = new LookupTableUShort(dataUShortS,ushortOffset,false);
-        ushortToIntTable = new LookupTableUShort(dataUShortI,ushortOffset);
-        ushortToFloatTable = new LookupTableUShort(dataUShortF,ushortOffset);
-        ushortToDoubleTable = new LookupTableUShort(dataUShortD,ushortOffset);
+        ushortToByteTable = new LookupTableUShort(dataUShortB, ushortOffset);
+        ushortToUshortTable = new LookupTableUShort(dataUShortUS, ushortOffset, true);
+        ushortToShortTable = new LookupTableUShort(dataUShortS, ushortOffset, false);
+        ushortToIntTable = new LookupTableUShort(dataUShortI, ushortOffset);
+        ushortToFloatTable = new LookupTableUShort(dataUShortF, ushortOffset);
+        ushortToDoubleTable = new LookupTableUShort(dataUShortD, ushortOffset);
 
-        shortToByteTable = new LookupTableShort(dataShortB,shortOffset);
-        shortToUshortTable = new LookupTableShort(dataShortUS,shortOffset,true);
-        shortToShortTable = new LookupTableShort(dataShortS,shortOffset,false);
-        shortToIntTable = new LookupTableShort(dataShortI,shortOffset);
-        shortToFloatTable = new LookupTableShort(dataShortF,shortOffset);
-        shortToDoubleTable = new LookupTableShort(dataShortD,shortOffset);
+        shortToByteTable = new LookupTableShort(dataShortB, shortOffset);
+        shortToUshortTable = new LookupTableShort(dataShortUS, shortOffset, true);
+        shortToShortTable = new LookupTableShort(dataShortS, shortOffset, false);
+        shortToIntTable = new LookupTableShort(dataShortI, shortOffset);
+        shortToFloatTable = new LookupTableShort(dataShortF, shortOffset);
+        shortToDoubleTable = new LookupTableShort(dataShortD, shortOffset);
 
-        intToByteTable = new LookupTableInt(dataIntB,intOffset);
-        intToUshortTable = new LookupTableInt(dataIntUS,intOffset,true);
-        intToShortTable = new LookupTableInt(dataIntS,intOffset,false);
-        intToIntTable = new LookupTableInt(dataIntI,intOffset);
-        intToFloatTable = new LookupTableInt(dataIntF,intOffset);
-        intToDoubleTable = new LookupTableInt(dataIntD,intOffset);
+        intToByteTable = new LookupTableInt(dataIntB, intOffset);
+        intToUshortTable = new LookupTableInt(dataIntUS, intOffset, true);
+        intToShortTable = new LookupTableInt(dataIntS, intOffset, false);
+        intToIntTable = new LookupTableInt(dataIntI, intOffset);
+        intToFloatTable = new LookupTableInt(dataIntF, intOffset);
+        intToDoubleTable = new LookupTableInt(dataIntD, intOffset);
         // ROI creation
-        Rectangle roiBounds = new Rectangle(0, 0, DEFAULT_WIDTH/4, DEFAULT_HEIGHT/4);
+        Rectangle roiBounds = new Rectangle(0, 0, DEFAULT_WIDTH / 4, DEFAULT_HEIGHT / 4);
         roi = new ROIShape(roiBounds);
         // NoData creation
-        rangeB=Range.create(noDataB, true, noDataB, true);
-        rangeUS=Range.create(noDataUS, true, noDataUS, true);
-        rangeS=Range.create(noDataS, true, noDataS, true);
-        rangeI=Range.create(noDataI, true, noDataI, true);
+        rangeB = Range.create(noDataB, true, noDataB, true);
+        rangeUS = Range.create(noDataUS, true, noDataUS, true);
+        rangeS = Range.create(noDataS, true, noDataS, true);
+        rangeI = Range.create(noDataI, true, noDataI, true);
         // Destination No Data
-        destinationNoDataValue = 50;
+        destinationNoDataValue = 255;
     }
 
-    
     // No ROI tested; NoData not present
     @Test
-    @Ignore
-    public void testByteToAllTypes(){
+    public void testByteToAllTypes() {
         boolean roiUsed = false;
-        boolean noDataPresent=false;
+        boolean noDataPresent = false;
         boolean useRoiAccessor = false;
-        
-        
-        testOperation(testImageByte,byteToByteTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_BYTE);
+        int dataType = DataBuffer.TYPE_BYTE;
+        TestSelection selector = TestSelection.NO_ROI_ONLY_DATA;
 
-        testOperation(testImageByte,byteToUshortTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_BYTE);
+        testOperation(testImageByte, byteToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageByte,byteToShortTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_BYTE);
+        testOperation(testImageByte, byteToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageByte,byteToIntTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_BYTE);
+        testOperation(testImageByte, byteToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageByte,byteToFloatTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_BYTE);
+        testOperation(testImageByte, byteToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageByte,byteToDoubleTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_BYTE);
+        testOperation(testImageByte, byteToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
     }
-    
+
     @Test
-    public void testUshortToAllTypes(){
+    public void testUshortToAllTypes() {
         boolean roiUsed = false;
-        boolean noDataPresent=false;
+        boolean noDataPresent = false;
         boolean useRoiAccessor = false;
-        
-        testOperation(testImageUShort,ushortToByteTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_USHORT);
+        int dataType = DataBuffer.TYPE_USHORT;
+        TestSelection selector = TestSelection.NO_ROI_ONLY_DATA;
 
-        testOperation(testImageUShort,ushortToUshortTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_USHORT);
+        testOperation(testImageUShort, ushortToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageUShort,ushortToShortTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_USHORT);
+        testOperation(testImageUShort, ushortToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageUShort,ushortToIntTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_USHORT);
+        testOperation(testImageUShort, ushortToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageUShort,ushortToFloatTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_USHORT);
+        testOperation(testImageUShort, ushortToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageUShort,ushortToDoubleTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_USHORT);
+        testOperation(testImageUShort, ushortToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
     }
-    
+
     @Test
-    public void testShortToAllTypes(){
+    public void testShortToAllTypes() {
         boolean roiUsed = false;
-        boolean noDataPresent=false;
+        boolean noDataPresent = false;
         boolean useRoiAccessor = false;
-        
-        testOperation(testImageShort,shortToByteTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_SHORT);
+        int dataType = DataBuffer.TYPE_SHORT;
+        TestSelection selector = TestSelection.NO_ROI_ONLY_DATA;
 
-        testOperation(testImageShort,shortToUshortTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_SHORT);
+        testOperation(testImageShort, shortToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageShort,shortToShortTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_SHORT);
+        testOperation(testImageShort, shortToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageShort,shortToIntTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_SHORT);
+        testOperation(testImageShort, shortToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageShort,shortToFloatTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_SHORT);
+        testOperation(testImageShort, shortToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageShort,shortToDoubleTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_SHORT);
+        testOperation(testImageShort, shortToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
     }
-    
+
     @Test
-    public void testIntToAllTypes(){
+    public void testIntToAllTypes() {
         boolean roiUsed = false;
-        boolean noDataPresent=false;
+        boolean noDataPresent = false;
         boolean useRoiAccessor = false;
-        
-        testOperation(testImageInt,intToByteTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_INT);
+        int dataType = DataBuffer.TYPE_INT;
+        TestSelection selector = TestSelection.NO_ROI_ONLY_DATA;
 
-        testOperation(testImageInt,intToUshortTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_INT);
+        testOperation(testImageInt, intToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageInt,intToShortTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_INT);
+        testOperation(testImageInt, intToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageInt,intToIntTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_INT);
+        testOperation(testImageInt, intToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageInt,intToFloatTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_INT);
+        testOperation(testImageInt, intToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
 
-        testOperation(testImageInt,intToDoubleTable,roiUsed,noDataPresent,useRoiAccessor,DataBuffer.TYPE_INT);
+        testOperation(testImageInt, intToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
     }
 
-    public void testOperation(RenderedImage img, LookupTable table,boolean roiUsed,boolean noDataUsed,boolean useRoiAccessor, int dataTypeInput){
-        
+    // ROI tested (RoiAccessor not used); NoData not present
+    @Test
+    public void testByteToAllTypesROIBounds() {
+        boolean roiUsed = true;
+        boolean noDataPresent = false;
+        boolean useRoiAccessor = false;
+        int dataType = DataBuffer.TYPE_BYTE;
+        TestSelection selector = TestSelection.ROI_ONLY_DATA;
+
+        testOperation(testImageByte, byteToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testUshortToAllTypesROIBounds() {
+        boolean roiUsed = true;
+        boolean noDataPresent = false;
+        boolean useRoiAccessor = false;
+        int dataType = DataBuffer.TYPE_USHORT;
+        TestSelection selector = TestSelection.ROI_ONLY_DATA;
+
+        testOperation(testImageUShort, ushortToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testShortToAllTypesROIBounds() {
+        boolean roiUsed = true;
+        boolean noDataPresent = false;
+        boolean useRoiAccessor = false;
+        int dataType = DataBuffer.TYPE_SHORT;
+        TestSelection selector = TestSelection.ROI_ONLY_DATA;
+
+        testOperation(testImageShort, shortToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testIntToAllTypesROIBounds() {
+        boolean roiUsed = true;
+        boolean noDataPresent = false;
+        boolean useRoiAccessor = false;
+        int dataType = DataBuffer.TYPE_INT;
+        TestSelection selector = TestSelection.ROI_ONLY_DATA;
+
+        testOperation(testImageInt, intToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    // ROI tested (RoiAccessor used); NoData not present
+    @Test
+    public void testByteToAllTypesROIAccessor() {
+        boolean roiUsed = true;
+        boolean noDataPresent = false;
+        boolean useRoiAccessor = true;
+        int dataType = DataBuffer.TYPE_BYTE;
+        TestSelection selector = TestSelection.ROI_ACCESSOR_ONLY_DATA;
+
+        testOperation(testImageByte, byteToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testUshortToAllTypesROIAccessor() {
+        boolean roiUsed = true;
+        boolean noDataPresent = false;
+        boolean useRoiAccessor = true;
+        int dataType = DataBuffer.TYPE_USHORT;
+        TestSelection selector = TestSelection.ROI_ACCESSOR_ONLY_DATA;
+
+        testOperation(testImageUShort, ushortToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testShortToAllTypesROIAccessor() {
+        boolean roiUsed = true;
+        boolean noDataPresent = false;
+        boolean useRoiAccessor = true;
+        int dataType = DataBuffer.TYPE_SHORT;
+        TestSelection selector = TestSelection.ROI_ACCESSOR_ONLY_DATA;
+
+        testOperation(testImageShort, shortToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testIntToAllTypesROIAccessor() {
+        boolean roiUsed = true;
+        boolean noDataPresent = false;
+        boolean useRoiAccessor = true;
+        int dataType = DataBuffer.TYPE_INT;
+        TestSelection selector = TestSelection.ROI_ACCESSOR_ONLY_DATA;
+
+        testOperation(testImageInt, intToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    // NoData tested; ROI not present
+    @Test
+    public void testByteToAllTypesNoData() {
+        boolean roiUsed = false;
+        boolean noDataPresent = true;
+        boolean useRoiAccessor = false;
+        int dataType = DataBuffer.TYPE_BYTE;
+        TestSelection selector = TestSelection.NO_ROI_NO_DATA;
+
+        testOperation(testImageByte, byteToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testUshortToAllTypesNoData() {
+        boolean roiUsed = false;
+        boolean noDataPresent = true;
+        boolean useRoiAccessor = false;
+        int dataType = DataBuffer.TYPE_USHORT;
+        TestSelection selector = TestSelection.NO_ROI_NO_DATA;
+
+        testOperation(testImageUShort, ushortToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testShortToAllTypesNoData() {
+        boolean roiUsed = false;
+        boolean noDataPresent = true;
+        boolean useRoiAccessor = false;
+        int dataType = DataBuffer.TYPE_SHORT;
+        TestSelection selector = TestSelection.NO_ROI_NO_DATA;
+
+        testOperation(testImageShort, shortToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testIntToAllTypesNoData() {
+        boolean roiUsed = false;
+        boolean noDataPresent = true;
+        boolean useRoiAccessor = false;
+        int dataType = DataBuffer.TYPE_INT;
+        TestSelection selector = TestSelection.NO_ROI_NO_DATA;
+
+        testOperation(testImageInt, intToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    // NoData tested; ROI present (RoiAccessor used)
+    @Test
+    public void testByteToAllTypesFull() {
+        boolean roiUsed = true;
+        boolean noDataPresent = true;
+        boolean useRoiAccessor = true;
+        int dataType = DataBuffer.TYPE_BYTE;
+        TestSelection selector = TestSelection.ROI_ACCESSOR_NO_DATA;
+
+        testOperation(testImageByte, byteToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageByte, byteToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testUshortToAllTypesFull() {
+        boolean roiUsed = true;
+        boolean noDataPresent = true;
+        boolean useRoiAccessor = true;
+        int dataType = DataBuffer.TYPE_USHORT;
+        TestSelection selector = TestSelection.ROI_ACCESSOR_NO_DATA;
+
+        testOperation(testImageUShort, ushortToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageUShort, ushortToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testShortToAllTypesFull() {
+        boolean roiUsed = true;
+        boolean noDataPresent = true;
+        boolean useRoiAccessor = true;
+        int dataType = DataBuffer.TYPE_SHORT;
+        TestSelection selector = TestSelection.ROI_ACCESSOR_NO_DATA;
+
+        testOperation(testImageShort, shortToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageShort, shortToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    @Test
+    public void testIntToAllTypesFull() {
+        boolean roiUsed = true;
+        boolean noDataPresent = true;
+        boolean useRoiAccessor = true;
+        int dataType = DataBuffer.TYPE_INT;
+        TestSelection selector = TestSelection.ROI_ACCESSOR_NO_DATA;
+
+        testOperation(testImageInt, intToByteTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToUshortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToShortTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToIntTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToFloatTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+
+        testOperation(testImageInt, intToDoubleTable, roiUsed, noDataPresent, useRoiAccessor,
+                dataType, selector);
+    }
+
+    // This method is the general method used by all the test
+    public void testOperation(RenderedImage img, LookupTable table, boolean roiUsed,
+            boolean noDataUsed, boolean useRoiAccessor, int dataTypeInput, TestSelection selector) {
+
+        // ROI data is added only if the roiUsed parameter is set to true
         ROI roiData = null;
-        
-        if(roiUsed){
+
+        if (roiUsed) {
             roiData = roi;
         }
-        
+        // No Data Range data is added only if the noDataUsed parameter is set to true
         Range noDataRange = null;
-        
-        if(noDataUsed){
-            switch(dataTypeInput){
+
+        if (noDataUsed) {
+            switch (dataTypeInput) {
             case DataBuffer.TYPE_BYTE:
                 noDataRange = rangeB;
                 break;
@@ -349,30 +882,167 @@ public class LookupTest extends TestBase {
                 noDataRange = rangeS;
                 break;
             case DataBuffer.TYPE_INT:
-                noDataRange = rangeI; 
+                noDataRange = rangeI;
                 break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
+            default:
+                throw new IllegalArgumentException("Wrong data type");
             }
         }
-        RenderedImage destinationIMG = LookupDescriptor.create(img, table, destinationNoDataValue, roiData, noDataRange, useRoiAccessor, null);
-        
-        if(INTERACTIVE && table.getDataType() == DataBuffer.TYPE_BYTE && TEST_SELECTOR == dataTypeInput &&(dataTypeInput == 0 ||dataTypeInput == 1 ||dataTypeInput == 3 )){
+        // LookupDescriptor creation
+        PlanarImage destinationIMG = LookupDescriptor.create(img, table, destinationNoDataValue,
+                roiData, noDataRange, useRoiAccessor, null);
+
+        if (INTERACTIVE && table.getDataType() == DataBuffer.TYPE_BYTE
+                && TEST_SELECTOR == selector.getType() && dataTypeInput == DataBuffer.TYPE_BYTE) {
+            // The image is shown to the screen
             RenderedImageBrowser.showChain(destinationIMG, false, roiUsed);
             try {
                 System.in.read();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }else{
+        } else {
             // Calculates all the image tiles
-            ((PlanarImage)destinationIMG).getTiles();
-        }        
+            destinationIMG.getTiles();
+        }
+
+        // ROI test
+        if (roiUsed) {
+            // Selection of a tile inside the ROI
+            Rectangle roiBounds = roi.getBounds();
+            // Last ROI coordinates
+            int roiMaxPosX = roiBounds.x + roiBounds.width - 1;
+            int roiMaxPosY = roiBounds.y + roiBounds.height - 1;
+            // Tile coordinates associated to these coordinates
+            int tileX = destinationIMG.XToTileX(roiMaxPosX);
+            int tileY = destinationIMG.YToTileY(roiMaxPosY);
+            // Tile inside the ROI
+            Raster roiTile = destinationIMG.getTile(tileX, tileY);
+            // Tile data type
+            int dataTypeROI = roiTile.getSampleModel().getDataType();
+
+            // Control that a pixel is not a destination No Data
+            switch (dataTypeROI) {
+            case DataBuffer.TYPE_BYTE:
+            case DataBuffer.TYPE_USHORT:
+            case DataBuffer.TYPE_SHORT:
+            case DataBuffer.TYPE_INT:
+                int value = roiTile.getSample(roiTile.getMinX() + 2, roiTile.getMinY() + 1, 0);
+                assertFalse(value == (int) destinationNoDataValue);
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                float valuef = roiTile.getSampleFloat(roiTile.getMinX() + 2, roiTile.getMinY() + 1,
+                        0);
+                assertFalse(valuef == (float) destinationNoDataValue);
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                double valued = roiTile.getSampleDouble(roiTile.getMinX() + 2,
+                        roiTile.getMinY() + 1, 0);
+
+                assertFalse(valued == destinationNoDataValue);
+                break;
+            default:
+                throw new IllegalArgumentException("Wrong data type");
+            }
+        }
+
+        // Check minimum and maximum value for a tile
+        // Selection of the upper left tile
+        Raster simpleTile = destinationIMG.getTile(destinationIMG.getMinTileX(),
+                destinationIMG.getMinTileY());
+        // Tile dimensions
+        int tileMinX = simpleTile.getMinX();
+        int tileMinY = simpleTile.getMinY();
+        int tileWidth = simpleTile.getWidth();
+        int tileHeight = simpleTile.getHeight();
+        // Tile dataType
+        int dataType = simpleTile.getSampleModel().getDataType();
+        // Search for the maximum and minimum value inside all the tile and then control
+        // if they are equal.
+        switch (dataType) {
+        case DataBuffer.TYPE_BYTE:
+        case DataBuffer.TYPE_USHORT:
+        case DataBuffer.TYPE_SHORT:
+        case DataBuffer.TYPE_INT:
+            int minValue = Integer.MAX_VALUE;
+            int maxValue = Integer.MIN_VALUE;
+
+            for (int i = tileMinY; i < tileHeight + tileMinY; i++) {
+                for (int j = tileMinX; j < tileWidth + tileMinX; j++) {
+                    int value = simpleTile.getSample(j, i, 0);
+                    if (value > maxValue) {
+                        maxValue = value;
+                    }
+
+                    if (value < minValue) {
+                        minValue = value;
+                    }
+                }
+            }
+            // Check if the values are not max and minimum value
+            assertFalse(minValue == maxValue);
+            assertFalse(minValue == Integer.MAX_VALUE);
+            assertFalse(maxValue == Integer.MIN_VALUE);
+            break;
+        case DataBuffer.TYPE_FLOAT:
+            float minValuef = Float.MAX_VALUE;
+            float maxValuef = -Float.MAX_VALUE;
+
+            for (int i = 0; i < tileHeight; i++) {
+                for (int j = 0; j < tileWidth; j++) {
+                    float valuef = simpleTile.getSampleFloat(j, i, 0);
+
+                    if (Float.isNaN(valuef) || valuef == Float.POSITIVE_INFINITY
+                            || valuef == Float.POSITIVE_INFINITY) {
+                        valuef = 255;
+                    }
+
+                    if (valuef > maxValuef) {
+                        maxValuef = valuef;
+                    }
+
+                    if (valuef < minValuef) {
+                        minValuef = valuef;
+                    }
+                }
+            }
+            // Check if the values are not max and minimum value
+            assertFalse(minValuef == maxValuef);
+            assertFalse(minValuef == Float.MAX_VALUE);
+            assertFalse(maxValuef == -Float.MAX_VALUE);
+            break;
+        case DataBuffer.TYPE_DOUBLE:
+            double minValued = Double.MAX_VALUE;
+            double maxValued = -Double.MAX_VALUE;
+
+            for (int i = 0; i < tileHeight; i++) {
+                for (int j = 0; j < tileWidth; j++) {
+                    double valued = simpleTile.getSampleDouble(j, i, 0);
+
+                    if (Double.isNaN(valued) || valued == Double.POSITIVE_INFINITY
+                            || valued == Double.POSITIVE_INFINITY) {
+                        valued = 255;
+                    }
+
+                    if (valued > maxValued) {
+                        maxValued = valued;
+                    }
+
+                    if (valued < minValued) {
+                        minValued = valued;
+                    }
+                }
+            }
+            // Check if the values are not max and minimum value
+            assertFalse(minValued == maxValued);
+            assertFalse(minValued == Double.MAX_VALUE);
+            assertFalse(maxValued == -Double.MAX_VALUE);
+            break;
+        default:
+            throw new IllegalArgumentException("Wrong data type");
+        }
     }
-    
-    
-    
-    
+
     // UNSUPPORTED OPERATIONS
     @Override
     protected void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,

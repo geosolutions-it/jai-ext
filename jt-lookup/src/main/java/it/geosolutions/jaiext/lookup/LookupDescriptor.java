@@ -4,6 +4,7 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
+
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
 import javax.media.jai.ParameterBlockJAI;
@@ -12,8 +13,16 @@ import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderedRegistryMode;
+
 import org.jaitools.numeric.Range;
+
 import com.sun.media.jai.util.PropertyGeneratorImpl;
+
+/**
+ * This class is used for retrieving an eventual ROI object passed to the source image by calling the getProperty() method.
+ * This method checks if the ROI is present and if so, its bounds are intersected with the source and destination images bounds,
+ * and then passed as a result. If no property was found an Undefined Property object is returned. 
+ *  */
 
 class LookupPropertyGenerator extends PropertyGeneratorImpl {
 
@@ -157,7 +166,7 @@ class LookupPropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>DocURL</td>
- * <td>http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/LookupDescriptor.html</td>
+ * <td>Not defined</td>
  * </tr>
  * <tr>
  * <td>Version</td>

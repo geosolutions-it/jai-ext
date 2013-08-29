@@ -126,7 +126,7 @@ public class ComparisonTest {
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image with the interpolator
-        PlanarImage imageScale;
+        PlanarImage imageMosaic;
 
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -141,19 +141,19 @@ public class ComparisonTest {
                 // background values and threshold
                 double[] background = { destinationNoData, destinationNoData };
                 double[][] threshold = { { 0 }, { 0 } };
-                imageScale = javax.media.jai.operator.MosaicDescriptor.create(images, mosaicType,
+                imageMosaic = javax.media.jai.operator.MosaicDescriptor.create(images, mosaicType,
                         null, null, threshold, background, hints);
             } else {
 
 
                 double[] destnodata = { destinationNoData, destinationNoData };
 
-                imageScale = MosaicDescriptor.create(images, beanArray, mosaicType, destnodata, hints);
+                imageMosaic = MosaicDescriptor.create(images, beanArray, mosaicType, destnodata, hints);
             }
 
             // Total calculation time
             long start = System.nanoTime();
-            imageScale.getTiles();
+            imageMosaic.getTiles();
             long end = System.nanoTime() - start;
 
             // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored

@@ -19,6 +19,15 @@ import org.jaitools.numeric.Range;
 
 import com.sun.media.jai.util.DataBufferUtils;
 
+/**
+ * This abstract class defines the general methods of a LookupTable. This class contains all the table informations used by its direct subclasses for
+ * doing the lookup operation. The Constructor methods are called by all the 4 subclasses(one for every integral data type). The set/unsetROI() and
+ * set/unsetNoData() methods are used for setting or unsetting the ROI or No Data Range used by this table. ALl the get() methods are support methods
+ * used for retrieve table information in a faster way. Lookup(), lookupFloat() and lookupDouble() are 3 methods that return the table data associated
+ * with the selected input image. The lase method called lookup(Raster,WritableRaster,Rectangle) is abstract because its implementation depends on the
+ * subClass data type.
+ */
+
 public abstract class LookupTable implements Serializable {
 
     /** The table data. */
@@ -27,28 +36,40 @@ public abstract class LookupTable implements Serializable {
     /** The band offset values */
     protected int[] tableOffsets;
 
+    /** Destination no data for Byte images */
     protected byte destinationNoDataByte;
 
+    /** Destination no data for Short/Ushort images */
     protected short destinationNoDataShort;
 
+    /** Destination no data for Integer images */
     protected int destinationNoDataInt;
 
+    /** Destination no data for Float images */
     protected float destinationNoDataFloat;
 
+    /** Destination no data for Double images */
     protected double destinationNoDataDouble;
 
+    /** Range object containing no data values */
     protected Range noData;
 
+    /** Rectangle containing roi bounds */
     protected Rectangle roiBounds;
 
+    /** Iterator used for iterating on the roi data */
     protected RandomIter roiIter;
 
+    /** Boolean indicating if Roi RasterAccessor must be used */
     protected boolean useROIAccessor;
 
+    /** ROI image */
     protected PlanarImage srcROIImage;
 
+    /** Boolean indicating if the image contains No Data values */
     protected boolean hasNoData;
 
+    /** Boolean indicating if the image contains a ROI */
     protected boolean hasROI;
 
     /**
@@ -656,11 +677,11 @@ public abstract class LookupTable implements Serializable {
         if (srcSampleModel == null) {
             throw new IllegalArgumentException("Source SampleModel must be not null");
         }
-
+        // Control if the source has non-integral data type
         if (!isIntegralDataType(srcSampleModel)) {
-            return null; // source has non-integral data type
+            return null;
         }
-
+        // If the sample model is present, then a new component sample model is created
         return RasterFactory.createComponentSampleModel(srcSampleModel, getDataType(), width,
                 height, getDestNumBands(srcSampleModel.getNumBands()));
     }
@@ -720,6 +741,7 @@ public abstract class LookupTable implements Serializable {
         return data.getElemDouble(band, value - tableOffsets[band]);
     }
 
+    /** This method sets the same table offset for all the bands */
     protected void initOffsets(int nbands, int offset) {
         tableOffsets = new int[nbands];
         for (int i = 0; i < nbands; i++) {
@@ -727,6 +749,7 @@ public abstract class LookupTable implements Serializable {
         }
     }
 
+    /** This method sets the table offset related to every band */
     protected void initOffsets(int nbands, int[] offset) {
         tableOffsets = new int[nbands];
         for (int i = 0; i < nbands; i++) {
@@ -734,8 +757,11 @@ public abstract class LookupTable implements Serializable {
         }
     }
 
+    /** This method sets destination no data used for No Data or ROI calculation */
     public void setDestinationNoData(double destinationNoData) {
+        // Selection of the table data type
         int dataType = getDataType();
+        // Cast of the initial double value to that of the data type
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
             destinationNoDataByte = (byte) ((byte) destinationNoData & 0xff);
@@ -760,11 +786,19 @@ public abstract class LookupTable implements Serializable {
         }
     }
 
+    /** No Data flag is set to true and no data range is taken */
     public void setNoDataRange(Range noData) {
         this.noData = noData;
         this.hasNoData = true;
     }
 
+    /** No Data flag is set to false and no data range is set to null */
+    public void unsetNoData() {
+        this.noData = null;
+        this.hasNoData = false;
+    }
+
+    /** ROI flag is set to true and the ROI fields are all filled */
     public void setROIparams(Rectangle roiBounds, RandomIter roiIter, PlanarImage srcROIImage,
             boolean useROIAccessor) {
         this.hasROI = true;
@@ -774,6 +808,16 @@ public abstract class LookupTable implements Serializable {
         this.srcROIImage = srcROIImage;
     }
 
+    /** ROI flag is set to flag and the ROI fields are all left empty */
+    public void unsetROI() {
+        this.hasROI = false;
+        this.roiBounds = null;
+        this.roiIter = null;
+        this.srcROIImage = null;
+        this.useROIAccessor = false;
+    }
+
+    /** Abstract method for calculating the destination tile from the source tile and an eventual ROI raster */
     protected abstract void lookup(Raster source, WritableRaster dst, Rectangle rect, Raster roi);
 
 }

@@ -10,7 +10,9 @@ import org.jaitools.numeric.Range;
 import com.sun.media.jai.opimage.RIFUtil;
 
 /**
- * A <code>CRIF</code> supporting the "Lookup" operation.
+ * Simple class that provides the RenderedImage create operation by calling the LookupOpImage. The input parameters are: ParameterBlock,
+ * RenderingHints. The first one stores all the parameters, the second stores eventual hints used for changing the image settings. The create method
+ * returns a new instance of the LookupOpImage with the selected parameters.
  */
 
 public class LookupCRIF extends CRIFImpl {

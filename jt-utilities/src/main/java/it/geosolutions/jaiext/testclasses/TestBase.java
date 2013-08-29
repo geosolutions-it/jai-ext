@@ -46,7 +46,7 @@ public abstract class TestBase {
     
     public static Integer INVERSE_SCALE = Integer.getInteger("JAI.Ext.InverseScale");
 
-    public static Integer TEST_SELECTOR = Integer.getInteger("JAI.Ext.TestSelector");
+    public static Integer TEST_SELECTOR = Integer.getInteger("JAI.Ext.TestSelector",0);
 
     protected double destinationNoData;
 
@@ -92,7 +92,8 @@ public abstract class TestBase {
         , ROI_ACCESSOR_ONLY_DATA(1)
         , ROI_ONLY_DATA(2)
         , ROI_ACCESSOR_NO_DATA(3)
-        ,BINARY_ROI_ACCESSOR_NO_DATA(4);
+        ,BINARY_ROI_ACCESSOR_NO_DATA(4),
+        NO_ROI_NO_DATA(5);
 
         private int type;
 
