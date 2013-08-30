@@ -403,17 +403,6 @@ public class CoverageTest extends TestBase{
     }
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     // UNSUPPORTED OPERATIONS
     @Override
     protected void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,

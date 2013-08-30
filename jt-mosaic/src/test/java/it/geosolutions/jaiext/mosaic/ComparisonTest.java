@@ -3,12 +3,15 @@ package it.geosolutions.jaiext.mosaic;
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
+
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.MosaicType;
 import javax.media.jai.operator.NullDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
+
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -109,8 +112,10 @@ public class ComparisonTest {
 
         if (old) {
             description = "Old Mosaic";
+            System.setProperty("com.sun.media.jai.disableMediaLib", "false");
         } else {
             description = "New Mosaic";
+            System.setProperty("com.sun.media.jai.disableMediaLib", "true");
         }
 
         String mosaic = "";
@@ -126,7 +131,7 @@ public class ComparisonTest {
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image with the interpolator
-        PlanarImage imageMosaic;
+        PlanarImage imageMosaic = null;
 
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -189,6 +194,11 @@ public class ComparisonTest {
         System.out.println("Maximum value for " + description + "Descriptor : " + maxD + " msec.");
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
 
+        //Final Image disposal
+        if(imageMosaic instanceof RenderedOp){
+            ((RenderedOp)imageMosaic).dispose();
+        }
+        
     }
 
     public static RenderedImage getSyntheticImage(byte value) {

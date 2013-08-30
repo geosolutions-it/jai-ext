@@ -19,6 +19,7 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
+import javax.media.jai.RenderedOp;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.jaitools.numeric.Range;
@@ -307,6 +308,11 @@ public class TestAffine extends TestBase {
             assertEquals((int) (DEFAULT_HEIGHT), destinationIMG.getWidth());
         }
 
+        //Final Image disposal
+        if(destinationIMG instanceof RenderedOp){
+            ((RenderedOp)destinationIMG).dispose();
+        }
+        
     }
 
     // Test for checking if the ROI is correctly expanded or reduced

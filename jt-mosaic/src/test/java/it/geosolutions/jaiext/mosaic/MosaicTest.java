@@ -3,7 +3,6 @@ package it.geosolutions.jaiext.mosaic;
 import static org.junit.Assert.*;
 import it.geosolutions.jaiext.mosaic.ImageMosaicBean;
 import it.geosolutions.jaiext.mosaic.MosaicDescriptor;
-import it.geosolutions.jaiext.mosaic.MosaicOpImage2;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -17,12 +16,15 @@ import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROIShape;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.MosaicType;
 import javax.media.jai.operator.TranslateDescriptor;
+
 import org.jaitools.numeric.Range;
 import org.junit.Before;
 import org.junit.Test;
@@ -1651,6 +1653,11 @@ public class MosaicTest {
             }
             break;
         }
+        //Final Image disposal
+        if(image5 instanceof RenderedOp){
+            ((RenderedOp)image5).dispose();
+        }
+        
         return arrayPixel;
     }
 
@@ -1759,6 +1766,11 @@ public class MosaicTest {
             }
             break;
         }
+        //Final Image disposal   
+        if(image5 instanceof RenderedOp){
+            ((RenderedOp)image5).dispose();
+        }
+        
         return arrayPixel;
     }
 
@@ -1837,6 +1849,11 @@ public class MosaicTest {
             }
             break;
         }
+        //Final Image disposal
+        if(image5 instanceof RenderedOp){
+            ((RenderedOp)image5).dispose();
+        }
+        
         return arrayPixel;
     }
 
@@ -1942,6 +1959,12 @@ public class MosaicTest {
             }
             break;
         }
+        
+        //Final Image disposal
+        if(image5 instanceof RenderedOp){
+            ((RenderedOp)image5).dispose();
+        }
+        
         return arrayPixel;
     }
 

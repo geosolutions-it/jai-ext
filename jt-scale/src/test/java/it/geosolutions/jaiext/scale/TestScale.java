@@ -352,6 +352,7 @@ public class TestScale extends TestBase {
         // height
         assertEquals((int) (DEFAULT_HEIGHT * scaleY), destinationIMG.getHeight());
         
+        //Final Image disposal
         if(destinationIMG instanceof RenderedOp){
             ((RenderedOp)destinationIMG).dispose();
         }

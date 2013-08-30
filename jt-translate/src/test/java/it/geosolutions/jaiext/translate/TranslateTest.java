@@ -7,6 +7,7 @@ import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 
 import javax.media.jai.PlanarImage;
+import javax.media.jai.RenderedOp;
 
 import org.junit.Test;
 
@@ -91,6 +92,12 @@ public class TranslateTest extends TestBase {
 
         assertEquals(expectedX, actualX, tolerance);
         assertEquals(expectedY, actualY, tolerance);
+        
+        //Final Image disposal
+        if(translatedIMG instanceof RenderedOp){
+            ((RenderedOp)translatedIMG).dispose();
+        }
+        
     }
 
     @Test

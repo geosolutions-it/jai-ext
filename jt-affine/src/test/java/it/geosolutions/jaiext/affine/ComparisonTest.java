@@ -17,6 +17,7 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.RenderedOp;
 
 import org.geotools.test.TestData;
 import org.junit.BeforeClass;
@@ -209,8 +210,10 @@ public class ComparisonTest {
         if (testDescriptor) {
             if (old) {
                 description = "Old Affine";
+                System.setProperty("com.sun.media.jai.disableMediaLib", "false");
             } else {
                 description = "New Affine";
+                System.setProperty("com.sun.media.jai.disableMediaLib", "true");
             }
         } else {
             if (!old) {
@@ -223,7 +226,7 @@ public class ComparisonTest {
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image with the interpolator
-        PlanarImage imageAffine;
+        PlanarImage imageAffine = null;
 
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -299,5 +302,11 @@ public class ComparisonTest {
             System.out.println("Minimum value for Interpolator" + interpType + description + " : "
                     + minD + " msec.");
         }
+        
+        //Final Image disposal
+        if(imageAffine instanceof RenderedOp){
+            ((RenderedOp)imageAffine).dispose();
+        }
+        
     }
 }

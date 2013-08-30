@@ -113,6 +113,12 @@ public class CoverageClassTest extends TestAffine {
             assertEquals(expectedHeight,actualHeight,tolerance);
             assertEquals(expectedminX,actualminX,tolerance);
             assertEquals(expectedminY,actualminY,tolerance);
+            
+            //Final Image disposal
+            if(affineImgNear instanceof RenderedOp){
+                ((RenderedOp)affineImgNear).dispose();
+            }
+            
     }
 
     @Test
@@ -160,6 +166,11 @@ public class CoverageClassTest extends TestAffine {
         
         assertEquals(expectedWidth, actualWidth,tolerance);
         assertEquals(expectedHeigh, actualHeight,tolerance);  
+        
+        //Final Image disposal
+        if(affineImgNear instanceof RenderedOp){
+            ((RenderedOp)affineImgNear).dispose();
+        }
         
     }
     
@@ -209,6 +220,9 @@ public class CoverageClassTest extends TestAffine {
         assertEquals(expectedWidth, actualWidth,tolerance);
         assertEquals(expectedHeigh, actualHeight,tolerance);  
         
-    
+        //Final Image disposal
+        if(affineImgNear instanceof RenderedOp){
+            ((RenderedOp)affineImgNear).dispose();
+        }
     }    
 }

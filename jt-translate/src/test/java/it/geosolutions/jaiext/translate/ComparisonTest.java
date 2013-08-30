@@ -4,9 +4,12 @@ import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.RenderedOp;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -72,14 +75,16 @@ public class ComparisonTest {
 
         if (old) {
             description = "Old Translate";
+            System.setProperty("com.sun.media.jai.disableMediaLib", "false");
         } else {
             description = "New Translate";
+            System.setProperty("com.sun.media.jai.disableMediaLib", "true");
         }
 
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image
-        PlanarImage imageTranslate;
+        PlanarImage imageTranslate = null;
 
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -132,6 +137,11 @@ public class ComparisonTest {
                 + " msec.");
         System.out.println("Maximum value for " + description + "Descriptor : " + maxD + " msec.");
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
+        
+        //Final Image disposal
+        if(imageTranslate instanceof RenderedOp){
+            ((RenderedOp)imageTranslate).dispose();
+        }
 
     }
 

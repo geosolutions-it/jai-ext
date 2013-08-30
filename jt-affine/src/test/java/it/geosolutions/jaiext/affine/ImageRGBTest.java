@@ -6,7 +6,6 @@ import it.geosolutions.jaiext.affine.AffineDescriptor;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -25,6 +24,7 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
+import javax.media.jai.RenderedOp;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.geotools.test.TestData;
@@ -272,5 +272,11 @@ public class ImageRGBTest extends TestAffine {
         // height
         assertEquals((int) (imageHeigth * scaleY), destinationIMG.getWidth());
 
+        
+        //Final Image disposal
+        if(destinationIMG instanceof RenderedOp){
+            ((RenderedOp)destinationIMG).dispose();
+        }
+        
     }
 }

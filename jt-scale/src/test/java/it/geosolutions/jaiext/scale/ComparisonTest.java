@@ -16,6 +16,7 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.RenderedOp;
 
 import org.geotools.test.TestData;
 import org.junit.BeforeClass;
@@ -229,12 +230,12 @@ public class ComparisonTest{
     public void testBicubicNewScaleDescriptor() {
         testInterpolators(interpBicNew, true, true, false);
     }
-
+    
     @Test
     public void testBicubicOldScaleDescriptor() {
         testInterpolators(interpBicOld, true, true, true);
     }
-
+    
     @Test
     @Ignore
     public void testNearestNewScaleDescriptorReduction() {
@@ -294,8 +295,10 @@ public class ComparisonTest{
         if (testDescriptor) {
             if (old) {
                 description = "Old Scale";
+                System.setProperty("com.sun.media.jai.disableMediaLib", "false");
             } else {
                 description = "New Scale";
+                System.setProperty("com.sun.media.jai.disableMediaLib", "true");
             }
         } else {
             if (!old) {
@@ -305,19 +308,17 @@ public class ComparisonTest{
 
         String interpType = "";
 
-        if (interp instanceof InterpolationBilinear || interp instanceof InterpolationBilinear) {
+        if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear) {
             interpType = "Bilinear";
-        } else if (interp instanceof InterpolationBicubic
-                || interp instanceof InterpolationBicubic) {
+        } else if (interp instanceof InterpolationBicubic|| interp instanceof javax.media.jai.InterpolationBicubic) {
             interpType = "Bicubic";
-        } else if (interp instanceof InterpolationNearest
-                || interp instanceof InterpolationNearest) {
+        } else if (interp instanceof InterpolationNearest|| interp instanceof javax.media.jai.InterpolationNearest) {
             interpType = "Nearest";
         }
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image with the interpolator
-        PlanarImage imageScale;
+        PlanarImage imageScale = null;
         
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -390,6 +391,9 @@ public class ComparisonTest{
             System.out.println("Minimum value for Interpolator" + interpType + description + " : "
                     + minD + " msec.");
         }
-
+        //Final Image disposal
+        if(imageScale instanceof RenderedOp){
+            ((RenderedOp)imageScale).dispose();
+        }
     }
 }

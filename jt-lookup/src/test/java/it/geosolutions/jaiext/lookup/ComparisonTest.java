@@ -1,11 +1,15 @@
 package it.geosolutions.jaiext.lookup;
 
 import it.geosolutions.jaiext.testclasses.TestBase;
+
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+
 import javax.media.jai.JAI;
 import javax.media.jai.LookupTableJAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.RenderedOp;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -220,8 +224,10 @@ public class ComparisonTest extends TestBase {
 
         if (old) {
             description = "Old Lookup";
+            System.setProperty("com.sun.media.jai.disableMediaLib", "false");
         } else {
             description = "New Lookup";
+            System.setProperty("com.sun.media.jai.disableMediaLib", "true");
         }
         // Data type string
         String dataTypeString = "";
@@ -243,7 +249,7 @@ public class ComparisonTest extends TestBase {
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // PlanarImage
-        PlanarImage imageLookup;
+        PlanarImage imageLookup = null;
         // Initialization of the statistics
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -299,6 +305,11 @@ public class ComparisonTest extends TestBase {
                 + " msec.");
         System.out.println("Maximum value for " + description + "Descriptor : " + maxD + " msec.");
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
+        //Final Image disposal
+        if(imageLookup instanceof RenderedOp){
+            ((RenderedOp)imageLookup).dispose();
+        }
+        
 
     }
 

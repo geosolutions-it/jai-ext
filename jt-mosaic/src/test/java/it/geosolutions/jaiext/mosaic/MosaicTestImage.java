@@ -4,10 +4,13 @@ import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.IOException;
+
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.NullDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
+
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.junit.Test;
 
@@ -100,6 +103,12 @@ public class MosaicTestImage {
                 e.printStackTrace();
             }
         }
+        
+        //Final Image disposal
+        if(image5 instanceof RenderedOp){
+            ((RenderedOp)image5).dispose();
+        }
+        
 
     }
 

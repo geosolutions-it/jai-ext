@@ -12,6 +12,7 @@ import java.io.IOException;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
+import javax.media.jai.RenderedOp;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.jaitools.numeric.Range;
@@ -1041,6 +1042,13 @@ public class LookupTest extends TestBase {
         default:
             throw new IllegalArgumentException("Wrong data type");
         }
+        
+        //Final Image disposal
+        if(destinationIMG instanceof RenderedOp){
+            ((RenderedOp)destinationIMG).dispose();
+        }
+        
+        
     }
 
     // UNSUPPORTED OPERATIONS

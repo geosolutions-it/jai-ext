@@ -19,6 +19,7 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROIShape;
+import javax.media.jai.RenderedOp;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.geotools.test.TestData;
@@ -250,5 +251,10 @@ public class ImageRGBTest extends TestScale {
         // height
         assertEquals((int) (imageHeigth * scaleY), destinationIMG.getHeight());
 
+        //Final Image disposal
+        if(destinationIMG instanceof RenderedOp){
+            ((RenderedOp)destinationIMG).dispose();
+        }
+        
     }
 }

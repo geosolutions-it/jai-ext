@@ -112,6 +112,17 @@ public class CoverageClassTest extends TestScale {
         assertEquals((int) (roiWidth * scaleX), roiBicWidth);
         assertEquals((int) (roiHeight * scaleY), roiBicHeight);
 
+        //Final Images disposal
+        if(scaleImgNear instanceof RenderedOp){
+            ((RenderedOp)scaleImgNear).dispose();
+        }
+        if(scaleImgBil instanceof RenderedOp){
+            ((RenderedOp)scaleImgBil).dispose();
+        }
+        if(scaleImgBic instanceof RenderedOp){
+            ((RenderedOp)scaleImgBic).dispose();
+        }
+        
     }
 
     @Test
@@ -150,6 +161,12 @@ public class CoverageClassTest extends TestScale {
         
         assertEquals(expectedX, actualX,tolerance);
         assertEquals(expectedY, actualY,tolerance);
+        
+        //Final Image disposal
+        if(scaleImgNear instanceof RenderedOp){
+            ((RenderedOp)scaleImgNear).dispose();
+        }
+        
     }
     
     @Test
@@ -188,5 +205,11 @@ public class CoverageClassTest extends TestScale {
         
         assertEquals(expectedX, actualX,tolerance);
         assertEquals(expectedY, actualY,tolerance); 
+        
+        //Final Image disposal
+        if(scaleImgNear instanceof RenderedOp){
+            ((RenderedOp)scaleImgNear).dispose();
+        }
+        
     }    
 }
