@@ -2,7 +2,7 @@ package it.geosolutions.jaiext.affine;
 
 
 
-import org.junit.Ignore;
+//import org.junit.Ignore;
 import org.junit.Test;
 
 

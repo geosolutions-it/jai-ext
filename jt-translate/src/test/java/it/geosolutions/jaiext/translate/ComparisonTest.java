@@ -1,5 +1,6 @@
 package it.geosolutions.jaiext.translate;
 
+import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.FileNotFoundException;
@@ -24,6 +25,8 @@ import org.junit.Test;
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
  * 
+ * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor.
+ * 
  */
 public class ComparisonTest {
 
@@ -35,6 +38,9 @@ public class ComparisonTest {
     private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
             "JAI.Ext.NotBenchmarkCycles", 0);
 
+    /** Boolean indicating if the old descriptor must be used */
+    private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
+    
     /** Image to elaborate */
     private static RenderedImage image;
 
@@ -59,12 +65,16 @@ public class ComparisonTest {
 
     @Test
     public void testNewTranslationDescriptor() {
-        testTranslation(null);
+        if (!OLD_DESCRIPTOR) {
+        	testTranslation(null);
+        }
     }
 
     @Test
     public void testOldTranslationDescriptor() {
-        testTranslation(interpNearOld);
+    	if (OLD_DESCRIPTOR) {
+    		testTranslation(interpNearOld);
+    	}
     }
 
     public void testTranslation(Interpolation interp) {
@@ -80,7 +90,7 @@ public class ComparisonTest {
             description = "New Translate";
             System.setProperty("com.sun.media.jai.disableMediaLib", "true");
         }
-
+        
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image

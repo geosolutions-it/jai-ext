@@ -20,30 +20,23 @@ import javax.media.jai.RenderedOp;
 
 import org.geotools.test.TestData;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * This test class is used for compare the timing between the new Nearest,Bilinear and Bicubic interpolators and their JAI version on the scale
  * operation. No Roi or No Data range are used. If the user wants to change the number of the benchmark cycles or of the not benchmark cycles, should
- * only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles parameters. Inside this test class the first 12 tests are
- * executed in the same manner:
- * <ul>
- * <li>Selection of the interpolator (Standard or New)</li>
- * <li>Image Magnification\Reduction</li>
- * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
- * </ul>
- * 
- * The second 12 tests are quite different because the interpolator used is always one of the 3 JAI interpolators but the other operations are
- * similar:
+ * only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles parameters. The tests are quite different because the interpolator
+ *  used is always one of the 3 JAI interpolators but the other operations are similar:
  * <ul>
  * </ul>
  * <ul>
  * <li>Selection of the descriptor (new ScaleDescriptor or old ScaleDescriptor)</li>
+ * <li>Selection of the interpolator (Standard or New)</li>
  * <li>Image Magnification\Reduction</li>
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
- * 
+ * The interpolator can be choosen by passing the JAI.Ext.TestSelector Integer JVM parameter: 0 for nearest interpolation, 1 for bilinear, 2 for bicubic.
+ * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor.
  */
 public class ComparisonTest{
 
@@ -55,8 +48,18 @@ public class ComparisonTest{
     private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
             "JAI.Ext.NotBenchmarkCycles", 0);
     
+    /** Index for selecting one of the 3 interpolators(Default 0) */
+    private final static int TEST_SELECTOR = Integer.getInteger(
+            "JAI.Ext.TestSelector", 0);
+    
+    /** Boolean indicating if the image should be reduced instead of increased */
+    public static Boolean IMAGE_REDUCTION = Boolean.getBoolean("JAI.Ext.ImageReduction");
+    
     /** Default subsampling bits used for the bilinear and bicubic interpolation */
     private final static int DEFAULT_SUBSAMPLE_BITS = 8;
+    
+    /** Boolean indicating if the old descriptor must be used */
+    private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
 
     /** Default precision bits used in the bicubic calculation */
     private final static int DEFAULT_PRECISION_BITS = 8;
@@ -127,160 +130,58 @@ public class ComparisonTest{
                 dataType, false, DEFAULT_PRECISION_BITS);
     }
 
-    // First 12 test. INTERPOLATOR TESTS
-    @Test
-    @Ignore
-    public void testNearestInterp() {
-        testInterpolators(interpNearNew, true, false, false);
-    }
 
-    @Test
-    @Ignore
-    public void testNearestInterpStandard() {
-        testInterpolators(interpNearOld, true, false, true);
-    }
-
-    @Test
-    @Ignore
-    public void testBilinearInterp() {
-        testInterpolators(interpBilNew, true, false, false);
-    }
-
-    @Test
-    @Ignore
-    public void testBilinearInterpStandard() {
-        testInterpolators(interpBilOld, true, false, true);
-    }
-
-    @Test
-    @Ignore
-    public void testBicubicInterp() {
-        testInterpolators(interpBicNew, true, false, false);
-    }
-
-    @Test
-    @Ignore
-    public void testBicubicInterpStandard() {
-        testInterpolators(interpBicOld, true, false, true);
-    }
-
-    @Test
-    @Ignore
-    public void testNearestInterpReduction() {
-        testInterpolators(interpNearNew, false, false, false);
-    }
-
-    @Test
-    @Ignore
-    public void testNearestInterpStandardReduction() {
-        testInterpolators(interpNearOld, false, false, true);
-    }
-
-    @Test
-    @Ignore
-    public void testBilinearInterpReduction() {
-        testInterpolators(interpBilNew, false, false, false);
-    }
-
-    @Test
-    @Ignore
-    public void testBilinearInterpStandardReduction() {
-        testInterpolators(interpBilOld, false, false, true);
-    }
-
-    @Test
-    @Ignore
-    public void testBicubicInterpReduction() {
-        testInterpolators(interpBicNew, false, false, false);
-    }
-
-    @Test
-    @Ignore
-    public void testBicubicInterpStandardReduction() {
-        testInterpolators(interpBicOld, false, false, true);
-    }
-
-    // Last 12 test. DESCRIPTOR TESTS
-
-    @Test
-    @Ignore
+    @Test   
     public void testNearestNewScaleDescriptor() {
-        testInterpolators(interpNearNew, true, true, false);
+    	if(!OLD_DESCRIPTOR && TEST_SELECTOR == 0){
+    		testInterpolators(interpNearNew, IMAGE_REDUCTION, OLD_DESCRIPTOR);
+    	}
     }
 
     @Test
-    @Ignore
     public void testNearestOldScaleDescriptor() {
-        testInterpolators(interpNearOld, true, true, true);
+       	if(OLD_DESCRIPTOR && TEST_SELECTOR == 0){
+    		testInterpolators(interpNearOld, IMAGE_REDUCTION, OLD_DESCRIPTOR);
+    	}
     }
 
     @Test
-    @Ignore
     public void testBilinearNewScaleDescriptor() {
-        testInterpolators(interpBilNew, true, true, false);
+       	if(!OLD_DESCRIPTOR && TEST_SELECTOR == 1){
+    		testInterpolators(interpBilNew, IMAGE_REDUCTION, OLD_DESCRIPTOR);
+    	}
     }
 
     @Test
-    @Ignore
     public void testBilinearOldScaleDescriptor() {
-        testInterpolators(interpBilOld, true, true, true);
+       	if(OLD_DESCRIPTOR && TEST_SELECTOR == 1){
+    		testInterpolators(interpBilOld, IMAGE_REDUCTION, OLD_DESCRIPTOR);
+    	}
     }
 
     @Test
     public void testBicubicNewScaleDescriptor() {
-        testInterpolators(interpBicNew, true, true, false);
+       	if(!OLD_DESCRIPTOR && TEST_SELECTOR == 2){
+       		testInterpolators(interpBicNew, IMAGE_REDUCTION, OLD_DESCRIPTOR);
+    	}
     }
     
     @Test
     public void testBicubicOldScaleDescriptor() {
-        testInterpolators(interpBicOld, true, true, true);
-    }
-    
-    @Test
-    @Ignore
-    public void testNearestNewScaleDescriptorReduction() {
-        testInterpolators(interpNearNew, false, true, false);
+       	if(OLD_DESCRIPTOR && TEST_SELECTOR == 2){
+       		testInterpolators(interpBicOld, IMAGE_REDUCTION, OLD_DESCRIPTOR);
+    	}
     }
 
-    @Test
-    @Ignore
-    public void testNearestOldScaleDescriptorReduction() {
-        testInterpolators(interpNearOld, false, true, true);
-    }
-
-    @Test
-    @Ignore
-    public void testBilinearNewScaleDescriptorReduction() {
-        testInterpolators(interpBilNew, false, true, false);
-    }
-
-    @Test
-    @Ignore
-    public void testBilinearOldScaleDescriptorReduction() {
-        testInterpolators(interpBilOld, false, true, true);
-    }
-
-    @Test
-    @Ignore
-    public void testBicubicNewScaleDescriptorReduction() {
-        testInterpolators(interpBicNew, false, true, false);
-    }
-
-    @Test
-    @Ignore
-    public void testBicubicOldScaleDescriptorReduction() {
-        testInterpolators(interpBicOld, false, true, true);
-    }
-
-    public void testInterpolators(Interpolation interp, boolean magnification,
-            boolean testDescriptor, boolean old) {
+    public void testInterpolators(Interpolation interp, boolean reductionBoolean,
+            boolean old) {
 
         float scaleX;
         float scaleY;
 
         String reduction = "";
 
-        if (!magnification) {
+        if (reductionBoolean) {
             reduction = "Reduction";
             scaleX = 1 / xScale;
             scaleY = 1 / yScale;
@@ -292,7 +193,6 @@ public class ComparisonTest{
 
         String description = "";
 
-        if (testDescriptor) {
             if (old) {
                 description = "Old Scale";
                 System.setProperty("com.sun.media.jai.disableMediaLib", "false");
@@ -300,11 +200,6 @@ public class ComparisonTest{
                 description = "New Scale";
                 System.setProperty("com.sun.media.jai.disableMediaLib", "true");
             }
-        } else {
-            if (!old) {
-                description = "New";
-            }
-        }
 
         String interpType = "";
 
@@ -328,7 +223,6 @@ public class ComparisonTest{
         for (int i = 0; i < totalCycles; i++) {
 
             // creation of the image with the selected interpolator
-            if (testDescriptor) {
                 if (old) {
                     imageScale = javax.media.jai.operator.ScaleDescriptor.create(image, scaleX, scaleY, xTrans, yTrans,
                             interp, hints);
@@ -336,10 +230,6 @@ public class ComparisonTest{
                     imageScale = ScaleDescriptor.create(image, scaleX, scaleY, xTrans, yTrans,
                             interp, null, false, hints);
                 }
-            } else {
-                imageScale = ScaleDescriptor.create(image, scaleX, scaleY, xTrans, yTrans,
-                        interp, null, false, hints);
-            }
 
             // Total calculation time
             long start = System.nanoTime();
@@ -373,7 +263,6 @@ public class ComparisonTest{
         double minD = min * 1E-6;
         // Comparison between the mean times
         System.out.println("\n" + reduction);
-        if (testDescriptor) {
             // Output print of the
             System.out.println("\n" + interpType);
             System.out.println("\nMean value for " + description + "Descriptor : " + meanValue
@@ -382,15 +271,6 @@ public class ComparisonTest{
                     + " msec.");
             System.out.println("Minimum value for " + description + "Descriptor : " + minD
                     + " msec.");
-        } else {
-            // Output print of the
-            System.out.println("\nMean value for Interpolator" + interpType + description + " : "
-                    + meanValue + " msec.");
-            System.out.println("Maximum value for Interpolator" + interpType + description + " : "
-                    + maxD + " msec.");
-            System.out.println("Minimum value for Interpolator" + interpType + description + " : "
-                    + minD + " msec.");
-        }
         //Final Image disposal
         if(imageScale instanceof RenderedOp){
             ((RenderedOp)imageScale).dispose();

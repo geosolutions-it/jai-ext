@@ -13,7 +13,6 @@ import javax.media.jai.operator.NullDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -25,7 +24,9 @@ import org.junit.Test;
  * <li>Selection of the mosaic type (Overlay or Blend)</li>
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
- * 
+ * The MosaicType can be choosen by setting the JAI.Ext.MosaicBlend boolean JVM parameter: false for OVERLAY, true for BLEND.
+ * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor.
+
  */
 
 public class ComparisonTest {
@@ -36,6 +37,13 @@ public class ComparisonTest {
     /** Number of not benchmark iterations (Default 0) */
     private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
             "JAI.Ext.NotBenchmarkCycles", 0);
+    
+    /** Boolean indicating if the old descriptor must be used */
+    private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
+    
+    /** Boolean for selecting one of the 2 MosaicType(Default Overlay) */
+    private final static boolean MOSAIC_TYPE = Boolean.getBoolean(
+            "JAI.Ext.MosaicBlend");
 
     /** Value indicating No Data for the destination image */
     private static double destinationNoData = 0;
@@ -83,28 +91,20 @@ public class ComparisonTest {
     }
 
     @Test
-    public void testNearestNewMosaicDescriptorOverlay() {
-        testMosaic(false, true);
+    public void testNearestNewMosaicDescriptor() {
+    	if(!OLD_DESCRIPTOR){
+    		testMosaic(OLD_DESCRIPTOR, MOSAIC_TYPE);
+    	}
     }
 
     @Test   
-    public void testNearestOldMosaicDescriptorOverlay() {
-        testMosaic(true, true);
+    public void testNearestOldMosaicDescriptor() {
+    	if(OLD_DESCRIPTOR){
+    		testMosaic(OLD_DESCRIPTOR, MOSAIC_TYPE);
+    	}
     }
 
-    @Test
-    @Ignore
-    public void testNearestNewMosaicDescriptorBlend() {
-        testMosaic(false, false);
-    }
-
-    @Test
-    @Ignore
-    public void testNearestOldMosaicDescriptorBlend() {
-        testMosaic(true, false);
-    }
-
-    public void testMosaic(boolean old, boolean overlay) {
+    public void testMosaic(boolean old, boolean blend) {
 
         MosaicType mosaicType;
 
@@ -120,7 +120,7 @@ public class ComparisonTest {
 
         String mosaic = "";
 
-        if (overlay) {
+        if (!blend) {
             mosaicType = javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY;
             mosaic = "Mosaic Type Overlay";
         } else {
