@@ -1,6 +1,6 @@
 package it.geosolutions.jaiext.lookup;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.Rectangle;
@@ -907,6 +907,9 @@ public class LookupTest extends TestBase {
             destinationIMG.getTiles();
         }
 
+        //DataType Test
+        assertEquals(table.getDataType(),destinationIMG.getSampleModel().getDataType());
+        
         // ROI test
         if (roiUsed) {
             // Selection of a tile inside the ROI

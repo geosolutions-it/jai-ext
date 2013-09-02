@@ -1,6 +1,5 @@
 package it.geosolutions.jaiext.translate;
 
-import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.FileNotFoundException;

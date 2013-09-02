@@ -24,9 +24,9 @@ import org.junit.Test;
  * <li>Selection of the mosaic type (Overlay or Blend)</li>
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
- * The MosaicType can be choosen by setting the JAI.Ext.MosaicBlend boolean JVM parameter: false for OVERLAY, true for BLEND.
+ * The MosaicType can be chosen by setting the JAI.Ext.MosaicBlend boolean JVM parameter: false for OVERLAY, true for BLEND.
  * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor.
-
+ * 
  */
 
 public class ComparisonTest {

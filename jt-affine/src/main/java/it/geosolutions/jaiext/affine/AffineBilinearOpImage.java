@@ -298,65 +298,52 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
 
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
+                for (int x = dst_min_x; x < dst_max_x; x++) {
+                	
+                	if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                		
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
+                            int posx = (s_ix - srcRectX) * srcPixelStride;
+                            int posy = (s_iy - srcRectY) * srcScanlineStride;
 
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else {
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-                }
+                            int posxhigh = posx + srcPixelStride;
+                            int posyhigh = posy + srcScanlineStride;
 
-                for (int x = clipMinX; x < clipMaxX; x++) {
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]] & 0xff;
+                            int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]] & 0xff;
+                            int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]] & 0xff;
+                            int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]] & 0xff;
 
-                        int posx = (s_ix - srcRectX) * srcPixelStride;
-                        int posy = (s_iy - srcRectY) * srcScanlineStride;
+                            float s0 = (float) ((s01 - s00) * fracx + s00);
+                            float s1 = (float) ((s11 - s10) * fracx + s10);
 
-                        int posxhigh = posx + srcPixelStride;
-                        int posyhigh = posy + srcScanlineStride;
+                            float result = (float) ((s1 - s0) * fracy + s0);
 
-                        int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]] & 0xff;
-                        int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]] & 0xff;
-                        int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]] & 0xff;
-                        int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]] & 0xff;
+                            int intResult = 0;
 
-                        float s0 = (float) ((s01 - s00) * fracx + s00);
-                        float s1 = (float) ((s11 - s10) * fracx + s10);
+                            if (result > 254.5f) {
+                                intResult = 255;
+                            } else if (result < 0.5f) {
+                                intResult = 0;
+                            } else {
+                                intResult = (int) (result + 0.5f);
+                            }
 
-                        float result = (float) ((s1 - s0) * fracy + s0);
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (byte) (intResult & 0xff);
 
-                        int intResult = 0;
-
-                        if (result > 254.5f) {
-                            intResult = 255;
-                        } else if (result < 0.5f) {
-                            intResult = 0;
-                        } else {
-                            intResult = (int) (result + 0.5f);
                         }
-
-                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (byte) (intResult & 0xff);
-
-                    }
+                		
+                	}else if(setDestinationNoData){
+                        for (int k2 = 0; k2 < dst_num_bands; k2++){
+                        	dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                        }      
+                	}
+                	
                     // walk
                     if (fracx < fracdx1) {
                         s_ix += incx;
@@ -376,14 +363,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
 
                 // Go to the next line in the destination rectangle
@@ -694,33 +673,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
-
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
-
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
-
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-
-                for (int x = clipMinX; x < clipMaxX; x++) {
+                for (int x = dst_min_x; x < dst_max_x; x++) {
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -728,40 +681,51 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                    if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                        // The interpolated value is saved in the destination array
-                        int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
-                        int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
-                        int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                        int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
+                            // The interpolated value is saved in the destination array
+                            int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                            int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
+                            int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
+                            int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                        int w00 = byteLookupTable[s00] == destinationNoDataByte ? 0 : 1;
-                        int w01 = byteLookupTable[s01] == destinationNoDataByte ? 0 : 1;
-                        int w10 = byteLookupTable[s10] == destinationNoDataByte ? 0 : 1;
-                        int w11 = byteLookupTable[s11] == destinationNoDataByte ? 0 : 1;
+                            int w00 = byteLookupTable[s00] == destinationNoDataByte ? 0 : 1;
+                            int w01 = byteLookupTable[s01] == destinationNoDataByte ? 0 : 1;
+                            int w10 = byteLookupTable[s10] == destinationNoDataByte ? 0 : 1;
+                            int w11 = byteLookupTable[s11] == destinationNoDataByte ? 0 : 1;
 
-                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                            if (setDestinationNoData) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
-                            }
-                        } else {
-                            double result = computeValue(s00 & 0xff, s01 & 0xff, s10 & 0xff,
-                                    s11 & 0xff, w00, w01, w10, w11, fracx, fracy);
-
-                            int intResult = 0;
-
-                            if (result > 254.5f) {
-                                intResult = 255;
-                            } else if (result < 0.5f) {
-                                intResult = 0;
+                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (setDestinationNoData) {
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                }
                             } else {
-                                intResult = (int) (result + 0.5f);
-                            }
+                                double result = computeValue(s00 & 0xff, s01 & 0xff, s10 & 0xff,
+                                        s11 & 0xff, w00, w01, w10, w11, fracx, fracy);
 
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (byte) (intResult & 0xff);
+                                int intResult = 0;
+
+                                if (result > 254.5f) {
+                                    intResult = 255;
+                                } else if (result < 0.5f) {
+                                    intResult = 0;
+                                } else {
+                                    intResult = (int) (result + 0.5f);
+                                }
+
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (byte) (intResult & 0xff);
+                            }
                         }
+                    }else if(setDestinationNoData){
+                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
+                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                    	}
                     }
+                    
+
 
                     // walk
                     if (fracx < fracdx1) {
@@ -782,14 +746,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
                 // Go to the next line in the destination rectangle
                 dstOffset += dstScanlineStride;
@@ -1173,65 +1129,52 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
 
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
+                for (int x = dst_min_x; x < dst_max_x; x++) {
+                	
+                	
+                	if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
+                            int posx = (s_ix - srcRectX) * srcPixelStride;
+                            int posy = (s_iy - srcRectY) * srcScanlineStride;
 
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else {
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-                }
+                            int posxhigh = posx + srcPixelStride;
+                            int posyhigh = posy + srcScanlineStride;
 
-                for (int x = clipMinX; x < clipMaxX; x++) {
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]] & 0xffff;
+                            int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]] & 0xffff;
+                            int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]] & 0xffff;
+                            int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]] & 0xffff;
 
-                        int posx = (s_ix - srcRectX) * srcPixelStride;
-                        int posy = (s_iy - srcRectY) * srcScanlineStride;
+                            float s0 = (float) ((s01 - s00) * fracx + s00);
+                            float s1 = (float) ((s11 - s10) * fracx + s10);
 
-                        int posxhigh = posx + srcPixelStride;
-                        int posyhigh = posy + srcScanlineStride;
+                            float result = (float) ((s1 - s0) * fracy + s0);
 
-                        int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]] & 0xffff;
-                        int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]] & 0xffff;
-                        int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]] & 0xffff;
-                        int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]] & 0xffff;
+                            int intResult = 0;
 
-                        float s0 = (float) ((s01 - s00) * fracx + s00);
-                        float s1 = (float) ((s11 - s10) * fracx + s10);
+                            if (result > (float) USHORT_MAX_VALUE) {
+                                intResult = USHORT_MAX_VALUE;
+                            } else if (result < 0.0) {
+                                intResult = 0;
+                            } else {
+                                intResult = (int) (result + 0.5f);
+                            }
 
-                        float result = (float) ((s1 - s0) * fracy + s0);
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult & 0xffff);
 
-                        int intResult = 0;
-
-                        if (result > (float) USHORT_MAX_VALUE) {
-                            intResult = USHORT_MAX_VALUE;
-                        } else if (result < 0.0) {
-                            intResult = 0;
-                        } else {
-                            intResult = (int) (result + 0.5f);
                         }
+                	}else if(setDestinationNoData){
+                        for (int k2 = 0; k2 < dst_num_bands; k2++){
+                        	dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                        }
+                	}
+                	
 
-                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult & 0xffff);
-
-                    }
                     // walk
                     if (fracx < fracdx1) {
                         s_ix += incx;
@@ -1251,14 +1194,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
 
                 // Go to the next line in the destination rectangle
@@ -1569,33 +1504,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
-
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
-
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
-
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-
-                for (int x = clipMinX; x < clipMaxX; x++) {
+                for (int x = dst_min_x; x < dst_max_x; x++) {
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -1603,41 +1512,52 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                    if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                        // The interpolated value is saved in the destination array
-                        short s00 = (short) (srcDataArrays[k2][posx + posy + bandOffsets[k2]] & 0xffff);
-                        short s01 = (short) (srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]] & 0xffff);
-                        short s10 = (short) (srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]] & 0xffff);
-                        short s11 = (short) (srcDataArrays[k2][posxhigh + posyhigh
-                                + bandOffsets[k2]] & 0xffff);
+                            // The interpolated value is saved in the destination array
+                            short s00 = (short) (srcDataArrays[k2][posx + posy + bandOffsets[k2]] & 0xffff);
+                            short s01 = (short) (srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]] & 0xffff);
+                            short s10 = (short) (srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]] & 0xffff);
+                            short s11 = (short) (srcDataArrays[k2][posxhigh + posyhigh
+                                    + bandOffsets[k2]] & 0xffff);
 
-                        int w00 = rangeND.contains(s00) ? 0 : 1;
-                        int w01 = rangeND.contains(s01) ? 0 : 1;
-                        int w10 = rangeND.contains(s10) ? 0 : 1;
-                        int w11 = rangeND.contains(s11) ? 0 : 1;
+                            int w00 = rangeND.contains(s00) ? 0 : 1;
+                            int w01 = rangeND.contains(s01) ? 0 : 1;
+                            int w10 = rangeND.contains(s10) ? 0 : 1;
+                            int w11 = rangeND.contains(s11) ? 0 : 1;
 
-                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                            if (setDestinationNoData) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
-                            }
-                        } else {
-                            double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
-                                    fracx, fracy);
-
-                            int intResult = 0;
-
-                            if (result > (float) USHORT_MAX_VALUE) {
-                                intResult = USHORT_MAX_VALUE;
-                            } else if (result < 0.0) {
-                                intResult = 0;
+                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (setDestinationNoData) {
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                }
                             } else {
-                                intResult = (int) (result + 0.5f);
-                            }
+                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
+                                        fracx, fracy);
 
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult & 0xffff);
+                                int intResult = 0;
+
+                                if (result > (float) USHORT_MAX_VALUE) {
+                                    intResult = USHORT_MAX_VALUE;
+                                } else if (result < 0.0) {
+                                    intResult = 0;
+                                } else {
+                                    intResult = (int) (result + 0.5f);
+                                }
+
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult & 0xffff);
+                            }
                         }
+                    }else if(setDestinationNoData){
+                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
+                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                    	}
                     }
+                    
+
 
                     // walk
                     if (fracx < fracdx1) {
@@ -1658,14 +1578,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
                 // Go to the next line in the destination rectangle
                 dstOffset += dstScanlineStride;
@@ -2051,67 +1963,53 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                for (int x = dst_min_x; x < dst_max_x; x++) {
+                	
+                    if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                    	
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
+                            int posx = (s_ix - srcRectX) * srcPixelStride;
+                            int posy = (s_iy - srcRectY) * srcScanlineStride;
 
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
+                            int posxhigh = posx + srcPixelStride;
+                            int posyhigh = posy + srcScanlineStride;
 
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else {
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-                }
+                            int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                            int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
+                            int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
+                            int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                for (int x = clipMinX; x < clipMaxX; x++) {
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            float s0 = (float) ((s01 - s00) * fracx + s00);
+                            float s1 = (float) ((s11 - s10) * fracx + s10);
 
-                        int posx = (s_ix - srcRectX) * srcPixelStride;
-                        int posy = (s_iy - srcRectY) * srcScanlineStride;
+                            float result = (float) ((s1 - s0) * fracy + s0);
 
-                        int posxhigh = posx + srcPixelStride;
-                        int posyhigh = posy + srcScanlineStride;
+                            int intResult = 0;
 
-                        int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
-                        int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
-                        int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                        int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
+                            if (result > (float) Short.MAX_VALUE) {
+                                intResult = Short.MAX_VALUE;
+                            } else if (result < (float) Short.MIN_VALUE) {
+                                intResult = Short.MIN_VALUE;
+                            } else if (result > 0 ) {
+                                intResult = (int) (result + 0.5F);
+                            } else {
+                                intResult = (int) (result - 0.5F);
+                            }
 
-                        float s0 = (float) ((s01 - s00) * fracx + s00);
-                        float s1 = (float) ((s11 - s10) * fracx + s10);
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult);
 
-                        float result = (float) ((s1 - s0) * fracy + s0);
-
-                        int intResult = 0;
-
-                        if (result > (float) Short.MAX_VALUE) {
-                            intResult = Short.MAX_VALUE;
-                        } else if (result < (float) Short.MIN_VALUE) {
-                            intResult = Short.MIN_VALUE;
-                        } else if (result > 0 ) {
-                            intResult = (int) (result + 0.5F);
-                        } else {
-                            intResult = (int) (result - 0.5F);
                         }
-
-                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult);
-
+                    }else if(setDestinationNoData){
+                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
+                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                    	}
                     }
+                	
+
                     // walk
                     if (fracx < fracdx1) {
                         s_ix += incx;
@@ -2131,14 +2029,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
 
                 // Go to the next line in the destination rectangle
@@ -2452,33 +2342,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
-
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
-
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
-
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-
-                for (int x = clipMinX; x < clipMaxX; x++) {
+                for (int x = dst_min_x; x < dst_max_x; x++) {
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -2486,42 +2350,53 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                	if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                        // The interpolated value is saved in the destination array
-                        short s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
-                        short s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
-                        short s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                        short s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                            // The interpolated value is saved in the destination array
+                            short s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                            short s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
+                            short s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
+                            short s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
 
-                        int w00 = rangeND.contains(s00) ? 0 : 1;
-                        int w01 = rangeND.contains(s01) ? 0 : 1;
-                        int w10 = rangeND.contains(s10) ? 0 : 1;
-                        int w11 = rangeND.contains(s11) ? 0 : 1;
+                            int w00 = rangeND.contains(s00) ? 0 : 1;
+                            int w01 = rangeND.contains(s01) ? 0 : 1;
+                            int w10 = rangeND.contains(s10) ? 0 : 1;
+                            int w11 = rangeND.contains(s11) ? 0 : 1;
 
-                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                            if (setDestinationNoData) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
-                            }
-                        } else {
-                            double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
-                                    fracx, fracy);
-
-                            int intResult = 0;
-
-                            if (result > (float) Short.MAX_VALUE) {
-                                intResult = Short.MAX_VALUE;
-                            } else if (result < (float) Short.MIN_VALUE) {
-                                intResult = Short.MIN_VALUE;
-                            } else if (result > 0 ) {
-                                intResult = (int) (result + 0.5F);
+                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (setDestinationNoData) {
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                }
                             } else {
-                                intResult = (int) (result - 0.5F);
-                            }
+                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
+                                        fracx, fracy);
 
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult);
+                                int intResult = 0;
+
+                                if (result > (float) Short.MAX_VALUE) {
+                                    intResult = Short.MAX_VALUE;
+                                } else if (result < (float) Short.MIN_VALUE) {
+                                    intResult = Short.MIN_VALUE;
+                                } else if (result > 0 ) {
+                                    intResult = (int) (result + 0.5F);
+                                } else {
+                                    intResult = (int) (result - 0.5F);
+                                }
+
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult);
+                            }
                         }
-                    }
+                	}else if(setDestinationNoData){
+                		for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                			dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                		}
+                	}
+                    
+                    
 
                     // walk
                     if (fracx < fracdx1) {
@@ -2542,14 +2417,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
                 // Go to the next line in the destination rectangle
                 dstOffset += dstScanlineStride;
@@ -2931,67 +2798,51 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                for (int x = dst_min_x; x < dst_max_x; x++) {
+                	
+                	if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
+                            int posx = (s_ix - srcRectX) * srcPixelStride;
+                            int posy = (s_iy - srcRectY) * srcScanlineStride;
 
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
+                            int posxhigh = posx + srcPixelStride;
+                            int posyhigh = posy + srcScanlineStride;
 
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else {
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-                }
+                            int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                            int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
+                            int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
+                            int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                for (int x = clipMinX; x < clipMaxX; x++) {
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            float s0 = (float) ((s01 - s00) * fracx + s00);
+                            float s1 = (float) ((s11 - s10) * fracx + s10);
 
-                        int posx = (s_ix - srcRectX) * srcPixelStride;
-                        int posy = (s_iy - srcRectY) * srcScanlineStride;
+                            float result = (float) ((s1 - s0) * fracy + s0);
 
-                        int posxhigh = posx + srcPixelStride;
-                        int posyhigh = posy + srcScanlineStride;
+                            int intResult = 0;
 
-                        int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
-                        int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
-                        int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                        int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
+                            if (result > (float) Integer.MAX_VALUE) {
+                                intResult = Integer.MAX_VALUE;
+                            } else if (result < (float) Integer.MIN_VALUE) {
+                                intResult = Integer.MIN_VALUE;
+                            } else if (result > 0 ) {
+                                intResult = (int) (result + 0.5F);
+                            } else {
+                                intResult = (int) (result - 0.5F);
+                            }
 
-                        float s0 = (float) ((s01 - s00) * fracx + s00);
-                        float s1 = (float) ((s11 - s10) * fracx + s10);
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = intResult;
 
-                        float result = (float) ((s1 - s0) * fracy + s0);
-
-                        int intResult = 0;
-
-                        if (result > (float) Integer.MAX_VALUE) {
-                            intResult = Integer.MAX_VALUE;
-                        } else if (result < (float) Integer.MIN_VALUE) {
-                            intResult = Integer.MIN_VALUE;
-                        } else if (result > 0 ) {
-                            intResult = (int) (result + 0.5F);
-                        } else {
-                            intResult = (int) (result - 0.5F);
                         }
-
-                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = intResult;
-
-                    }
+                	}else if(setDestinationNoData){
+                		for (int k2 = 0; k2 < dst_num_bands; k2++){
+                			dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                		}
+                	}
+                	
                     // walk
                     if (fracx < fracdx1) {
                         s_ix += incx;
@@ -3011,14 +2862,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
 
                 // Go to the next line in the destination rectangle
@@ -3332,33 +3175,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
-
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
-
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
-
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-
-                for (int x = clipMinX; x < clipMaxX; x++) {
+                for (int x = dst_min_x; x < dst_max_x; x++) {
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -3366,42 +3183,52 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                    if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                        // The interpolated value is saved in the destination array
-                        int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
-                        int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
-                        int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                        int s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                            // The interpolated value is saved in the destination array
+                            int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                            int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
+                            int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
+                            int s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
 
-                        int w00 = rangeND.contains(s00) ? 0 : 1;
-                        int w01 = rangeND.contains(s01) ? 0 : 1;
-                        int w10 = rangeND.contains(s10) ? 0 : 1;
-                        int w11 = rangeND.contains(s11) ? 0 : 1;
+                            int w00 = rangeND.contains(s00) ? 0 : 1;
+                            int w01 = rangeND.contains(s01) ? 0 : 1;
+                            int w10 = rangeND.contains(s10) ? 0 : 1;
+                            int w11 = rangeND.contains(s11) ? 0 : 1;
 
-                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                            if (setDestinationNoData) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
-                            }
-                        } else {
-                            double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
-                                    fracx, fracy);
-
-                            int intResult = 0;
-
-                            if (result > (float) Integer.MAX_VALUE) {
-                                intResult = Integer.MAX_VALUE;
-                            } else if (result < (float) Integer.MIN_VALUE) {
-                                intResult = Integer.MIN_VALUE;
-                            } else if (result > 0 ) {
-                                intResult = (int) (result + 0.5F);
+                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (setDestinationNoData) {
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                }
                             } else {
-                                intResult = (int) (result - 0.5F);
-                            }
+                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
+                                        fracx, fracy);
 
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = intResult;
+                                int intResult = 0;
+
+                                if (result > (float) Integer.MAX_VALUE) {
+                                    intResult = Integer.MAX_VALUE;
+                                } else if (result < (float) Integer.MIN_VALUE) {
+                                    intResult = Integer.MIN_VALUE;
+                                } else if (result > 0 ) {
+                                    intResult = (int) (result + 0.5F);
+                                } else {
+                                    intResult = (int) (result - 0.5F);
+                                }
+
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = intResult;
+                            }
                         }
+                    }else if(setDestinationNoData){
+                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
+                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                    	}
                     }
+
 
                     // walk
                     if (fracx < fracdx1) {
@@ -3422,14 +3249,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
                 // Go to the next line in the destination rectangle
                 dstOffset += dstScanlineStride;
@@ -3811,55 +3630,40 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                for (int x = dst_min_x; x < dst_max_x; x++) {
+                	
+                	if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
+                            int posx = (s_ix - srcRectX) * srcPixelStride;
+                            int posy = (s_iy - srcRectY) * srcScanlineStride;
 
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
+                            int posxhigh = posx + srcPixelStride;
+                            int posyhigh = posy + srcScanlineStride;
 
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else {
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-                }
+                            float s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                            float s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
+                            float s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
+                            float s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                for (int x = clipMinX; x < clipMaxX; x++) {
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            float s0 = (float) ((s01 - s00) * fracx + s00);
+                            float s1 = (float) ((s11 - s10) * fracx + s10);
 
-                        int posx = (s_ix - srcRectX) * srcPixelStride;
-                        int posy = (s_iy - srcRectY) * srcScanlineStride;
+                            float result = (float) ((s1 - s0) * fracy + s0);
 
-                        int posxhigh = posx + srcPixelStride;
-                        int posyhigh = posy + srcScanlineStride;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
 
-                        float s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
-                        float s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
-                        float s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                        float s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
+                        }
+                	}else if(setDestinationNoData){
+                		for (int k2 = 0; k2 < dst_num_bands; k2++){
+                			dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                		}
+                	}
+                	
 
-                        float s0 = (float) ((s01 - s00) * fracx + s00);
-                        float s1 = (float) ((s11 - s10) * fracx + s10);
-
-                        float result = (float) ((s1 - s0) * fracy + s0);
-
-                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
-
-                    }
                     // walk
                     if (fracx < fracdx1) {
                         s_ix += incx;
@@ -3879,14 +3683,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
 
                 // Go to the next line in the destination rectangle
@@ -4176,33 +3972,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
-
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
-
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
-
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-
-                for (int x = clipMinX; x < clipMaxX; x++) {
+                for (int x = dst_min_x; x < dst_max_x; x++) {
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -4210,50 +3980,61 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                    if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                        // The interpolated value is saved in the destination array
-                        float s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
-                        float s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
-                        float s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                        float s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                            // The interpolated value is saved in the destination array
+                            float s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                            float s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
+                            float s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
+                            float s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
 
-                        int w00 =  1;
-                        int w01 =  1;
-                        int w10 =  1;
-                        int w11 =  1;
-                        
-                        if(isNegativeInf|| isPositiveInf|| isRangeNaN){
-                            if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
-                                   w00 = 0;
-                               }  
-                            if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
-                                w01 = 0;
-                            } 
-                            if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
-                                w10 = 0;
-                            } 
-                            if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
-                                w11 = 0;
-                            } 
-                        }else{
-                            w00 = rangeND.contains(s00) ? 0 : 1;
-                            w01 = rangeND.contains(s01) ? 0 : 1;
-                            w10 = rangeND.contains(s10) ? 0 : 1;
-                            w11 = rangeND.contains(s11) ? 0 : 1;
-                        }
-
-                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                            if (setDestinationNoData) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                            int w00 =  1;
+                            int w01 =  1;
+                            int w10 =  1;
+                            int w11 =  1;
+                            
+                            if(isNegativeInf|| isPositiveInf|| isRangeNaN){
+                                if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
+                                       w00 = 0;
+                                   }  
+                                if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
+                                    w01 = 0;
+                                } 
+                                if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
+                                    w10 = 0;
+                                } 
+                                if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
+                                    w11 = 0;
+                                } 
+                            }else{
+                                w00 = rangeND.contains(s00) ? 0 : 1;
+                                w01 = rangeND.contains(s01) ? 0 : 1;
+                                w10 = rangeND.contains(s10) ? 0 : 1;
+                                w11 = rangeND.contains(s11) ? 0 : 1;
                             }
-                        } else {
-                            double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
-                                    fracx, fracy);
 
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (float) result;
+                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (setDestinationNoData) {
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                }
+                            } else {
+                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
+                                        fracx, fracy);
+
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (float) result;
+                            }
                         }
+                    }else if(setDestinationNoData){
+                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
+                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                    	}
                     }
+                    
+
 
                     // walk
                     if (fracx < fracdx1) {
@@ -4274,14 +4055,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
                 // Go to the next line in the destination rectangle
                 dstOffset += dstScanlineStride;
@@ -4679,55 +4452,42 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                for (int x = dst_min_x; x < dst_max_x; x++) {
+                	
+                	
+                	if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
+                            int posx = (s_ix - srcRectX) * srcPixelStride;
+                            int posy = (s_iy - srcRectY) * srcScanlineStride;
 
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
+                            int posxhigh = posx + srcPixelStride;
+                            int posyhigh = posy + srcScanlineStride;
 
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else {
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-                }
+                            double s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                            double s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
+                            double s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
+                            double s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                for (int x = clipMinX; x < clipMaxX; x++) {
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            double s0 = ((s01 - s00) * fracx + s00);
+                            double s1 =  ((s11 - s10) * fracx + s10);
 
-                        int posx = (s_ix - srcRectX) * srcPixelStride;
-                        int posy = (s_iy - srcRectY) * srcScanlineStride;
+                            double result =  ((s1 - s0) * fracy + s0);
 
-                        int posxhigh = posx + srcPixelStride;
-                        int posyhigh = posy + srcScanlineStride;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
 
-                        double s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
-                        double s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
-                        double s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                        double s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
+                        }
+                	}else if(setDestinationNoData){
+                		for (int k2 = 0; k2 < dst_num_bands; k2++){
+                			dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                		}
+                	}
+                	
+                	
 
-                        double s0 = ((s01 - s00) * fracx + s00);
-                        double s1 =  ((s11 - s10) * fracx + s10);
-
-                        double result =  ((s1 - s0) * fracy + s0);
-
-                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
-
-                    }
                     // walk
                     if (fracx < fracdx1) {
                         s_ix += incx;
@@ -4747,14 +4507,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
 
                 // Go to the next line in the destination rectangle
@@ -5044,33 +4796,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
-
-                // Compute clipMinX, clipMinY
-                javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
-                        src_rect_y1, src_rect_x2, src_rect_y2, s_ix, s_iy, ifracx, ifracy,
-                        dst_min_x, dst_max_x, 0, 1, 0, 1);
-                int clipMinX = ((Integer) clipRange.getMinValue()).intValue();
-                int clipMaxX = ((Integer) clipRange.getMaxValue()).intValue();
-
-                // Advance s_ix, s_iy, ifracx, ifracy
-                Point[] startPts = advanceToStartOfScanline(dst_min_x, clipMinX, s_ix, s_iy,
-                        ifracx, ifracy);
-                s_ix = startPts[0].x;
-                s_iy = startPts[0].y;
-
-                if (setDestinationNoData) {
-                    for (int x = dst_min_x; x < clipMinX; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                } else
-                    // Advance to first pixel
-                    dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
-
-                for (int x = clipMinX; x < clipMaxX; x++) {
+                for (int x = dst_min_x; x < dst_max_x; x++) {
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -5078,49 +4804,58 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                    if ((s_ix >= src_rect_x1) &&
+                            (s_ix < (src_rect_x2 - 1)) &&
+                            (s_iy >= src_rect_y1) &&
+                            (s_iy < (src_rect_y2 - 1))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
-                        // The interpolated value is saved in the destination array
-                        double s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
-                        double s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
-                        double s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                        double s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                            // The interpolated value is saved in the destination array
+                            double s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                            double s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
+                            double s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
+                            double s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
 
-                        int w00 =  1;
-                        int w01 =  1;
-                        int w10 =  1;
-                        int w11 =  1;
-                        
-                        if(isNegativeInf|| isPositiveInf|| isRangeNaN){
-                            if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
-                                   w00 = 0;
-                               }  
-                            if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
-                                w01 = 0;
-                            } 
-                            if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
-                                w10 = 0;
-                            } 
-                            if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
-                                w11 = 0;
-                            } 
-                        }else{
-                            w00 = rangeND.contains(s00) ? 0 : 1;
-                            w01 = rangeND.contains(s01) ? 0 : 1;
-                            w10 = rangeND.contains(s10) ? 0 : 1;
-                            w11 = rangeND.contains(s11) ? 0 : 1;
-                        }
-
-                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                            if (setDestinationNoData) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                            int w00 =  1;
+                            int w01 =  1;
+                            int w10 =  1;
+                            int w11 =  1;
+                            
+                            if(isNegativeInf|| isPositiveInf|| isRangeNaN){
+                                if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
+                                       w00 = 0;
+                                   }  
+                                if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
+                                    w01 = 0;
+                                } 
+                                if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
+                                    w10 = 0;
+                                } 
+                                if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
+                                    w11 = 0;
+                                } 
+                            }else{
+                                w00 = rangeND.contains(s00) ? 0 : 1;
+                                w01 = rangeND.contains(s01) ? 0 : 1;
+                                w10 = rangeND.contains(s10) ? 0 : 1;
+                                w11 = rangeND.contains(s11) ? 0 : 1;
                             }
-                        } else {
-                            double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
-                                    fracx, fracy);
 
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
+                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (setDestinationNoData) {
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                }
+                            } else {
+                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
+                                        fracx, fracy);
+
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
+                            }
                         }
+                    }else if(setDestinationNoData){
+                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
+                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                    	}
                     }
 
                     // walk
@@ -5142,14 +4877,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Go to next pixel
                     dstPixelOffset += dstPixelStride;
-                }
-
-                if (setDestinationNoData && clipMinX <= clipMaxX) {
-                    for (int x = clipMaxX; x < dst_max_x; x++) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
-                        dstPixelOffset += dstPixelStride;
-                    }
                 }
                 // Go to the next line in the destination rectangle
                 dstOffset += dstScanlineStride;

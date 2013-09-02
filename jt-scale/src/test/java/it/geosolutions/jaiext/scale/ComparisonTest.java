@@ -35,7 +35,7 @@ import org.junit.Test;
  * <li>Image Magnification\Reduction</li>
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
- * The interpolator can be choosen by passing the JAI.Ext.TestSelector Integer JVM parameter: 0 for nearest interpolation, 1 for bilinear, 2 for bicubic.
+ * The interpolator can be chosen by passing the JAI.Ext.TestSelector Integer JVM parameter: 0 for nearest interpolation, 1 for bilinear, 2 for bicubic.
  * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor.
  */
 public class ComparisonTest{

@@ -21,292 +21,293 @@ import javax.media.jai.RenderedOp;
 
 import org.geotools.test.TestData;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * This test class is used for compare the timing between the new Nearest,Bilinear and Bicubic interpolators and their JAI version on the affine
- * operation. No Roi or No Data range are used. If the user wants to change the number of the benchmark cycles or of the not benchmark cycles, should
- * only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles parameters. Inside this test class the first 6 tests are
- * executed in the same manner:
+ * This test class is used for compare the timing between the new
+ * Nearest,Bilinear and Bicubic interpolators and their JAI version on the
+ * affine operation. No Roi or No Data range are used. If the user wants to
+ * change the number of the benchmark cycles or of the not benchmark cycles,
+ * should only pass the new values to the JAI.Ext.BenchmarkCycles or
+ * JAI.Ext.NotBenchmarkCycles parameters. The tests are quite different because
+ * the interpolator used can be one of the 3 JAI interpolators but the other
+ * operations are similar:
  * <ul>
- * <li>Selection of the interpolator (Standard or New)</li>
- * <li>Image Rotation</li>
- * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
+ * <li>Selection of the descriptor (new or old AffineDescriptor)</li>
+ * <li>Image Transformation</li>
+ * <li>statistic calculation (if the cycle belongs to the benchmark cycles).</li>
  * </ul>
- * 
- * The second 6 tests are quite different because the interpolator used is always one of the 3 JAI interpolators but the other operations are similar:
- * <ul>
- * </ul>
- * <ul>
- * <li>Selection of the descriptor (AffineDescriptor or AffineDescriptor)</li>
- * <li>Image Rotation</li>
- * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
- * </ul>
- * 
+ * The selection of the old or new descriptor must be done by setting to true or
+ * false the JVM parameter JAI.Ext.OldDescriptor. The interpolator can be
+ * chosen by passing the JAI.Ext.TestSelector Integer JVM parameter: 0 for
+ * nearest interpolation, 1 for bilinear, 2 for bicubic. The transformation used 
+ * is selected by passing the JVM integral parameter JAI.Ext.TransformationSelector,
+ * with 0 that indicates rotation, 1 scale, 2 combination of them.
  */
 public class ComparisonTest {
 
-    /** Number of benchmark iterations (Default 1) */
-    private final static int BENCHMARK_ITERATION = Integer.getInteger("JAI.Ext.BenchmarkCycles", 1);
+	/** Number of benchmark iterations (Default 1) */
+	private final static int BENCHMARK_ITERATION = Integer.getInteger(
+			"JAI.Ext.BenchmarkCycles", 1);
 
-    /** Number of not benchmark iterations (Default 0) */
-    private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.NotBenchmarkCycles", 0);
+	/** Number of not benchmark iterations (Default 0) */
+	private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
+			"JAI.Ext.NotBenchmarkCycles", 0);
 
-    /** Default subsampling bits used for the bilinear and bicubic interpolation */
-    private final static int DEFAULT_SUBSAMPLE_BITS = 8;
+	/** Boolean indicating if the old descriptor must be used */
+	private final static boolean OLD_DESCRIPTOR = Boolean
+			.getBoolean("JAI.Ext.OldDescriptor");
+	
+    /** Integer indicating which operation should be used (Default 0)*/
+    public static Integer TRANSFORMATION_SELECTOR = Integer
+            .getInteger("JAI.Ext.TransformationSelector",0);
 
-    /** Default precision bits used in the bicubic calculation */
-    private final static int DEFAULT_PRECISION_BITS = 8;
+	/** Index for selecting one of the 3 interpolators(Default 0) */
+	private final static int TEST_SELECTOR = Integer.getInteger(
+			"JAI.Ext.TestSelector", 0);
 
-    /** Value indicating No Data for the destination image */
-    private static double destinationNoData = 0;
+	/** Default subsampling bits used for the bilinear and bicubic interpolation */
+	private final static int DEFAULT_SUBSAMPLE_BITS = 8;
 
-    /** Transformation used */
-    private static AffineTransform transform;
+	/** Default precision bits used in the bicubic calculation */
+	private final static int DEFAULT_PRECISION_BITS = 8;
 
-    /** JAI nearest Interpolator */
-    private static javax.media.jai.InterpolationNearest interpNearOld;
+	/** Value indicating No Data for the destination image */
+	private static double destinationNoData = 0;
 
-    /** New nearest Interpolator */
-    private static InterpolationNearest interpNearNew;
+	/** Rotation used */
+	private static AffineTransform rotateTransform;
+	
+	/** Translation used */
+	private static AffineTransform translateTransform;
+	
+	/** Scale used */
+	private static AffineTransform scaleTransform;
 
-    /** JAI bilinear Interpolator */
-    private static javax.media.jai.InterpolationBilinear interpBilOld;
+	/** JAI nearest Interpolator */
+	private static javax.media.jai.InterpolationNearest interpNearOld;
 
-    /** New bilinear Interpolator */
-    private static InterpolationBilinear interpBilNew;
+	/** New nearest Interpolator */
+	private static InterpolationNearest interpNearNew;
 
-    /** JAI bicubic Interpolator */
-    private static javax.media.jai.InterpolationBicubic interpBicOld;
+	/** JAI bilinear Interpolator */
+	private static javax.media.jai.InterpolationBilinear interpBilOld;
 
-    /** New bicubic Interpolator */
-    private static InterpolationBicubic interpBicNew;
+	/** New bilinear Interpolator */
+	private static InterpolationBilinear interpBilNew;
 
-    /** Image to elaborate */
-    private static RenderedImage image;
+	/** JAI bicubic Interpolator */
+	private static javax.media.jai.InterpolationBicubic interpBicOld;
 
-    /** RenderingHints used for selecting the borderExtender */
-    private static RenderingHints hints;
+	/** New bicubic Interpolator */
+	private static InterpolationBicubic interpBicNew;
 
-    @BeforeClass
-    public static void initialSetup() throws FileNotFoundException, IOException {
-        int dataType = DataBuffer.TYPE_BYTE;
+	/** Image to elaborate */
+	private static RenderedImage image;
 
-        // Interpolators instantiation
-        interpNearOld = new javax.media.jai.InterpolationNearest();
-        interpNearNew = new InterpolationNearest(null, false, destinationNoData, dataType);
+	/** RenderingHints used for selecting the borderExtender */
+	private static RenderingHints hints;
 
-        interpBilOld = new javax.media.jai.InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS);
-        interpBilNew = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, null, false,
-                destinationNoData, dataType);
+	@BeforeClass
+	public static void initialSetup() throws FileNotFoundException, IOException {
+		int dataType = DataBuffer.TYPE_BYTE;
 
-        interpBicOld = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
-        interpBicNew = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, null, false, destinationNoData,
-                dataType, false, DEFAULT_PRECISION_BITS);
+		// Interpolators instantiation
+		interpNearOld = new javax.media.jai.InterpolationNearest();
+		interpNearNew = new InterpolationNearest(null, false,
+				destinationNoData, dataType);
 
-        // Selection of the RGB image
-        ParameterBlockJAI pbj = new ParameterBlockJAI("ImageRead");
-        //String file = "../jt-utilities/src/test/resources/it/geosolutions/jaiext/images/testImageLittle.tif";
-        File file = TestData.file(ComparisonTest.class, "testImageLittle.tif");
-        pbj.setParameter("Input", file);
-        image = JAI.create("ImageRead", pbj);
+		interpBilOld = new javax.media.jai.InterpolationBilinear(
+				DEFAULT_SUBSAMPLE_BITS);
+		interpBilNew = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, null,
+				false, destinationNoData, dataType);
 
-        hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,
-                BorderExtender.createInstance(BorderExtender.BORDER_COPY));
+		interpBicOld = new javax.media.jai.InterpolationBicubic(
+				DEFAULT_SUBSAMPLE_BITS);
+		interpBicNew = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, null,
+				false, destinationNoData, dataType, false,
+				DEFAULT_PRECISION_BITS);
 
-        // 45° degrees rotation
-        double theta = Math.PI / 4;
-        transform = AffineTransform.getRotateInstance(theta);
-    }
+		// Selection of the RGB image
+		ParameterBlockJAI pbj = new ParameterBlockJAI("ImageRead");
+		// String file =
+		// "../jt-utilities/src/test/resources/it/geosolutions/jaiext/images/testImageLittle.tif";
+		File file = TestData.file(ComparisonTest.class, "testImageLittle.tif");
+		pbj.setParameter("Input", file);
+		image = JAI.create("ImageRead", pbj);
 
-    @Test
-    @Ignore
-    public void testNearestInterp() {
-        testInterpolators(interpNearNew, false, false);
-    }
+		hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,
+				BorderExtender.createInstance(BorderExtender.BORDER_COPY));
 
-    @Test
-    @Ignore
-    public void testNearestInterpStandard() {
-        testInterpolators(interpNearOld, false, true);
-    }
+		// 45ï¿½ degrees rotation
+		double theta = Math.PI / 4;
+		rotateTransform = AffineTransform.getRotateInstance(theta);
+		// 100 px translation
+		translateTransform = AffineTransform.getTranslateInstance(100, 0);
+		// 2 x scale
+		scaleTransform=AffineTransform.getScaleInstance(1.5f, 1.5f);
+	}
 
-    @Test
-    @Ignore
-    public void testBilinearInterp() {
-        testInterpolators(interpBilNew, false, false);
-    }
+	@Test
+	public void testNearestNewAffineDescriptor() {
+		if (TEST_SELECTOR == 0 && !OLD_DESCRIPTOR) {
+			testInterpolators(interpNearNew, OLD_DESCRIPTOR);
+		}
+	}
 
-    @Test
-    @Ignore
-    public void testBilinearInterpStandard() {
-        testInterpolators(interpBilNew, false, true);
-    }
+	@Test
+	public void testNearestOldAffineDescriptor() {
+		if (TEST_SELECTOR == 0 && OLD_DESCRIPTOR) {
+			testInterpolators(interpNearOld, OLD_DESCRIPTOR);
+		}
+	}
 
-    @Test
-    @Ignore
-    public void testBicubicInterp() {
-        testInterpolators(interpBicNew, false, false);
-    }
+	@Test
+	public void testBilinearNewAffineDescriptor() {
+		if (TEST_SELECTOR == 1 && !OLD_DESCRIPTOR) {
+			testInterpolators(interpBilNew, OLD_DESCRIPTOR);
+		}
+	}
 
-    @Test
-    @Ignore
-    public void testBicubicInterpStandard() {
-        testInterpolators(interpBicOld, false, true);
-    }
+	@Test
+	public void testBilinearOldAffineDescriptor() {
+		if (TEST_SELECTOR == 1 && OLD_DESCRIPTOR) {
+			testInterpolators(interpBilOld, OLD_DESCRIPTOR);
+		}
+	}
 
-    @Test
-    @Ignore
-    public void testNearestNewAffineDescriptor() {
-        testInterpolators(interpNearNew, true, false);
-    }
+	@Test
+	public void testBicubicNewAffineDescriptor() {
+		if (TEST_SELECTOR == 2 && !OLD_DESCRIPTOR) {
+			testInterpolators(interpBicNew, OLD_DESCRIPTOR);
+		}
+	}
 
-    @Test
-    @Ignore
-    public void testNearestOldAffineDescriptor() {
-        testInterpolators(interpNearOld, true, true);
-    }
+	@Test
+	public void testBicubicOldAffineDescriptor() {
+		if (TEST_SELECTOR == 2 && OLD_DESCRIPTOR) {
+			testInterpolators(interpBicOld, OLD_DESCRIPTOR);
+		}
+	}
 
-    @Test
-    @Ignore
-    public void testBilinearNewAffineDescriptor() {
-        testInterpolators(interpBilNew, true, false);
-    }
+	public void testInterpolators(Interpolation interp, boolean old) {
 
-    @Test
-    @Ignore
-    public void testBilinearOldAffineDescriptor() {
-        testInterpolators(interpBilOld, true, true);
-    }
+		String interpType = "";
 
-    @Test
-    public void testBicubicNewAffineDescriptor() {
-        testInterpolators(interpBicNew, true, false);
-    }
+		if (interp instanceof javax.media.jai.InterpolationBilinear
+				|| interp instanceof InterpolationBilinear) {
+			interpType = "Bilinear";
+		} else if (interp instanceof javax.media.jai.InterpolationBicubic
+				|| interp instanceof InterpolationBicubic) {
+			interpType = "Bicubic";
+		} else if (interp instanceof javax.media.jai.InterpolationNearest
+				|| interp instanceof InterpolationNearest) {
+			interpType = "Nearest";
+		}
 
-    @Test
-    public void testBicubicOldAffineDescriptor() {
-        testInterpolators(interpBicOld, true, true);
-    }
+		String description = "";
 
-    public void testInterpolators(Interpolation interp, boolean testDescriptor, boolean old) {
+		if (old) {
+			description = "Old Affine";
+			System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+		} else {
+			description = "New Affine";
+			System.setProperty("com.sun.media.jai.disableMediaLib", "true");
+		}
 
-        String interpType = "";
+		AffineTransform transform = new AffineTransform();
+		
+		
+		switch (TRANSFORMATION_SELECTOR) {
+		case 0:
+			transform.concatenate(rotateTransform);
+			break;
+		case 1:
+			transform.concatenate(scaleTransform);
+			break;
+		case 2:
+			transform.concatenate(rotateTransform);
+			transform.concatenate(scaleTransform);
+			transform.concatenate(translateTransform);
+			break;
+		default:
+			throw new IllegalArgumentException("Wrong transformation value");
+		}
+		
+		
+		// Destination no data used by the affine operation with the classic
+		// bilinear interpolator
+		double[] destinationNoDataArray = { destinationNoData,
+				destinationNoData, destinationNoData };
+		// Total cycles number
+		int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
+		// Image with the interpolator
+		PlanarImage imageAffine = null;
 
-        if (interp instanceof javax.media.jai.InterpolationBilinear || interp instanceof InterpolationBilinear) {
-            interpType = "Bilinear";
-        } else if (interp instanceof javax.media.jai.InterpolationBicubic
-                || interp instanceof InterpolationBicubic) {
-            interpType = "Bicubic";
-        } else if (interp instanceof javax.media.jai.InterpolationNearest
-                || interp instanceof InterpolationNearest) {
-            interpType = "Nearest";
-        }
+		long mean = 0;
+		long max = Long.MIN_VALUE;
+		long min = Long.MAX_VALUE;
 
-        String description = "";
+		// Cycle for calculating the mean, maximum and minimum calculation time
+		for (int i = 0; i < totalCycles; i++) {
 
-        if (testDescriptor) {
-            if (old) {
-                description = "Old Affine";
-                System.setProperty("com.sun.media.jai.disableMediaLib", "false");
-            } else {
-                description = "New Affine";
-                System.setProperty("com.sun.media.jai.disableMediaLib", "true");
-            }
-        } else {
-            if (!old) {
-                description = "New";
-            }
-        }
+			// creation of the image with the selected interpolator
 
-        // Destination no data used by the affine operation with the classic bilinear interpolator
-        double[] destinationNoDataArray = { destinationNoData, destinationNoData, destinationNoData };
-        // Total cycles number
-        int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
-        // Image with the interpolator
-        PlanarImage imageAffine = null;
+			if (old) {
+				imageAffine = javax.media.jai.operator.AffineDescriptor
+						.create(image, transform, interp,
+								destinationNoDataArray, hints);
+			} else {
+				imageAffine = AffineDescriptor.create(image, transform, interp,
+						destinationNoDataArray, null, false, false, hints);
+			}
 
-        long mean = 0;
-        long max = Long.MIN_VALUE;
-        long min = Long.MAX_VALUE;
+			// Total calculation time
+			long start = System.nanoTime();
+			imageAffine.getTiles();
+			long end = System.nanoTime() - start;
 
-        // Cycle for calculating the mean, maximum and minimum calculation time
-        for (int i = 0; i < totalCycles; i++) {
+			// If the the first NOT_BENCHMARK_ITERATION cycles has been done,
+			// then the mean, maximum and minimum values are stored
+			if (i > NOT_BENCHMARK_ITERATION - 1) {
+				if (i == NOT_BENCHMARK_ITERATION) {
+					mean = end;
+				} else {
+					mean = mean + end;
+				}
 
-            // creation of the image with the selected interpolator
-            if (testDescriptor) {
-                if (old) {
-                    imageAffine = javax.media.jai.operator.AffineDescriptor.create(image, transform, interp,
-                            destinationNoDataArray, hints);
-                } else {
-                    imageAffine = AffineDescriptor.create(image, transform, interp,
-                            destinationNoDataArray, null, false, false, hints);
-                }
-            } else {
-                if (old) {
-                    imageAffine = AffineDescriptor.create(image, transform, interp,
-                            destinationNoDataArray, null, false, true, hints);
-                } else {
-                    imageAffine = AffineDescriptor.create(image, transform, interp, null, null,
-                            false, false, hints);
-                }
-            }
-            // Total calculation time
-            long start = System.nanoTime();
-            imageAffine.getTiles();
-            long end = System.nanoTime() - start;
+				if (end > max) {
+					max = end;
+				}
 
-            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
-            if (i > NOT_BENCHMARK_ITERATION - 1) {
-                if (i == NOT_BENCHMARK_ITERATION) {
-                    mean = end;
-                } else {
-                    mean = mean + end;
-                }
+				if (end < min) {
+					min = end;
+				}
+			}
+			// For every cycle the cache is flushed such that all the tiles must
+			// be recalculates
+			JAI.getDefaultInstance().getTileCache().flush();
+		}
+		// Mean values
+		double meanValue = mean / BENCHMARK_ITERATION * 1E-6;
 
-                if (end > max) {
-                    max = end;
-                }
+		// Max and Min values stored as double
+		double maxD = max * 1E-6;
+		double minD = min * 1E-6;
+		// Comparison between the mean times
+			// Output print of the
+			System.out.println("\n" + interpType);
+			System.out.println("\nMean value for " + description
+					+ "Descriptor : " + meanValue + " msec.");
+			System.out.println("Maximum value for " + description
+					+ "Descriptor : " + maxD + " msec.");
+			System.out.println("Minimum value for " + description
+					+ "Descriptor : " + minD + " msec.");
+		
+		// Final Image disposal
+		if (imageAffine instanceof RenderedOp) {
+			((RenderedOp) imageAffine).dispose();
+		}
 
-                if (end < min) {
-                    min = end;
-                }
-            }
-            // For every cycle the cache is flushed such that all the tiles must be recalculates
-            JAI.getDefaultInstance().getTileCache().flush();
-        }
-        // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION * 1E-6;
-
-        // Max and Min values stored as double
-        double maxD = max * 1E-6;
-        double minD = min * 1E-6;
-        // Comparison between the mean times
-        if (testDescriptor) {
-            // Output print of the
-            System.out.println("\n" + interpType);
-            System.out.println("\nMean value for " + description + "Descriptor : " + meanValue
-                    + " msec.");
-            System.out.println("Maximum value for " + description + "Descriptor : " + maxD
-                    + " msec.");
-            System.out.println("Minimum value for " + description + "Descriptor : " + minD
-                    + " msec.");
-        } else {
-            // Output print of the
-            System.out.println("\nMean value for Interpolator" + interpType + description + " : "
-                    + meanValue + " msec.");
-            System.out.println("Maximum value for Interpolator" + interpType + description + " : "
-                    + maxD + " msec.");
-            System.out.println("Minimum value for Interpolator" + interpType + description + " : "
-                    + minD + " msec.");
-        }
-        
-        //Final Image disposal
-        if(imageAffine instanceof RenderedOp){
-            ((RenderedOp)imageAffine).dispose();
-        }
-        
-    }
+	}
 }
