@@ -26,7 +26,7 @@ import org.junit.Test;
  * </ul>
  * The MosaicType can be chosen by setting the JAI.Ext.MosaicBlend boolean JVM parameter: false for OVERLAY, true for BLEND.
  * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor.
- * 
+ * If the user wants to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
 
 public class ComparisonTest {
@@ -40,6 +40,10 @@ public class ComparisonTest {
     
     /** Boolean indicating if the old descriptor must be used */
     private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
+    
+	/** Boolean indicating if the native acceleration must be used */
+	private final static boolean NATIVE_ACCELERATION = Boolean
+			.getBoolean("JAI.Ext.Acceleration");
     
     /** Boolean for selecting one of the 2 MosaicType(Default Overlay) */
     private final static boolean MOSAIC_TYPE = Boolean.getBoolean(
@@ -112,7 +116,12 @@ public class ComparisonTest {
 
         if (old) {
             description = "Old Mosaic";
-            System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+			if(NATIVE_ACCELERATION){
+				description+=" accelerated ";   
+				System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+			}else{
+				System.setProperty("com.sun.media.jai.disableMediaLib", "true");
+			}
         } else {
             description = "New Mosaic";
             System.setProperty("com.sun.media.jai.disableMediaLib", "true");

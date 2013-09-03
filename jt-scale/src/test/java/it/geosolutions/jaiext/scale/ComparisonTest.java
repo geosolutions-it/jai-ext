@@ -37,6 +37,7 @@ import org.junit.Test;
  * </ul>
  * The interpolator can be chosen by passing the JAI.Ext.TestSelector Integer JVM parameter: 0 for nearest interpolation, 1 for bilinear, 2 for bicubic.
  * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor.
+ * If the user wants to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
 public class ComparisonTest{
 
@@ -51,6 +52,10 @@ public class ComparisonTest{
     /** Index for selecting one of the 3 interpolators(Default 0) */
     private final static int TEST_SELECTOR = Integer.getInteger(
             "JAI.Ext.TestSelector", 0);
+    
+	/** Boolean indicating if the native acceleration must be used */
+	private final static boolean NATIVE_ACCELERATION = Boolean
+			.getBoolean("JAI.Ext.Acceleration");
     
     /** Boolean indicating if the image should be reduced instead of increased */
     public static Boolean IMAGE_REDUCTION = Boolean.getBoolean("JAI.Ext.ImageReduction");
@@ -195,7 +200,12 @@ public class ComparisonTest{
 
             if (old) {
                 description = "Old Scale";
-                System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+    			if(NATIVE_ACCELERATION){    				
+    				description+=" accelerated ";    				
+    				System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+    			}else{
+    				System.setProperty("com.sun.media.jai.disableMediaLib", "true");
+    			}
             } else {
                 description = "New Scale";
                 System.setProperty("com.sun.media.jai.disableMediaLib", "true");

@@ -42,7 +42,8 @@ import org.junit.Test;
  * chosen by passing the JAI.Ext.TestSelector Integer JVM parameter: 0 for
  * nearest interpolation, 1 for bilinear, 2 for bicubic. The transformation used 
  * is selected by passing the JVM integral parameter JAI.Ext.TransformationSelector,
- * with 0 that indicates rotation, 1 scale, 2 combination of them.
+ * with 0 that indicates rotation, 1 scale, 2 combination of them. If the user wants 
+ * to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
 public class ComparisonTest {
 
@@ -57,6 +58,10 @@ public class ComparisonTest {
 	/** Boolean indicating if the old descriptor must be used */
 	private final static boolean OLD_DESCRIPTOR = Boolean
 			.getBoolean("JAI.Ext.OldDescriptor");
+	
+	/** Boolean indicating if the native acceleration must be used */
+	private final static boolean NATIVE_ACCELERATION = Boolean
+			.getBoolean("JAI.Ext.Acceleration");
 	
     /** Integer indicating which operation should be used (Default 0)*/
     public static Integer TRANSFORMATION_SELECTOR = Integer
@@ -209,7 +214,12 @@ public class ComparisonTest {
 
 		if (old) {
 			description = "Old Affine";
-			System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+			if(NATIVE_ACCELERATION){
+				description+=" accelerated ";   
+				System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+			}else{
+				System.setProperty("com.sun.media.jai.disableMediaLib", "true");
+			}
 		} else {
 			description = "New Affine";
 			System.setProperty("com.sun.media.jai.disableMediaLib", "true");

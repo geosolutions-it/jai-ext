@@ -25,6 +25,8 @@ import org.junit.Test;
  * <li>Selection of the source image(4 different dataType)</li>
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
+ * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor.
+ * If the user wants to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
 
 public class ComparisonTest extends TestBase {
@@ -38,6 +40,10 @@ public class ComparisonTest extends TestBase {
 
     /** Boolean indicating if the old descriptor must be used */
     private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
+    
+	/** Boolean indicating if the native acceleration must be used */
+	private final static boolean NATIVE_ACCELERATION = Boolean
+			.getBoolean("JAI.Ext.Acceleration");
 
     /** Destination No Data value */
     private static double destinationNoDataValue;
@@ -224,7 +230,12 @@ public class ComparisonTest extends TestBase {
 
         if (old) {
             description = "Old Lookup";
-            System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+			if(NATIVE_ACCELERATION){
+				description+=" accelerated ";   
+				System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+			}else{
+				System.setProperty("com.sun.media.jai.disableMediaLib", "true");
+			}
         } else {
             description = "New Lookup";
             System.setProperty("com.sun.media.jai.disableMediaLib", "true");
