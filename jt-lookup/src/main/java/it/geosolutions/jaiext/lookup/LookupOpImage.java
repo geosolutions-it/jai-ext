@@ -1,8 +1,10 @@
 package it.geosolutions.jaiext.lookup;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
+import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
@@ -15,8 +17,6 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.iterator.RandomIter;
-
-import org.jaitools.numeric.Range;
 
 import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.JDKWorkarounds;
@@ -108,6 +108,10 @@ public class LookupOpImage extends ColormapOpImage {
         // If no Data are present, then a No Data Range is added to the table
         if (noData != null) {
             hasNoData = true;
+            //Control if the range data type is the same of the source image
+            if(noData.getDataType().getDataType()!=source.getSampleModel().getDataType()){
+                throw new IllegalArgumentException("Range data type is not the same of the source image");
+            }
             lookupTable.setNoDataRange(noData);
         }else{
             // if no data range is not present the table no data range is set to nul.

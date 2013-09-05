@@ -21,8 +21,6 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
-import org.jaitools.numeric.Range;
-
 public class AffineBicubicOpImage extends AffineOpImage {
 
     /** Nearest-Neighbor interpolator */
@@ -129,18 +127,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
             if (noData != null) {
                 hasNoData = true;
                 destinationNoDataDouble = interpBN.getDestinationNoData();
-                if ((srcDataType == DataBuffer.TYPE_FLOAT || srcDataType == DataBuffer.TYPE_DOUBLE)) {
-                    // If the range goes from -Inf to Inf No Data is NaN
-                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
-                        isRangeNaN = true;
-                        // If the range is a positive infinite point isPositiveInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
-                        isPositiveInf = true;
-                        // If the range is a negative infinite point isNegativeInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
-                        isNegativeInf = true;
-                    }
-                }
             } else if (hasROI) {
                 destinationNoDataDouble = interpBN.getDestinationNoData();
                 this.useROIAccessor = useROIAccessor;
@@ -165,11 +151,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
             // Creation of a lookuptable containing the values to use for no data
             if (hasNoData) {
 
-                Range<Byte> noDataByte = ((Range<Byte>) noData);
-
                 for (int i = 0; i < byteLookupTable.length; i++) {
                     byte value = (byte) i;
-                    if (noDataByte.contains(value)) {
+                    if (noData.contains(value)) {
                         if (setDestinationNoData) {
                             byteLookupTable[i] = destinationNoDataByte;
                         } else {
@@ -1349,8 +1333,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        Range<Short> rangeND = (Range<Short>)noData;
         
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -1864,7 +1846,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     // Selection of one pixel
                                     pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
-                                    if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                    if (!noData.contains((short) pixelKernel[h][z])) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
                                     }
@@ -2055,7 +2037,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                     : 0);
                                         }
 
-                                        if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                        if (!noData.contains((short) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -2240,7 +2222,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
 
-                                        if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                        if (!noData.contains((short) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -2380,8 +2362,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        Range<Short> rangeND = (Range<Short>)noData;
         
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -2895,7 +2875,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     // Selection of one pixel
                                     pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride];
-                                    if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                    if (!noData.contains((short) pixelKernel[h][z])) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
                                     }
@@ -3086,7 +3066,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                     : 0);
                                         }
 
-                                        if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                        if (!noData.contains((short) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -3271,7 +3251,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
 
-                                        if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                        if (!noData.contains((short) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -3411,8 +3391,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        Range<Integer> rangeND = (Range<Integer>)noData;
         
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -3906,7 +3884,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     // Selection of one pixel
                                     pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride];
-                                    if (!rangeND.contains((int) pixelKernel[h][z])) {
+                                    if (!noData.contains((int) pixelKernel[h][z])) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
                                     }
@@ -4090,7 +4068,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                     : 0);
                                         }
 
-                                        if (!rangeND.contains((int) pixelKernel[h][z])) {
+                                        if (!noData.contains((int) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -4268,7 +4246,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
 
-                                        if (!rangeND.contains((int) pixelKernel[h][z])) {
+                                        if (!noData.contains((int) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -4401,8 +4379,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        Range<Float> rangeND = (Range<Float>)noData;
         
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -4878,15 +4854,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                                     * srcPixelStride + (h - 1) * srcScanlineStride];
                                     pixelKernel[h][z] = value;
                                     
-                                    if(isNegativeInf||isPositiveInf||isRangeNaN){
-                                        if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                            // The destination no data value is saved in the destination array
-                                               weightArray[h][z] = 0;
-                                           }else{
-                                               tmpND++;
-                                               weightArray[h][z] = 1;
-                                           }
-                                    }else if (!rangeND.contains(value)) {
+                                    if (!noData.contains(value)||!Float.isNaN(value)) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
                                     }
@@ -5065,15 +5033,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                     : 0);
                                         }
                                         
-                                        if(isNegativeInf||isPositiveInf||isRangeNaN){
-                                            if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                                // The destination no data value is saved in the destination array
-                                                   weightArray[h][z] = 0;
-                                               }else{
-                                                   tmpND++;
-                                                   weightArray[h][z] = 1;
-                                               }
-                                        }else if (!rangeND.contains(value)) {
+                                        if (!noData.contains(value)||!Float.isNaN(value)) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -5247,15 +5207,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
 
-                                        if(isNegativeInf||isPositiveInf||isRangeNaN){
-                                            if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                                // The destination no data value is saved in the destination array
-                                                   weightArray[h][z] = 0;
-                                               }else{
-                                                   tmpND++;
-                                                   weightArray[h][z] = 1;
-                                               }
-                                        }else if (!rangeND.contains(value)) {
+                                        if (!noData.contains(value)||!Float.isNaN(value)) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -5386,8 +5338,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        Range<Double> rangeND = (Range<Double>)noData;
         
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -5863,15 +5813,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                                     * srcPixelStride + (h - 1) * srcScanlineStride];
                                     pixelKernel[h][z] = value;
                                     
-                                    if(isNegativeInf||isPositiveInf||isRangeNaN){
-                                        if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                            // The destination no data value is saved in the destination array
-                                               weightArray[h][z] = 0;
-                                           }else{
-                                               tmpND++;
-                                               weightArray[h][z] = 1;
-                                           }
-                                    }else if (!rangeND.contains(value)) {
+                                    if (!noData.contains(value)||!Double.isNaN(value)) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
                                     }
@@ -6050,15 +5992,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                     : 0);
                                         }
                                         
-                                        if(isNegativeInf||isPositiveInf||isRangeNaN){
-                                            if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                                // The destination no data value is saved in the destination array
-                                                   weightArray[h][z] = 0;
-                                               }else{
-                                                   tmpND++;
-                                                   weightArray[h][z] = 1;
-                                               }
-                                        }else if (!rangeND.contains(value)) {
+                                        if (!noData.contains(value)||!Double.isNaN(value)) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -6232,15 +6166,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
 
-                                        if(isNegativeInf||isPositiveInf||isRangeNaN){
-                                            if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.NEGATIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                                // The destination no data value is saved in the destination array
-                                                   weightArray[h][z] = 0;
-                                               }else{
-                                                   tmpND++;
-                                                   weightArray[h][z] = 1;
-                                               }
-                                        }else if (!rangeND.contains(value)) {
+                                        if (!noData.contains(value)||!Double.isNaN(value)) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }

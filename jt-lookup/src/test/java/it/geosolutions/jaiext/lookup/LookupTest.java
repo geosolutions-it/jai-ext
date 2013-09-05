@@ -1,6 +1,8 @@
 package it.geosolutions.jaiext.lookup;
 
 import static org.junit.Assert.*;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.Rectangle;
@@ -15,7 +17,6 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
-import org.jaitools.numeric.Range;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -137,16 +138,16 @@ public class LookupTest extends TestBase {
     private static double destinationNoDataValue;
 
     /** Byte no Data range */
-    private static Range<Byte> rangeB;
+    private static Range rangeB;
 
     /** UShort no Data range */
-    private static Range<Short> rangeUS;
+    private static Range rangeUS;
 
     /** Short no Data range */
-    private static Range<Short> rangeS;
+    private static Range rangeS;
 
     /** Integer no Data range */
-    private static Range<Integer> rangeI;
+    private static Range rangeI;
 
     // Initial static method for preparing all the test data
     @BeforeClass
@@ -305,10 +306,10 @@ public class LookupTest extends TestBase {
         Rectangle roiBounds = new Rectangle(0, 0, DEFAULT_WIDTH / 4, DEFAULT_HEIGHT / 4);
         roi = new ROIShape(roiBounds);
         // NoData creation
-        rangeB = Range.create(noDataB, true, noDataB, true);
-        rangeUS = Range.create(noDataUS, true, noDataUS, true);
-        rangeS = Range.create(noDataS, true, noDataS, true);
-        rangeI = Range.create(noDataI, true, noDataI, true);
+        rangeB = RangeFactory.create(noDataB, true, noDataB, true);
+        rangeUS = RangeFactory.createU(noDataUS, true, noDataUS, true);
+        rangeS = RangeFactory.create(noDataS, true, noDataS, true);
+        rangeI = RangeFactory.create(noDataI, true, noDataI, true);
         // Destination No Data
         destinationNoDataValue = 255;
     }

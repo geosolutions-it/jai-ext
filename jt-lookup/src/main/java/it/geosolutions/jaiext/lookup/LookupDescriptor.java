@@ -1,5 +1,7 @@
 package it.geosolutions.jaiext.lookup;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
@@ -13,8 +15,6 @@ import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderedRegistryMode;
-
-import org.jaitools.numeric.Range;
 
 import com.sun.media.jai.util.PropertyGeneratorImpl;
 
@@ -245,7 +245,7 @@ public class LookupDescriptor extends OperationDescriptorImpl {
 
     /** The parameter class list for this operation. */
     private static final Class[] paramClasses = { it.geosolutions.jaiext.lookup.LookupTable.class,
-            java.lang.Double.class, javax.media.jai.ROI.class, org.jaitools.numeric.Range.class,
+            java.lang.Double.class, javax.media.jai.ROI.class, it.geosolutions.jaiext.range.Range.class,
             java.lang.Boolean.class };
 
     /** The parameter name list for this operation. */

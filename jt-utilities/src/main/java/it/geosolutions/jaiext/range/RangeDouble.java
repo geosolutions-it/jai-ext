@@ -41,18 +41,18 @@ public class RangeDouble extends Range {
         final boolean upper;
 
         if (minIncluded) {
-            lower = value < minValue;
+            lower = value >= minValue;
         } else {
-            lower = value <= minValue;
+            lower = value > minValue;
         }
 
         if (maxIncluded) {
-            upper = value > maxValue;
+            upper = value <= maxValue;
         } else {
-            upper = value >= maxValue;
+            upper = value < maxValue;
         }
 
-        return !lower && !upper;
+        return lower && upper;
     }
 
     @Override

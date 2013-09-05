@@ -12,8 +12,6 @@ import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.RasterFormatTag;
 
-import org.jaitools.numeric.Range;
-
 /** This class is an extension of the abstract class LookupTable handling byte data types */
 public class LookupTableByte extends LookupTable {
 
@@ -360,8 +358,6 @@ public class LookupTableByte extends LookupTable {
             roiDataLength = roiDataArray.length;
             roiLineStride = roi.getScanlineStride();
         }
-        // No Data range used
-        Range<Byte> rangeND = (Range<Byte>) noData;
 
         // Boolean indicating the possible situations: with or without ROI,
         // with or without No Data, and a special case when table data are not present
@@ -518,7 +514,7 @@ public class LookupTableByte extends LookupTable {
                     for (int x = 0; x < dstWidth; x++) {
                         // If the value is a not a noData, the table value is stored
                         byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                        if (rangeND.contains(value)) {
+                        if (noData.contains(value)) {
                             d[dstPixelOffset] = destinationNoDataByte;
                         } else {
                             d[dstPixelOffset] = t[value - tblOffset];
@@ -569,7 +565,7 @@ public class LookupTableByte extends LookupTable {
                             } else {
                                 // If the value is a not a noData, the table value is stored
                                 byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                if (rangeND.contains(value)) {
+                                if (noData.contains(value)) {
                                     d[dstPixelOffset] = destinationNoDataByte;
                                 } else {
                                     d[dstPixelOffset] = t[value - tblOffset];
@@ -614,7 +610,7 @@ public class LookupTableByte extends LookupTable {
                                 } else {
                                     // If the value is a not a noData, the table value is stored
                                     byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                    if (rangeND.contains(value)) {
+                                    if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataByte;
                                     } else {
                                         d[dstPixelOffset] = t[value - tblOffset];
@@ -653,7 +649,6 @@ public class LookupTableByte extends LookupTable {
             roiLineStride = roi.getScanlineStride();
         }
 
-        Range<Byte> rangeND = (Range<Byte>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -779,7 +774,7 @@ public class LookupTableByte extends LookupTable {
 
                     for (int x = 0; x < dstWidth; x++) {
                         byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                        if (rangeND.contains(value)) {
+                        if (noData.contains(value)) {
                             d[dstPixelOffset] = destinationNoDataShort;
                         } else {
                             d[dstPixelOffset] = t[value - tblOffset];
@@ -823,7 +818,7 @@ public class LookupTableByte extends LookupTable {
                                 d[dstPixelOffset] = destinationNoDataShort;
                             } else {
                                 byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                if (rangeND.contains(value)) {
+                                if (noData.contains(value)) {
                                     d[dstPixelOffset] = destinationNoDataShort;
                                 } else {
                                     d[dstPixelOffset] = t[value - tblOffset];
@@ -859,7 +854,7 @@ public class LookupTableByte extends LookupTable {
                                     d[dstPixelOffset] = destinationNoDataShort;
                                 } else {
                                     byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                    if (rangeND.contains(value)) {
+                                    if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataShort;
                                     } else {
                                         d[dstPixelOffset] = t[value - tblOffset];
@@ -896,8 +891,6 @@ public class LookupTableByte extends LookupTable {
             roiDataLength = roiDataArray.length;
             roiLineStride = roi.getScanlineStride();
         }
-
-        Range<Byte> rangeND = (Range<Byte>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -1122,7 +1115,7 @@ public class LookupTableByte extends LookupTable {
                         for (int x = 0; x < dstWidth; x++) {
 
                             byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                            if (rangeND.contains(value)) {
+                            if (noData.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataInt;
                             } else {
                                 d[dstPixelOffset] = data.getElem(b, s[srcPixelOffset] & 0xFF);
@@ -1152,7 +1145,7 @@ public class LookupTableByte extends LookupTable {
 
                         for (int x = 0; x < dstWidth; x++) {
                             byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                            if (rangeND.contains(value)) {
+                            if (noData.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataInt;
                             } else {
                                 d[dstPixelOffset] = t[value - tblOffset];
@@ -1195,7 +1188,7 @@ public class LookupTableByte extends LookupTable {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
                                     byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                    if (rangeND.contains(value)) {
+                                    if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
                                         d[dstPixelOffset] = data.getElem(b,
@@ -1239,7 +1232,7 @@ public class LookupTableByte extends LookupTable {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
                                     byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                    if (rangeND.contains(value)) {
+                                    if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
                                         d[dstPixelOffset] = t[value - tblOffset];
@@ -1275,7 +1268,7 @@ public class LookupTableByte extends LookupTable {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
                                         byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                        if (rangeND.contains(value)) {
+                                        if (noData.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataInt;
                                         } else {
                                             d[dstPixelOffset] = data.getElem(b,
@@ -1315,7 +1308,7 @@ public class LookupTableByte extends LookupTable {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
                                         byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                        if (rangeND.contains(value)) {
+                                        if (noData.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataInt;
                                         } else {
                                             d[dstPixelOffset] = t[value - tblOffset];
@@ -1353,8 +1346,6 @@ public class LookupTableByte extends LookupTable {
             roiDataLength = roiDataArray.length;
             roiLineStride = roi.getScanlineStride();
         }
-
-        Range<Byte> rangeND = (Range<Byte>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -1481,7 +1472,7 @@ public class LookupTableByte extends LookupTable {
 
                     for (int x = 0; x < dstWidth; x++) {
                         byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                        if (rangeND.contains(value)) {
+                        if (noData.contains(value)) {
                             d[dstPixelOffset] = destinationNoDataFloat;
                         } else {
                             d[dstPixelOffset] = t[value - tblOffset];
@@ -1525,7 +1516,7 @@ public class LookupTableByte extends LookupTable {
                                 d[dstPixelOffset] = destinationNoDataFloat;
                             } else {
                                 byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                if (rangeND.contains(value)) {
+                                if (noData.contains(value)) {
                                     d[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
                                     d[dstPixelOffset] = t[value - tblOffset];
@@ -1562,7 +1553,7 @@ public class LookupTableByte extends LookupTable {
                                     d[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
                                     byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                    if (rangeND.contains(value)) {
+                                    if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
                                         d[dstPixelOffset] = t[value - tblOffset];
@@ -1599,9 +1590,7 @@ public class LookupTableByte extends LookupTable {
             roiDataLength = roiDataArray.length;
             roiLineStride = roi.getScanlineStride();
         }
-
-        Range<Byte> rangeND = (Range<Byte>) noData;
-
+        
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
         final boolean caseC = !hasROI && hasNoData;
@@ -1727,7 +1716,7 @@ public class LookupTableByte extends LookupTable {
 
                     for (int x = 0; x < dstWidth; x++) {
                         byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                        if (rangeND.contains(value)) {
+                        if (noData.contains(value)) {
                             d[dstPixelOffset] = destinationNoDataDouble;
                         } else {
                             d[dstPixelOffset] = t[value - tblOffset];
@@ -1771,7 +1760,7 @@ public class LookupTableByte extends LookupTable {
                                 d[dstPixelOffset] = destinationNoDataDouble;
                             } else {
                                 byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                if (rangeND.contains(value)) {
+                                if (noData.contains(value)) {
                                     d[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
                                     d[dstPixelOffset] = t[value - tblOffset];
@@ -1808,7 +1797,7 @@ public class LookupTableByte extends LookupTable {
                                     d[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
                                     byte value = (byte) (s[srcPixelOffset] & 0xFF);
-                                    if (rangeND.contains(value)) {
+                                    if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
                                         d[dstPixelOffset] = t[value - tblOffset];

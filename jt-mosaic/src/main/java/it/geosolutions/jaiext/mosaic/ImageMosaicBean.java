@@ -1,11 +1,12 @@
 package it.geosolutions.jaiext.mosaic;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.image.RenderedImage;
 import java.io.Serializable;
+
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
-
-import org.jaitools.numeric.Range;
 
 /**
  * This class implements a Java Bean used as input values container of the for the MosaicOpImage2 class. Inside this class are contained the

@@ -1,12 +1,13 @@
 package it.geosolutions.jaiext.interpolators;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
+
 import javax.media.jai.InterpolationTable;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.iterator.RandomIter;
-
-import org.jaitools.numeric.Range;
 
 public class InterpolationBicubic extends InterpolationTable {
 
@@ -20,11 +21,6 @@ public class InterpolationBicubic extends InterpolationTable {
 
     /** The scaled (by 2<sup>precisionBits</sup>) value of 0.5 for rounding */
     private int round;
-
-    /**
-     * InterpolationCubic instance used only with the ScaleOpImage constructor for setting the interpolation type as BiCubic
-     * */
-    private InterpolationBicubic interpBiCubic;
 
     /** Range of NO DATA values to be checked */
     private Range noDataRange;
@@ -48,15 +44,6 @@ public class InterpolationBicubic extends InterpolationTable {
 
     /** Image data Type */
     private int dataType;
-
-    /** Boolean for checking if No data is NaN*/
-    private boolean isRangeNaN=false;
-    
-    /** Boolean for checking if No data is Positive Infinity*/
-    private boolean isPositiveInf=false;
-    
-    /** Boolean for checking if No data is Negative Infinity*/
-    private boolean isNegativeInf=false;
     
     /**
      * Simple interpolator object used for Bicubic/Bicubic2 interpolation. On construction it is possible to set a range for no data values that will
@@ -69,19 +56,7 @@ public class InterpolationBicubic extends InterpolationTable {
                 bicubic2Disabled), null);
 
         if (noDataRange != null) {
-            this.noDataRange = noDataRange;            
-            if((dataType==DataBuffer.TYPE_FLOAT||dataType==DataBuffer.TYPE_DOUBLE)){
-            	// If the range goes from -Inf to Inf No Data is NaN
-            	if(!noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinNegInf()){
-            		isRangeNaN=true;
-            	// If the range is a positive infinite point isPositiveInf flag is set
-            	}else if(noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinInf()){
-            		isPositiveInf=true;
-            	// If the range is a negative infinite point isNegativeInf flag is set
-            	}else if(noDataRange.isPoint() && noDataRange.isMaxNegInf() && noDataRange.isMinNegInf()){
-            		isNegativeInf=true;
-            	}
-            }        
+            this.noDataRange = noDataRange;                  
         }
         this.useROIAccessor = useROIAccessor;
         this.destinationNoData = destinationNoData;
@@ -115,19 +90,7 @@ public class InterpolationBicubic extends InterpolationTable {
 
     public void setNoDataRange(Range noDataRange) {
         if (noDataRange != null) {
-            this.noDataRange = noDataRange;            
-            if((dataType==DataBuffer.TYPE_FLOAT||dataType==DataBuffer.TYPE_DOUBLE)){
-            	// If the range goes from -Inf to Inf No Data is NaN
-            	if(!noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinNegInf()){
-            		isRangeNaN=true;
-            	// If the range is a positive infinite point isPositiveInf flag is set
-            	}else if(noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinInf()){
-            		isPositiveInf=true;
-            	// If the range is a negative infinite point isNegativeInf flag is set
-            	}else if(noDataRange.isPoint() && noDataRange.isMaxNegInf() && noDataRange.isMinNegInf()){
-            		isNegativeInf=true;
-            	}
-            }        
+            this.noDataRange = noDataRange;                    
         }
     }
     
@@ -600,7 +563,7 @@ public class InterpolationBicubic extends InterpolationTable {
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
                 // Range cast to the selcted data Type
-                Range<Byte> rangeB = (Range<Byte>) noDataRange;
+                Range rangeB =  noDataRange;
                 // Every pixel is tested if it is a NO DATA.
                 // If so, the associated weight is set to 0, else to 1.
                 for (int i = 0; i < weightArrayLength; i++) {
@@ -613,7 +576,7 @@ public class InterpolationBicubic extends InterpolationTable {
                 break;
             case DataBuffer.TYPE_USHORT:
             case DataBuffer.TYPE_SHORT:
-                Range<Short> rangeS = (Range<Short>) noDataRange;
+                Range rangeS =  noDataRange;
                 for (int i = 0; i < weightArrayLength; i++) {
                     for (int j = 0; j < weightArrayLength; j++) {
                         if (rangeS.contains((short) kernelArray[i][j])) {
@@ -623,7 +586,7 @@ public class InterpolationBicubic extends InterpolationTable {
                 }
                 break;
             case DataBuffer.TYPE_INT:
-                Range<Integer> rangeI = (Range<Integer>) noDataRange;
+                Range rangeI =  noDataRange;
                 for (int i = 0; i < weightArrayLength; i++) {
                     for (int j = 0; j < weightArrayLength; j++) {
                         if (rangeI.contains((int) kernelArray[i][j])) {
@@ -633,28 +596,20 @@ public class InterpolationBicubic extends InterpolationTable {
                 }
                 break;
             case DataBuffer.TYPE_FLOAT:
-                Range<Float> rangeF = (Range<Float>) noDataRange;
+                Range rangeF =  noDataRange;
                 for (int i = 0; i < weightArrayLength; i++) {
                     for (int j = 0; j < weightArrayLength; j++) {
-                    	 if(isNegativeInf||isPositiveInf||isRangeNaN){
-                    		 if(testNaNorInfinity(dataType,0,kernelArrayF[i][j])){
-                    			 weightArray[i][j] *= 0;
-                    		 }
-                         }else if (rangeF.contains(kernelArrayF[i][j])) {                	
+                    	 if (rangeF.contains(kernelArrayF[i][j])|| Float.isNaN(kernelArrayF[i][j])) {                	
                         	 weightArray[i][j] *= 0;
                          }
                     }
                 }
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                Range<Double> rangeD = (Range<Double>) noDataRange;
+                Range rangeD =  noDataRange;
                 for (int i = 0; i < weightArrayLength; i++) {
                     for (int j = 0; j < weightArrayLength; j++) {
-                   	 	if(isNegativeInf||isPositiveInf||isRangeNaN){
-                   	 		if(testNaNorInfinity(dataType,kernelArrayD[i][j],0)){
-                   	 			weightArray[i][j] *= 0;
-                   	 		}
-                   	 	}else if (rangeD.contains(kernelArrayD[i][j])) {                	
+                   	 	if (rangeD.contains(kernelArrayD[i][j])|| Double.isNaN(kernelArrayD[i][j])) {                	
                    	 		weightArray[i][j] *= 0;
                    	 	}
                     }
@@ -873,36 +828,6 @@ public class InterpolationBicubic extends InterpolationTable {
         }
         return s;
 
-    }
-    
-    /* Private method for checking if the Range contains NaN, Positive Infinity or Negative Infinity*/
-    private boolean testNaNorInfinity(int dataType, double valued , float valuef){
-    	boolean checkData=false;
-    	switch(dataType){
-    	case DataBuffer.TYPE_FLOAT:
-    		if(isRangeNaN){
-    			checkData=Float.isNaN(valuef);
-    		}else if(isPositiveInf){
-    			checkData= valuef==Float.POSITIVE_INFINITY;
-    		}else if(isNegativeInf){
-    			checkData= valuef==Float.NEGATIVE_INFINITY;
-    		}	
-    		break;
-    	case DataBuffer.TYPE_DOUBLE:
-    		if(isRangeNaN){
-    			checkData=Double.isNaN(valued);
-    		}else if(isPositiveInf){
-    			checkData= valued==Double.POSITIVE_INFINITY;
-    		}else if(isNegativeInf){
-    			checkData= valued==Double.NEGATIVE_INFINITY;
-    		}	
-    		break;
-    		default:
-    			throw new IllegalArgumentException("Wrong control on the selected dataType");
-    	}
-    	
-		return checkData;
-    	
     }
     
     

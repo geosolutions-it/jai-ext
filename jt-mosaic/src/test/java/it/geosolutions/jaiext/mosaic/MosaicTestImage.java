@@ -27,7 +27,7 @@ public class MosaicTestImage {
 
     private static final boolean INTERACTIVE = Boolean.getBoolean("JAI.Ext.Interactive");
 
-    private static final boolean NEW_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.NewDescriptor");
+    private static final boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
 
     public static RenderedImage getSyntheticByte(byte value) {
         final float width = 256;
@@ -44,22 +44,22 @@ public class MosaicTestImage {
 
     @Test
     public void testOldMosaicOperation() {
-        if (NEW_DESCRIPTOR) {
-            testSimpleMosaicOperation(NEW_DESCRIPTOR);
+        if (!OLD_DESCRIPTOR) {
+            testSimpleMosaicOperation(OLD_DESCRIPTOR);
         }
     }
 
     @Test
     public void testNewMosaicOperation() {
-        if (!NEW_DESCRIPTOR) {
-            testSimpleMosaicOperation(!NEW_DESCRIPTOR);
+        if (OLD_DESCRIPTOR) {
+            testSimpleMosaicOperation(!OLD_DESCRIPTOR);
         }
     }
 
-    public void testSimpleMosaicOperation(boolean newDescriptor) {
+    public void testSimpleMosaicOperation(boolean oldDescriptor) {
         // image creation
         RenderedImage image1 = getSyntheticByte((byte) 99);
-        RenderedImage image2 = getSyntheticByte((byte) 15);
+        RenderedImage image2 = getSyntheticByte((byte) 50);
         int width = image1.getWidth();
         // layout creation (same height of the source images, doubled width)
         ImageLayout layout = new ImageLayout(0, 0, image1.getWidth() + image2.getWidth(),
@@ -76,7 +76,7 @@ public class MosaicTestImage {
         // array creation
         RenderedImage[] sources = { image4, image3 };
         RenderedImage image5;
-        if (newDescriptor) {
+        if (!oldDescriptor) {
             ImageMosaicBean[] beanArray = new ImageMosaicBean[2];
             ImageMosaicBean bean1 = new ImageMosaicBean();
             bean1.setImage(image4);

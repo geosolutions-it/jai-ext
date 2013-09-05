@@ -4,6 +4,8 @@ import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
@@ -20,7 +22,6 @@ import javax.media.jai.RasterFormatTag;
 import javax.media.jai.TiledImage;
 import javax.media.jai.iterator.RandomIter;
 
-import org.jaitools.numeric.Range;
 import org.junit.Test;
 
 import com.sun.media.jai.util.Rational;
@@ -461,7 +462,7 @@ public class InterpTest extends TestCase {
             // Expected value
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
-                Range<Byte> noDataRangeB = new Range<Byte>((byte) noData, true, (byte) noData, true);
+                Range noDataRangeB = RangeFactory.create((byte) noData, true, (byte) noData, true);
                 if (noDataRangeB.contains(expected.byteValue())) {
                     expected = destinationNoData;
                 }
@@ -470,7 +471,7 @@ public class InterpTest extends TestCase {
                 break;
             case DataBuffer.TYPE_USHORT:
             case DataBuffer.TYPE_SHORT:
-                Range<Short> noDataRangeS = new Range<Short>((short) noData, true, (short) noData,
+                Range noDataRangeS = RangeFactory.create((short) noData, true, (short) noData,
                         true);
                 if (noDataRangeS.contains(expected.shortValue())) {
                     expected = destinationNoData;
@@ -479,7 +480,7 @@ public class InterpTest extends TestCase {
                         destinationNoData, dataType);
                 break;
             case DataBuffer.TYPE_INT:
-                Range<Integer> noDataRangeI = new Range<Integer>((int) noData, true, (int) noData,
+                Range noDataRangeI = RangeFactory.create((int) noData, true, (int) noData,
                         true);
                 if (noDataRangeI.contains(expected.intValue())) {
                     expected = destinationNoData;
@@ -488,17 +489,17 @@ public class InterpTest extends TestCase {
                         destinationNoData, dataType);
                 break;
             case DataBuffer.TYPE_FLOAT:
-                Range<Float> noDataRangeF = new Range<Float>((float) noData, true, (float) noData,
+                Range noDataRangeF = RangeFactory.create((float) noData, true, (float) noData,
                         true);
-                if (noDataRangeF.contains(expected.floatValue())) {
+                if (noDataRangeF.contains(expected.floatValue()) || Float.isNaN(expected.floatValue())) {
                     expected = destinationNoData;
                 }
                 interpN = new InterpolationNearest(noDataRangeF, useROIAccessor,
                         destinationNoData, dataType);
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                Range<Double> noDataRangeD = new Range<Double>(noData, true, noData, true);
-                if (noDataRangeD.contains(expected.doubleValue())) {
+                Range noDataRangeD = RangeFactory.create(noData, true, noData, true);
+                if (noDataRangeD.contains(expected.doubleValue())|| Double.isNaN(expected.doubleValue())) {
                     expected = destinationNoData;
                 }
                 interpN = new InterpolationNearest(noDataRangeD,  useROIAccessor,
@@ -1238,7 +1239,7 @@ public class InterpTest extends TestCase {
             // Expected value
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
-                Range<Byte> noDataRangeB = new Range<Byte>((byte) noData, true, (byte) noData, true);
+                Range noDataRangeB = RangeFactory.create((byte) noData, true, (byte) noData, true);
                 if (bilinearUsed) {
                     interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeB,
                              useROIAccessor, destinationNoData, dataType);
@@ -1251,7 +1252,7 @@ public class InterpTest extends TestCase {
                 break;
             case DataBuffer.TYPE_USHORT:
             case DataBuffer.TYPE_SHORT:
-                Range<Short> noDataRangeS = new Range<Short>((short) noData, true, (short) noData,
+                Range noDataRangeS = RangeFactory.create((short) noData, true, (short) noData,
                         true);
                 interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeS, 
                         useROIAccessor, destinationNoData, dataType);
@@ -1266,7 +1267,7 @@ public class InterpTest extends TestCase {
                 weightArray = noDataCheck(dataType, pixelArray, weightArray, noDataRangeS);
                 break;
             case DataBuffer.TYPE_INT:
-                Range<Integer> noDataRangeI = new Range<Integer>((int) noData, true, (int) noData,
+                Range noDataRangeI = RangeFactory.create((int) noData, true, (int) noData,
                         true);
                 interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeI, 
                         useROIAccessor, destinationNoData, dataType);
@@ -1281,7 +1282,7 @@ public class InterpTest extends TestCase {
                 weightArray = noDataCheck(dataType, pixelArray, weightArray, noDataRangeI);
                 break;
             case DataBuffer.TYPE_FLOAT:
-                Range<Float> noDataRangeF = new Range<Float>((float) noData, true, (float) noData,
+                Range noDataRangeF = RangeFactory.create((float) noData, true, (float) noData,
                         true);
                 interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeF, 
                         useROIAccessor, destinationNoData, dataType);
@@ -1296,7 +1297,7 @@ public class InterpTest extends TestCase {
                 weightArray = noDataCheck(dataType, pixelArray, weightArray, noDataRangeF);
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                Range<Double> noDataRangeD = new Range<Double>(noData, true, noData, true);
+                Range noDataRangeD = RangeFactory.create(noData, true, noData, true);
                 interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeD, 
                         useROIAccessor, destinationNoData, dataType);
                 if (bilinearUsed) {
@@ -1374,14 +1375,56 @@ public class InterpTest extends TestCase {
         }
     }
 
-    public <T extends Number & Comparable<? super T>> int[][] noDataCheck(int dataType,
-            Number[][] pixelArray, int[][] weightArray, Range<T> noDataRange) {
+    public  int[][] noDataCheck(int dataType,
+            Number[][] pixelArray, int[][] weightArray, Range noDataRange) {
         for (int i = 0; i < pixelArray.length; i++) {
             for (int j = 0; j < pixelArray.length; j++) {
-                if (noDataRange.contains((T) pixelArray[i][j])) {
-                    weightArray[i][j] = 0;
-                } else {
-                    weightArray[i][j] = 1;
+                
+                switch(dataType){
+                case DataBuffer.TYPE_BYTE:
+                    if (noDataRange.contains(pixelArray[i][j].byteValue())) {
+                        weightArray[i][j] = 0;
+                    } else {
+                        weightArray[i][j] = 1;
+                    }
+                    break;
+                case DataBuffer.TYPE_USHORT:
+                    if (noDataRange.contains( pixelArray[i][j].shortValue())) {
+                        weightArray[i][j] = 0;
+                    } else {
+                        weightArray[i][j] = 1;
+                    }
+                    break;
+                case DataBuffer.TYPE_SHORT:
+                    if (noDataRange.contains( pixelArray[i][j].shortValue())) {
+                        weightArray[i][j] = 0;
+                    } else {
+                        weightArray[i][j] = 1;
+                    }
+                    break;
+                case DataBuffer.TYPE_INT:
+                    if (noDataRange.contains( pixelArray[i][j].intValue())) {
+                        weightArray[i][j] = 0;
+                    } else {
+                        weightArray[i][j] = 1;
+                    }
+                    break;
+                case DataBuffer.TYPE_FLOAT:
+                    if (noDataRange.contains( pixelArray[i][j].floatValue())|| Float.isNaN(pixelArray[i][j].floatValue())) {
+                        weightArray[i][j] = 0;
+                    } else {
+                        weightArray[i][j] = 1;
+                    }
+                    break;
+                case DataBuffer.TYPE_DOUBLE:
+                    if (noDataRange.contains(pixelArray[i][j].doubleValue())|| Float.isNaN(pixelArray[i][j].floatValue())) {
+                        weightArray[i][j] = 0;
+                    } else {
+                        weightArray[i][j] = 1;
+                    }
+                    break;
+                    default:
+                        throw new IllegalArgumentException("Wrong data type");
                 }
             }
         }

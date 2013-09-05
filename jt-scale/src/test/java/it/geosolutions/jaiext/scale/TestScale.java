@@ -17,11 +17,12 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
-import org.jaitools.numeric.Range;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.scale.ScaleDescriptor;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
@@ -127,7 +128,7 @@ public class TestScale extends TestBase {
         }
 
         // No Data Range
-        Range<T> noDataRange = null;
+        Range noDataRange = null;
         // Source test image
         RenderedImage sourceImage = null;
         if (isBinary) {
@@ -142,7 +143,30 @@ public class TestScale extends TestBase {
                 isBinary);
 
         if (noDataRangeUsed && !isBinary) {
-            noDataRange = new Range<T>(noDataValue, true, noDataValue, true);
+            
+            switch(dataType){
+            case DataBuffer.TYPE_BYTE:
+                noDataRange = RangeFactory.create(noDataValue.byteValue(), true, noDataValue.byteValue(), true);
+                break;
+            case DataBuffer.TYPE_USHORT:
+                noDataRange = RangeFactory.create(noDataValue.shortValue(), true, noDataValue.shortValue(), true);
+                break;
+            case DataBuffer.TYPE_SHORT:
+                noDataRange = RangeFactory.create(noDataValue.shortValue(), true, noDataValue.shortValue(), true);
+                break;
+            case DataBuffer.TYPE_INT:
+                noDataRange = RangeFactory.create(noDataValue.intValue(), true, noDataValue.intValue(), true);
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                noDataRange = RangeFactory.create(noDataValue.floatValue(), true, noDataValue.floatValue(), true);
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                noDataRange = RangeFactory.create(noDataValue.doubleValue(), true, noDataValue.doubleValue(), true);
+                break;
+                default:
+                    throw new IllegalArgumentException("Wrong data type");
+            
+            }
         }
 
         // ROI

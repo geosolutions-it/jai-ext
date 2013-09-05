@@ -1,15 +1,16 @@
 package it.geosolutions.jaiext.range;
 
 /**
- * This class is a subclass of the {@link Range} class handling byte data with minimum and maximum bounds.
+ * This class is a subclass of the {@link Range} class handling byte data with minimum and maximum bounds. This
+ * class considers the byte range from 0 to 255 because JAI byte images are all inside this range.
  */
 public class RangeByte extends Range {
 
     /** Minimum range bound */
-    private final byte minValue;
+    private final int minValue;
 
     /** Maximum range bound */
-    private final byte maxValue;
+    private final int maxValue;
 
     /** Boolean indicating if the minimum bound is included */
     private final boolean minIncluded;
@@ -18,12 +19,15 @@ public class RangeByte extends Range {
     private final boolean maxIncluded;
 
     RangeByte(byte minValue, boolean minIncluded, byte maxValue, boolean maxIncluded) {
+        int valueMin = minValue & 0xFF;
+        int valueMax = maxValue & 0xFF;
+        
         if (minValue < maxValue) {
-            this.minValue = minValue;
-            this.maxValue = maxValue;
+            this.minValue = valueMin;
+            this.maxValue = valueMax;
         } else {
-            this.minValue = maxValue;
-            this.maxValue = minValue;
+            this.minValue = valueMax;
+            this.maxValue = valueMin;
         }
         this.minIncluded = minIncluded;
         this.maxIncluded = maxIncluded;

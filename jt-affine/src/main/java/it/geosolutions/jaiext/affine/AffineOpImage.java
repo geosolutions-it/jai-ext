@@ -3,6 +3,7 @@ package it.geosolutions.jaiext.affine;
 
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -22,8 +23,6 @@ import javax.media.jai.ROI;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.util.ImagingException;
 import javax.media.jai.util.ImagingListener;
-
-import org.jaitools.numeric.Range;
 
 import com.sun.media.jai.util.ImageUtil;
  
@@ -100,12 +99,12 @@ abstract class AffineOpImage extends GeometricOpImage {
     
     /** Destination value for No Data double */
     protected double destinationNoDataDouble = 0;
-    /** Boolean for checking if the no data is negative infinity*/
-    protected boolean isNegativeInf = false;
-    /** Boolean for checking if the no data is positive infinity*/
-    protected boolean isPositiveInf = false;
-    /** Boolean for checking if the no data is NaN*/
-    protected boolean isRangeNaN = false;
+//    /** Boolean for checking if the no data is negative infinity*/
+//    protected boolean isNegativeInf = false;
+//    /** Boolean for checking if the no data is positive infinity*/
+//    protected boolean isPositiveInf = false;
+//    /** Boolean for checking if the no data is NaN*/
+//    protected boolean isRangeNaN = false;
     /** Boolean for checking if the interpolator is Nearest*/
     protected boolean isNearestNew = false;
     /** Boolean for checking if the interpolator is Bilinear*/

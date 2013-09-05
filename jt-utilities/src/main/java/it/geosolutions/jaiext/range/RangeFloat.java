@@ -31,6 +31,7 @@ public class RangeFloat extends Range {
         }
         this.minIncluded = minIncluded;
         this.maxIncluded = maxIncluded;
+        
     }
 
     @Override
@@ -39,18 +40,18 @@ public class RangeFloat extends Range {
         final boolean upper;
 
         if (minIncluded) {
-            lower = value < minValue;
+            lower = value >= minValue;
         } else {
-            lower = value <= minValue;
+            lower = value > minValue;
         }
 
         if (maxIncluded) {
-            upper = value > maxValue;
+            upper = value <= maxValue;
         } else {
-            upper = value >= maxValue;
+            upper = value < maxValue;
         }
 
-        return !lower && !upper;
+        return lower && upper;
     }
 
     @Override

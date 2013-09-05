@@ -4,16 +4,19 @@ import static org.junit.Assert.*;
 import it.geosolutions.jaiext.affine.AffineDescriptor;
 import it.geosolutions.jaiext.affine.AffinePropertyGenerator;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.NullDescriptor;
-import org.jaitools.numeric.Range;
+
 import org.junit.Test;
 
 
@@ -35,7 +38,7 @@ public class CoverageClassTest extends TestAffine {
         boolean useROIAccessor = false;
         boolean setDestinationNoData = false;
         int dataType = DataBuffer.TYPE_BYTE;
-        Range<Byte> noDataRange = null;
+        Range noDataRange = null;
 
         // Interpolator initialization
         // Nearest-Neighbor
@@ -126,7 +129,7 @@ public class CoverageClassTest extends TestAffine {
 
         boolean useROIAccessor = false;
         boolean setDestinationNoData = false;
-        Range<Byte> noDataRange = null;
+        Range noDataRange = null;
         int dataType = DataBuffer.TYPE_BYTE;
 
         byte imageValue = 127;
@@ -179,7 +182,7 @@ public class CoverageClassTest extends TestAffine {
 
         boolean useROIAccessor = false;
         boolean setDestinationNoData = false;
-        Range<Byte> noDataRange = null;
+        Range noDataRange = null;
         int dataType = DataBuffer.TYPE_BYTE;
 
         byte imageValue = 127;

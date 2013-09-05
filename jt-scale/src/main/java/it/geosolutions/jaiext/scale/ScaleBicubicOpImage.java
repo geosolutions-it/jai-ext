@@ -18,8 +18,6 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
-import org.jaitools.numeric.Range;
-
 public class ScaleBicubicOpImage extends ScaleOpImage {
 
     /** Bicubic interpolator */
@@ -121,18 +119,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             if (noData != null) {
                 hasNoData = true;
                 destinationNoDataDouble = interpBN.getDestinationNoData();
-                if ((dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)) {
-                    // If the range goes from -Inf to Inf No Data is NaN
-                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
-                        isRangeNaN = true;
-                        // If the range is a positive infinite point isPositiveInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
-                        isPositiveInf = true;
-                        // If the range is a negative infinite point isNegativeInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
-                        isNegativeInf = true;
-                    }
-                }
             } else if (hasROI) {
                 destinationNoDataDouble = interpBN.getDestinationNoData();
             }
@@ -160,11 +146,9 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
             if (hasNoData) {
 
-                Range<Byte> noDataByte = ((Range<Byte>) noData);
-
                 for (int i = 0; i < byteLookupTable.length; i++) {
                     byte value = (byte) i;
-                    if (noDataByte.contains(value)) {
+                    if (noData.contains(value)) {
                         byteLookupTable[i] = destinationNoDataByte;
                     } else {
                         byteLookupTable[i] = value;
@@ -960,8 +944,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        Range<Short> rangeND = (Range<Short>) noData;
-
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
         final boolean caseC = !hasROI && hasNoData;
@@ -1257,7 +1239,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         pixelKernel[h][z] = srcData[pos + (z - 1) * srcPixelStride
                                                 + (h - 1) * srcScanlineStride] & 0xffff;
 
-                                        if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                        if (!noData.contains((short) pixelKernel[h][z])) {
                                             temp++;
                                             weightArray[h][z] = 1;
                                         }
@@ -1377,7 +1359,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                             : 0);
                                                 }
 
-                                                if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                                if (!noData.contains((short) pixelKernel[h][z])) {
                                                     tempND++;
                                                     weightArray[h][z] = 1;
                                                 }
@@ -1493,7 +1475,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 tempROI += roiIter.getSample(x0 + h - 1,
                                                         y0 + z - 1, 0) & 0xffff;
 
-                                                if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                                if (!noData.contains((short) pixelKernel[h][z])) {
                                                     tempND++;
                                                     weightArray[h][z] = 1;
                                                 }
@@ -1597,8 +1579,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataArray = null;
             roiDataLength = 0;
         }
-
-        Range<Short> rangeND = (Range<Short>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -1895,7 +1875,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         pixelKernel[h][z] = srcData[pos + (z - 1) * srcPixelStride
                                                 + (h - 1) * srcScanlineStride];
 
-                                        if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                        if (!noData.contains((short) pixelKernel[h][z])) {
                                             temp++;
                                             weightArray[h][z] = 1;
                                         }
@@ -2015,7 +1995,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                             : 0);
                                                 }
 
-                                                if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                                if (!noData.contains((short) pixelKernel[h][z])) {
                                                     tempND++;
                                                     weightArray[h][z] = 1;
                                                 }
@@ -2131,7 +2111,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 tempROI += roiIter.getSample(x0 + h - 1,
                                                         y0 + z - 1, 0);
 
-                                                if (!rangeND.contains((short) pixelKernel[h][z])) {
+                                                if (!noData.contains((short) pixelKernel[h][z])) {
                                                     tempND++;
                                                     weightArray[h][z] = 1;
                                                 }
@@ -2235,8 +2215,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataArray = null;
             roiDataLength = 0;
         }
-
-        Range<Integer> rangeND = (Range<Integer>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -2512,7 +2490,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         pixelKernel[h][z] = srcData[pos + (z - 1) * srcPixelStride
                                                 + (h - 1) * srcScanlineStride];
 
-                                        if (!rangeND.contains((int) pixelKernel[h][z])) {
+                                        if (!noData.contains((int) pixelKernel[h][z])) {
                                             temp++;
                                             weightArray[h][z] = 1;
                                         }
@@ -2625,7 +2603,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                             : 0);
                                                 }
 
-                                                if (!rangeND.contains((int) pixelKernel[h][z])) {
+                                                if (!noData.contains((int) pixelKernel[h][z])) {
                                                     tempND++;
                                                     weightArray[h][z] = 1;
                                                 }
@@ -2734,7 +2712,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 tempROI += roiIter.getSample(x0 + h - 1,
                                                         y0 + z - 1, 0);
 
-                                                if (!rangeND.contains((int) pixelKernel[h][z])) {
+                                                if (!noData.contains((int) pixelKernel[h][z])) {
                                                     tempND++;
                                                     weightArray[h][z] = 1;
                                                 }
@@ -2832,8 +2810,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataArray = null;
             roiDataLength = 0;
         }
-
-        Range<Float> rangeND = (Range<Float>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -3120,15 +3096,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         pixelKernel[h][z] = srcData[pos + (z - 1) * srcPixelStride
                                                 + (h - 1) * srcScanlineStride];
 
-                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                             // The destination no data value is saved in the destination array
-                                                weightArray[h][z] = 0;
-                                            }else{
-                                                temp++;
-                                                weightArray[h][z] = 1;
-                                            }
-                                        }else if (rangeND.contains((float) pixelKernel[h][z])) {
+                                        if (noData.contains((float) pixelKernel[h][z]) || Float.isNaN((float)pixelKernel[h][z])) {
                                             weightArray[h][z] = 0;
                                         }else{
                                             temp++;
@@ -3247,15 +3215,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                             : 0);
                                                 }
 
-                                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                    if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                                     // The destination no data value is saved in the destination array
-                                                        weightArray[h][z] = 0;
-                                                    }else{
-                                                        tempND++;
-                                                        weightArray[h][z] = 1;
-                                                    }
-                                                }else if (rangeND.contains((float) pixelKernel[h][z])) {
+                                                if (noData.contains((float) pixelKernel[h][z])|| Float.isNaN((float)pixelKernel[h][z])) {
                                                     weightArray[h][z] = 0;
                                                 }else{
                                                     tempND++;
@@ -3370,15 +3330,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 tempROI += roiIter.getSample(x0 + h - 1,
                                                         y0 + z - 1, 0);
 
-                                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                    if(pixelKernel[h][z] == Float.NEGATIVE_INFINITY || pixelKernel[h][z] == Float.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                                     // The destination no data value is saved in the destination array
-                                                        weightArray[h][z] = 0;
-                                                    }else{
-                                                        tempND++;
-                                                        weightArray[h][z] = 1;
-                                                    }
-                                                }else if (rangeND.contains((float) pixelKernel[h][z])) {
+                                                if (noData.contains((float) pixelKernel[h][z]) || Float.isNaN((float)pixelKernel[h][z])) {
                                                     weightArray[h][z] = 0;
                                                 }else{
                                                     tempND++;
@@ -3482,8 +3434,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataArray = null;
             roiDataLength = 0;
         }
-
-        Range<Double> rangeND = (Range<Double>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -3749,15 +3699,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         pixelKernel[h][z] = srcData[pos + (z - 1) * srcPixelStride
                                                 + (h - 1) * srcScanlineStride];
 
-                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                             // The destination no data value is saved in the destination array
-                                                weightArray[h][z] = 0;
-                                            }else{
-                                                temp++;
-                                                weightArray[h][z] = 1;
-                                            }
-                                        }else if (rangeND.contains( pixelKernel[h][z])) {
+                                        if (noData.contains( pixelKernel[h][z])|| Double.isNaN(pixelKernel[h][z])) {
                                             weightArray[h][z] = 0;
                                         }else{
                                             temp++;
@@ -3869,15 +3811,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                             : 0);
                                                 }
 
-                                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                    if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                                     // The destination no data value is saved in the destination array
-                                                        weightArray[h][z] = 0;
-                                                    }else{
-                                                        tempND++;
-                                                        weightArray[h][z] = 1;
-                                                    }
-                                                }else if (rangeND.contains(pixelKernel[h][z])) {
+                                                if (noData.contains(pixelKernel[h][z])|| Double.isNaN(pixelKernel[h][z])) {
                                                     weightArray[h][z] = 0;
                                                 }else{
                                                     tempND++;
@@ -3984,15 +3918,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 tempROI += roiIter.getSample(x0 + h - 1,
                                                         y0 + z - 1, 0);
 
-                                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                    if(pixelKernel[h][z] == Double.NEGATIVE_INFINITY || pixelKernel[h][z] == Double.POSITIVE_INFINITY ||Double.isNaN(pixelKernel[h][z])){
-                                                     // The destination no data value is saved in the destination array
-                                                        weightArray[h][z] = 0;
-                                                    }else{
-                                                        tempND++;
-                                                        weightArray[h][z] = 1;
-                                                    }
-                                                }else if (rangeND.contains(pixelKernel[h][z])) {
+                                                if (noData.contains(pixelKernel[h][z])|| Double.isNaN(pixelKernel[h][z])) {
                                                     weightArray[h][z] = 0;
                                                 }else{
                                                     tempND++;

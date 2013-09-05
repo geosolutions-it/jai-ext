@@ -8,9 +8,12 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.util.Map;
+
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
+
 import javax.media.jai.BorderExtender;
 import javax.media.jai.GeometricOpImage;
 import javax.media.jai.ImageLayout;
@@ -22,7 +25,7 @@ import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.WarpOpImage;
 import javax.media.jai.iterator.RandomIter;
-import org.jaitools.numeric.Range;
+
 import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.Rational;
 

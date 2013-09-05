@@ -130,18 +130,6 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             if (noData != null) {
                 hasNoData = true;
                 destinationNoDataDouble = interpN.getDestinationNoData();
-                if ((dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)) {
-                    // If the range goes from -Inf to Inf No Data is NaN
-                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
-                        isRangeNaN = true;
-                        // If the range is a positive infinite point isPositiveInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
-                        isPositiveInf = true;
-                        // If the range is a negative infinite point isNegativeInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
-                        isNegativeInf = true;
-                    }
-                }
             } else if (hasROI) {
                 destinationNoDataDouble = interpN.getDestinationNoData();
             }
@@ -154,18 +142,6 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             if (noData != null) {
                 hasNoData = true;
                 destinationNoDataDouble = interpB.getDestinationNoData();
-                if ((dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)) {
-                    // If the range goes from -Inf to Inf No Data is NaN
-                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
-                        isRangeNaN = true;
-                        // If the range is a positive infinite point isPositiveInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
-                        isPositiveInf = true;
-                        // If the range is a negative infinite point isNegativeInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
-                        isNegativeInf = true;
-                    }
-                }
             } else if (hasROI) {
                 destinationNoDataDouble = interpB.getDestinationNoData();
             }
@@ -178,18 +154,6 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             if (noData != null) {
                 hasNoData = true;
                 destinationNoDataDouble = interpBN.getDestinationNoData();
-                if ((dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)) {
-                    // If the range goes from -Inf to Inf No Data is NaN
-                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
-                        isRangeNaN = true;
-                        // If the range is a positive infinite point isPositiveInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
-                        isPositiveInf = true;
-                        // If the range is a negative infinite point isNegativeInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
-                        isNegativeInf = true;
-                    }
-                }
             } else if (hasROI) {
                 destinationNoDataDouble = interpBN.getDestinationNoData();
             }

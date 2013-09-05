@@ -1,12 +1,15 @@
 package it.geosolutions.jaiext.lookup;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
+
 import javax.media.jai.CRIFImpl;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.ROI;
-import org.jaitools.numeric.Range;
+
 import com.sun.media.jai.opimage.RIFUtil;
 
 /**

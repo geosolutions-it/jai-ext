@@ -1,12 +1,13 @@
 package it.geosolutions.jaiext.interpolators;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
+
 import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.iterator.RandomIter;
-
-import org.jaitools.numeric.Range;
 
 public class InterpolationNearest extends Interpolation {
 
@@ -18,11 +19,6 @@ public class InterpolationNearest extends Interpolation {
 
     /** Range of NO DATA values to be checked */
     private Range noDataRange;
-
-    /**
-     * Interpolation Nearest instance used only with the ScaleOpImage constructor for setting the interpolation type as Nearest-neighbor
-     * */
-    private InterpolationNearest interpNearest;
 
     /**
      * Destination NO DATA value used when the image pixel is outside of the ROI or is contained in the NO DATA range
@@ -41,16 +37,6 @@ public class InterpolationNearest extends Interpolation {
     /** This value is the destination NO DATA values for binary images */
     private int black;
 
-    /** Boolean for checking if No data is NaN*/
-    private boolean isRangeNaN=false;
-    
-    /** Boolean for checking if No data is Positive Infinity*/
-    private boolean isPositiveInf=false;
-    
-    /** Boolean for checking if No data is Negative Infinity*/
-    private boolean isNegativeInf=false;
-    
-    
     // Method overriding. Performs the default nearest-neighbor interpolation without NO DATA or ROI control.
     @Override
     public int interpolateH(int[] samples, int arg1) {
@@ -75,19 +61,7 @@ public class InterpolationNearest extends Interpolation {
             double destinationNoData, int dataType) {
         super(1, 1, 0, 0, 0, 0, 0, 0);
         if (noDataRange != null) {
-            this.noDataRange = noDataRange;            
-            if((dataType==DataBuffer.TYPE_FLOAT||dataType==DataBuffer.TYPE_DOUBLE)){
-            	// If the range goes from -Inf to Inf No Data is NaN
-            	if(!noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinNegInf()){
-            		isRangeNaN=true;
-            	// If the range is a positive infinite point isPositiveInf flag is set
-            	}else if(noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinInf()){
-            		isPositiveInf=true;
-            	// If the range is a negative infinite point isNegativeInf flag is set
-            	}else if(noDataRange.isPoint() && noDataRange.isMaxNegInf() && noDataRange.isMinNegInf()){
-            		isNegativeInf=true;
-            	}
-            }        
+            this.noDataRange = noDataRange;
         }
         this.useROIAccessor = useROIAccessor;
         this.destinationNoData = destinationNoData;
@@ -105,30 +79,18 @@ public class InterpolationNearest extends Interpolation {
                     "If roiBounds or roiIter are not null, so even the other must be not null");
         }
     }
-    
+
     public double getDestinationNoData() {
         return destinationNoData;
     }
-    
+
     public Range getNoDataRange() {
         return noDataRange;
     }
 
     public void setNoDataRange(Range noDataRange) {
         if (noDataRange != null) {
-            this.noDataRange = noDataRange;            
-            if((dataType==DataBuffer.TYPE_FLOAT||dataType==DataBuffer.TYPE_DOUBLE)){
-            	// If the range goes from -Inf to Inf No Data is NaN
-            	if(!noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinNegInf()){
-            		isRangeNaN=true;
-            	// If the range is a positive infinite point isPositiveInf flag is set
-            	}else if(noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinInf()){
-            		isPositiveInf=true;
-            	// If the range is a negative infinite point isNegativeInf flag is set
-            	}else if(noDataRange.isPoint() && noDataRange.isMaxNegInf() && noDataRange.isMinNegInf()){
-            		isNegativeInf=true;
-            	}
-            }        
+            this.noDataRange = noDataRange;
         }
     }
 
@@ -137,8 +99,8 @@ public class InterpolationNearest extends Interpolation {
     }
 
     // method for calculating the nearest-neighbor interpolation (no Binary data).
-    public Number interpolate(RasterAccessor src, int bandIndex, int dnumband, int posx,
-            int posy, Integer yROIValue, RasterAccessor roiAccessor, boolean setNoData) {
+    public Number interpolate(RasterAccessor src, int bandIndex, int dnumband, int posx, int posy,
+            Integer yROIValue, RasterAccessor roiAccessor, boolean setNoData) {
         // src data and destination data
         Number destData = null;
         // the destination data is set equal to the source data but could change if the ROI is present. If
@@ -146,8 +108,7 @@ public class InterpolationNearest extends Interpolation {
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
             byte srcDataByte = src.getByteDataArray(bandIndex)[posx + posy];
-            if ((noDataRange != null && ((Range<Byte>) noDataRange).contains(srcDataByte))
-                    || setNoData) {
+            if ((noDataRange != null && (noDataRange).contains(srcDataByte)) || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataByte;
@@ -155,45 +116,28 @@ public class InterpolationNearest extends Interpolation {
         case DataBuffer.TYPE_USHORT:
         case DataBuffer.TYPE_SHORT:
             short srcDataShort = src.getShortDataArray(bandIndex)[posx + posy];
-            if ((noDataRange != null && ((Range<Short>) noDataRange).contains(srcDataShort))
-                    || setNoData) {
+            if ((noDataRange != null && (noDataRange).contains(srcDataShort)) || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataShort;
             break;
         case DataBuffer.TYPE_INT:
             int srcDataInt = src.getIntDataArray(bandIndex)[posx + posy];
-            if ((noDataRange != null && ((Range<Integer>) noDataRange).contains(srcDataInt))
-                    || setNoData) {
+            if ((noDataRange != null && (noDataRange).contains(srcDataInt)) || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataInt;
             break;
         case DataBuffer.TYPE_FLOAT:
             float srcDataFloat = src.getFloatDataArray(bandIndex)[posx + posy];
-            // Additional control due to the fact that Range<T> can't contain NaN, Positive Inf and Negative Inf
-            if(isRangeNaN && Float.isNaN(srcDataFloat)){
-            	return destinationNoData;
-            }else if(isPositiveInf && srcDataFloat==Float.POSITIVE_INFINITY){
-            	return destinationNoData;
-            }else if(isNegativeInf && srcDataFloat==Float.NEGATIVE_INFINITY){
-            	return destinationNoData;
-            }else if ((noDataRange != null && ((Range<Float>) noDataRange).contains(srcDataFloat))
-                    || setNoData) {
+            if ((noDataRange != null && (noDataRange).contains(srcDataFloat)) || Float.isNaN(srcDataFloat) || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataFloat;
             break;
         case DataBuffer.TYPE_DOUBLE:
             double srcDataDouble = src.getDoubleDataArray(bandIndex)[posx + posy];
-            if(isRangeNaN && Double.isNaN(srcDataDouble)){
-            	return destinationNoData;
-            }else if(isPositiveInf && srcDataDouble==Double.POSITIVE_INFINITY){
-            	return destinationNoData;
-            }else if(isNegativeInf && srcDataDouble==Double.NEGATIVE_INFINITY){
-            	return destinationNoData;
-            }else if ((noDataRange != null && ((Range<Double>) noDataRange).contains(srcDataDouble))
-                    || setNoData) {
+            if ((noDataRange != null && (noDataRange).contains(srcDataDouble)) || Double.isNaN(srcDataDouble) || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataDouble;
@@ -287,22 +231,23 @@ public class InterpolationNearest extends Interpolation {
     }
 
     // Interpolation operation for Binary images (coordinates are useful only if ROI is present)
-    public int interpolateBinary(int xNextBitNo,Number[] sourceData, int sourceYOffset,int  sourceScanlineStride,
-            int[] coordinates, int[] roiDataArray, int roiYOffset, int roiScanlineStride) {
-        //pixel initialization
+    public int interpolateBinary(int xNextBitNo, Number[] sourceData, int sourceYOffset,
+            int sourceScanlineStride, int[] coordinates, int[] roiDataArray, int roiYOffset,
+            int roiScanlineStride) {
+        // pixel initialization
         int s = 0;
         // Shift to the selected pixel
         int sshift = 0;
         // Calculates the bit number of the selected pixel's position
         int sbitnum = xNextBitNo - 1;
-        
+
         int w00index = 0;
 
         int w00 = 1;
- 
-         // If an image ROI has been saved, this ROI is used for checking if
-         // all the surrounding pixel belongs to the ROI.   
-        if (coordinates != null && roiBounds != null && !useROIAccessor) {            
+
+        // If an image ROI has been saved, this ROI is used for checking if
+        // all the surrounding pixel belongs to the ROI.
+        if (coordinates != null && roiBounds != null && !useROIAccessor) {
             // Central pixel positions
             int x0 = coordinates[0];
             int y0 = coordinates[1];
@@ -323,13 +268,12 @@ public class InterpolationNearest extends Interpolation {
             int sbytenum = sbitnum >> 3;
             // Searching of the 4 pixels surrounding the selected one.
             s = (sourceData[sourceYOffset + sbytenum].byteValue() >> sshift) & 0x01;
-            
 
-            if(useROIAccessor){
-                int roiDataLength=roiDataArray.length;
+            if (useROIAccessor) {
+                int roiDataLength = roiDataArray.length;
                 w00index = roiYOffset + sbytenum;
-                
-                w00 *= w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01: 0;
+
+                w00 *= w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01 : 0;
             }
             break;
         case DataBuffer.TYPE_USHORT:
@@ -339,38 +283,37 @@ public class InterpolationNearest extends Interpolation {
             sshift = 15 - (sbitnum & 15);
 
             s = (sourceData[sourceYOffset + sshortnum].shortValue() >> sshift) & 0x01;
-            
-            if(useROIAccessor){
-                int roiDataLength=roiDataArray.length;
+
+            if (useROIAccessor) {
+                int roiDataLength = roiDataArray.length;
                 w00index = roiYOffset + sshortnum;
-                               
-                w00 *= w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01: 0;
-             }
-            
+
+                w00 *= w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01 : 0;
+            }
+
             break;
         case DataBuffer.TYPE_INT:
             // Same operations like the ones above but the step is done with integers and not short
             int sintnum = sbitnum >> 5;
             sshift = 31 - (sbitnum & 31);
 
-            s = (sourceData[sourceYOffset + sintnum].intValue() >> sshift) & 0x01;           
-            
-            if(useROIAccessor){
-                int roiDataLength=roiDataArray.length;
-                w00index = roiYOffset + sintnum;                
-                
-                w00 *= w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01: 0;               
-            }            
+            s = (sourceData[sourceYOffset + sintnum].intValue() >> sshift) & 0x01;
+
+            if (useROIAccessor) {
+                int roiDataLength = roiDataArray.length;
+                w00index = roiYOffset + sintnum;
+
+                w00 *= w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01 : 0;
+            }
             break;
         default:
             break;
         }
-        
-        if(w00==0){
+
+        if (w00 == 0) {
             return black;
         }
-            
-        
-        return s;          
-   }
+
+        return s;
+    }
 }

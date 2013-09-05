@@ -5,6 +5,8 @@ import static org.junit.Assert.assertFalse;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.RenderingHints;
@@ -22,7 +24,6 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
-import org.jaitools.numeric.Range;
 
 /**
  * This test-class is an extension of the TestBase class inside the jt-utilities project. By calling the testGlobalAffine() method with the selected
@@ -76,10 +77,37 @@ public class TestAffine extends TestBase {
         }
 
         // No Data Range
-        Range<T> noDataRange = null;
+        Range noDataRange = null;
 
         if (noDataRangeUsed && !isBinary) {
-            noDataRange = new Range<T>(noDataValue, true, noDataValue, true);
+            switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+                noDataRange = RangeFactory.create(noDataValue.byteValue(), true,
+                        noDataValue.byteValue(), true);
+                break;
+            case DataBuffer.TYPE_USHORT:
+                noDataRange = RangeFactory.create(noDataValue.shortValue(), true,
+                        noDataValue.shortValue(), true);
+                break;
+            case DataBuffer.TYPE_SHORT:
+                noDataRange = RangeFactory.create(noDataValue.shortValue(), true,
+                        noDataValue.shortValue(), true);
+                break;
+            case DataBuffer.TYPE_INT:
+                noDataRange = RangeFactory.create(noDataValue.intValue(), true,
+                        noDataValue.intValue(), true);
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                noDataRange = RangeFactory.create(noDataValue.floatValue(), true,
+                        noDataValue.floatValue(), true);
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                noDataRange = RangeFactory.create(noDataValue.doubleValue(), true,
+                        noDataValue.doubleValue(), true);
+                break;
+            default:
+                throw new IllegalArgumentException("Wrong data type");
+            }
         }
 
         // ROI
@@ -140,7 +168,7 @@ public class TestAffine extends TestBase {
             // Affine operation
             destinationIMG = AffineDescriptor.create(sourceImage, transform, interpN, null,
                     (ROI) roi, useROIAccessor, setDestinationNoData, hints);
-//            destinationIMG = AffineDescriptor.create(sourceImage, transform, new javax.media.jai.InterpolationNearest(), null,hints);
+            // destinationIMG = AffineDescriptor.create(sourceImage, transform, new javax.media.jai.InterpolationNearest(), null,hints);
 
             break;
         case BILINEAR_INTERP:
@@ -308,11 +336,11 @@ public class TestAffine extends TestBase {
             assertEquals((int) (DEFAULT_HEIGHT), destinationIMG.getWidth());
         }
 
-        //Final Image disposal
-        if(destinationIMG instanceof RenderedOp){
-            ((RenderedOp)destinationIMG).dispose();
+        // Final Image disposal
+        if (destinationIMG instanceof RenderedOp) {
+            ((RenderedOp) destinationIMG).dispose();
         }
-        
+
     }
 
     // Test for checking if the ROI is correctly expanded or reduced
@@ -396,10 +424,11 @@ public class TestAffine extends TestBase {
             for (int i = tileminY; i < tileHeight; i++) {
                 for (int j = tileminX; j < tileWidth; j++) {
                     float valuef = simpleTile.getSample(j, i, 0);
-                    if(Float.isNaN(valuef)||valuef==Float.POSITIVE_INFINITY||valuef==Float.POSITIVE_INFINITY){
-                        valuef=255;
+                    if (Float.isNaN(valuef) || valuef == Float.POSITIVE_INFINITY
+                            || valuef == Float.POSITIVE_INFINITY) {
+                        valuef = 255;
                     }
-                    
+
                     if (valuef > maxValuef) {
                         maxValuef = valuef;
                     }
@@ -421,10 +450,11 @@ public class TestAffine extends TestBase {
             for (int i = tileminY; i < tileHeight; i++) {
                 for (int j = tileminX; j < tileWidth; j++) {
                     double valued = simpleTile.getSampleDouble(j, i, 0);
-                    if(Double.isNaN(valued)||valued==Double.POSITIVE_INFINITY||valued==Double.POSITIVE_INFINITY){
-                        valued=255;
+                    if (Double.isNaN(valued) || valued == Double.POSITIVE_INFINITY
+                            || valued == Double.POSITIVE_INFINITY) {
+                        valued = 255;
                     }
-                    
+
                     if (valued > maxValued) {
                         maxValued = valued;
                     }

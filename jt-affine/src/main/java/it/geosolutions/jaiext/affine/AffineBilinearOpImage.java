@@ -21,13 +21,12 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
-import org.jaitools.numeric.Range;
-
 public class AffineBilinearOpImage extends AffineOpImage {
 
     /** Nearest-Neighbor interpolator */
     protected InterpolationBilinear interpB = null;
-    /**Byte lookuptable used if no data are present*/
+
+    /** Byte lookuptable used if no data are present */
     protected final byte[] byteLookupTable = new byte[255];
 
     /** ROI extender */
@@ -73,18 +72,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
             if (noData != null) {
                 hasNoData = true;
                 destinationNoDataDouble = interpB.getDestinationNoData();
-                if ((srcDataType == DataBuffer.TYPE_FLOAT || srcDataType == DataBuffer.TYPE_DOUBLE)) {
-                    // If the range goes from -Inf to Inf No Data is NaN
-                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
-                        isRangeNaN = true;
-                        // If the range is a positive infinite point isPositiveInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
-                        isPositiveInf = true;
-                        // If the range is a negative infinite point isNegativeInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
-                        isNegativeInf = true;
-                    }
-                }
             } else if (hasROI) {
                 destinationNoDataDouble = interpB.getDestinationNoData();
                 this.useROIAccessor = useROIAccessor;
@@ -109,11 +96,9 @@ public class AffineBilinearOpImage extends AffineOpImage {
             // Creation of a lookuptable containing the values to use for no data
             if (hasNoData) {
 
-                Range<Byte> noDataByte = ((Range<Byte>) noData);
-
                 for (int i = 0; i < byteLookupTable.length; i++) {
                     byte value = (byte) i;
-                    if (noDataByte.contains(value)) {
+                    if (noData.contains(value)) {
                         if (setDestinationNoData) {
                             byteLookupTable[i] = destinationNoDataByte;
                         } else {
@@ -298,14 +283,11 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-
                 for (int x = dst_min_x; x < dst_max_x; x++) {
-                	
-                	if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
-                		
+
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
+
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             int posx = (s_ix - srcRectX) * srcPixelStride;
@@ -337,13 +319,13 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (byte) (intResult & 0xff);
 
                         }
-                		
-                	}else if(setDestinationNoData){
-                        for (int k2 = 0; k2 < dst_num_bands; k2++){
-                        	dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
-                        }      
-                	}
-                	
+
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                        }
+                    }
+
                     // walk
                     if (fracx < fracdx1) {
                         s_ix += incx;
@@ -681,10 +663,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             // The interpolated value is saved in the destination array
@@ -719,13 +699,11 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (byte) (intResult & 0xff);
                             }
                         }
-                    }else if(setDestinationNoData){
-                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
-                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
-                    	}
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                        }
                     }
-                    
-
 
                     // walk
                     if (fracx < fracdx1) {
@@ -1103,8 +1081,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
         final boolean caseB = hasROI && !hasNoData;
         final boolean caseC = !hasROI && hasNoData;
 
-        Range<Short> rangeND = (Range<Short>) noData;
-
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
@@ -1129,14 +1105,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracx = s_x - s_ix * 1.0d;
                 fracy = s_y - s_iy * 1.0d;
 
-
                 for (int x = dst_min_x; x < dst_max_x; x++) {
-                	
-                	
-                	if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
+
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             int posx = (s_ix - srcRectX) * srcPixelStride;
@@ -1168,12 +1140,11 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult & 0xffff);
 
                         }
-                	}else if(setDestinationNoData){
-                        for (int k2 = 0; k2 < dst_num_bands; k2++){
-                        	dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                         }
-                	}
-                	
+                    }
 
                     // walk
                     if (fracx < fracdx1) {
@@ -1512,31 +1483,31 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             // The interpolated value is saved in the destination array
                             short s00 = (short) (srcDataArrays[k2][posx + posy + bandOffsets[k2]] & 0xffff);
-                            short s01 = (short) (srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]] & 0xffff);
-                            short s10 = (short) (srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]] & 0xffff);
+                            short s01 = (short) (srcDataArrays[k2][posxhigh + posy
+                                    + bandOffsets[k2]] & 0xffff);
+                            short s10 = (short) (srcDataArrays[k2][posx + posyhigh
+                                    + bandOffsets[k2]] & 0xffff);
                             short s11 = (short) (srcDataArrays[k2][posxhigh + posyhigh
                                     + bandOffsets[k2]] & 0xffff);
 
-                            int w00 = rangeND.contains(s00) ? 0 : 1;
-                            int w01 = rangeND.contains(s01) ? 0 : 1;
-                            int w10 = rangeND.contains(s10) ? 0 : 1;
-                            int w11 = rangeND.contains(s11) ? 0 : 1;
+                            int w00 = noData.contains(s00) ? 0 : 1;
+                            int w01 = noData.contains(s01) ? 0 : 1;
+                            int w10 = noData.contains(s10) ? 0 : 1;
+                            int w11 = noData.contains(s11) ? 0 : 1;
 
                             if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                                 }
                             } else {
-                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
-                                        fracx, fracy);
+                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
+                                        w11, fracx, fracy);
 
                                 int intResult = 0;
 
@@ -1551,13 +1522,11 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult & 0xffff);
                             }
                         }
-                    }else if(setDestinationNoData){
-                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
-                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
-                    	}
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                        }
                     }
-                    
-
 
                     // walk
                     if (fracx < fracdx1) {
@@ -1675,10 +1644,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 final short s11 = (short) (srcDataArrays[k2][posxhigh + posyhigh
                                         + bandOffsets[k2]] & 0xffff);
 
-                                w00 = rangeND.contains(s00) ? 0 : 1;
-                                w01 = rangeND.contains(s01) ? 0 : 1;
-                                w10 = rangeND.contains(s10) ? 0 : 1;
-                                w11 = rangeND.contains(s11) ? 0 : 1;
+                                w00 = noData.contains(s00) ? 0 : 1;
+                                w01 = noData.contains(s01) ? 0 : 1;
+                                w10 = noData.contains(s10) ? 0 : 1;
+                                w11 = noData.contains(s11) ? 0 : 1;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     if (setDestinationNoData) {
@@ -1817,10 +1786,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     final short s11 = (short) (srcDataArrays[k2][posxhigh
                                             + posyhigh + bandOffsets[k2]] & 0xffff);
 
-                                    w00 = rangeND.contains(s00) ? 0 : 1;
-                                    w01 = rangeND.contains(s01) ? 0 : 1;
-                                    w10 = rangeND.contains(s10) ? 0 : 1;
-                                    w11 = rangeND.contains(s11) ? 0 : 1;
+                                    w00 = noData.contains(s00) ? 0 : 1;
+                                    w01 = noData.contains(s01) ? 0 : 1;
+                                    w10 = noData.contains(s10) ? 0 : 1;
+                                    w11 = noData.contains(s11) ? 0 : 1;
 
                                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         if (setDestinationNoData) {
@@ -1886,8 +1855,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
         }
     }
 
-    private void shortLoop(int dataType, RasterAccessor src, Rectangle destRect,
-            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi) {
+    private void shortLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
+            int srcRectY, RasterAccessor dst, RasterAccessor roi) {
 
         final float src_rect_x1 = src.getX();
         final float src_rect_y1 = src.getY();
@@ -1937,8 +1906,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
         final boolean caseB = hasROI && !hasNoData;
         final boolean caseC = !hasROI && hasNoData;
 
-        Range<Short> rangeND = (Range<Short>) noData;
-
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
@@ -1964,12 +1931,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracy = s_y - s_iy * 1.0d;
 
                 for (int x = dst_min_x; x < dst_max_x; x++) {
-                	
-                    if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
-                    	
+
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
+
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             int posx = (s_ix - srcRectX) * srcPixelStride;
@@ -1994,7 +1959,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 intResult = Short.MAX_VALUE;
                             } else if (result < (float) Short.MIN_VALUE) {
                                 intResult = Short.MIN_VALUE;
-                            } else if (result > 0 ) {
+                            } else if (result > 0) {
                                 intResult = (int) (result + 0.5F);
                             } else {
                                 intResult = (int) (result - 0.5F);
@@ -2003,12 +1968,11 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult);
 
                         }
-                    }else if(setDestinationNoData){
-                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
-                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
-                    	}
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                        }
                     }
-                	
 
                     // walk
                     if (fracx < fracdx1) {
@@ -2137,7 +2101,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     intResult = Short.MAX_VALUE;
                                 } else if (result < (float) Short.MIN_VALUE) {
                                     intResult = Short.MIN_VALUE;
-                                } else if (result > 0 ) {
+                                } else if (result > 0) {
                                     intResult = (int) (result + 0.5F);
                                 } else {
                                     intResult = (int) (result - 0.5F);
@@ -2257,7 +2221,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
                                     int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
                                     int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                                    int s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                                    int s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                            + bandOffsets[k2]];
 
                                     float s0 = (float) ((s01 - s00) * fracx + s00);
                                     float s1 = (float) ((s11 - s10) * fracx + s10);
@@ -2270,7 +2235,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                         intResult = Short.MAX_VALUE;
                                     } else if (result < (float) Short.MIN_VALUE) {
                                         intResult = Short.MIN_VALUE;
-                                    } else if (result > 0 ) {
+                                    } else if (result > 0) {
                                         intResult = (int) (result + 0.5F);
                                     } else {
                                         intResult = (int) (result - 0.5F);
@@ -2350,30 +2315,28 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                	if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             // The interpolated value is saved in the destination array
                             short s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
                             short s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
                             short s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                            short s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                            short s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                            int w00 = rangeND.contains(s00) ? 0 : 1;
-                            int w01 = rangeND.contains(s01) ? 0 : 1;
-                            int w10 = rangeND.contains(s10) ? 0 : 1;
-                            int w11 = rangeND.contains(s11) ? 0 : 1;
+                            int w00 = noData.contains(s00) ? 0 : 1;
+                            int w01 = noData.contains(s01) ? 0 : 1;
+                            int w10 = noData.contains(s10) ? 0 : 1;
+                            int w11 = noData.contains(s11) ? 0 : 1;
 
                             if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                                 }
                             } else {
-                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
-                                        fracx, fracy);
+                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
+                                        w11, fracx, fracy);
 
                                 int intResult = 0;
 
@@ -2381,7 +2344,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     intResult = Short.MAX_VALUE;
                                 } else if (result < (float) Short.MIN_VALUE) {
                                     intResult = Short.MIN_VALUE;
-                                } else if (result > 0 ) {
+                                } else if (result > 0) {
                                     intResult = (int) (result + 0.5F);
                                 } else {
                                     intResult = (int) (result - 0.5F);
@@ -2390,13 +2353,11 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (intResult);
                             }
                         }
-                	}else if(setDestinationNoData){
-                		for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                			dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
-                		}
-                	}
-                    
-                    
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                        }
+                    }
 
                     // walk
                     if (fracx < fracdx1) {
@@ -2505,15 +2466,18 @@ public class AffineBilinearOpImage extends AffineOpImage {
                         } else {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 // The interpolated value is saved in the destination array
-                                final short s00 = srcDataArrays[k2][posx + posy+ bandOffsets[k2]];
-                                final short s01 = srcDataArrays[k2][posxhigh + posy+ bandOffsets[k2]];
-                                final short s10 = srcDataArrays[k2][posx + posyhigh+ bandOffsets[k2]];
-                                final short s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                                final short s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                                final short s01 = srcDataArrays[k2][posxhigh + posy
+                                        + bandOffsets[k2]];
+                                final short s10 = srcDataArrays[k2][posx + posyhigh
+                                        + bandOffsets[k2]];
+                                final short s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                        + bandOffsets[k2]];
 
-                                w00 = rangeND.contains(s00) ? 0 : 1;
-                                w01 = rangeND.contains(s01) ? 0 : 1;
-                                w10 = rangeND.contains(s10) ? 0 : 1;
-                                w11 = rangeND.contains(s11) ? 0 : 1;
+                                w00 = noData.contains(s00) ? 0 : 1;
+                                w01 = noData.contains(s01) ? 0 : 1;
+                                w10 = noData.contains(s10) ? 0 : 1;
+                                w11 = noData.contains(s11) ? 0 : 1;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     if (setDestinationNoData) {
@@ -2529,7 +2493,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                         intResult = Short.MAX_VALUE;
                                     } else if (result < (float) Short.MIN_VALUE) {
                                         intResult = Short.MIN_VALUE;
-                                    } else if (result > 0 ) {
+                                    } else if (result > 0) {
                                         intResult = (int) (result + 0.5F);
                                     } else {
                                         intResult = (int) (result - 0.5F);
@@ -2645,15 +2609,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             } else {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
-                                    final short s00 = srcDataArrays[k2][posx + posy+ bandOffsets[k2]];
-                                    final short s01 = srcDataArrays[k2][posxhigh + posy+ bandOffsets[k2]];
-                                    final short s10 = srcDataArrays[k2][posx + posyhigh+ bandOffsets[k2]];
-                                    final short s11 = srcDataArrays[k2][posxhigh+ posyhigh + bandOffsets[k2]];
+                                    final short s00 = srcDataArrays[k2][posx + posy
+                                            + bandOffsets[k2]];
+                                    final short s01 = srcDataArrays[k2][posxhigh + posy
+                                            + bandOffsets[k2]];
+                                    final short s10 = srcDataArrays[k2][posx + posyhigh
+                                            + bandOffsets[k2]];
+                                    final short s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                            + bandOffsets[k2]];
 
-                                    w00 = rangeND.contains(s00) ? 0 : 1;
-                                    w01 = rangeND.contains(s01) ? 0 : 1;
-                                    w10 = rangeND.contains(s10) ? 0 : 1;
-                                    w11 = rangeND.contains(s11) ? 0 : 1;
+                                    w00 = noData.contains(s00) ? 0 : 1;
+                                    w01 = noData.contains(s01) ? 0 : 1;
+                                    w10 = noData.contains(s10) ? 0 : 1;
+                                    w11 = noData.contains(s11) ? 0 : 1;
 
                                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         if (setDestinationNoData) {
@@ -2669,7 +2637,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                             intResult = Short.MAX_VALUE;
                                         } else if (result < (float) Short.MIN_VALUE) {
                                             intResult = Short.MIN_VALUE;
-                                        } else if (result > 0 ) {
+                                        } else if (result > 0) {
                                             intResult = (int) (result + 0.5F);
                                         } else {
                                             intResult = (int) (result - 0.5F);
@@ -2721,8 +2689,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
         }
     }
 
-    private void intLoop(int dataType, RasterAccessor src, Rectangle destRect,
-            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi) {
+    private void intLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
+            int srcRectY, RasterAccessor dst, RasterAccessor roi) {
 
         final float src_rect_x1 = src.getX();
         final float src_rect_y1 = src.getY();
@@ -2772,8 +2740,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
         final boolean caseB = hasROI && !hasNoData;
         final boolean caseC = !hasROI && hasNoData;
 
-        Range<Integer> rangeND = (Range<Integer>) noData;
-
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
@@ -2799,11 +2765,9 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracy = s_y - s_iy * 1.0d;
 
                 for (int x = dst_min_x; x < dst_max_x; x++) {
-                	
-                	if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
+
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             int posx = (s_ix - srcRectX) * srcPixelStride;
@@ -2828,7 +2792,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 intResult = Integer.MAX_VALUE;
                             } else if (result < (float) Integer.MIN_VALUE) {
                                 intResult = Integer.MIN_VALUE;
-                            } else if (result > 0 ) {
+                            } else if (result > 0) {
                                 intResult = (int) (result + 0.5F);
                             } else {
                                 intResult = (int) (result - 0.5F);
@@ -2837,12 +2801,12 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = intResult;
 
                         }
-                	}else if(setDestinationNoData){
-                		for (int k2 = 0; k2 < dst_num_bands; k2++){
-                			dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
-                		}
-                	}
-                	
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                        }
+                    }
+
                     // walk
                     if (fracx < fracdx1) {
                         s_ix += incx;
@@ -2970,7 +2934,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     intResult = Integer.MAX_VALUE;
                                 } else if (result < (float) Integer.MIN_VALUE) {
                                     intResult = Integer.MIN_VALUE;
-                                } else if (result > 0 ) {
+                                } else if (result > 0) {
                                     intResult = (int) (result + 0.5F);
                                 } else {
                                     intResult = (int) (result - 0.5F);
@@ -3090,7 +3054,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
                                     int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
                                     int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                                    int s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                                    int s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                            + bandOffsets[k2]];
 
                                     float s0 = (float) ((s01 - s00) * fracx + s00);
                                     float s1 = (float) ((s11 - s10) * fracx + s10);
@@ -3103,7 +3068,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                         intResult = Integer.MAX_VALUE;
                                     } else if (result < (float) Integer.MIN_VALUE) {
                                         intResult = Integer.MIN_VALUE;
-                                    } else if (result > 0 ) {
+                                    } else if (result > 0) {
                                         intResult = (int) (result + 0.5F);
                                     } else {
                                         intResult = (int) (result - 0.5F);
@@ -3183,30 +3148,28 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             // The interpolated value is saved in the destination array
                             int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
                             int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
                             int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                            int s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                            int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                            int w00 = rangeND.contains(s00) ? 0 : 1;
-                            int w01 = rangeND.contains(s01) ? 0 : 1;
-                            int w10 = rangeND.contains(s10) ? 0 : 1;
-                            int w11 = rangeND.contains(s11) ? 0 : 1;
+                            int w00 = noData.contains(s00) ? 0 : 1;
+                            int w01 = noData.contains(s01) ? 0 : 1;
+                            int w10 = noData.contains(s10) ? 0 : 1;
+                            int w11 = noData.contains(s11) ? 0 : 1;
 
                             if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                                 }
                             } else {
-                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
-                                        fracx, fracy);
+                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
+                                        w11, fracx, fracy);
 
                                 int intResult = 0;
 
@@ -3214,7 +3177,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     intResult = Integer.MAX_VALUE;
                                 } else if (result < (float) Integer.MIN_VALUE) {
                                     intResult = Integer.MIN_VALUE;
-                                } else if (result > 0 ) {
+                                } else if (result > 0) {
                                     intResult = (int) (result + 0.5F);
                                 } else {
                                     intResult = (int) (result - 0.5F);
@@ -3223,12 +3186,11 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = intResult;
                             }
                         }
-                    }else if(setDestinationNoData){
-                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
-                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
-                    	}
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                        }
                     }
-
 
                     // walk
                     if (fracx < fracdx1) {
@@ -3337,15 +3299,16 @@ public class AffineBilinearOpImage extends AffineOpImage {
                         } else {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 // The interpolated value is saved in the destination array
-                                final int s00 = srcDataArrays[k2][posx + posy+ bandOffsets[k2]];
-                                final int s01 = srcDataArrays[k2][posxhigh + posy+ bandOffsets[k2]];
-                                final int s10 = srcDataArrays[k2][posx + posyhigh+ bandOffsets[k2]];
-                                final int s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                                final int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                                final int s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
+                                final int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
+                                final int s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                        + bandOffsets[k2]];
 
-                                w00 = rangeND.contains(s00) ? 0 : 1;
-                                w01 = rangeND.contains(s01) ? 0 : 1;
-                                w10 = rangeND.contains(s10) ? 0 : 1;
-                                w11 = rangeND.contains(s11) ? 0 : 1;
+                                w00 = noData.contains(s00) ? 0 : 1;
+                                w01 = noData.contains(s01) ? 0 : 1;
+                                w10 = noData.contains(s10) ? 0 : 1;
+                                w11 = noData.contains(s11) ? 0 : 1;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     if (setDestinationNoData) {
@@ -3361,7 +3324,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                         intResult = Integer.MAX_VALUE;
                                     } else if (result < (float) Integer.MIN_VALUE) {
                                         intResult = Integer.MIN_VALUE;
-                                    } else if (result > 0 ) {
+                                    } else if (result > 0) {
                                         intResult = (int) (result + 0.5F);
                                     } else {
                                         intResult = (int) (result - 0.5F);
@@ -3477,15 +3440,18 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             } else {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
-                                    final int s00 = srcDataArrays[k2][posx + posy+ bandOffsets[k2]];
-                                    final int s01 = srcDataArrays[k2][posxhigh + posy+ bandOffsets[k2]];
-                                    final int s10 = srcDataArrays[k2][posx + posyhigh+ bandOffsets[k2]];
-                                    final int s11 = srcDataArrays[k2][posxhigh+ posyhigh + bandOffsets[k2]];
+                                    final int s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                                    final int s01 = srcDataArrays[k2][posxhigh + posy
+                                            + bandOffsets[k2]];
+                                    final int s10 = srcDataArrays[k2][posx + posyhigh
+                                            + bandOffsets[k2]];
+                                    final int s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                            + bandOffsets[k2]];
 
-                                    w00 = rangeND.contains(s00) ? 0 : 1;
-                                    w01 = rangeND.contains(s01) ? 0 : 1;
-                                    w10 = rangeND.contains(s10) ? 0 : 1;
-                                    w11 = rangeND.contains(s11) ? 0 : 1;
+                                    w00 = noData.contains(s00) ? 0 : 1;
+                                    w01 = noData.contains(s01) ? 0 : 1;
+                                    w10 = noData.contains(s10) ? 0 : 1;
+                                    w11 = noData.contains(s11) ? 0 : 1;
 
                                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         if (setDestinationNoData) {
@@ -3501,7 +3467,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                             intResult = Integer.MAX_VALUE;
                                         } else if (result < (float) Integer.MIN_VALUE) {
                                             intResult = Integer.MIN_VALUE;
-                                        } else if (result > 0 ) {
+                                        } else if (result > 0) {
                                             intResult = (int) (result + 0.5F);
                                         } else {
                                             intResult = (int) (result - 0.5F);
@@ -3553,8 +3519,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
         }
     }
 
-    private void floatLoop(int dataType, RasterAccessor src, Rectangle destRect,
-            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi) {
+    private void floatLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
+            int srcRectY, RasterAccessor dst, RasterAccessor roi) {
 
         final float src_rect_x1 = src.getX();
         final float src_rect_y1 = src.getY();
@@ -3604,8 +3570,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
         final boolean caseB = hasROI && !hasNoData;
         final boolean caseC = !hasROI && hasNoData;
 
-        Range<Float> rangeND = (Range<Float>) noData;
-
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
@@ -3631,11 +3595,9 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracy = s_y - s_iy * 1.0d;
 
                 for (int x = dst_min_x; x < dst_max_x; x++) {
-                	
-                	if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
+
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             int posx = (s_ix - srcRectX) * srcPixelStride;
@@ -3657,12 +3619,11 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
 
                         }
-                	}else if(setDestinationNoData){
-                		for (int k2 = 0; k2 < dst_num_bands; k2++){
-                			dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
-                		}
-                	}
-                	
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                        }
+                    }
 
                     // walk
                     if (fracx < fracdx1) {
@@ -3899,7 +3860,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     float s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
                                     float s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
                                     float s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                                    float s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
+                                    float s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                            + bandOffsets[k2]];
 
                                     float s0 = (float) ((s01 - s00) * fracx + s00);
                                     float s1 = (float) ((s11 - s10) * fracx + s10);
@@ -3980,61 +3942,42 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             // The interpolated value is saved in the destination array
                             float s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
                             float s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
                             float s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                            float s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                            float s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                            int w00 =  1;
-                            int w01 =  1;
-                            int w10 =  1;
-                            int w11 =  1;
-                            
-                            if(isNegativeInf|| isPositiveInf|| isRangeNaN){
-                                if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
-                                       w00 = 0;
-                                   }  
-                                if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
-                                    w01 = 0;
-                                } 
-                                if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
-                                    w10 = 0;
-                                } 
-                                if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
-                                    w11 = 0;
-                                } 
-                            }else{
-                                w00 = rangeND.contains(s00) ? 0 : 1;
-                                w01 = rangeND.contains(s01) ? 0 : 1;
-                                w10 = rangeND.contains(s10) ? 0 : 1;
-                                w11 = rangeND.contains(s11) ? 0 : 1;
-                            }
+                            int w00 = 1;
+                            int w01 = 1;
+                            int w10 = 1;
+                            int w11 = 1;
+
+                            w00 = noData.contains(s00) || Float.isNaN(s00) ? 0 : 1;
+                            w01 = noData.contains(s01) || Float.isNaN(s01) ? 0 : 1;
+                            w10 = noData.contains(s10) || Float.isNaN(s10) ? 0 : 1;
+                            w11 = noData.contains(s11) || Float.isNaN(s11) ? 0 : 1;
 
                             if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
                                 }
                             } else {
-                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
-                                        fracx, fracy);
+                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
+                                        w11, fracx, fracy);
 
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (float) result;
                             }
                         }
-                    }else if(setDestinationNoData){
-                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
-                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
-                    	}
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                        }
                     }
-                    
-
 
                     // walk
                     if (fracx < fracdx1) {
@@ -4143,36 +4086,24 @@ public class AffineBilinearOpImage extends AffineOpImage {
                         } else {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 // The interpolated value is saved in the destination array
-                                final float s00 = srcDataArrays[k2][posx + posy+ bandOffsets[k2]];
-                                final float s01 = srcDataArrays[k2][posxhigh + posy+ bandOffsets[k2]];
-                                final float s10 = srcDataArrays[k2][posx + posyhigh+ bandOffsets[k2]];
-                                final float s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                                final float s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                                final float s01 = srcDataArrays[k2][posxhigh + posy
+                                        + bandOffsets[k2]];
+                                final float s10 = srcDataArrays[k2][posx + posyhigh
+                                        + bandOffsets[k2]];
+                                final float s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                        + bandOffsets[k2]];
 
-                                w00 =  1;
-                                w01 =  1;
-                                w10 =  1;
-                                w11 =  1;
-                                
-                                if(isNegativeInf|| isPositiveInf|| isRangeNaN){
-                                    if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
-                                           w00 = 0;
-                                       }  
-                                    if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
-                                        w01 = 0;
-                                    } 
-                                    if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
-                                        w10 = 0;
-                                    } 
-                                    if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
-                                        w11 = 0;
-                                    } 
-                                }else{
-                                    w00 = rangeND.contains(s00) ? 0 : 1;
-                                    w01 = rangeND.contains(s01) ? 0 : 1;
-                                    w10 = rangeND.contains(s10) ? 0 : 1;
-                                    w11 = rangeND.contains(s11) ? 0 : 1;
-                                }
-                                                                
+                                w00 = 1;
+                                w01 = 1;
+                                w10 = 1;
+                                w11 = 1;
+
+                                w00 = noData.contains(s00) || Float.isNaN(s00) ? 0 : 1;
+                                w01 = noData.contains(s01) || Float.isNaN(s01) ? 0 : 1;
+                                w10 = noData.contains(s10) || Float.isNaN(s10) ? 0 : 1;
+                                w11 = noData.contains(s11) || Float.isNaN(s11) ? 0 : 1;
+
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     if (setDestinationNoData) {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
@@ -4291,35 +4222,24 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             } else {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
-                                    final float s00 = srcDataArrays[k2][posx + posy+ bandOffsets[k2]];
-                                    final float s01 = srcDataArrays[k2][posxhigh + posy+ bandOffsets[k2]];
-                                    final float s10 = srcDataArrays[k2][posx + posyhigh+ bandOffsets[k2]];
-                                    final float s11 = srcDataArrays[k2][posxhigh+ posyhigh + bandOffsets[k2]];
+                                    final float s00 = srcDataArrays[k2][posx + posy
+                                            + bandOffsets[k2]];
+                                    final float s01 = srcDataArrays[k2][posxhigh + posy
+                                            + bandOffsets[k2]];
+                                    final float s10 = srcDataArrays[k2][posx + posyhigh
+                                            + bandOffsets[k2]];
+                                    final float s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                            + bandOffsets[k2]];
 
-                                    w00 =  1;
-                                    w01 =  1;
-                                    w10 =  1;
-                                    w11 =  1;
-                                    
-                                    if(isNegativeInf|| isPositiveInf|| isRangeNaN){
-                                        if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
-                                               w00 = 0;
-                                           }  
-                                        if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
-                                            w01 = 0;
-                                        } 
-                                        if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
-                                            w10 = 0;
-                                        } 
-                                        if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
-                                            w11 = 0;
-                                        } 
-                                    }else{
-                                        w00 = rangeND.contains(s00) ? 0 : 1;
-                                        w01 = rangeND.contains(s01) ? 0 : 1;
-                                        w10 = rangeND.contains(s10) ? 0 : 1;
-                                        w11 = rangeND.contains(s11) ? 0 : 1;
-                                    }
+                                    w00 = 1;
+                                    w01 = 1;
+                                    w10 = 1;
+                                    w11 = 1;
+
+                                    w00 = noData.contains(s00) || Float.isNaN(s00) ? 0 : 1;
+                                    w01 = noData.contains(s01) || Float.isNaN(s01) ? 0 : 1;
+                                    w10 = noData.contains(s10) || Float.isNaN(s10) ? 0 : 1;
+                                    w11 = noData.contains(s11) || Float.isNaN(s11) ? 0 : 1;
 
                                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         if (setDestinationNoData) {
@@ -4375,8 +4295,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
         }
     }
 
-    private void doubleLoop(int dataType, RasterAccessor src, Rectangle destRect,
-            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi) {
+    private void doubleLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
+            int srcRectY, RasterAccessor dst, RasterAccessor roi) {
 
         final float src_rect_x1 = src.getX();
         final float src_rect_y1 = src.getY();
@@ -4426,8 +4346,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
         final boolean caseB = hasROI && !hasNoData;
         final boolean caseC = !hasROI && hasNoData;
 
-        Range<Double> rangeND = (Range<Double>) noData;
-
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
@@ -4453,12 +4371,9 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 fracy = s_y - s_iy * 1.0d;
 
                 for (int x = dst_min_x; x < dst_max_x; x++) {
-                	
-                	
-                	if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
+
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             int posx = (s_ix - srcRectX) * srcPixelStride;
@@ -4473,20 +4388,18 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             double s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
                             double s0 = ((s01 - s00) * fracx + s00);
-                            double s1 =  ((s11 - s10) * fracx + s10);
+                            double s1 = ((s11 - s10) * fracx + s10);
 
-                            double result =  ((s1 - s0) * fracy + s0);
+                            double result = ((s1 - s0) * fracy + s0);
 
                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
 
                         }
-                	}else if(setDestinationNoData){
-                		for (int k2 = 0; k2 < dst_num_bands; k2++){
-                			dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
-                		}
-                	}
-                	
-                	
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                        }
+                    }
 
                     // walk
                     if (fracx < fracdx1) {
@@ -4602,12 +4515,13 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 double s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
                                 double s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
                                 double s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                                double s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
+                                double s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                        + bandOffsets[k2]];
 
                                 double s0 = ((s01 - s00) * fracx + s00);
-                                double s1 =  ((s11 - s10) * fracx + s10);
+                                double s1 = ((s11 - s10) * fracx + s10);
 
-                                double result =  ((s1 - s0) * fracy + s0);
+                                double result = ((s1 - s0) * fracy + s0);
 
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
                             }
@@ -4721,14 +4635,17 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
                                     double s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
-                                    double s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
-                                    double s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                                    double s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
+                                    double s01 = srcDataArrays[k2][posxhigh + posy
+                                            + bandOffsets[k2]];
+                                    double s10 = srcDataArrays[k2][posx + posyhigh
+                                            + bandOffsets[k2]];
+                                    double s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                            + bandOffsets[k2]];
 
                                     double s0 = ((s01 - s00) * fracx + s00);
-                                    double s1 =  ((s11 - s10) * fracx + s10);
+                                    double s1 = ((s11 - s10) * fracx + s10);
 
-                                    double result =  ((s1 - s0) * fracy + s0);
+                                    double result = ((s1 - s0) * fracy + s0);
 
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
                                 }
@@ -4804,58 +4721,41 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     final int posxhigh = posx + srcPixelStride;
                     final int posyhigh = posy + srcScanlineStride;
 
-                    if ((s_ix >= src_rect_x1) &&
-                            (s_ix < (src_rect_x2 - 1)) &&
-                            (s_iy >= src_rect_y1) &&
-                            (s_iy < (src_rect_y2 - 1))) {
+                    if ((s_ix >= src_rect_x1) && (s_ix < (src_rect_x2 - 1))
+                            && (s_iy >= src_rect_y1) && (s_iy < (src_rect_y2 - 1))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
 
                             // The interpolated value is saved in the destination array
                             double s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
                             double s01 = srcDataArrays[k2][posxhigh + posy + bandOffsets[k2]];
                             double s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
-                            double s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                            double s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                            int w00 =  1;
-                            int w01 =  1;
-                            int w10 =  1;
-                            int w11 =  1;
-                            
-                            if(isNegativeInf|| isPositiveInf|| isRangeNaN){
-                                if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
-                                       w00 = 0;
-                                   }  
-                                if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
-                                    w01 = 0;
-                                } 
-                                if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
-                                    w10 = 0;
-                                } 
-                                if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
-                                    w11 = 0;
-                                } 
-                            }else{
-                                w00 = rangeND.contains(s00) ? 0 : 1;
-                                w01 = rangeND.contains(s01) ? 0 : 1;
-                                w10 = rangeND.contains(s10) ? 0 : 1;
-                                w11 = rangeND.contains(s11) ? 0 : 1;
-                            }
+                            int w00 = 1;
+                            int w01 = 1;
+                            int w10 = 1;
+                            int w11 = 1;
+
+                            w00 = noData.contains(s00) || Double.isNaN(s00) ? 0 : 1;
+                            w01 = noData.contains(s01) || Double.isNaN(s01) ? 0 : 1;
+                            w10 = noData.contains(s10) || Double.isNaN(s10) ? 0 : 1;
+                            w11 = noData.contains(s11) || Double.isNaN(s11) ? 0 : 1;
 
                             if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
                                 }
                             } else {
-                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10, w11,
-                                        fracx, fracy);
+                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
+                                        w11, fracx, fracy);
 
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
                             }
                         }
-                    }else if(setDestinationNoData){
-                    	for (int k2 = 0; k2 < dst_num_bands; k2++){
-                    		dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
-                    	}
+                    } else if (setDestinationNoData) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                        }
                     }
 
                     // walk
@@ -4965,35 +4865,23 @@ public class AffineBilinearOpImage extends AffineOpImage {
                         } else {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 // The interpolated value is saved in the destination array
-                                final double s00 = srcDataArrays[k2][posx + posy+ bandOffsets[k2]];
-                                final double s01 = srcDataArrays[k2][posxhigh + posy+ bandOffsets[k2]];
-                                final double s10 = srcDataArrays[k2][posx + posyhigh+ bandOffsets[k2]];
-                                final double s11 = srcDataArrays[k2][posxhigh + posyhigh+ bandOffsets[k2]];
+                                final double s00 = srcDataArrays[k2][posx + posy + bandOffsets[k2]];
+                                final double s01 = srcDataArrays[k2][posxhigh + posy
+                                        + bandOffsets[k2]];
+                                final double s10 = srcDataArrays[k2][posx + posyhigh
+                                        + bandOffsets[k2]];
+                                final double s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                        + bandOffsets[k2]];
 
-                                w00 =  1;
-                                w01 =  1;
-                                w10 =  1;
-                                w11 =  1;
-                                
-                                if(isNegativeInf|| isPositiveInf|| isRangeNaN){
-                                    if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
-                                           w00 = 0;
-                                       }  
-                                    if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
-                                        w01 = 0;
-                                    } 
-                                    if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
-                                        w10 = 0;
-                                    } 
-                                    if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
-                                        w11 = 0;
-                                    } 
-                                }else{
-                                    w00 = rangeND.contains(s00) ? 0 : 1;
-                                    w01 = rangeND.contains(s01) ? 0 : 1;
-                                    w10 = rangeND.contains(s10) ? 0 : 1;
-                                    w11 = rangeND.contains(s11) ? 0 : 1;
-                                }
+                                w00 = 1;
+                                w01 = 1;
+                                w10 = 1;
+                                w11 = 1;
+
+                                w00 = noData.contains(s00) || Double.isNaN(s00) ? 0 : 1;
+                                w01 = noData.contains(s01) || Double.isNaN(s01) ? 0 : 1;
+                                w10 = noData.contains(s10) || Double.isNaN(s10) ? 0 : 1;
+                                w11 = noData.contains(s11) || Double.isNaN(s11) ? 0 : 1;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     if (setDestinationNoData) {
@@ -5113,35 +5001,24 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             } else {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
-                                    final double s00 = srcDataArrays[k2][posx + posy+ bandOffsets[k2]];
-                                    final double s01 = srcDataArrays[k2][posxhigh + posy+ bandOffsets[k2]];
-                                    final double s10 = srcDataArrays[k2][posx + posyhigh+ bandOffsets[k2]];
-                                    final double s11 = srcDataArrays[k2][posxhigh+ posyhigh + bandOffsets[k2]];
+                                    final double s00 = srcDataArrays[k2][posx + posy
+                                            + bandOffsets[k2]];
+                                    final double s01 = srcDataArrays[k2][posxhigh + posy
+                                            + bandOffsets[k2]];
+                                    final double s10 = srcDataArrays[k2][posx + posyhigh
+                                            + bandOffsets[k2]];
+                                    final double s11 = srcDataArrays[k2][posxhigh + posyhigh
+                                            + bandOffsets[k2]];
 
-                                    w00 =  1;
-                                    w01 =  1;
-                                    w10 =  1;
-                                    w11 =  1;
-                                    
-                                    if(isNegativeInf|| isPositiveInf|| isRangeNaN){
-                                        if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
-                                               w00 = 0;
-                                           }  
-                                        if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
-                                            w01 = 0;
-                                        } 
-                                        if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
-                                            w10 = 0;
-                                        } 
-                                        if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
-                                            w11 = 0;
-                                        } 
-                                    }else{
-                                        w00 = rangeND.contains(s00) ? 0 : 1;
-                                        w01 = rangeND.contains(s01) ? 0 : 1;
-                                        w10 = rangeND.contains(s10) ? 0 : 1;
-                                        w11 = rangeND.contains(s11) ? 0 : 1;
-                                    }
+                                    w00 = 1;
+                                    w01 = 1;
+                                    w10 = 1;
+                                    w11 = 1;
+
+                                    w00 = noData.contains(s00) || Double.isNaN(s00) ? 0 : 1;
+                                    w01 = noData.contains(s01) || Double.isNaN(s01) ? 0 : 1;
+                                    w10 = noData.contains(s10) || Double.isNaN(s10) ? 0 : 1;
+                                    w11 = noData.contains(s11) || Double.isNaN(s11) ? 0 : 1;
 
                                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         if (setDestinationNoData) {

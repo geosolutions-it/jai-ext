@@ -3,6 +3,7 @@ package it.geosolutions.jaiext.mosaic;
 import static org.junit.Assert.*;
 import it.geosolutions.jaiext.mosaic.ImageMosaicBean;
 import it.geosolutions.jaiext.mosaic.MosaicDescriptor;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -25,8 +26,8 @@ import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.MosaicType;
 import javax.media.jai.operator.TranslateDescriptor;
 
-import org.jaitools.numeric.Range;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -44,12 +45,13 @@ import org.junit.Test;
  * condition but the mosaic type is BLEND, not OVERLAY. The 10th series executes a simple test on 3 images with only data values. The 11th series
  * checks that all the Exceptions are thrown in the right conditions.
  * 
- * <ul> </ul>
+ * <ul>
+ * </ul>
  * The other surrounding methods belongs to 2 categories:
  * <ul>
  * <li>test methods which execute the tests and check if the calculated values are correct</li>
  * <li>help methods for creating all the images and ROI with different structures</li>
- * </ul> 
+ * </ul>
  */
 
 public class MosaicTest {
@@ -769,8 +771,8 @@ public class MosaicTest {
         mosaicArray = new RenderedImage[0];
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                DEFAULT_MOSAIC_TYPE, destinationValues, null);
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
+                destinationValues, null);
 
         try {
             image5.getTile(0, 0);
@@ -811,8 +813,8 @@ public class MosaicTest {
         mosaicArray = new RenderedImage[0];
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                DEFAULT_MOSAIC_TYPE, destinationValues, renderingHints);
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
+                destinationValues, renderingHints);
 
         try {
             image5.getTile(0, 0);
@@ -899,8 +901,8 @@ public class MosaicTest {
         mosaicArray = new RenderedImage[0];
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                DEFAULT_MOSAIC_TYPE, destinationValues, renderingHints);
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
+                destinationValues, renderingHints);
 
         try {
             image5.getTile(0, 0);
@@ -936,8 +938,8 @@ public class MosaicTest {
                 DataDisplacement.DATA_DATA, false, false);
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                DEFAULT_MOSAIC_TYPE, destinationValues, renderingHints);
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
+                destinationValues, renderingHints);
 
         try {
             image5.getTile(0, 0);
@@ -972,8 +974,8 @@ public class MosaicTest {
         ImageMosaicBean[] helpBean = new ImageMosaicBean[1];
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                DEFAULT_MOSAIC_TYPE, destinationValues, renderingHints);
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
+                destinationValues, renderingHints);
 
         try {
             image5.getTile(0, 0);
@@ -1006,8 +1008,8 @@ public class MosaicTest {
         helpBean[0].setAlphaChannel(newAlphaChannel);
 
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                DEFAULT_MOSAIC_TYPE, destinationValues, renderingHints);
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
+                destinationValues, renderingHints);
 
         try {
             image5.getTile(0, 0);
@@ -1364,17 +1366,16 @@ public class MosaicTest {
         destinationND[2] = 100;
 
         for (int i = 0; i < 6; i++) {
-        	
-            if(i==DataBuffer.TYPE_FLOAT && !nullNoData){
-            	for(int j =0;j<sourceND.length;j++){
-            		sourceND[j]=Float.NaN;
-            	}
-            }else if(i==DataBuffer.TYPE_DOUBLE && !nullNoData){
-            	for(int j =0;j<sourceND.length;j++){
-            		sourceND[j]=Double.NaN;
-            	}
-            }
-        	
+
+            if (i == DataBuffer.TYPE_FLOAT && !nullNoData) {
+                for (int j = 0; j < sourceND.length; j++) {
+                    sourceND[j] = Float.NaN;
+                }
+            } else if (i == DataBuffer.TYPE_DOUBLE && !nullNoData) {
+                for (int j = 0; j < sourceND.length; j++) {
+                    sourceND[j] = Double.NaN;
+                }
+            } 
             // method for image creation
             beanContainer3Images[i] = imageSettings3Images(validData, sourceND, destinationND, i,
                     roiAlphaNotNull);
@@ -1389,7 +1390,7 @@ public class MosaicTest {
         RenderedImage image1 = null;
 
         RenderedImage image3Band1 = null;
-        
+
         if (sourceNodata[0] == null) {
             image1 = getSyntheticUniformTypeImage(validData, sourceNodata, dataType, 1,
                     DataDisplacement.DATA_DATA, true, false);
@@ -1410,7 +1411,6 @@ public class MosaicTest {
                 3, DataDisplacement.DATA_DATA, false, false);
         RenderedImage image3Band3 = getSyntheticUniformTypeImage(validData, sourceNodata, dataType,
                 3, DataDisplacement.DATA_DATA, false, true);
-
         RenderedImage[] array1Band = { image1, image2, image3 };
         RenderedImage[] array3Band = { image3Band1, image3Band2, image3Band3 };
 
@@ -1426,7 +1426,7 @@ public class MosaicTest {
         tempMosaicBean.setDestinationNoData(destinationNoDataValue);
         tempMosaicBean.setImage(array1Band);
         tempMosaicBean.setImage3Bands(array3Band);
-        // This bean is an inner bean for the mosaicNoDataOperation
+        // This bean is an inner bean for the mosaicOperation
         ImageMosaicBean[] imagesBean1Band = new ImageMosaicBean[array1Band.length];
         ImageMosaicBean[] imagesBean3Band = new ImageMosaicBean[array1Band.length];
 
@@ -1438,35 +1438,37 @@ public class MosaicTest {
             if (sourceNodata[k] != null) {
                 switch (dataType) {
                 case DataBuffer.TYPE_BYTE:
-                    helpBean1Band.setSourceNoData(new Range<Byte>(sourceNodata[k].byteValue(),
+                    helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].byteValue(),
                             true, sourceNodata[k].byteValue(), true));
-                    helpBean3Band.setSourceNoData(new Range<Byte>(sourceNodata[k].byteValue(),
+                    helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].byteValue(),
                             true, sourceNodata[k].byteValue(), true));
                     break;
                 case DataBuffer.TYPE_USHORT:
                 case DataBuffer.TYPE_SHORT:
-                    helpBean1Band.setSourceNoData(new Range<Short>(sourceNodata[k].shortValue(),
-                            true, sourceNodata[k].shortValue(), true));
-                    helpBean3Band.setSourceNoData(new Range<Short>(sourceNodata[k].shortValue(),
-                            true, sourceNodata[k].shortValue(), true));
+                    helpBean1Band
+                            .setSourceNoData(RangeFactory.createU(sourceNodata[k].shortValue(),
+                                    true, sourceNodata[k].shortValue(), true));
+                    helpBean3Band
+                            .setSourceNoData(RangeFactory.createU(sourceNodata[k].shortValue(),
+                                    true, sourceNodata[k].shortValue(), true));
                     break;
                 case DataBuffer.TYPE_INT:
-                    helpBean1Band.setSourceNoData(new Range<Integer>(sourceNodata[k].intValue(),
+                    helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].intValue(),
                             true, sourceNodata[k].intValue(), true));
-                    helpBean3Band.setSourceNoData(new Range<Integer>(sourceNodata[k].intValue(),
+                    helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].intValue(),
                             true, sourceNodata[k].intValue(), true));
                     break;
                 case DataBuffer.TYPE_FLOAT:
-                    helpBean1Band.setSourceNoData(new Range<Float>(sourceNodata[k].floatValue(),
-                            true, sourceNodata[k].floatValue(), true));
-                    helpBean3Band.setSourceNoData(new Range<Float>(sourceNodata[k].floatValue(),
-                            true, sourceNodata[k].floatValue(), true));
+                    helpBean1Band
+                            .setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue()));
+                    helpBean3Band
+                            .setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue()));
                     break;
                 case DataBuffer.TYPE_DOUBLE:
-                    helpBean1Band.setSourceNoData(new Range<Double>(sourceNodata[k].doubleValue(),
-                            true, sourceNodata[k].doubleValue(), true));
-                    helpBean3Band.setSourceNoData(new Range<Double>(sourceNodata[k].doubleValue(),
-                            true, sourceNodata[k].doubleValue(), true));
+                    helpBean1Band
+                            .setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue()));
+                    helpBean3Band
+                            .setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue()));
                     break;
                 }
             }
@@ -1561,7 +1563,8 @@ public class MosaicTest {
                     destinationValues, hints);
         } else {
             image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                    javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_BLEND, destinationValues, hints);
+                    javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_BLEND, destinationValues,
+                    hints);
         }
 
         int dataType = image5.getSampleModel().getDataType();
@@ -1653,11 +1656,11 @@ public class MosaicTest {
             }
             break;
         }
-        //Final Image disposal
-        if(image5 instanceof RenderedOp){
-            ((RenderedOp)image5).dispose();
+        // Final Image disposal
+        if (image5 instanceof RenderedOp) {
+            ((RenderedOp) image5).dispose();
         }
-        
+
         return arrayPixel;
     }
 
@@ -1688,8 +1691,8 @@ public class MosaicTest {
         // Creates an array for the destination band values
         double[] destinationValues = testBean.getDestinationNoData();
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                DEFAULT_MOSAIC_TYPE, destinationValues, hints);
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
+                destinationValues, hints);
 
         int dataType = image5.getSampleModel().getDataType();
 
@@ -1766,11 +1769,11 @@ public class MosaicTest {
             }
             break;
         }
-        //Final Image disposal   
-        if(image5 instanceof RenderedOp){
-            ((RenderedOp)image5).dispose();
+        // Final Image disposal
+        if (image5 instanceof RenderedOp) {
+            ((RenderedOp) image5).dispose();
         }
-        
+
         return arrayPixel;
     }
 
@@ -1799,8 +1802,8 @@ public class MosaicTest {
         // Creates an array for the destination band values
         double[] destinationValues = testBean.getDestinationNoData();
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                DEFAULT_MOSAIC_TYPE, destinationValues, hints);
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
+                destinationValues, hints);
 
         int minXTile = image5.getMinTileX();
         int minYTile = image5.getMinTileY();
@@ -1849,11 +1852,11 @@ public class MosaicTest {
             }
             break;
         }
-        //Final Image disposal
-        if(image5 instanceof RenderedOp){
-            ((RenderedOp)image5).dispose();
+        // Final Image disposal
+        if (image5 instanceof RenderedOp) {
+            ((RenderedOp) image5).dispose();
         }
-        
+
         return arrayPixel;
     }
 
@@ -1883,8 +1886,8 @@ public class MosaicTest {
         // Creates an array for the destination band values
         double[] destinationValues = testBean.getDestinationNoData();
         // MosaicNoData operation
-        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean,
-                DEFAULT_MOSAIC_TYPE, destinationValues, hints);
+        RenderedImage image5 = MosaicDescriptor.create(mosaicArray, helpBean, DEFAULT_MOSAIC_TYPE,
+                destinationValues, hints);
 
         int dataType = image5.getSampleModel().getDataType();
 
@@ -1959,12 +1962,12 @@ public class MosaicTest {
             }
             break;
         }
-        
-        //Final Image disposal
-        if(image5 instanceof RenderedOp){
-            ((RenderedOp)image5).dispose();
+
+        // Final Image disposal
+        if (image5 instanceof RenderedOp) {
+            ((RenderedOp) image5).dispose();
         }
-        
+
         return arrayPixel;
     }
 
@@ -1977,7 +1980,8 @@ public class MosaicTest {
         PlanarImage alphaChannel0 = null;
         PlanarImage alphaChannel1 = null;
         for (int i = 0; i < 6; i++) {
-            for (int j = 0; j < 3; j++) {
+            for (int j = 0; j < 3; j++) {              
+                
                 alphaChannel0 = (PlanarImage) getSyntheticUniformTypeImage(alphaChannelData, null,
                         i, 1, DataDisplacement.DATA_DATA, true, false);
                 alphaChannel1 = (PlanarImage) getSyntheticUniformTypeImage(alphaChannelData, null,
@@ -1985,7 +1989,7 @@ public class MosaicTest {
 
                 alphaChannel1 = TranslateDescriptor.create(alphaChannel1,
                         (float) (alphaChannel1.getWidth() / 2), 0F, null, hints);
-
+                
                 ImageMosaicBean[] beanToModify = beanContainer[i][j].getInnerBean();
                 ImageMosaicBean[] beanToModify3Band = beanContainer[i][j].getInnerBean3Band();
                 // The 2 ROIs are set to the ImageMosaicBean
@@ -1998,7 +2002,6 @@ public class MosaicTest {
 
             }
         }
-
     }
 
     private void creationROI() {
@@ -2069,16 +2072,16 @@ public class MosaicTest {
 
         MosaicBean tempMosaicBean = new MosaicBean();
 
-        if(dataType==DataBuffer.TYPE_FLOAT ){
-        	for(int i =0;i<sourceNodata.length;i++){
-        		sourceNodata[i]=Float.NaN;
-        	}
-        }else if(dataType==DataBuffer.TYPE_DOUBLE ){
-        	for(int i =0;i<sourceNodata.length;i++){
-        		sourceNodata[i]=Double.NaN;
-        	}
+        if (dataType == DataBuffer.TYPE_FLOAT) {
+            for (int i = 0; i < sourceNodata.length; i++) {
+                sourceNodata[i] = Float.NaN;
+            }
+        } else if (dataType == DataBuffer.TYPE_DOUBLE) {
+            for (int i = 0; i < sourceNodata.length; i++) {
+                sourceNodata[i] = Double.NaN;
+            }
         }
-        
+
         // no data-no data // no data- data // data-data
         RenderedImage image1 = getSyntheticUniformTypeImage(validData, sourceNodata, dataType, 1,
                 dd, true, false);
@@ -2113,35 +2116,31 @@ public class MosaicTest {
 
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
-                helpBean1Band.setSourceNoData(new Range<Byte>(sourceNodata[k].byteValue(), true,
-                        sourceNodata[k].byteValue(), true));
-                helpBean3Band.setSourceNoData(new Range<Byte>(sourceNodata[k].byteValue(), true,
-                        sourceNodata[k].byteValue(), true));
+                helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].byteValue(),
+                        true, sourceNodata[k].byteValue(), true));
+                helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].byteValue(),
+                        true, sourceNodata[k].byteValue(), true));
                 break;
             case DataBuffer.TYPE_USHORT:
             case DataBuffer.TYPE_SHORT:
-                helpBean1Band.setSourceNoData(new Range<Short>(sourceNodata[k].shortValue(), true,
-                        sourceNodata[k].shortValue(), true));
-                helpBean3Band.setSourceNoData(new Range<Short>(sourceNodata[k].shortValue(), true,
-                        sourceNodata[k].shortValue(), true));
+                helpBean1Band.setSourceNoData(RangeFactory.createU(sourceNodata[k].shortValue(),
+                        true, sourceNodata[k].shortValue(), true));
+                helpBean3Band.setSourceNoData(RangeFactory.createU(sourceNodata[k].shortValue(),
+                        true, sourceNodata[k].shortValue(), true));
                 break;
             case DataBuffer.TYPE_INT:
-                helpBean1Band.setSourceNoData(new Range<Integer>(sourceNodata[k].intValue(), true,
+                helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].intValue(), true,
                         sourceNodata[k].intValue(), true));
-                helpBean3Band.setSourceNoData(new Range<Integer>(sourceNodata[k].intValue(), true,
+                helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].intValue(), true,
                         sourceNodata[k].intValue(), true));
                 break;
             case DataBuffer.TYPE_FLOAT:
-                helpBean1Band.setSourceNoData(new Range<Float>(sourceNodata[k].floatValue(), true,
-                        sourceNodata[k].floatValue(), true));
-                helpBean3Band.setSourceNoData(new Range<Float>(sourceNodata[k].floatValue(), true,
-                        sourceNodata[k].floatValue(), true));
+                helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue()));
+                helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue()));
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                helpBean1Band.setSourceNoData(new Range<Double>(sourceNodata[k].doubleValue(),
-                        true, sourceNodata[k].doubleValue(), true));
-                helpBean3Band.setSourceNoData(new Range<Double>(sourceNodata[k].doubleValue(),
-                        true, sourceNodata[k].doubleValue(), true));
+                helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue()));
+                helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue()));
                 break;
             }
             helpBean1Band.setAlphaChannel(null);

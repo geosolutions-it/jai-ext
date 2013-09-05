@@ -4,18 +4,20 @@ import static org.junit.Assert.*;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.scale.ScaleDescriptor;
 import it.geosolutions.jaiext.scale.ScalePropertyGenerator;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.NullDescriptor;
-import org.jaitools.numeric.Range;
+
 import org.junit.Test;
 
 
@@ -37,7 +39,7 @@ public class CoverageClassTest extends TestScale {
         boolean useROIAccessor = false;
         boolean bicubic2Disabled = false;
         int dataType = DataBuffer.TYPE_BYTE;
-        Range<Byte> noDataRange = null;
+        Range noDataRange = null;
 
         // Interpolators initialization
         // Nearest-Neighbor
@@ -130,7 +132,7 @@ public class CoverageClassTest extends TestScale {
 
         boolean useROIAccessor = false;
         int dataType = DataBuffer.TYPE_BYTE;
-        Range<Byte> noDataRange = null;
+        Range noDataRange = null;
 
         float xScale = 1.0f;
         float yScale = 1.0f;
@@ -174,7 +176,7 @@ public class CoverageClassTest extends TestScale {
 
         boolean useROIAccessor = false;
         int dataType = DataBuffer.TYPE_BYTE;
-        Range<Byte> noDataRange = null;
+        Range noDataRange = null;
 
         float xScale = 1.0f;
         float yScale = 1.0f;

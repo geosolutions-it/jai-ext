@@ -18,12 +18,15 @@ public class RangeUshort extends Range {
     private final boolean maxIncluded;
 
     RangeUshort(short minValue, boolean minIncluded, short maxValue, boolean maxIncluded) {
+        int valueMin = minValue & 0xFFFF;
+        int valueMax = maxValue & 0xFFFF;
+        
         if (minValue < maxValue) {
-            this.minValue = minValue & 0xFFFF;
-            this.maxValue = maxValue & 0xFFFF;
+            this.minValue = valueMin;
+            this.maxValue = valueMax;
         } else {
-            this.minValue = maxValue & 0xFFFF;
-            this.maxValue = minValue & 0xFFFF;
+            this.minValue = valueMax;
+            this.maxValue = valueMin;
         }
         this.minIncluded = minIncluded;
         this.maxIncluded = maxIncluded;

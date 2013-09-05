@@ -1,5 +1,7 @@
 package it.geosolutions.jaiext.lookup;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
@@ -14,8 +16,6 @@ import java.io.Serializable;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.iterator.RandomIter;
-
-import org.jaitools.numeric.Range;
 
 import com.sun.media.jai.util.DataBufferUtils;
 
@@ -758,7 +758,7 @@ public abstract class LookupTable implements Serializable {
     }
 
     /** This method sets destination no data used for No Data or ROI calculation */
-    public void setDestinationNoData(double destinationNoData) {
+    public void setDestinationNoData(double destinationNoData) {               
         // Selection of the table data type
         int dataType = getDataType();
         // Cast of the initial double value to that of the data type

@@ -199,15 +199,15 @@ public class RangeTest {
     private static com.google.common.collect.Range<Double> rangeGuavaDpoint;
 
     @BeforeClass
-    public static void initialSetup() {       
-        arrayB = new byte[] { -10, 0, 5, 50, 100 };
+    public static void initialSetup() { 
+        arrayB = new byte[] { 0, 1, 5, 50, 100 };
         arrayUS = new short[] { 0, 1, 5, 50, 100 };
         arrayS = new short[] { -10, 0, 5, 50, 100 };
         arrayI = new int[] { -10, 0, 5, 50, 100 };
         arrayF = new float[] { -10, 0, 5, 50, 100 };
         arrayD = new double[] { -10, 0, 5, 50, 100 };
 
-        rangeB2bounds = RangeFactory.create((byte) 1, true, (byte) 60, true);
+        rangeB2bounds = RangeFactory.create((byte) 2, true, (byte) 60, true);
         rangeBpoint = RangeFactory.create(arrayB[2]);
         rangeU2bounds = RangeFactory.createU((short) 2, true, (short) 60, true);
         rangeUpoint = RangeFactory.createU(arrayUS[2]);

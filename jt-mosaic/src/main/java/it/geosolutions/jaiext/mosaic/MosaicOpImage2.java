@@ -1,5 +1,7 @@
 package it.geosolutions.jaiext.mosaic;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
@@ -24,8 +26,6 @@ import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 import javax.media.jai.operator.MosaicDescriptor;
 import javax.media.jai.operator.MosaicType;
-
-import org.jaitools.numeric.Range;
 
 import com.sun.media.jai.util.ImageUtil;
 
@@ -75,12 +75,6 @@ public class MosaicOpImage2 extends OpImage {
      * No data values for the destination image if the pixel of the same location are no Data
      */
     private Number[] destinationNoData;
-    
-    private boolean[] isRangeNaN;
-    
-    private boolean[] isPositiveInf;
-    
-    private boolean[] isNegativeInf;
 
     /** Enumerator for the type of mosaic weigher */
     public enum WeightType {
@@ -229,28 +223,6 @@ public class MosaicOpImage2 extends OpImage {
         this.roiPresent = false;
         this.alphaPresent = false;
 
-        //Control on the eventual noDataRange if it has NaN, Positive Infinity or Negative Infinity as NoData
-        
-        isRangeNaN = new boolean[numSources];
-        isPositiveInf = new boolean[numSources];
-        isNegativeInf = new boolean[numSources];
-        for(int j = 0; j < numSources;j++){
-        	
-        	Range noDataRange=imageBeans[j].getSourceNoData();
-        	
-        	if(noDataRange!=null && (dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE)){
-            	// If the range goes from -Inf to Inf No Data is NaN
-            	if(!noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinNegInf()){
-            		isRangeNaN[j]=true;
-            	// If the range is a positive infinite point isPositiveInf flag is set
-            	}else if(noDataRange.isPoint() && noDataRange.isMaxInf() && noDataRange.isMinInf()){
-            		isPositiveInf[j]=true;
-            	// If the range is a negative infinite point isNegativeInf flag is set
-            	}else if(noDataRange.isPoint() && noDataRange.isMaxNegInf() && noDataRange.isMinNegInf()){
-            		isNegativeInf[j]=true;
-            	}
-            }
-        }
         // This list contains the aplha channel for every source image (if present)
         List<PlanarImage> alphaList = new ArrayList<PlanarImage>();
 
@@ -876,7 +848,7 @@ public class MosaicOpImage2 extends OpImage {
                             switch (dataType) {
                             case DataBuffer.TYPE_BYTE:
 
-                                Range<Byte> noDataRangeByte = ((Range<Byte>) srcBean[s]
+                                Range noDataRangeByte = ( srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeByte != null) {
                                     isData = !noDataRangeByte
@@ -884,7 +856,7 @@ public class MosaicOpImage2 extends OpImage {
                                 }
                                 break;
                             case DataBuffer.TYPE_USHORT:
-                                Range<Short> noDataRangeUShort = ((Range<Short>) srcBean[s]
+                                Range noDataRangeUShort = ( srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeUShort != null) {
                                     isData = !noDataRangeUShort
@@ -892,60 +864,33 @@ public class MosaicOpImage2 extends OpImage {
                                 }
                                 break;
                             case DataBuffer.TYPE_SHORT:
-                                Range<Short> noDataRangeShort = ((Range<Short>) srcBean[s]
+                                Range noDataRangeShort = ( srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeShort != null) {
                                     isData = !noDataRangeShort.contains(sourceValueShort);
                                 }
                                 break;
                             case DataBuffer.TYPE_INT:
-                                Range<Integer> noDataRangeInt = ((Range<Integer>) srcBean[s]
+                                Range noDataRangeInt = ( srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeInt != null) {
                                     isData = !noDataRangeInt.contains(sourceValueInt);
                                 }
                                 break;
                             case DataBuffer.TYPE_FLOAT:
-                            	//Addition of the control for NaN, Positive or Negative Infinity values in the No Data Range
-                            	if(isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]){
-                            		//If the value is NaN then isData = false
-                            		if(isRangeNaN[s]){
-                            			isData = !Float.isNaN(sourceValueFloat);
-                            		//If the value is Positive Infinity then isData = false
-                            		}else if(isPositiveInf[s]){
-                            			isData = !(sourceValueFloat==Float.POSITIVE_INFINITY);
-                            		//If the value is Negative Infinity then isData = false
-                            		}else if(isNegativeInf[s]){
-                            			isData = !(sourceValueFloat==Float.NEGATIVE_INFINITY);
-                            		}
-                            	}else{
-                                    Range<Float> noDataRangeFloat = ((Range<Float>) srcBean[s]
+                                    Range noDataRangeFloat = ( srcBean[s]
                                             .getSourceNoDataRangeRasterAccessor());
                                     if (noDataRangeFloat != null) {
                                         isData = !noDataRangeFloat.contains(sourceValueFloat);
-                                    }
-                            	}
+                                    }                            	
                                 break;
                             case DataBuffer.TYPE_DOUBLE:                            	
-                            	//Addition of the control for NaN, Positive or Negative Infinity values in the No Data Range
-                            	if(isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]){
-                            		//If the value is NaN then isData = false
-                            		if(isRangeNaN[s]){
-                            			isData = !Double.isNaN(sourceValueDouble);
-                            		//If the value is Positive Infinity then isData = false
-                            		}else if(isPositiveInf[s]){
-                            			isData = !(sourceValueDouble==Double.POSITIVE_INFINITY);
-                            		//If the value is Negative Infinity then isData = false
-                            		}else if(isNegativeInf[s]){
-                            			isData = !(sourceValueDouble==Double.NEGATIVE_INFINITY);
-                            		}
-                            	}else{
-                                    Range<Double> noDataRangeDouble = ((Range<Double>) srcBean[s]
+                                    Range noDataRangeDouble = ( srcBean[s]
                                             .getSourceNoDataRangeRasterAccessor());
                                     if (noDataRangeDouble != null) {
                                         isData = !noDataRangeDouble.contains(sourceValueDouble);
                                     }
-                            	}
+                            	
                                 break;
                             }
 
@@ -1130,7 +1075,7 @@ public class MosaicOpImage2 extends OpImage {
                             switch (dataType) {
                             case DataBuffer.TYPE_BYTE:
 
-                                Range<Byte> noDataRangeByte = ((Range<Byte>) srcBean[s]
+                                Range noDataRangeByte = ( srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeByte != null) {
                                     isData = !noDataRangeByte
@@ -1140,7 +1085,7 @@ public class MosaicOpImage2 extends OpImage {
                                 break;
                             case DataBuffer.TYPE_USHORT:
 
-                                Range<Short> noDataRangeUShort = ((Range<Short>) srcBean[s]
+                                Range noDataRangeUShort = ( srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeUShort != null) {
                                     isData = !noDataRangeUShort
@@ -1149,7 +1094,7 @@ public class MosaicOpImage2 extends OpImage {
                                 break;
                             case DataBuffer.TYPE_SHORT:
 
-                                Range<Short> noDataRangeShort = ((Range<Short>) srcBean[s]
+                                Range noDataRangeShort = ( srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeShort != null) {
                                     isData = !noDataRangeShort.contains(sourceValueShort);
@@ -1158,53 +1103,25 @@ public class MosaicOpImage2 extends OpImage {
                                 break;
                             case DataBuffer.TYPE_INT:
 
-                                Range<Integer> noDataRangeInt = ((Range<Integer>) srcBean[s]
+                                Range noDataRangeInt = ( srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeInt != null) {
                                     isData = !noDataRangeInt.contains(sourceValueInt);
                                 }
                                 break;
                             case DataBuffer.TYPE_FLOAT:
-                            	//Addition of the control for NaN, Positive or Negative Infinity values in the No Data Range
-                            	if(isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]){
-                            		//If the value is NaN then isData = false
-                            		if(isRangeNaN[s]){
-                            			isData = !Float.isNaN(sourceValueFloat);
-                            		//If the value is Positive Infinity then isData = false
-                            		}else if(isPositiveInf[s]){
-                            			isData = !(sourceValueFloat==Float.POSITIVE_INFINITY);
-                            		//If the value is Negative Infinity then isData = false
-                            		}else if(isNegativeInf[s]){
-                            			isData = !(sourceValueFloat==Float.NEGATIVE_INFINITY);
-                            		}
-                            	}else{
-                                    Range<Float> noDataRangeFloat = ((Range<Float>) srcBean[s]
+                                    Range noDataRangeFloat = ( srcBean[s]
                                             .getSourceNoDataRangeRasterAccessor());
                                     if (noDataRangeFloat != null) {
                                         isData = !noDataRangeFloat.contains(sourceValueFloat);
-                                    }
-                            	}
+                                    }                            	
                                 break;
                             case DataBuffer.TYPE_DOUBLE:
-                            	//Addition of the control for NaN, Positive or Negative Infinity values in the No Data Range
-                            	if(isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]){
-                            		//If the value is NaN then isData = false
-                            		if(isRangeNaN[s]){
-                            			isData = !Double.isNaN(sourceValueDouble);
-                            		//If the value is Positive Infinity then isData = false
-                            		}else if(isPositiveInf[s]){
-                            			isData = !(sourceValueDouble==Double.POSITIVE_INFINITY);
-                            		//If the value is Negative Infinity then isData = false
-                            		}else if(isNegativeInf[s]){
-                            			isData = !(sourceValueDouble==Double.NEGATIVE_INFINITY);
-                            		}
-                            	}else{
-                                    Range<Double> noDataRangeDouble = ((Range<Double>) srcBean[s]
+                                    Range noDataRangeDouble = ( srcBean[s]
                                             .getSourceNoDataRangeRasterAccessor());
                                     if (noDataRangeDouble != null) {
                                         isData = !noDataRangeDouble.contains(sourceValueDouble);
-                                    }
-                            	}
+                                    }                            	
                                 break;
                             }
 
@@ -1291,12 +1208,12 @@ public class MosaicOpImage2 extends OpImage {
                                 numerator += (weight * (sourceValueInt));
                                 break;
                             case DataBuffer.TYPE_FLOAT:
-                            	if(!((isNegativeInf[s] || isPositiveInf[s] || isRangeNaN[s]) && weight ==0)){
+                            	if(isData){
                             		numerator += (weight * (sourceValueFloat));
                             	}
                                 break;
                             case DataBuffer.TYPE_DOUBLE:
-                            	if(!((isNegativeInf[s] || isPositiveInf[s] || isRangeNaN[s]) && weight ==0)){
+                            	if(isData){
                             		numerator += (weight * (sourceValueDouble));
                             	}
                                 break;

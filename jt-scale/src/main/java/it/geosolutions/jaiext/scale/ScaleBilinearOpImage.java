@@ -18,8 +18,6 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
-import org.jaitools.numeric.Range;
-
 public class ScaleBilinearOpImage extends ScaleOpImage {
     /**Byte lookuptable used if no data are present*/
     protected final byte[] byteLookupTable = new byte[255];
@@ -80,18 +78,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             if (noData != null) {
                 hasNoData = true;
                 destinationNoDataDouble = interpB.getDestinationNoData();
-                if ((srcDataType == DataBuffer.TYPE_FLOAT || srcDataType == DataBuffer.TYPE_DOUBLE)) {
-                    // If the range goes from -Inf to Inf No Data is NaN
-                    if (!noData.isPoint() && noData.isMaxInf() && noData.isMinNegInf()) {
-                        isRangeNaN = true;
-                        // If the range is a positive infinite point isPositiveInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxInf() && noData.isMinInf()) {
-                        isPositiveInf = true;
-                        // If the range is a negative infinite point isNegativeInf flag is set
-                    } else if (noData.isPoint() && noData.isMaxNegInf() && noData.isMinNegInf()) {
-                        isNegativeInf = true;
-                    }
-                }
             } else if (hasROI) {
                 destinationNoDataDouble = interpB.getDestinationNoData();
             }
@@ -122,11 +108,9 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
             if (hasNoData) {
 
-                Range<Byte> noDataByte = ((Range<Byte>) noData);
-
                 for (int i = 0; i < byteLookupTable.length; i++) {
                     byte value = (byte) i;
-                    if (noDataByte.contains(value)) {
+                    if (noData.contains(value)) {
                         byteLookupTable[i] = destinationNoDataByte;
                     } else {
                         byteLookupTable[i] = value;
@@ -734,9 +718,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        // No Data Range
-        Range<Short> rangeND = (Range<Short>) noData;
-
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
         final boolean caseC = !hasROI && hasNoData;
@@ -945,16 +926,16 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if (rangeND.contains(s00)) {
+                                if (noData.contains(s00)) {
                                     w00 = 0;
                                 }
-                                if (rangeND.contains(s01)) {
+                                if (noData.contains(s01)) {
                                     w01 = 0;
                                 }
-                                if (rangeND.contains(s10)) {
+                                if (noData.contains(s10)) {
                                     w10 = 0;
                                 }
-                                if (rangeND.contains(s11)) {
+                                if (noData.contains(s11)) {
                                     w11 = 0;
                                 }
 
@@ -1024,22 +1005,22 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataUShort;
                                     } else {
-                                        if (rangeND.contains(s00)) {
+                                        if (noData.contains(s00)) {
                                             w00 = 0;
                                         } else {
                                             w00 = 1;
                                         }
-                                        if (rangeND.contains(s01)) {
+                                        if (noData.contains(s01)) {
                                             w01 = 0;
                                         } else {
                                             w01 = 1;
                                         }
-                                        if (rangeND.contains(s10)) {
+                                        if (noData.contains(s10)) {
                                             w10 = 0;
                                         } else {
                                             w10 = 1;
                                         }
-                                        if (rangeND.contains(s11)) {
+                                        if (noData.contains(s11)) {
                                             w11 = 0;
                                         } else {
                                             w11 = 1;
@@ -1097,22 +1078,22 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                                     + srcScanlineStride] & 0xffff);
                                             final short s11 = (short) (srcData[posx
                                                     + srcPixelStride + posy + srcScanlineStride] & 0xffff);
-                                            if (rangeND.contains(s00)) {
+                                            if (noData.contains(s00)) {
                                                 w00 = 0;
                                             } else {
                                                 w00 = 1;
                                             }
-                                            if (rangeND.contains(s01)) {
+                                            if (noData.contains(s01)) {
                                                 w01 = 0;
                                             } else {
                                                 w01 = 1;
                                             }
-                                            if (rangeND.contains(s10)) {
+                                            if (noData.contains(s10)) {
                                                 w10 = 0;
                                             } else {
                                                 w10 = 1;
                                             }
-                                            if (rangeND.contains(s11)) {
+                                            if (noData.contains(s11)) {
                                                 w11 = 0;
                                             } else {
                                                 w11 = 1;
@@ -1177,9 +1158,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataArray = null;
             roiDataLength = 0;
         }
-
-        // No Data Range
-        Range<Short> rangeND = (Range<Short>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -1389,16 +1367,16 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if (rangeND.contains(s00)) {
+                                if (noData.contains(s00)) {
                                     w00 = 0;
                                 }
-                                if (rangeND.contains(s01)) {
+                                if (noData.contains(s01)) {
                                     w01 = 0;
                                 }
-                                if (rangeND.contains(s10)) {
+                                if (noData.contains(s10)) {
                                     w10 = 0;
                                 }
-                                if (rangeND.contains(s11)) {
+                                if (noData.contains(s11)) {
                                     w11 = 0;
                                 }
 
@@ -1463,22 +1441,22 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataShort;
                                     } else {
-                                        if (rangeND.contains(s00)) {
+                                        if (noData.contains(s00)) {
                                             w00 = 0;
                                         } else {
                                             w00 = 1;
                                         }
-                                        if (rangeND.contains(s01)) {
+                                        if (noData.contains(s01)) {
                                             w01 = 0;
                                         } else {
                                             w01 = 1;
                                         }
-                                        if (rangeND.contains(s10)) {
+                                        if (noData.contains(s10)) {
                                             w10 = 0;
                                         } else {
                                             w10 = 1;
                                         }
-                                        if (rangeND.contains(s11)) {
+                                        if (noData.contains(s11)) {
                                             w11 = 0;
                                         } else {
                                             w11 = 1;
@@ -1536,22 +1514,22 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final short s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            if (rangeND.contains(s00)) {
+                                            if (noData.contains(s00)) {
                                                 w00 = 0;
                                             } else {
                                                 w00 = 1;
                                             }
-                                            if (rangeND.contains(s01)) {
+                                            if (noData.contains(s01)) {
                                                 w01 = 0;
                                             } else {
                                                 w01 = 1;
                                             }
-                                            if (rangeND.contains(s10)) {
+                                            if (noData.contains(s10)) {
                                                 w10 = 0;
                                             } else {
                                                 w10 = 1;
                                             }
-                                            if (rangeND.contains(s11)) {
+                                            if (noData.contains(s11)) {
                                                 w11 = 0;
                                             } else {
                                                 w11 = 1;
@@ -1616,9 +1594,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataArray = null;
             roiDataLength = 0;
         }
-
-        // No Data Range
-        Range<Integer> rangeND = (Range<Integer>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -1818,16 +1793,16 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if (rangeND.contains(s00)) {
+                                if (noData.contains(s00)) {
                                     w00 = 0;
                                 }
-                                if (rangeND.contains(s01)) {
+                                if (noData.contains(s01)) {
                                     w01 = 0;
                                 }
-                                if (rangeND.contains(s10)) {
+                                if (noData.contains(s10)) {
                                     w10 = 0;
                                 }
-                                if (rangeND.contains(s11)) {
+                                if (noData.contains(s11)) {
                                     w11 = 0;
                                 }
 
@@ -1892,22 +1867,22 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        if (rangeND.contains(s00)) {
+                                        if (noData.contains(s00)) {
                                             w00 = 0;
                                         } else {
                                             w00 = 1;
                                         }
-                                        if (rangeND.contains(s01)) {
+                                        if (noData.contains(s01)) {
                                             w01 = 0;
                                         } else {
                                             w01 = 1;
                                         }
-                                        if (rangeND.contains(s10)) {
+                                        if (noData.contains(s10)) {
                                             w10 = 0;
                                         } else {
                                             w10 = 1;
                                         }
-                                        if (rangeND.contains(s11)) {
+                                        if (noData.contains(s11)) {
                                             w11 = 0;
                                         } else {
                                             w11 = 1;
@@ -1964,22 +1939,22 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final int s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            if (rangeND.contains(s00)) {
+                                            if (noData.contains(s00)) {
                                                 w00 = 0;
                                             } else {
                                                 w00 = 1;
                                             }
-                                            if (rangeND.contains(s01)) {
+                                            if (noData.contains(s01)) {
                                                 w01 = 0;
                                             } else {
                                                 w01 = 1;
                                             }
-                                            if (rangeND.contains(s10)) {
+                                            if (noData.contains(s10)) {
                                                 w10 = 0;
                                             } else {
                                                 w10 = 1;
                                             }
-                                            if (rangeND.contains(s11)) {
+                                            if (noData.contains(s11)) {
                                                 w11 = 0;
                                             } else {
                                                 w11 = 1;
@@ -2044,9 +2019,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataArray = null;
             roiDataLength = 0;
         }
-
-        // No Data Range
-        Range<Float> rangeND = (Range<Float>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -2254,39 +2226,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                    if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
-                                     // The destination no data value is saved in the destination array
-                                        w00 = 0;
-                                    }                                
-                                }else if (rangeND.contains(s00)) {
+                                if (noData.contains(s00) || Float.isNaN(s00)) {
                                     w00 = 0;
                                 }
 
-                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                    if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
-                                     // The destination no data value is saved in the destination array
-                                        w01 = 0;
-                                    }                                
-                                }else if (rangeND.contains(s01)) {
+                                if (noData.contains(s01) || Float.isNaN(s01)) {
                                     w01 = 0;
                                 }
                                                                 
-                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                    if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
-                                     // The destination no data value is saved in the destination array
-                                        w10 = 0;
-                                    }                                
-                                }else if (rangeND.contains(s10)) {
+                                if (noData.contains(s10) || Float.isNaN(s10)) {
                                     w10 = 0;
                                 }
                                 
-                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                    if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
-                                     // The destination no data value is saved in the destination array
-                                        w11 = 0;
-                                    }                                
-                                }else if (rangeND.contains(s11)) {
+                                if (noData.contains(s11) || Float.isNaN(s11)) {
                                     w11 = 0;
                                 }
                                 
@@ -2353,53 +2305,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         dstData[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
                                         
-                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
-                                             // The destination no data value is saved in the destination array
-                                                w00 = 0;
-                                            }else {
-                                                w00 = 1;
-                                            }                                
-                                        }else if (rangeND.contains(s00)) {
+                                        if (noData.contains(s00)|| Float.isNaN(s00)) {
                                             w00 = 0;
                                         }else {
                                             w00 = 1;
                                         }
 
-                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
-                                             // The destination no data value is saved in the destination array
-                                                w01 = 0;
-                                            }else {
-                                                w01 = 1;
-                                            }                                
-                                        }if (rangeND.contains(s01)) {
+                                        if (noData.contains(s01)|| Float.isNaN(s01)) {
                                             w01 = 0;
                                         }else {
                                             w01 = 1;
                                         }
                                                                         
-                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
-                                             // The destination no data value is saved in the destination array
-                                                w10 = 0;
-                                            }else {
-                                                w10 = 1;
-                                            }                                
-                                        }else if (rangeND.contains(s10)) {
+                                        if (noData.contains(s10)|| Float.isNaN(s10)) {
                                             w10 = 0;
                                         }else {
                                             w10 = 1;
                                         }
                                         
-                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
-                                             // The destination no data value is saved in the destination array
-                                                w11 = 0;
-                                            }else {
-                                                w11 = 1;
-                                            }                                
-                                        }else if (rangeND.contains(s11)) {
+                                        if (noData.contains(s11)|| Float.isNaN(s11)) {
                                             w11 = 0;
                                         }else {
                                             w11 = 1;
@@ -2458,53 +2382,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final float s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                if(s00 == Float.NEGATIVE_INFINITY || s00 == Float.NEGATIVE_INFINITY ||Float.isNaN(s00)){
-                                                 // The destination no data value is saved in the destination array
-                                                    w00 = 0;
-                                                }else {
-                                                    w00 = 1;
-                                                }                                
-                                            }else if (rangeND.contains(s00)) {
+                                            if (noData.contains(s00)|| Float.isNaN(s00)) {
                                                 w00 = 0;
                                             }else {
                                                 w00 = 1;
                                             }
 
-                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                if(s01 == Float.NEGATIVE_INFINITY || s01 == Float.NEGATIVE_INFINITY ||Float.isNaN(s01)){
-                                                 // The destination no data value is saved in the destination array
-                                                    w01 = 0;
-                                                }else {
-                                                    w01 = 1;
-                                                }                                
-                                            }if (rangeND.contains(s01)) {
+                                            if (noData.contains(s01)|| Float.isNaN(s01)) {
                                                 w01 = 0;
                                             }else {
                                                 w01 = 1;
                                             }
                                                                             
-                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                if(s10 == Float.NEGATIVE_INFINITY || s10 == Float.NEGATIVE_INFINITY ||Float.isNaN(s10)){
-                                                 // The destination no data value is saved in the destination array
-                                                    w10 = 0;
-                                                }else {
-                                                    w10 = 1;
-                                                }                                
-                                            }else if (rangeND.contains(s10)) {
+                                            if (noData.contains(s10)|| Float.isNaN(s10)) {
                                                 w10 = 0;
                                             }else {
                                                 w10 = 1;
                                             }
                                             
-                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                if(s11 == Float.NEGATIVE_INFINITY || s11 == Float.NEGATIVE_INFINITY ||Float.isNaN(s11)){
-                                                 // The destination no data value is saved in the destination array
-                                                    w11 = 0;
-                                                }else {
-                                                    w11 = 1;
-                                                }                                
-                                            }else if (rangeND.contains(s11)) {
+                                            if (noData.contains(s11)|| Float.isNaN(s11)) {
                                                 w11 = 0;
                                             }else {
                                                 w11 = 1;
@@ -2570,9 +2466,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataArray = null;
             roiDataLength = 0;
         }
-
-        // No Data Range
-        Range<Double> rangeND = (Range<Double>) noData;
 
         final boolean caseA = !hasROI && !hasNoData;
         final boolean caseB = hasROI && !hasNoData;
@@ -2780,39 +2673,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                    if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
-                                     // The destination no data value is saved in the destination array
-                                        w00 = 0;
-                                    }                                
-                                }else if (rangeND.contains(s00)) {
+                                if (noData.contains(s00)|| Double.isNaN(s00)) {
                                     w00 = 0;
                                 }
 
-                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                    if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
-                                     // The destination no data value is saved in the destination array
-                                        w01 = 0;
-                                    }                                
-                                }else if (rangeND.contains(s01)) {
+                                if (noData.contains(s01)|| Double.isNaN(s01)) {
                                     w01 = 0;
                                 }
                                                                 
-                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                    if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
-                                     // The destination no data value is saved in the destination array
-                                        w10 = 0;
-                                    }                                
-                                }else if (rangeND.contains(s10)) {
+                                if (noData.contains(s10)|| Double.isNaN(s10)) {
                                     w10 = 0;
                                 }
                                 
-                                if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                    if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
-                                     // The destination no data value is saved in the destination array
-                                        w11 = 0;
-                                    }                                
-                                }else if (rangeND.contains(s11)) {
+                                if (noData.contains(s11)|| Double.isNaN(s11)) {
                                     w11 = 0;
                                 }
 
@@ -2878,53 +2751,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
-                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
-                                             // The destination no data value is saved in the destination array
-                                                w00 = 0;
-                                            }else {
-                                                w00 = 1;
-                                            }                                
-                                        }else if (rangeND.contains(s00)) {
+                                        if (noData.contains(s00)|| Double.isNaN(s00)) {
                                             w00 = 0;
                                         }else {
                                             w00 = 1;
                                         }
 
-                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
-                                             // The destination no data value is saved in the destination array
-                                                w01 = 0;
-                                            }else {
-                                                w01 = 1;
-                                            }                                
-                                        }if (rangeND.contains(s01)) {
+                                        if (noData.contains(s01)|| Double.isNaN(s01)) {
                                             w01 = 0;
                                         }else {
                                             w01 = 1;
                                         }
                                                                         
-                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
-                                             // The destination no data value is saved in the destination array
-                                                w10 = 0;
-                                            }else {
-                                                w10 = 1;
-                                            }                                
-                                        }else if (rangeND.contains(s10)) {
+                                        if (noData.contains(s10)|| Double.isNaN(s10)) {
                                             w10 = 0;
                                         }else {
                                             w10 = 1;
                                         }
                                         
-                                        if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                            if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
-                                             // The destination no data value is saved in the destination array
-                                                w11 = 0;
-                                            }else {
-                                                w11 = 1;
-                                            }                                
-                                        }else if (rangeND.contains(s11)) {
+                                        if (noData.contains(s11)|| Double.isNaN(s11)) {
                                             w11 = 0;
                                         }else {
                                             w11 = 1;
@@ -2984,53 +2829,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final double s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                if(s00 == Double.NEGATIVE_INFINITY || s00 == Double.NEGATIVE_INFINITY ||Double.isNaN(s00)){
-                                                 // The destination no data value is saved in the destination array
-                                                    w00 = 0;
-                                                }else {
-                                                    w00 = 1;
-                                                }                                
-                                            }else if (rangeND.contains(s00)) {
+                                            if (noData.contains(s00)|| Double.isNaN(s00)) {
                                                 w00 = 0;
                                             }else {
                                                 w00 = 1;
                                             }
 
-                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                if(s01 == Double.NEGATIVE_INFINITY || s01 == Double.NEGATIVE_INFINITY ||Double.isNaN(s01)){
-                                                 // The destination no data value is saved in the destination array
-                                                    w01 = 0;
-                                                }else {
-                                                    w01 = 1;
-                                                }                                
-                                            }if (rangeND.contains(s01)) {
+                                            if (noData.contains(s01)|| Double.isNaN(s01)) {
                                                 w01 = 0;
                                             }else {
                                                 w01 = 1;
                                             }
                                                                             
-                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                if(s10 == Double.NEGATIVE_INFINITY || s10 == Double.NEGATIVE_INFINITY ||Double.isNaN(s10)){
-                                                 // The destination no data value is saved in the destination array
-                                                    w10 = 0;
-                                                }else {
-                                                    w10 = 1;
-                                                }                                
-                                            }else if (rangeND.contains(s10)) {
+                                            if (noData.contains(s10)|| Double.isNaN(s10)) {
                                                 w10 = 0;
                                             }else {
                                                 w10 = 1;
                                             }
                                             
-                                            if (isNegativeInf|| isPositiveInf|| isRangeNaN) {                                
-                                                if(s11 == Double.NEGATIVE_INFINITY || s11 == Double.NEGATIVE_INFINITY ||Double.isNaN(s11)){
-                                                 // The destination no data value is saved in the destination array
-                                                    w11 = 0;
-                                                }else {
-                                                    w11 = 1;
-                                                }                                
-                                            }else if (rangeND.contains(s11)) {
+                                            if (noData.contains(s11)|| Double.isNaN(s11)) {
                                                 w11 = 0;
                                             }else {
                                                 w11 = 1;

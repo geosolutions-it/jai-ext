@@ -1,7 +1,6 @@
 package it.geosolutions.jaiext.mosaic;
 
 import java.awt.RenderingHints;
-import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderedImageFactory;

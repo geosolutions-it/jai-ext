@@ -1,5 +1,7 @@
 package it.geosolutions.jaiext.mosaic;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
@@ -23,8 +25,6 @@ import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 import javax.media.jai.operator.MosaicDescriptor;
 import javax.media.jai.operator.MosaicType;
-
-import org.jaitools.numeric.Range;
 
 import com.sun.media.jai.util.ImageUtil;
 
@@ -88,16 +88,8 @@ public class MosaicOpImage extends OpImage {
     /** No data values for the destination image if the pixel of the same location are no Data (Double) */
     private double[] destinationNoDataDouble;
 
-    /** Boolean for checking if the no data is NaN */
-    private boolean[] isRangeNaN;
-
-    /** Boolean for checking if the no data is positive infinity */
-    private boolean[] isPositiveInf;
-
-    /** Boolean for checking if the no data is negative infinity */
-    private boolean[] isNegativeInf;
-
-    protected byte[][] byteLookupTable;
+    /** Table used for checking no data values. The first index indicates the source, the second the band, the third the value */
+    protected byte[][][] byteLookupTable;
 
     private final boolean[] hasNoData;
 
@@ -336,16 +328,14 @@ public class MosaicOpImage extends OpImage {
                 throw new IllegalArgumentException("Wrong data Type");
             }
         }
-        // Control on the eventual noDataRange if it has NaN, Positive Infinity or Negative Infinity as NoData
-
-        isRangeNaN = new boolean[numSources];
-        isPositiveInf = new boolean[numSources];
-        isNegativeInf = new boolean[numSources];
 
         hasNoData = new boolean[numSources];
 
         // This list contains the alpha channel for every source image (if present)
         List<PlanarImage> alphaList = new ArrayList<PlanarImage>();
+
+        // NoDataRangeByte initialization
+        byteLookupTable = new byte[numSources][numBands][255];
 
         // This cycle is used for checking if every alpha channel is single banded
         // and has the same
@@ -381,33 +371,23 @@ public class MosaicOpImage extends OpImage {
 
                 hasNoData[i] = true;
 
-                if (dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE) {
-                    // If the range goes from -Inf to Inf No Data is NaN
-                    if (!noDataRange.isPoint() && noDataRange.isMaxInf()
-                            && noDataRange.isMinNegInf()) {
-                        isRangeNaN[i] = true;
-                        // If the range is a positive infinite point isPositiveInf flag is set
-                    } else if (noDataRange.isPoint() && noDataRange.isMaxInf()
-                            && noDataRange.isMinInf()) {
-                        isPositiveInf[i] = true;
-                        // If the range is a negative infinite point isNegativeInf flag is set
-                    } else if (noDataRange.isPoint() && noDataRange.isMaxNegInf()
-                            && noDataRange.isMinNegInf()) {
-                        isNegativeInf[i] = true;
-                    }
-                } else if (dataType == DataBuffer.TYPE_BYTE) {
+                if(noDataRange.getDataType().getDataType()!=dataType){
+                    int value =noDataRange.getDataType().getDataType();
+                    throw new IllegalArgumentException("Range data type is not the same of the source image");
+                }
+                
+                if (dataType == DataBuffer.TYPE_BYTE) {
                     // selection of the no data range for byte values
-                    Range<Byte> noDataByte = ((Range<Byte>) noDataRange);
+                    Range noDataByte = noDataRange;
 
-                    byteLookupTable = new byte[numBands][255];
                     // The lookup table is filled with the related no data or valid data for every value
                     for (int b = 0; b < numBands; b++) {
-                        for (int z = 0; z < byteLookupTable[0].length; z++) {
+                        for (int z = 0; z < byteLookupTable[i][0].length; z++) {
                             byte value = (byte) z;
                             if (noDataByte.contains(value)) {
-                                byteLookupTable[b][z] = destinationNoDataByte[b];
+                                byteLookupTable[i][b][z] = destinationNoDataByte[b];
                             } else {
-                                byteLookupTable[b][z] = value;
+                                byteLookupTable[i][b][z] = value;
                             }
                         }
                     }
@@ -796,7 +776,7 @@ public class MosaicOpImage extends OpImage {
                             // the flag checks if the pixel is a noData
                             boolean isData = true;
                             if (hasNoData[s]) {
-                                isData = !(byteLookupTable[b][sourceValueByte] == destinationNoDataByte[b]);
+                                isData = !(byteLookupTable[s][b][sourceValueByte] == destinationNoDataByte[b]);
                             }
 
                             if (!isData) {
@@ -894,7 +874,7 @@ public class MosaicOpImage extends OpImage {
                             // is set to 1 or 0 if the pixel has
                             // or not a No Data value
                             if (hasNoData[s]) {
-                                isData = !(byteLookupTable[b][sourceValueByte] == destinationNoDataByte[b]);
+                                isData = !(byteLookupTable[s][b][sourceValueByte] == destinationNoDataByte[b]);
                             }
                             if (!isData) {
                                 weight = 0F;
@@ -1121,7 +1101,7 @@ public class MosaicOpImage extends OpImage {
                             // the flag checks if the pixel is a noData
                             boolean isData = true;
                             if (hasNoData[s]) {
-                                Range<Short> noDataRangeUShort = ((Range<Short>) srcBean[s]
+                                Range noDataRangeUShort = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 ;
                                 isData = !noDataRangeUShort.contains(sourceValueUshort);
@@ -1222,7 +1202,7 @@ public class MosaicOpImage extends OpImage {
                             // is set to 1 or 0 if the pixel has
                             // or not a No Data value
                             if (hasNoData[s]) {
-                                Range<Short> noDataRangeUShort = ((Range<Short>) srcBean[s]
+                                Range noDataRangeUShort = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 ;
                                 isData = !noDataRangeUShort.contains(sourceValueUshort);
@@ -1452,7 +1432,7 @@ public class MosaicOpImage extends OpImage {
                             // the flag checks if the pixel is a noData
                             boolean isData = true;
                             if (hasNoData[s]) {
-                                Range<Short> noDataRangeShort = ((Range<Short>) srcBean[s]
+                                Range noDataRangeShort = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 isData = !noDataRangeShort.contains(sourceValueShort);
                             }
@@ -1552,7 +1532,7 @@ public class MosaicOpImage extends OpImage {
                             // is set to 1 or 0 if the pixel has
                             // or not a No Data value
                             if (hasNoData[s]) {
-                                Range<Short> noDataRangeShort = ((Range<Short>) srcBean[s]
+                                Range noDataRangeShort = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 isData = !noDataRangeShort.contains(sourceValueShort);
                             }
@@ -1781,7 +1761,7 @@ public class MosaicOpImage extends OpImage {
                             // the flag checks if the pixel is a noData
                             boolean isData = true;
                             if (hasNoData[s]) {
-                                Range<Integer> noDataRangeInt = ((Range<Integer>) srcBean[s]
+                                Range noDataRangeInt = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 isData = !noDataRangeInt.contains(sourceValueInt);
                             }
@@ -1881,7 +1861,7 @@ public class MosaicOpImage extends OpImage {
                             // is set to 1 or 0 if the pixel has
                             // or not a No Data value
                             if (hasNoData[s]) {
-                                Range<Integer> noDataRangeInt = ((Range<Integer>) srcBean[s]
+                                Range noDataRangeInt = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 isData = !noDataRangeInt.contains(sourceValueInt);
                             }
@@ -2110,24 +2090,10 @@ public class MosaicOpImage extends OpImage {
                             // the flag checks if the pixel is a noData
                             boolean isData = true;
                             if (hasNoData[s]) {
-                                // Addition of the control for NaN, Positive or Negative Infinity values in the No Data Range
-                                if (isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]) {
-                                    // If the value is NaN then isData = false
-                                    if (isRangeNaN[s]) {
-                                        isData = !Float.isNaN(sourceValueFloat);
-                                        // If the value is Positive Infinity then isData = false
-                                    } else if (isPositiveInf[s]) {
-                                        isData = !(sourceValueFloat == Float.POSITIVE_INFINITY);
-                                        // If the value is Negative Infinity then isData = false
-                                    } else if (isNegativeInf[s]) {
-                                        isData = !(sourceValueFloat == Float.NEGATIVE_INFINITY);
-                                    }
-                                } else {
-                                    Range<Float> noDataRangeFloat = ((Range<Float>) srcBean[s]
-                                            .getSourceNoDataRangeRasterAccessor());
-                                    if (noDataRangeFloat != null) {
-                                        isData = !noDataRangeFloat.contains(sourceValueFloat);
-                                    }
+                                Range noDataRangeFloat = (srcBean[s]
+                                        .getSourceNoDataRangeRasterAccessor());
+                                if (noDataRangeFloat != null) {
+                                    isData = !(noDataRangeFloat.contains(sourceValueFloat)|| Float.isNaN(sourceValueFloat));
                                 }
                             }
 
@@ -2226,24 +2192,10 @@ public class MosaicOpImage extends OpImage {
                             // is set to 1 or 0 if the pixel has
                             // or not a No Data value
                             if (hasNoData[s]) {
-                                // Addition of the control for NaN, Positive or Negative Infinity values in the No Data Range
-                                if (isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]) {
-                                    // If the value is NaN then isData = false
-                                    if (isRangeNaN[s]) {
-                                        isData = !Float.isNaN(sourceValueFloat);
-                                        // If the value is Positive Infinity then isData = false
-                                    } else if (isPositiveInf[s]) {
-                                        isData = !(sourceValueFloat == Float.POSITIVE_INFINITY);
-                                        // If the value is Negative Infinity then isData = false
-                                    } else if (isNegativeInf[s]) {
-                                        isData = !(sourceValueFloat == Float.NEGATIVE_INFINITY);
-                                    }
-                                } else {
-                                    Range<Float> noDataRangeFloat = ((Range<Float>) srcBean[s]
-                                            .getSourceNoDataRangeRasterAccessor());
-                                    if (noDataRangeFloat != null) {
-                                        isData = !noDataRangeFloat.contains(sourceValueFloat);
-                                    }
+                                Range noDataRangeFloat = (srcBean[s]
+                                        .getSourceNoDataRangeRasterAccessor());
+                                if (noDataRangeFloat != null) {
+                                    isData = !(noDataRangeFloat.contains(sourceValueFloat) || Float.isNaN(sourceValueFloat)); 
                                 }
                             }
                             if (!isData) {
@@ -2269,7 +2221,7 @@ public class MosaicOpImage extends OpImage {
                             }
                             // The above calculated weight are added to the
                             // numerator and denominator
-                            if (!((isNegativeInf[s] || isPositiveInf[s] || isRangeNaN[s]) && weight == 0)) {
+                            if (isData) {
                                 numerator += (weight * (sourceValueFloat));
                             }
 
@@ -2471,23 +2423,10 @@ public class MosaicOpImage extends OpImage {
                             // the flag checks if the pixel is a noData
                             boolean isData = true;
                             if (hasNoData[s]) {
-                                if (isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]) {
-                                    // If the value is NaN then isData = false
-                                    if (isRangeNaN[s]) {
-                                        isData = !Double.isNaN(sourceValueDouble);
-                                        // If the value is Positive Infinity then isData = false
-                                    } else if (isPositiveInf[s]) {
-                                        isData = !(sourceValueDouble == Double.POSITIVE_INFINITY);
-                                        // If the value is Negative Infinity then isData = false
-                                    } else if (isNegativeInf[s]) {
-                                        isData = !(sourceValueDouble == Double.NEGATIVE_INFINITY);
-                                    }
-                                } else {
-                                    Range<Double> noDataRangeDouble = ((Range<Double>) srcBean[s]
-                                            .getSourceNoDataRangeRasterAccessor());
-                                    if (noDataRangeDouble != null) {
-                                        isData = !noDataRangeDouble.contains(sourceValueDouble);
-                                    }
+                                Range noDataRangeDouble = (srcBean[s]
+                                        .getSourceNoDataRangeRasterAccessor());
+                                if (noDataRangeDouble != null) {
+                                    isData = !(noDataRangeDouble.contains(sourceValueDouble)|| Double.isNaN(sourceValueDouble));
                                 }
                             }
 
@@ -2586,23 +2525,10 @@ public class MosaicOpImage extends OpImage {
                             // is set to 1 or 0 if the pixel has
                             // or not a No Data value
                             if (hasNoData[s]) {
-                                if (isRangeNaN[s] || isPositiveInf[s] || isNegativeInf[s]) {
-                                    // If the value is NaN then isData = false
-                                    if (isRangeNaN[s]) {
-                                        isData = !Double.isNaN(sourceValueDouble);
-                                        // If the value is Positive Infinity then isData = false
-                                    } else if (isPositiveInf[s]) {
-                                        isData = !(sourceValueDouble == Double.POSITIVE_INFINITY);
-                                        // If the value is Negative Infinity then isData = false
-                                    } else if (isNegativeInf[s]) {
-                                        isData = !(sourceValueDouble == Double.NEGATIVE_INFINITY);
-                                    }
-                                } else {
-                                    Range<Double> noDataRangeDouble = ((Range<Double>) srcBean[s]
-                                            .getSourceNoDataRangeRasterAccessor());
-                                    if (noDataRangeDouble != null) {
-                                        isData = !noDataRangeDouble.contains(sourceValueDouble);
-                                    }
+                                Range noDataRangeDouble = (srcBean[s]
+                                        .getSourceNoDataRangeRasterAccessor());
+                                if (noDataRangeDouble != null) {
+                                    isData = !(noDataRangeDouble.contains(sourceValueDouble)|| Double.isNaN(sourceValueDouble));
                                 }
                             }
                             if (!isData) {
@@ -2628,7 +2554,7 @@ public class MosaicOpImage extends OpImage {
                             }
                             // The above calculated weight are added to the
                             // numerator and denominator
-                            if (!((isNegativeInf[s] || isPositiveInf[s] || isRangeNaN[s]) && weight == 0)) {
+                            if (isData) {
                                 numerator += (weight * (sourceValueDouble));
                             }
 
