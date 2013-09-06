@@ -155,8 +155,7 @@ public class LookupTest extends TestBase {
         // Setting of an input parameter to be always false, avoiding the image to be totally filled by values
         IMAGE_FILLER = false;
         // Images initialization
-        // Byte Range goes from 0 to 255
-        byte noDataB = (byte) 156;
+        byte noDataB = -100;
         short noDataUS = 100;
         short noDataS = -100;
         int noDataI = -100;
@@ -170,7 +169,7 @@ public class LookupTest extends TestBase {
         testImageInt = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
                 false);
         // Offset creation
-        int byteOffset = 0;
+        int byteOffset = noDataB;
         int ushortOffset = 0;
         int shortOffset = noDataS;
         int intOffset = noDataI;
@@ -254,6 +253,11 @@ public class LookupTest extends TestBase {
                 dataIntUS[i] = 50;
                 dataIntS[i] = 50;
                 dataIntI[i] = 50;
+             // byte-to-all arrays
+                dataByteB[i] = 50;
+                dataByteUS[i] = 50;
+                dataByteS[i] = 50;
+                dataByteI[i] = 50;
             }
 
             if (i == noDataUS) {
@@ -262,14 +266,6 @@ public class LookupTest extends TestBase {
                 dataUShortUS[i] = 50;
                 dataUShortS[i] = 50;
                 dataUShortI[i] = 50;
-            }
-
-            if (i == (noDataB & 0xFF)) {
-                // byte-to-all arrays
-                dataByteB[i] = 50;
-                dataByteUS[i] = 50;
-                dataByteS[i] = 50;
-                dataByteI[i] = 50;
             }
 
         }

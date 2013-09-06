@@ -1,16 +1,15 @@
 package it.geosolutions.jaiext.range;
 
 /**
- * This class is a subclass of the {@link Range} class handling byte data with minimum and maximum bounds. This
- * class considers the byte range from 0 to 255 because JAI byte images are all inside this range.
+ * This class is a subclass of the {@link Range} class handling byte data.
  */
 public class RangeByte extends Range {
 
     /** Minimum range bound */
-    private final int minValue;
+    private final byte minValue;
 
     /** Maximum range bound */
-    private final int maxValue;
+    private final byte maxValue;
 
     /** Boolean indicating if the minimum bound is included */
     private final boolean minIncluded;
@@ -18,45 +17,70 @@ public class RangeByte extends Range {
     /** Boolean indicating if the maximum bound is included */
     private final boolean maxIncluded;
 
+    /** Boolean indicating if the maximum bound is included */
+    private final boolean isPoint;
+
     RangeByte(byte minValue, boolean minIncluded, byte maxValue, boolean maxIncluded) {
-        int valueMin = minValue & 0xFF;
-        int valueMax = maxValue & 0xFF;
-        
+
         if (minValue < maxValue) {
-            this.minValue = valueMin;
-            this.maxValue = valueMax;
+            this.minValue = minValue;
+            this.maxValue = maxValue;
+            this.isPoint = false;
+            this.minIncluded = minIncluded;
+            this.maxIncluded = maxIncluded;
+        } else if (minValue > maxValue) {
+            this.minValue = maxValue;
+            this.maxValue = minValue;
+            this.isPoint = false;
+            this.minIncluded = minIncluded;
+            this.maxIncluded = maxIncluded;
         } else {
-            this.minValue = valueMax;
-            this.maxValue = valueMin;
+            this.minValue = minValue;
+            this.maxValue = minValue;
+            this.isPoint = true;
+            if (!minIncluded && !maxIncluded) {
+                throw new IllegalArgumentException(
+                        "Cannot create a single-point range without minimum and maximum "
+                                + "bounds included");
+            } else {
+                this.minIncluded = true;
+                this.maxIncluded = true;
+            }
         }
-        this.minIncluded = minIncluded;
-        this.maxIncluded = maxIncluded;
     }
 
     @Override
-    public boolean contains(byte value) {
-
-        final boolean lower;
-        final boolean upper;
-
-        if (minIncluded) {
-            lower = value < minValue;
+    public boolean contains(byte value) {        
+        if (isPoint) {
+            return this.minValue == value;
         } else {
-            lower = value <= minValue;
-        }
+            final boolean lower;
+            final boolean upper;
 
-        if (maxIncluded) {
-            upper = value > maxValue;
-        } else {
-            upper = value >= maxValue;
-        }
+            if (minIncluded) {
+                lower = value < minValue;
+            } else {
+                lower = value <= minValue;
+            }
 
-        return !lower && !upper;
+            if (maxIncluded) {
+                upper = value > maxValue;
+            } else {
+                upper = value >= maxValue;
+            }
+
+            return !lower && !upper;
+        }
     }
 
     @Override
     public DataType getDataType() {
         return DataType.BYTE;
+    }
+    
+    @Override
+    public boolean isPoint() {
+        return isPoint;
     }
 
 }

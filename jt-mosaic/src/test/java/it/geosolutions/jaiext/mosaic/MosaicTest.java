@@ -1375,7 +1375,7 @@ public class MosaicTest {
                 for (int j = 0; j < sourceND.length; j++) {
                     sourceND[j] = Double.NaN;
                 }
-            } 
+            }
             // method for image creation
             beanContainer3Images[i] = imageSettings3Images(validData, sourceND, destinationND, i,
                     roiAlphaNotNull);
@@ -1459,16 +1459,18 @@ public class MosaicTest {
                             true, sourceNodata[k].intValue(), true));
                     break;
                 case DataBuffer.TYPE_FLOAT:
-                    helpBean1Band
-                            .setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue()));
-                    helpBean3Band
-                            .setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue()));
+                    helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue(),
+                            true, sourceNodata[k].floatValue(), true));
+                    helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue(),
+                            true, sourceNodata[k].floatValue(), true));
                     break;
                 case DataBuffer.TYPE_DOUBLE:
-                    helpBean1Band
-                            .setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue()));
-                    helpBean3Band
-                            .setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue()));
+                    helpBean1Band.setSourceNoData(RangeFactory.create(
+                            sourceNodata[k].doubleValue(), true, sourceNodata[k].doubleValue(),
+                            true));
+                    helpBean3Band.setSourceNoData(RangeFactory.create(
+                            sourceNodata[k].doubleValue(), true, sourceNodata[k].doubleValue(),
+                            true));
                     break;
                 }
             }
@@ -1980,8 +1982,8 @@ public class MosaicTest {
         PlanarImage alphaChannel0 = null;
         PlanarImage alphaChannel1 = null;
         for (int i = 0; i < 6; i++) {
-            for (int j = 0; j < 3; j++) {              
-                
+            for (int j = 0; j < 3; j++) {
+
                 alphaChannel0 = (PlanarImage) getSyntheticUniformTypeImage(alphaChannelData, null,
                         i, 1, DataDisplacement.DATA_DATA, true, false);
                 alphaChannel1 = (PlanarImage) getSyntheticUniformTypeImage(alphaChannelData, null,
@@ -1989,7 +1991,7 @@ public class MosaicTest {
 
                 alphaChannel1 = TranslateDescriptor.create(alphaChannel1,
                         (float) (alphaChannel1.getWidth() / 2), 0F, null, hints);
-                
+
                 ImageMosaicBean[] beanToModify = beanContainer[i][j].getInnerBean();
                 ImageMosaicBean[] beanToModify3Band = beanContainer[i][j].getInnerBean3Band();
                 // The 2 ROIs are set to the ImageMosaicBean
@@ -2135,12 +2137,16 @@ public class MosaicTest {
                         sourceNodata[k].intValue(), true));
                 break;
             case DataBuffer.TYPE_FLOAT:
-                helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue()));
-                helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue()));
+                helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue(),
+                        true, sourceNodata[k].floatValue(), true));
+                helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue(),
+                        true, sourceNodata[k].floatValue(), true));
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue()));
-                helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue()));
+                helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue(),
+                        true, sourceNodata[k].doubleValue(), true));
+                helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue(),
+                        true, sourceNodata[k].doubleValue(), true));
                 break;
             }
             helpBean1Band.setAlphaChannel(null);

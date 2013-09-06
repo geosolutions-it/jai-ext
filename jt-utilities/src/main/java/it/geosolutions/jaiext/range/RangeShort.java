@@ -1,7 +1,7 @@
 package it.geosolutions.jaiext.range;
 
 /**
- * This class is a subclass of the {@link Range} class handling Short data with minimum and maximum bounds.
+ * This class is a subclass of the {@link Range} class handling Short data.
  */
 public class RangeShort extends Range {
     /** Minimum range bound */
@@ -15,42 +15,71 @@ public class RangeShort extends Range {
 
     /** Boolean indicating if the maximum bound is included */
     private final boolean maxIncluded;
+    
+    /** Boolean indicating if the maximum bound is included */
+    private final boolean isPoint;
 
     RangeShort(short minValue, boolean minIncluded, short maxValue, boolean maxIncluded) {
+        
         if (minValue < maxValue) {
             this.minValue = minValue;
             this.maxValue = maxValue;
-        } else {
+            this.isPoint = false;
+            this.minIncluded = minIncluded;
+            this.maxIncluded = maxIncluded;
+        } else if (minValue > maxValue) {
             this.minValue = maxValue;
             this.maxValue = minValue;
+            this.isPoint = false;
+            this.minIncluded = minIncluded;
+            this.maxIncluded = maxIncluded;
+        } else {
+            this.minValue = minValue;
+            this.maxValue = minValue;
+            this.isPoint = true;
+            if (!minIncluded && !maxIncluded) {
+                throw new IllegalArgumentException(
+                        "Cannot create a single-point range without minimum and maximum "
+                                + "bounds included");
+            } else {
+                this.minIncluded = true;
+                this.maxIncluded = true;
+            }
         }
-        this.minIncluded = minIncluded;
-        this.maxIncluded = maxIncluded;
     }
 
     @Override
     public boolean contains(short value) {
-        final boolean lower;
-        final boolean upper;
-
-        if (minIncluded) {
-            lower = value < minValue;
+        if (isPoint) {
+            return this.minValue == value;
         } else {
-            lower = value <= minValue;
-        }
+            final boolean lower;
+            final boolean upper;
 
-        if (maxIncluded) {
-            upper = value > maxValue;
-        } else {
-            upper = value >= maxValue;
-        }
+            if (minIncluded) {
+                lower = value < minValue;
+            } else {
+                lower = value <= minValue;
+            }
 
-        return !lower && !upper;
+            if (maxIncluded) {
+                upper = value > maxValue;
+            } else {
+                upper = value >= maxValue;
+            }
+
+            return !lower && !upper;
+        }
     }
 
     @Override
     public DataType getDataType() {
         return DataType.SHORT;
+    }
+    
+    @Override
+    public boolean isPoint() {
+        return isPoint;
     }
 
 }

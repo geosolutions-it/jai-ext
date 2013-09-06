@@ -20,7 +20,7 @@ import javax.media.jai.RasterFormatTag;
 
 public class ScaleBilinearOpImage extends ScaleOpImage {
     /**Byte lookuptable used if no data are present*/
-    protected final byte[] byteLookupTable = new byte[255];
+    protected final byte[] byteLookupTable = new byte[256];
 
     /** Bilinear interpolator */
     protected InterpolationBilinear interpB = null;
@@ -129,9 +129,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             destinationNoDataInt = (int) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_FLOAT:
+            if (hasNoData) {
+                this.isNotPointRange = !noData.isPoint();
+            }
             destinationNoDataFloat = (float) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_DOUBLE:
+            if (hasNoData) {
+                this.isNotPointRange = !noData.isPoint();
+            }
             break;
         default:
             throw new IllegalArgumentException("Wrong data Type");
@@ -2226,19 +2232,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if (noData.contains(s00) || Float.isNaN(s00)) {
+                                if (noData.contains(s00) || (isNotPointRange && Float.isNaN(s00))) {
                                     w00 = 0;
                                 }
 
-                                if (noData.contains(s01) || Float.isNaN(s01)) {
+                                if (noData.contains(s01) || (isNotPointRange && Float.isNaN(s01))) {
                                     w01 = 0;
                                 }
                                                                 
-                                if (noData.contains(s10) || Float.isNaN(s10)) {
+                                if (noData.contains(s10) || (isNotPointRange && Float.isNaN(s10))) {
                                     w10 = 0;
                                 }
                                 
-                                if (noData.contains(s11) || Float.isNaN(s11)) {
+                                if (noData.contains(s11) || (isNotPointRange && Float.isNaN(s11))) {
                                     w11 = 0;
                                 }
                                 
@@ -2305,25 +2311,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         dstData[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
                                         
-                                        if (noData.contains(s00)|| Float.isNaN(s00)) {
+                                        if (noData.contains(s00)|| (isNotPointRange && Float.isNaN(s00))) {
                                             w00 = 0;
                                         }else {
                                             w00 = 1;
                                         }
 
-                                        if (noData.contains(s01)|| Float.isNaN(s01)) {
+                                        if (noData.contains(s01)|| (isNotPointRange && Float.isNaN(s01))) {
                                             w01 = 0;
                                         }else {
                                             w01 = 1;
                                         }
                                                                         
-                                        if (noData.contains(s10)|| Float.isNaN(s10)) {
+                                        if (noData.contains(s10)|| (isNotPointRange && Float.isNaN(s10))) {
                                             w10 = 0;
                                         }else {
                                             w10 = 1;
                                         }
                                         
-                                        if (noData.contains(s11)|| Float.isNaN(s11)) {
+                                        if (noData.contains(s11)|| (isNotPointRange && Float.isNaN(s11))) {
                                             w11 = 0;
                                         }else {
                                             w11 = 1;
@@ -2382,25 +2388,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final float s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            if (noData.contains(s00)|| Float.isNaN(s00)) {
+                                            if (noData.contains(s00)|| (isNotPointRange && Float.isNaN(s00))) {
                                                 w00 = 0;
                                             }else {
                                                 w00 = 1;
                                             }
 
-                                            if (noData.contains(s01)|| Float.isNaN(s01)) {
+                                            if (noData.contains(s01)|| (isNotPointRange && Float.isNaN(s01))) {
                                                 w01 = 0;
                                             }else {
                                                 w01 = 1;
                                             }
                                                                             
-                                            if (noData.contains(s10)|| Float.isNaN(s10)) {
+                                            if (noData.contains(s10)|| (isNotPointRange && Float.isNaN(s10))) {
                                                 w10 = 0;
                                             }else {
                                                 w10 = 1;
                                             }
                                             
-                                            if (noData.contains(s11)|| Float.isNaN(s11)) {
+                                            if (noData.contains(s11)|| (isNotPointRange && Float.isNaN(s11))) {
                                                 w11 = 0;
                                             }else {
                                                 w11 = 1;
@@ -2673,19 +2679,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if (noData.contains(s00)|| Double.isNaN(s00)) {
+                                if (noData.contains(s00)|| (isNotPointRange && Double.isNaN(s00))) {
                                     w00 = 0;
                                 }
 
-                                if (noData.contains(s01)|| Double.isNaN(s01)) {
+                                if (noData.contains(s01)|| (isNotPointRange && Double.isNaN(s01))) {
                                     w01 = 0;
                                 }
                                                                 
-                                if (noData.contains(s10)|| Double.isNaN(s10)) {
+                                if (noData.contains(s10)|| (isNotPointRange && Double.isNaN(s10))) {
                                     w10 = 0;
                                 }
                                 
-                                if (noData.contains(s11)|| Double.isNaN(s11)) {
+                                if (noData.contains(s11)|| (isNotPointRange && Double.isNaN(s11))) {
                                     w11 = 0;
                                 }
 
@@ -2751,25 +2757,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
-                                        if (noData.contains(s00)|| Double.isNaN(s00)) {
+                                        if (noData.contains(s00)|| (isNotPointRange && Double.isNaN(s00))) {
                                             w00 = 0;
                                         }else {
                                             w00 = 1;
                                         }
 
-                                        if (noData.contains(s01)|| Double.isNaN(s01)) {
+                                        if (noData.contains(s01)|| (isNotPointRange && Double.isNaN(s01))) {
                                             w01 = 0;
                                         }else {
                                             w01 = 1;
                                         }
                                                                         
-                                        if (noData.contains(s10)|| Double.isNaN(s10)) {
+                                        if (noData.contains(s10)|| (isNotPointRange && Double.isNaN(s10))) {
                                             w10 = 0;
                                         }else {
                                             w10 = 1;
                                         }
                                         
-                                        if (noData.contains(s11)|| Double.isNaN(s11)) {
+                                        if (noData.contains(s11)|| (isNotPointRange && Double.isNaN(s11))) {
                                             w11 = 0;
                                         }else {
                                             w11 = 1;
@@ -2829,25 +2835,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final double s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            if (noData.contains(s00)|| Double.isNaN(s00)) {
+                                            if (noData.contains(s00)|| (isNotPointRange && Double.isNaN(s00))) {
                                                 w00 = 0;
                                             }else {
                                                 w00 = 1;
                                             }
 
-                                            if (noData.contains(s01)|| Double.isNaN(s01)) {
+                                            if (noData.contains(s01)|| (isNotPointRange && Double.isNaN(s01))) {
                                                 w01 = 0;
                                             }else {
                                                 w01 = 1;
                                             }
                                                                             
-                                            if (noData.contains(s10)|| Double.isNaN(s10)) {
+                                            if (noData.contains(s10)|| (isNotPointRange && Double.isNaN(s10))) {
                                                 w10 = 0;
                                             }else {
                                                 w10 = 1;
                                             }
                                             
-                                            if (noData.contains(s11)|| Double.isNaN(s11)) {
+                                            if (noData.contains(s11)|| (isNotPointRange && Double.isNaN(s11))) {
                                                 w11 = 0;
                                             }else {
                                                 w11 = 1;

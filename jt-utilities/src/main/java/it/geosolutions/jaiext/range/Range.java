@@ -10,34 +10,51 @@ import java.awt.image.DataBuffer;
  * Range.
  */
 public abstract class Range {
-    
-    public enum DataType{
-        BYTE(Byte.class,DataBuffer.TYPE_BYTE),
-        USHORT(Short.class,DataBuffer.TYPE_USHORT),
-        SHORT(Short.class,DataBuffer.TYPE_SHORT),
-        INTEGER(Integer.class,DataBuffer.TYPE_INT),
-        FLOAT(Float.class,DataBuffer.TYPE_FLOAT),
-        DOUBLE(Double.class,DataBuffer.TYPE_DOUBLE);
+
+    public enum DataType {
+        BYTE(Byte.class, DataBuffer.TYPE_BYTE), USHORT(Short.class, DataBuffer.TYPE_USHORT), SHORT(
+                Short.class, DataBuffer.TYPE_SHORT), INTEGER(Integer.class, DataBuffer.TYPE_INT), FLOAT(
+                Float.class, DataBuffer.TYPE_FLOAT), DOUBLE(Double.class, DataBuffer.TYPE_DOUBLE),
+        // FIXME LONG VALUE CAN BE CHANGED IF LONG DATA TYPE TAKES ANOTHER VALUE
+        LONG(Long.class, DataBuffer.TYPE_DOUBLE + 1);
 
         private Class<?> classType;
-        
+
         private int dataType;
-        
+
         private DataType(Class<?> classType, int dataType) {
             this.classType = classType;
             this.dataType = dataType;
         }
-        
-        public Class<?> getClassValue(){
+
+        public Class<?> getClassValue() {
             return classType;
         }
-        
-        public int getDataType(){
+
+        public int getDataType() {
             return dataType;
         }
+
+        public static int dataTypeFromClass(Class<?> classType) {
+            if (classType == BYTE.getClass()) {
+                return BYTE.getDataType();
+            } else if (classType == SHORT.getClass()) {
+                return SHORT.getDataType();
+            } else if (classType == INTEGER.getClass()) {
+                return INTEGER.getDataType();
+            } else if (classType == FLOAT.getClass()) {
+                return FLOAT.getDataType();
+            } else if (classType == DOUBLE.getClass()) {
+                return DOUBLE.getDataType();
+            } else if (classType == LONG.getClass()) {
+                return LONG.getDataType();
+            } else {
+                throw new IllegalArgumentException(
+                        "This class does not belong to the already existing classes");
+            }
+        }
+
     }
-    
-    
 
     /** Method for checking if a byte value is contained inside the Range */
     public boolean contains(byte value) {
@@ -64,7 +81,37 @@ public abstract class Range {
         throw new UnsupportedOperationException("Wrong data type");
     }
 
+    /** Method for checking if a long value is contained inside the Range */
+    public boolean contains(long value) {
+        throw new UnsupportedOperationException("Wrong data type");
+    }
+
+    /** Method for checking if a Generic value is contained inside the Range */
+    public <T extends Number & Comparable<T>>boolean contains(T value) {
+        int dataType = this.getDataType().getDataType();
+        switch(dataType){
+        case DataBuffer.TYPE_BYTE:
+            return contains(value.byteValue());
+        case DataBuffer.TYPE_USHORT:
+        case DataBuffer.TYPE_SHORT:
+            return contains(value.shortValue());
+        case DataBuffer.TYPE_INT:
+            return contains(value.intValue());
+        case DataBuffer.TYPE_FLOAT:
+            return contains(value.floatValue());
+        case DataBuffer.TYPE_DOUBLE:
+            return contains(value.doubleValue());
+        case DataBuffer.TYPE_DOUBLE+1:
+            return contains(value.longValue());
+        default:
+            throw new IllegalArgumentException("Wrong data type");
+        }
+    }
+
     /** Returns the Range data Type */
     public abstract DataType getDataType();
+
+    /** Indicates if the Range is a degenerated single point Range or not */
+    public abstract boolean isPoint();
 
 }

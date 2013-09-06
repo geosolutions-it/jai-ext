@@ -36,6 +36,9 @@ public class InterpolationNearest extends Interpolation {
 
     /** This value is the destination NO DATA values for binary images */
     private int black;
+    
+    /** Boolean used for indicating that the No Data Range is not degenarated(useful only for NaN check inside Float or Double Range) */
+    private boolean isNotPointRange;
 
     // Method overriding. Performs the default nearest-neighbor interpolation without NO DATA or ROI control.
     @Override
@@ -62,6 +65,7 @@ public class InterpolationNearest extends Interpolation {
         super(1, 1, 0, 0, 0, 0, 0, 0);
         if (noDataRange != null) {
             this.noDataRange = noDataRange;
+            this.isNotPointRange = !noDataRange.isPoint();
         }
         this.useROIAccessor = useROIAccessor;
         this.destinationNoData = destinationNoData;
@@ -91,9 +95,10 @@ public class InterpolationNearest extends Interpolation {
     public void setNoDataRange(Range noDataRange) {
         if (noDataRange != null) {
             this.noDataRange = noDataRange;
+            this.isNotPointRange = !noDataRange.isPoint();
         }
     }
-
+    
     public int getDataType() {
         return dataType;
     }
@@ -130,14 +135,14 @@ public class InterpolationNearest extends Interpolation {
             break;
         case DataBuffer.TYPE_FLOAT:
             float srcDataFloat = src.getFloatDataArray(bandIndex)[posx + posy];
-            if ((noDataRange != null && (noDataRange).contains(srcDataFloat)) || Float.isNaN(srcDataFloat) || setNoData) {
+            if ((noDataRange != null && (noDataRange).contains(srcDataFloat)) || (isNotPointRange && Float.isNaN(srcDataFloat)) || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataFloat;
             break;
         case DataBuffer.TYPE_DOUBLE:
             double srcDataDouble = src.getDoubleDataArray(bandIndex)[posx + posy];
-            if ((noDataRange != null && (noDataRange).contains(srcDataDouble)) || Double.isNaN(srcDataDouble) || setNoData) {
+            if ((noDataRange != null && (noDataRange).contains(srcDataDouble)) || (isNotPointRange && Double.isNaN(srcDataDouble)) || setNoData) {
                 return destinationNoData;
             }
             destData = srcDataDouble;

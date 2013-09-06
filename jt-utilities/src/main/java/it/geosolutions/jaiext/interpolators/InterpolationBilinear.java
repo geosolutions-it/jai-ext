@@ -68,6 +68,9 @@ public class InterpolationBilinear extends Interpolation {
 
     /** Image data Type */
     private int dataType;
+    
+    /** Boolean used for indicating that the No Data Range is not degenarated(useful only for NaN check inside Float or Double Range) */
+    private boolean isNotPointRange;
 
     /**
      * Default value for subsample bits
@@ -91,6 +94,7 @@ public class InterpolationBilinear extends Interpolation {
 
         if (noDataRange != null) {
             this.noDataRange = noDataRange;
+            this.isNotPointRange = !noDataRange.isPoint();
         }
         this.useROIAccessor = useROIAccessor;
         this.destinationNoData = destinationNoData;
@@ -120,6 +124,7 @@ public class InterpolationBilinear extends Interpolation {
     public void setNoDataRange(Range noDataRange) {
         if (noDataRange != null) {
             this.noDataRange = noDataRange;
+            this.isNotPointRange = !noDataRange.isPoint();
         }
     }
 
@@ -470,16 +475,16 @@ public class InterpolationBilinear extends Interpolation {
                 break;
             case DataBuffer.TYPE_FLOAT:
                 Range rangeF = (noDataRange);
-                if (rangeF.contains(s00f)|| Float.isNaN(s00f)) {
+                if (rangeF.contains(s00f)|| (isNotPointRange && Float.isNaN(s00f))) {
                     w00f *= 0;
                 }
-                if (rangeF.contains(s01f)|| Float.isNaN(s01f)) {
+                if (rangeF.contains(s01f)|| (isNotPointRange && Float.isNaN(s01f))) {
                     w01f *= 0;
                 }
-                if (rangeF.contains(s10f)|| Float.isNaN(s10f)) {
+                if (rangeF.contains(s10f)|| (isNotPointRange && Float.isNaN(s10f))) {
                     w10f *= 0;
                 }
-                if (rangeF.contains(s11f)|| Float.isNaN(s11f)) {
+                if (rangeF.contains(s11f)|| (isNotPointRange && Float.isNaN(s11f))) {
                     w11f *= 0;
                 }
                 if (w00f == 0 && w01f == 0 && w10f == 0 && w11f == 0) {
@@ -490,16 +495,16 @@ public class InterpolationBilinear extends Interpolation {
                 Range rangeD = ( noDataRange);
                 // This code is used for checking if No Data value is Double.NaN,
                 // Double.POSITIVE_INFINITY or Double.NEGATIVE_INFINITY
-                if (rangeD.contains(s00d)|| Double.isNaN(s00d)) {
+                if (rangeD.contains(s00d)|| (isNotPointRange && Double.isNaN(s00d))) {
                     w00d *= 0;
                 }
-                if (rangeD.contains(s01d)|| Double.isNaN(s01d)) {
+                if (rangeD.contains(s01d)|| (isNotPointRange && Double.isNaN(s01d))) {
                     w01d *= 0;
                 }
-                if (rangeD.contains(s10d)|| Double.isNaN(s10d)) {
+                if (rangeD.contains(s10d)|| (isNotPointRange && Double.isNaN(s10d))) {
                     w10d *= 0;
                 }
-                if (rangeD.contains(s11d)|| Double.isNaN(s11d)) {
+                if (rangeD.contains(s11d)|| (isNotPointRange && Double.isNaN(s11d))) {
                     w11d *= 0;
                 }
                 if (w00d == 0 && w01d == 0 && w10d == 0 && w11d == 0) {

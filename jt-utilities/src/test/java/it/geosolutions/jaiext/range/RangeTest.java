@@ -46,6 +46,9 @@ public class RangeTest {
 
     /** test values doble */
     private static double[] arrayD;
+    
+    /** test values long */
+    private static long[] arrayL;
 
     /** test values byte speed comparison */
     private static Byte[] arrayBtest;
@@ -97,6 +100,12 @@ public class RangeTest {
 
     /** Range double 1 point */
     private static Range rangeDpoint;
+    
+    /** Range long 2 bounds */
+    private static Range rangeL2bounds;
+
+    /** Range long 1 point */
+    private static Range rangeLpoint;
 
     private static org.jaitools.numeric.Range<Byte> rangeJTB;
 
@@ -206,19 +215,22 @@ public class RangeTest {
         arrayI = new int[] { -10, 0, 5, 50, 100 };
         arrayF = new float[] { -10, 0, 5, 50, 100 };
         arrayD = new double[] { -10, 0, 5, 50, 100 };
+        arrayL = new long[] { -10, 0, 5, 50, 100 };
 
         rangeB2bounds = RangeFactory.create((byte) 2, true, (byte) 60, true);
-        rangeBpoint = RangeFactory.create(arrayB[2]);
+        rangeBpoint = RangeFactory.create(arrayB[2],true,arrayB[2],true);
         rangeU2bounds = RangeFactory.createU((short) 2, true, (short) 60, true);
-        rangeUpoint = RangeFactory.createU(arrayUS[2]);
+        rangeUpoint = RangeFactory.createU(arrayUS[2],true,arrayUS[2],true);
         rangeS2bounds = RangeFactory.create((short) 1, true, (short) 60, true);
-        rangeSpoint = RangeFactory.create(arrayS[2]);
+        rangeSpoint = RangeFactory.create(arrayS[2],true,arrayS[2],true);
         rangeI2bounds = RangeFactory.create(1, true, 60, true);
-        rangeIpoint = RangeFactory.create(arrayI[2]);
+        rangeIpoint = RangeFactory.create(arrayI[2],true,arrayI[2],true);
         rangeF2bounds = RangeFactory.create(0.5f, true, 60.5f, true);
-        rangeFpoint = RangeFactory.create(arrayF[2]);
+        rangeFpoint = RangeFactory.create(arrayF[2],true,arrayF[2],true);
         rangeD2bounds = RangeFactory.create(1.5d, true, 60.5d, true);
-        rangeDpoint = RangeFactory.create(arrayD[2]);
+        rangeDpoint = RangeFactory.create(arrayD[2],true,arrayD[2],true);
+        rangeL2bounds = RangeFactory.create(1L, true, 60L, true);
+        rangeLpoint = RangeFactory.create(arrayL[2],true,arrayL[2],true);
 
         arrayBtest = new Byte[100];
         arrayStest = new Short[100];
@@ -322,6 +334,8 @@ public class RangeTest {
             boolean check1pointFloat = rangeFpoint.contains(arrayF[i]);
             boolean check2pointDouble = rangeD2bounds.contains(arrayD[i]);
             boolean check1pointDouble = rangeDpoint.contains(arrayD[i]);
+            boolean check2pointLong = rangeL2bounds.contains(arrayL[i]);
+            boolean check1pointLong = rangeLpoint.contains(arrayL[i]);
 
             if (i == 2) {
                 assertTrue(check1pointByte);
@@ -336,6 +350,8 @@ public class RangeTest {
                 assertTrue(check2pointFloat);
                 assertTrue(check1pointDouble);
                 assertTrue(check2pointDouble);
+                assertTrue(check1pointLong);
+                assertTrue(check2pointLong);
             } else if (i == 3) {
                 assertFalse(check1pointByte);
                 assertTrue(check2pointByte);
@@ -349,6 +365,8 @@ public class RangeTest {
                 assertTrue(check2pointFloat);
                 assertFalse(check1pointDouble);
                 assertTrue(check2pointDouble);
+                assertFalse(check1pointLong);
+                assertTrue(check2pointLong);
             } else {
                 assertFalse(check1pointByte);
                 assertFalse(check2pointByte);
@@ -362,6 +380,8 @@ public class RangeTest {
                 assertFalse(check2pointFloat);
                 assertFalse(check1pointDouble);
                 assertFalse(check2pointDouble);
+                assertFalse(check1pointLong);
+                assertFalse(check2pointLong);
             }
         }
     }

@@ -91,8 +91,12 @@ public class MosaicOpImage extends OpImage {
     /** Table used for checking no data values. The first index indicates the source, the second the band, the third the value */
     protected byte[][][] byteLookupTable;
 
+    /** Boolean array indicating which source images has No Data and not*/
     private final boolean[] hasNoData;
 
+    /** Boolean used for indicating that the No Data Range is not degenarated (useful only for NaN check inside Float or Double Range) */
+    protected boolean[] isNotPointRange;
+    
     /** Enumerator for the type of mosaic weigher */
     public enum WeightType {
         WEIGHT_TYPE_ALPHA, WEIGHT_TYPE_ROI, WEIGHT_TYPE_NODATA;
@@ -335,7 +339,8 @@ public class MosaicOpImage extends OpImage {
         List<PlanarImage> alphaList = new ArrayList<PlanarImage>();
 
         // NoDataRangeByte initialization
-        byteLookupTable = new byte[numSources][numBands][255];
+        byteLookupTable = new byte[numSources][numBands][256];
+        isNotPointRange = new boolean[numSources];
 
         // This cycle is used for checking if every alpha channel is single banded
         // and has the same
@@ -372,7 +377,6 @@ public class MosaicOpImage extends OpImage {
                 hasNoData[i] = true;
 
                 if(noDataRange.getDataType().getDataType()!=dataType){
-                    int value =noDataRange.getDataType().getDataType();
                     throw new IllegalArgumentException("Range data type is not the same of the source image");
                 }
                 
@@ -391,6 +395,8 @@ public class MosaicOpImage extends OpImage {
                             }
                         }
                     }
+                }else if(dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE){
+                        this.isNotPointRange[i] = !noDataRange.isPoint();                                      
                 }
             }
         }
@@ -776,7 +782,7 @@ public class MosaicOpImage extends OpImage {
                             // the flag checks if the pixel is a noData
                             boolean isData = true;
                             if (hasNoData[s]) {
-                                isData = !(byteLookupTable[s][b][sourceValueByte] == destinationNoDataByte[b]);
+                                isData = !(byteLookupTable[s][b][sourceValueByte&0xFF] == destinationNoDataByte[b]);
                             }
 
                             if (!isData) {
@@ -874,7 +880,7 @@ public class MosaicOpImage extends OpImage {
                             // is set to 1 or 0 if the pixel has
                             // or not a No Data value
                             if (hasNoData[s]) {
-                                isData = !(byteLookupTable[s][b][sourceValueByte] == destinationNoDataByte[b]);
+                                isData = !(byteLookupTable[s][b][sourceValueByte&0xFF] == destinationNoDataByte[b]);
                             }
                             if (!isData) {
                                 weight = 0F;
@@ -2093,7 +2099,7 @@ public class MosaicOpImage extends OpImage {
                                 Range noDataRangeFloat = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeFloat != null) {
-                                    isData = !(noDataRangeFloat.contains(sourceValueFloat)|| Float.isNaN(sourceValueFloat));
+                                    isData = !(noDataRangeFloat.contains(sourceValueFloat)|| (isNotPointRange[s] && Float.isNaN(sourceValueFloat)));
                                 }
                             }
 
@@ -2195,7 +2201,7 @@ public class MosaicOpImage extends OpImage {
                                 Range noDataRangeFloat = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeFloat != null) {
-                                    isData = !(noDataRangeFloat.contains(sourceValueFloat) || Float.isNaN(sourceValueFloat)); 
+                                    isData = !(noDataRangeFloat.contains(sourceValueFloat) || (isNotPointRange[s] && Float.isNaN(sourceValueFloat))); 
                                 }
                             }
                             if (!isData) {
@@ -2426,7 +2432,7 @@ public class MosaicOpImage extends OpImage {
                                 Range noDataRangeDouble = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeDouble != null) {
-                                    isData = !(noDataRangeDouble.contains(sourceValueDouble)|| Double.isNaN(sourceValueDouble));
+                                    isData = !(noDataRangeDouble.contains(sourceValueDouble)|| (isNotPointRange[s] && Double.isNaN(sourceValueDouble)));
                                 }
                             }
 
@@ -2528,7 +2534,7 @@ public class MosaicOpImage extends OpImage {
                                 Range noDataRangeDouble = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeDouble != null) {
-                                    isData = !(noDataRangeDouble.contains(sourceValueDouble)|| Double.isNaN(sourceValueDouble));
+                                    isData = !(noDataRangeDouble.contains(sourceValueDouble)|| (isNotPointRange[s] && Double.isNaN(sourceValueDouble)));
                                 }
                             }
                             if (!isData) {

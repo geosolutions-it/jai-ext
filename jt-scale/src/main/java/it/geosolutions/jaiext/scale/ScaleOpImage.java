@@ -217,22 +217,32 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
     /** Destination value for No Data float */
     protected float destinationNoDataFloat = 0;
-    
+
     /** Destination value for No Data double */
     protected double destinationNoDataDouble = 0;
-    /** Boolean for checking if the no data is negative infinity*/
+
+    /** Boolean used for indicating that the No Data Range is not degenarated(useful only for NaN check inside Float or Double Range) */
+    protected boolean isNotPointRange;
+
+    /** Boolean for checking if the no data is negative infinity */
     protected boolean isNegativeInf = false;
-    /** Boolean for checking if the no data is positive infinity*/
+
+    /** Boolean for checking if the no data is positive infinity */
     protected boolean isPositiveInf = false;
-    /** Boolean for checking if the no data is NaN*/
+
+    /** Boolean for checking if the no data is NaN */
     protected boolean isRangeNaN = false;
-    /** Boolean for checking if the interpolator is Nearest*/
+
+    /** Boolean for checking if the interpolator is Nearest */
     protected boolean isNearestNew = false;
-    /** Boolean for checking if the interpolator is Bilinear*/
+
+    /** Boolean for checking if the interpolator is Bilinear */
     protected boolean isBilinearNew = false;
-    /** Boolean for checking if the interpolator is Bicubic*/
+
+    /** Boolean for checking if the interpolator is Bicubic */
     protected boolean isBicubicNew = false;
-    /** ROI Border Extender*/
+
+    /** ROI Border Extender */
     final static BorderExtender roiExtender = BorderExtender
             .createInstance(BorderExtender.BORDER_ZERO);
 
@@ -421,8 +431,6 @@ public abstract class ScaleOpImage extends GeometricOpImage {
         return layout;
     }
 
-
-
     // This method precompute the integer and fractional position of every pixel
     protected final void preComputePositionsInt(Rectangle destRect, int srcRectX, int srcRectY,
             int srcPixelStride, int srcScanlineStride, int xpos[], int ypos[], int[] xfracvalues,
@@ -515,7 +523,7 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             }
 
             // Calculate the yfrac value
-            if(isBilinearNew || isBicubicNew){
+            if (isBilinearNew || isBicubicNew) {
                 xfracvalues[i] = (int) (((1.0f * srcXFrac) / commonXDenom) * one);
             }
             // Move onto the next source pixel.
@@ -556,10 +564,10 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             }
 
             // Calculate the yfrac value
-            if(isBilinearNew || isBicubicNew){
-                yfracvalues[i] = (int) ((1.0f *srcYFrac / commonYDenom) * one);
+            if (isBilinearNew || isBicubicNew) {
+                yfracvalues[i] = (int) ((1.0f * srcYFrac / commonYDenom) * one);
             }
-//            yfracvalues[i] = (int) ((1.0f *srcYFrac / commonYDenom) * one);
+            // yfracvalues[i] = (int) ((1.0f *srcYFrac / commonYDenom) * one);
             // Move onto the next source pixel.
 
             // Add the integral part of invScaleY to the integral part
@@ -668,10 +676,10 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             xpos[i] = (srcXInt - srcRectX) * srcPixelStride;
 
             // Calculate the yfrac value
-            if(isBilinearNew || isBicubicNew){
+            if (isBilinearNew || isBicubicNew) {
                 xfracvalues[i] = (1.0f * srcXFrac) / commonXDenom;
             }
-//            xfracvalues[i] = (1.0f * srcXFrac) / commonXDenom;
+            // xfracvalues[i] = (1.0f * srcXFrac) / commonXDenom;
             // Move onto the next source pixel.
 
             // Add the integral part of invScaleX to the integral part
@@ -703,10 +711,10 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             }
 
             // Calculate the yfrac value
-            if(isBilinearNew || isBicubicNew){
-                yfracvalues[i] = 1.0f* srcYFrac / commonYDenom;
+            if (isBilinearNew || isBicubicNew) {
+                yfracvalues[i] = 1.0f * srcYFrac / commonYDenom;
             }
-//            yfracvalues[i] = (float) srcYFrac / (float) commonYDenom;
+            // yfracvalues[i] = (float) srcYFrac / (float) commonYDenom;
 
             // Move onto the next source pixel.
 
@@ -730,13 +738,13 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
     private static Map<Object, Object> configHelper(RenderedImage source,
             Map<Object, Object> configuration, Interpolation interp) {
-        
+
         Map<Object, Object> config = configuration;
 
         // If source image is binary and the interpolation is either nearest
         // or bilinear, do not expand
         if (ImageUtil.isBinary(source.getSampleModel())
-                && (interp == null || interp instanceof InterpolationNearest|| interp instanceof InterpolationBilinear)) {
+                && (interp == null || interp instanceof InterpolationNearest || interp instanceof InterpolationBilinear)) {
 
             // Set to false
             if (configuration == null) {
@@ -985,7 +993,7 @@ public abstract class ScaleOpImage extends GeometricOpImage {
                     srcROIImage.getHeight() + tpad + bpad);
             Raster data = srcROIImage.getExtendedData(rect,
                     BorderExtender.createInstance(BorderExtender.BORDER_ZERO));
-            roiIter = RandomIterFactory.create(data, data.getBounds(),false,true);
+            roiIter = RandomIterFactory.create(data, data.getBounds(), false, true);
             hasROI = true;
             roiBounds = srcROIImage.getBounds();
             this.useRoiAccessor = useRoiAccessor;
@@ -1453,7 +1461,7 @@ public abstract class ScaleOpImage extends GeometricOpImage {
                     // would result in source cobbling). Not an issue for
                     // Nearest-Neighbour.
                     //
-                    if (!(interp instanceof InterpolationNearest) ) {
+                    if (!(interp instanceof InterpolationNearest)) {
 
                         if (newSrcRect.width <= interp.getWidth()) {
 

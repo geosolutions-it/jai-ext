@@ -45,6 +45,9 @@ public class InterpolationBicubic extends InterpolationTable {
     /** Image data Type */
     private int dataType;
     
+    /** Boolean used for indicating that the No Data Range is not degenarated(useful only for NaN check inside Float or Double Range) */
+    private boolean isNotPointRange;
+    
     /**
      * Simple interpolator object used for Bicubic/Bicubic2 interpolation. On construction it is possible to set a range for no data values that will
      * be considered in the interpolation method.
@@ -56,7 +59,8 @@ public class InterpolationBicubic extends InterpolationTable {
                 bicubic2Disabled), null);
 
         if (noDataRange != null) {
-            this.noDataRange = noDataRange;                  
+            this.noDataRange = noDataRange;
+            this.isNotPointRange = !noDataRange.isPoint();
         }
         this.useROIAccessor = useROIAccessor;
         this.destinationNoData = destinationNoData;
@@ -90,7 +94,8 @@ public class InterpolationBicubic extends InterpolationTable {
 
     public void setNoDataRange(Range noDataRange) {
         if (noDataRange != null) {
-            this.noDataRange = noDataRange;                    
+            this.noDataRange = noDataRange;     
+            this.isNotPointRange = !noDataRange.isPoint();
         }
     }
     
@@ -599,7 +604,7 @@ public class InterpolationBicubic extends InterpolationTable {
                 Range rangeF =  noDataRange;
                 for (int i = 0; i < weightArrayLength; i++) {
                     for (int j = 0; j < weightArrayLength; j++) {
-                    	 if (rangeF.contains(kernelArrayF[i][j])|| Float.isNaN(kernelArrayF[i][j])) {                	
+                    	 if (rangeF.contains(kernelArrayF[i][j])|| (isNotPointRange && Float.isNaN(kernelArrayF[i][j]))) {                	
                         	 weightArray[i][j] *= 0;
                          }
                     }
@@ -609,7 +614,7 @@ public class InterpolationBicubic extends InterpolationTable {
                 Range rangeD =  noDataRange;
                 for (int i = 0; i < weightArrayLength; i++) {
                     for (int j = 0; j < weightArrayLength; j++) {
-                   	 	if (rangeD.contains(kernelArrayD[i][j])|| Double.isNaN(kernelArrayD[i][j])) {                	
+                   	 	if (rangeD.contains(kernelArrayD[i][j])|| (isNotPointRange && Double.isNaN(kernelArrayD[i][j]))) {                	
                    	 		weightArray[i][j] *= 0;
                    	 	}
                     }

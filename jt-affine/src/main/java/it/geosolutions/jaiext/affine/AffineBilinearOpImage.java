@@ -27,7 +27,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
     protected InterpolationBilinear interpB = null;
 
     /** Byte lookuptable used if no data are present */
-    protected final byte[] byteLookupTable = new byte[255];
+    protected final byte[] byteLookupTable = new byte[256];
 
     /** ROI extender */
     final static BorderExtender roiExtender = BorderExtender
@@ -673,10 +673,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
                             int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                            int w00 = byteLookupTable[s00] == destinationNoDataByte ? 0 : 1;
-                            int w01 = byteLookupTable[s01] == destinationNoDataByte ? 0 : 1;
-                            int w10 = byteLookupTable[s10] == destinationNoDataByte ? 0 : 1;
-                            int w11 = byteLookupTable[s11] == destinationNoDataByte ? 0 : 1;
+                            int w00 = byteLookupTable[s00&0xFF] == destinationNoDataByte ? 0 : 1;
+                            int w01 = byteLookupTable[s01&0xFF] == destinationNoDataByte ? 0 : 1;
+                            int w10 = byteLookupTable[s10&0xFF] == destinationNoDataByte ? 0 : 1;
+                            int w11 = byteLookupTable[s11&0xFF] == destinationNoDataByte ? 0 : 1;
 
                             if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                 if (setDestinationNoData) {
@@ -818,10 +818,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 final int s11 = srcDataArrays[k2][posxhigh + posyhigh
                                         + bandOffsets[k2]];
 
-                                w00 = byteLookupTable[s00] == destinationNoDataByte ? 0 : 1;
-                                w01 = byteLookupTable[s01] == destinationNoDataByte ? 0 : 1;
-                                w10 = byteLookupTable[s10] == destinationNoDataByte ? 0 : 1;
-                                w11 = byteLookupTable[s11] == destinationNoDataByte ? 0 : 1;
+                                w00 = byteLookupTable[s00&0xFF] == destinationNoDataByte ? 0 : 1;
+                                w01 = byteLookupTable[s01&0xFF] == destinationNoDataByte ? 0 : 1;
+                                w10 = byteLookupTable[s10&0xFF] == destinationNoDataByte ? 0 : 1;
+                                w11 = byteLookupTable[s11&0xFF] == destinationNoDataByte ? 0 : 1;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     if (setDestinationNoData) {
@@ -960,10 +960,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     final int s11 = srcDataArrays[k2][posxhigh + posyhigh
                                             + bandOffsets[k2]];
 
-                                    w00 = byteLookupTable[s00] == destinationNoDataByte ? 0 : 1;
-                                    w01 = byteLookupTable[s01] == destinationNoDataByte ? 0 : 1;
-                                    w10 = byteLookupTable[s10] == destinationNoDataByte ? 0 : 1;
-                                    w11 = byteLookupTable[s11] == destinationNoDataByte ? 0 : 1;
+                                    w00 = byteLookupTable[s00&0xFF] == destinationNoDataByte ? 0 : 1;
+                                    w01 = byteLookupTable[s01&0xFF] == destinationNoDataByte ? 0 : 1;
+                                    w10 = byteLookupTable[s10&0xFF] == destinationNoDataByte ? 0 : 1;
+                                    w11 = byteLookupTable[s11&0xFF] == destinationNoDataByte ? 0 : 1;
 
                                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         if (setDestinationNoData) {
@@ -3957,10 +3957,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             int w10 = 1;
                             int w11 = 1;
 
-                            w00 = noData.contains(s00) || Float.isNaN(s00) ? 0 : 1;
-                            w01 = noData.contains(s01) || Float.isNaN(s01) ? 0 : 1;
-                            w10 = noData.contains(s10) || Float.isNaN(s10) ? 0 : 1;
-                            w11 = noData.contains(s11) || Float.isNaN(s11) ? 0 : 1;
+                            w00 = noData.contains(s00) || (isNotPointRange && Float.isNaN(s00)) ? 0 : 1;
+                            w01 = noData.contains(s01) || (isNotPointRange && Float.isNaN(s01)) ? 0 : 1;
+                            w10 = noData.contains(s10) || (isNotPointRange && Float.isNaN(s10)) ? 0 : 1;
+                            w11 = noData.contains(s11) || (isNotPointRange && Float.isNaN(s11)) ? 0 : 1;
 
                             if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                 if (setDestinationNoData) {
@@ -4099,10 +4099,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 w10 = 1;
                                 w11 = 1;
 
-                                w00 = noData.contains(s00) || Float.isNaN(s00) ? 0 : 1;
-                                w01 = noData.contains(s01) || Float.isNaN(s01) ? 0 : 1;
-                                w10 = noData.contains(s10) || Float.isNaN(s10) ? 0 : 1;
-                                w11 = noData.contains(s11) || Float.isNaN(s11) ? 0 : 1;
+                                w00 = noData.contains(s00) || (isNotPointRange && Float.isNaN(s00)) ? 0 : 1;
+                                w01 = noData.contains(s01) || (isNotPointRange && Float.isNaN(s01)) ? 0 : 1;
+                                w10 = noData.contains(s10) || (isNotPointRange && Float.isNaN(s10)) ? 0 : 1;
+                                w11 = noData.contains(s11) || (isNotPointRange && Float.isNaN(s11)) ? 0 : 1;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     if (setDestinationNoData) {
@@ -4236,10 +4236,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     w10 = 1;
                                     w11 = 1;
 
-                                    w00 = noData.contains(s00) || Float.isNaN(s00) ? 0 : 1;
-                                    w01 = noData.contains(s01) || Float.isNaN(s01) ? 0 : 1;
-                                    w10 = noData.contains(s10) || Float.isNaN(s10) ? 0 : 1;
-                                    w11 = noData.contains(s11) || Float.isNaN(s11) ? 0 : 1;
+                                    w00 = noData.contains(s00) || (isNotPointRange && Float.isNaN(s00)) ? 0 : 1;
+                                    w01 = noData.contains(s01) || (isNotPointRange && Float.isNaN(s01)) ? 0 : 1;
+                                    w10 = noData.contains(s10) || (isNotPointRange && Float.isNaN(s10)) ? 0 : 1;
+                                    w11 = noData.contains(s11) || (isNotPointRange && Float.isNaN(s11)) ? 0 : 1;
 
                                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         if (setDestinationNoData) {
@@ -4736,10 +4736,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             int w10 = 1;
                             int w11 = 1;
 
-                            w00 = noData.contains(s00) || Double.isNaN(s00) ? 0 : 1;
-                            w01 = noData.contains(s01) || Double.isNaN(s01) ? 0 : 1;
-                            w10 = noData.contains(s10) || Double.isNaN(s10) ? 0 : 1;
-                            w11 = noData.contains(s11) || Double.isNaN(s11) ? 0 : 1;
+                            w00 = noData.contains(s00) || (isNotPointRange && Double.isNaN(s00)) ? 0 : 1;
+                            w01 = noData.contains(s01) || (isNotPointRange && Double.isNaN(s01)) ? 0 : 1;
+                            w10 = noData.contains(s10) || (isNotPointRange && Double.isNaN(s10)) ? 0 : 1;
+                            w11 = noData.contains(s11) || (isNotPointRange && Double.isNaN(s11)) ? 0 : 1;
 
                             if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                 if (setDestinationNoData) {
@@ -4878,10 +4878,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 w10 = 1;
                                 w11 = 1;
 
-                                w00 = noData.contains(s00) || Double.isNaN(s00) ? 0 : 1;
-                                w01 = noData.contains(s01) || Double.isNaN(s01) ? 0 : 1;
-                                w10 = noData.contains(s10) || Double.isNaN(s10) ? 0 : 1;
-                                w11 = noData.contains(s11) || Double.isNaN(s11) ? 0 : 1;
+                                w00 = noData.contains(s00) || (isNotPointRange && Double.isNaN(s00)) ? 0 : 1;
+                                w01 = noData.contains(s01) || (isNotPointRange && Double.isNaN(s01)) ? 0 : 1;
+                                w10 = noData.contains(s10) || (isNotPointRange && Double.isNaN(s10)) ? 0 : 1;
+                                w11 = noData.contains(s11) || (isNotPointRange && Double.isNaN(s11)) ? 0 : 1;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     if (setDestinationNoData) {
@@ -5015,10 +5015,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     w10 = 1;
                                     w11 = 1;
 
-                                    w00 = noData.contains(s00) || Double.isNaN(s00) ? 0 : 1;
-                                    w01 = noData.contains(s01) || Double.isNaN(s01) ? 0 : 1;
-                                    w10 = noData.contains(s10) || Double.isNaN(s10) ? 0 : 1;
-                                    w11 = noData.contains(s11) || Double.isNaN(s11) ? 0 : 1;
+                                    w00 = noData.contains(s00) || (isNotPointRange && Double.isNaN(s00)) ? 0 : 1;
+                                    w01 = noData.contains(s01) || (isNotPointRange && Double.isNaN(s01)) ? 0 : 1;
+                                    w10 = noData.contains(s10) || (isNotPointRange && Double.isNaN(s10)) ? 0 : 1;
+                                    w11 = noData.contains(s11) || (isNotPointRange && Double.isNaN(s11)) ? 0 : 1;
 
                                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         if (setDestinationNoData) {

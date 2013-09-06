@@ -25,7 +25,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
     protected InterpolationNearest interpN = null;
 
     /** Byte lookuptable used if no data are present */
-    protected final byte[] byteLookupTable = new byte[255];
+    protected final byte[] byteLookupTable = new byte[256];
 
     public ScaleNearestOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
@@ -128,9 +128,15 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             destinationNoDataInt = (int) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_FLOAT:
+            if (hasNoData) {
+                this.isNotPointRange = !noData.isPoint();
+            }
             destinationNoDataFloat = (float) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_DOUBLE:
+            if (hasNoData) {
+                this.isNotPointRange = !noData.isPoint();
+            }
             break;
         default:
             throw new IllegalArgumentException("Wrong data Type");
@@ -426,7 +432,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 int value = srcData[pos];
 
-                                dstData[dstPixelOffset] = byteLookupTable[value];
+                                dstData[dstPixelOffset] = byteLookupTable[value&0xFF];
 
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -462,7 +468,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                     int value = srcData[pos];
 
-                                    if (byteLookupTable[value] == destinationNoDataByte) {
+                                    if (byteLookupTable[value&0xFF] == destinationNoDataByte) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataByte;
                                     } else {
@@ -475,7 +481,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                             dstData[dstPixelOffset] = destinationNoDataByte;
                                         } else {
                                             // The interpolated value is saved in the destination array
-                                            dstData[dstPixelOffset] = byteLookupTable[value];
+                                            dstData[dstPixelOffset] = byteLookupTable[value&0xFF];
                                         }
                                     }
                                     // destination pixel offset update
@@ -507,7 +513,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     int pos = posx + posy;
                                     int value = srcData[pos];
 
-                                    if (byteLookupTable[value] == destinationNoDataByte) {
+                                    if (byteLookupTable[value&0xFF] == destinationNoDataByte) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataByte;
                                     } else {
@@ -523,7 +529,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                                 dstData[dstPixelOffset] = destinationNoDataByte;
                                             } else {
                                                 // The interpolated value is saved in the destination array
-                                                dstData[dstPixelOffset] = byteLookupTable[value];
+                                                dstData[dstPixelOffset] = byteLookupTable[value&0xFF];
                                             }
                                         } else {
                                             // The destination no data value is saved in the destination array
@@ -1653,7 +1659,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                             float value = srcData[pos];
 
-                            if (noData.contains(value) || Float.isNaN(value)) {
+                            if (noData.contains(value) || (isNotPointRange && Float.isNaN(value))) {
                                 // The destination no data value is saved in the destination array
                                 dstData[dstPixelOffset] = destinationNoDataFloat;
                             } else {
@@ -1696,7 +1702,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 float value = srcData[pos];
 
-                                if (noData.contains(value) || Float.isNaN(value)) {
+                                if (noData.contains(value) || (isNotPointRange && Float.isNaN(value))) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
@@ -1743,7 +1749,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 float value = srcData[pos];
 
-                                if (noData.contains(value)) {
+                                if (noData.contains(value) || (isNotPointRange && Float.isNaN(value))) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
@@ -1751,7 +1757,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     int x0 = src.getX() + posx / srcPixelStride;
                                     int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0) || Float.isNaN(value)) {
+                                    if (roiBounds.contains(x0, y0)) {
                                         w = roiIter.getSample(x0, y0, 0);
                                         if (w == 0) {
                                             // The destination no data value is saved in the destination array
@@ -1962,7 +1968,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                             double value = srcData[pos];
 
-                            if (noData.contains(value) || Double.isNaN(value)) {
+                            if (noData.contains(value) || (isNotPointRange && Double.isNaN(value))) {
                                 // The destination no data value is saved in the destination array
                                 dstData[dstPixelOffset] = destinationNoDataDouble;
                             } else {
@@ -2005,7 +2011,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 double value = srcData[pos];
 
-                                if (noData.contains(value)|| Double.isNaN(value)) {
+                                if (noData.contains(value) || (isNotPointRange && Double.isNaN(value))) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
@@ -2052,7 +2058,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 double value = srcData[pos];
 
-                                if (noData.contains(value) || Double.isNaN(value)) {
+                                if (noData.contains(value) || (isNotPointRange && Double.isNaN(value))) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataDouble;
                                 } else {

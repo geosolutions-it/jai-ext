@@ -91,7 +91,7 @@ public class ComparisonTest extends TestBase {
         IMAGE_FILLER = false;
         // Images initialization
         // Byte Range goes from 0 to 255
-        byte noDataB = (byte) 156;
+        byte noDataB = -100;
         short noDataUS = 100;
         short noDataS = -100;
         int noDataI = -100;
@@ -105,7 +105,7 @@ public class ComparisonTest extends TestBase {
         testImageInt = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
                 false);
         // Offset creation
-        int byteOffset = 0;
+        int byteOffset = noDataB;
         int ushortOffset = 0;
         int shortOffset = noDataS;
         int intOffset = noDataI;
@@ -130,16 +130,12 @@ public class ComparisonTest extends TestBase {
             if (value == noDataI) {
                 dataShortB[i] = 50;
                 dataIntB[i] = 50;
+                dataByteB[i] = 50;
             }
 
             if (i == noDataUS) {
                 // ushort-to-all arrays
                 dataUShortB[i] = 50;
-            }
-
-            if (i == (noDataB & 0xFF)) {
-                // byte-to-all arrays
-                dataByteB[i] = 50;
             }
 
         }

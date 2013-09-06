@@ -1,14 +1,17 @@
 package it.geosolutions.jaiext.range;
 
+
 /**
- * This class is a subclass of the {@link Range} class handling Integer data.
+ * This class is a subclass of the {@link Range} class handling Long data.
  */
-public class RangeInt extends Range {
+public class RangeLong extends Range {
+
+    
     /** Minimum range bound */
-    private final int minValue;
+    private final long minValue;
 
     /** Maximum range bound */
-    private final int maxValue;
+    private final long maxValue;
 
     /** Boolean indicating if the minimum bound is included */
     private final boolean minIncluded;
@@ -19,7 +22,7 @@ public class RangeInt extends Range {
     /** Boolean indicating if the maximum bound is included */
     private final boolean isPoint;
 
-    RangeInt(int minValue, boolean minIncluded, int maxValue, boolean maxIncluded) {
+    RangeLong(long minValue, boolean minIncluded, long maxValue, boolean maxIncluded) {
         
         if (minValue < maxValue) {
             this.minValue = minValue;
@@ -47,9 +50,9 @@ public class RangeInt extends Range {
             }
         }
     }
-
+    
     @Override
-    public boolean contains(int value) {
+    public boolean contains(long value) {
         
         if (isPoint) {
             return this.minValue == value;
@@ -72,12 +75,12 @@ public class RangeInt extends Range {
             return !lower && !upper;
         }
     }
-
+    
     @Override
     public DataType getDataType() {
-        return DataType.INTEGER;
+        return DataType.LONG;
     }
-    
+
     @Override
     public boolean isPoint() {
         return isPoint;

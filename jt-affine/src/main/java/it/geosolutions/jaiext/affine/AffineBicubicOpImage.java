@@ -26,7 +26,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
     /** Nearest-Neighbor interpolator */
     protected InterpolationBicubic interpBN = null;
     /**Byte lookuptable used if no data are present*/
-    protected final byte[] byteLookupTable = new byte[255];
+    protected final byte[] byteLookupTable = new byte[256];
 
     /** ROI extender */
     final static BorderExtender roiExtender = BorderExtender
@@ -175,9 +175,15 @@ public class AffineBicubicOpImage extends AffineOpImage {
             destinationNoDataInt = (int) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_FLOAT:
+            if (hasNoData) {
+                this.isNotPointRange = !noData.isPoint();
+            }
             destinationNoDataFloat = (float) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_DOUBLE:
+            if (hasNoData) {
+                this.isNotPointRange = !noData.isPoint();
+            }
             break;
         default:
             throw new IllegalArgumentException("Wrong data Type");
@@ -4854,7 +4860,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                                     * srcPixelStride + (h - 1) * srcScanlineStride];
                                     pixelKernel[h][z] = value;
                                     
-                                    if (!noData.contains(value)||!Float.isNaN(value)) {
+                                    if (!noData.contains(value) && !(isNotPointRange && Float.isNaN(value))) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
                                     }
@@ -5033,7 +5039,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                     : 0);
                                         }
                                         
-                                        if (!noData.contains(value)||!Float.isNaN(value)) {
+                                        if (!noData.contains(value)&& !(isNotPointRange && Float.isNaN(value))) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -5207,7 +5213,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
 
-                                        if (!noData.contains(value)||!Float.isNaN(value)) {
+                                        if (!noData.contains(value)&& !(isNotPointRange && Float.isNaN(value))) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -5813,7 +5819,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                                     * srcPixelStride + (h - 1) * srcScanlineStride];
                                     pixelKernel[h][z] = value;
                                     
-                                    if (!noData.contains(value)||!Double.isNaN(value)) {
+                                    if (!noData.contains(value)&& !(isNotPointRange && Double.isNaN(value))) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
                                     }
@@ -5992,7 +5998,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                     : 0);
                                         }
                                         
-                                        if (!noData.contains(value)||!Double.isNaN(value)) {
+                                        if (!noData.contains(value)&& !(isNotPointRange && Double.isNaN(value))) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
@@ -6166,7 +6172,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
 
-                                        if (!noData.contains(value)||!Double.isNaN(value)) {
+                                        if (!noData.contains(value)&& !(isNotPointRange && Double.isNaN(value))) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
                                         }
