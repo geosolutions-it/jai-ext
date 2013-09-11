@@ -23,11 +23,9 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.ConstantDescriptor;
 
-import junit.framework.Assert;
-
 import org.junit.Test;
 
-public class ChangeMatrixTest extends Assert {
+public class ChangeMatrixTest extends org.junit.Assert {
 
     private final static String REFERENCE_PATH_FOR_TESTS = "./src/test/resources/it/geosolutions/jaiext/changematrix/test-data/";
     /**
