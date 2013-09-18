@@ -99,11 +99,11 @@ public class TestAffine extends TestBase {
                 break;
             case DataBuffer.TYPE_FLOAT:
                 noDataRange = RangeFactory.create(noDataValue.floatValue(), true,
-                        noDataValue.floatValue(), true);
+                        noDataValue.floatValue(), true,true);
                 break;
             case DataBuffer.TYPE_DOUBLE:
                 noDataRange = RangeFactory.create(noDataValue.doubleValue(), true,
-                        noDataValue.doubleValue(), true);
+                        noDataValue.doubleValue(), true,true);
                 break;
             default:
                 throw new IllegalArgumentException("Wrong data type");

@@ -104,9 +104,6 @@ abstract class AffineOpImage extends GeometricOpImage {
     /** Boolean for checking if the interpolator is Bicubic */
     protected boolean isBicubicNew = false;
 
-    /** Boolean used for indicating that the No Data Range is not degenarated(useful only for NaN check inside Float or Double Range) */
-    protected boolean isNotPointRange;
-
     /** Value indicating if roi RasterAccessor should be used on computations */
     protected boolean useROIAccessor;
 
@@ -145,6 +142,15 @@ abstract class AffineOpImage extends GeometricOpImage {
 
     /** No Data Range */
     protected Range noData;
+    
+    /** Boolean indicating if No Data and ROI are not used */
+    protected boolean caseA;
+
+    /** Boolean indicating if only the ROI is used */
+    protected boolean caseB;
+
+    /** Boolean indicating if only the No Data are used */
+    protected boolean caseC;
 
     /**
      * Computes floor(num/denom) using integer arithmetic. denom must not be equal to 0.

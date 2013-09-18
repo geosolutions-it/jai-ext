@@ -490,16 +490,16 @@ public class InterpTest extends TestCase {
                 break;
             case DataBuffer.TYPE_FLOAT:
                 Range noDataRangeF = RangeFactory.create((float) noData, true, (float) noData,
-                        true);
-                if (noDataRangeF.contains(expected.floatValue()) || (!noDataRangeF.isPoint() && Float.isNaN(expected.floatValue()))) {
+                        true,true);
+                if (noDataRangeF.contains(expected.floatValue())) {
                     expected = destinationNoData;
                 }
                 interpN = new InterpolationNearest(noDataRangeF, useROIAccessor,
                         destinationNoData, dataType);
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                Range noDataRangeD = RangeFactory.create(noData, true, noData, true);
-                if (noDataRangeD.contains(expected.doubleValue())|| (!noDataRangeD.isPoint() && Double.isNaN(expected.doubleValue()))) {
+                Range noDataRangeD = RangeFactory.create(noData, true, noData, true,true);
+                if (noDataRangeD.contains(expected.doubleValue())) {
                     expected = destinationNoData;
                 }
                 interpN = new InterpolationNearest(noDataRangeD,  useROIAccessor,
@@ -1283,7 +1283,7 @@ public class InterpTest extends TestCase {
                 break;
             case DataBuffer.TYPE_FLOAT:
                 Range noDataRangeF = RangeFactory.create((float) noData, true, (float) noData,
-                        true);
+                        true,true);
                 interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeF, 
                         useROIAccessor, destinationNoData, dataType);
                 if (bilinearUsed) {
@@ -1297,7 +1297,7 @@ public class InterpTest extends TestCase {
                 weightArray = noDataCheck(dataType, pixelArray, weightArray, noDataRangeF);
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                Range noDataRangeD = RangeFactory.create(noData, true, noData, true);
+                Range noDataRangeD = RangeFactory.create(noData, true, noData, true,true);
                 interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRangeD, 
                         useROIAccessor, destinationNoData, dataType);
                 if (bilinearUsed) {
@@ -1410,14 +1410,14 @@ public class InterpTest extends TestCase {
                     }
                     break;
                 case DataBuffer.TYPE_FLOAT:
-                    if (noDataRange.contains( pixelArray[i][j].floatValue())|| (!noDataRange.isPoint() && Float.isNaN(pixelArray[i][j].floatValue()))) {
+                    if (noDataRange.contains( pixelArray[i][j].floatValue())) {
                         weightArray[i][j] = 0;
                     } else {
                         weightArray[i][j] = 1;
                     }
                     break;
                 case DataBuffer.TYPE_DOUBLE:
-                    if (noDataRange.contains(pixelArray[i][j].doubleValue())|| (!noDataRange.isPoint() && Double.isNaN(pixelArray[i][j].doubleValue()))) {
+                    if (noDataRange.contains(pixelArray[i][j].doubleValue())) {
                         weightArray[i][j] = 0;
                     } else {
                         weightArray[i][j] = 1;

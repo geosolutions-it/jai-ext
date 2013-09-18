@@ -26,8 +26,11 @@ public class RangeDouble extends Range {
 
     /** Boolean indicating the presence of No Data, only used for degenerated Range(single-point) */
     private final boolean isNaN;
+    
+    /** Boolean indicating if No Data in should be considered always inside or outside the Range (only for non-degenerated Ranges) */
+    private final boolean nanIncluded;
 
-    RangeDouble(double minValue, boolean minIncluded, double maxValue, boolean maxIncluded) {        // If one of the 2 bound values is NaN an exception is thrown
+    RangeDouble(double minValue, boolean minIncluded, double maxValue, boolean maxIncluded,boolean nanIncluded) {        // If one of the 2 bound values is NaN an exception is thrown
         if (Double.isNaN(minValue) && !Double.isNaN(maxValue) || !Double.isNaN(minValue) && Double.isNaN(maxValue)) {
             throw new UnsupportedOperationException(
                     "NaN values can only be set inside a single-point Range");
@@ -39,6 +42,7 @@ public class RangeDouble extends Range {
             this.minIncluded = minIncluded;
             this.maxIncluded = maxIncluded;
             this.intValue=0;
+            this.nanIncluded=nanIncluded;
         } else if (minValue > maxValue) {
             this.minValue = maxValue;
             this.maxValue = minValue;
@@ -47,10 +51,12 @@ public class RangeDouble extends Range {
             this.minIncluded = minIncluded;
             this.maxIncluded = maxIncluded;
             this.intValue=0;
+            this.nanIncluded=nanIncluded;
         } else {
             this.minValue = minValue;
             this.maxValue = minValue;
             this.isPoint = true;
+            this.nanIncluded=false;
             if (Double.isNaN(minValue)) {
                 this.isNaN = true;
                 this.intValue=Double.doubleToLongBits(minValue); 
@@ -77,7 +83,24 @@ public class RangeDouble extends Range {
             } else {
                 return this.minValue == value;
             }
-        } else {
+        }  else if(nanIncluded){
+            final boolean lower;
+            final boolean upper;
+
+            if (minIncluded) {
+                lower = value < minValue;
+            } else {
+                lower = value <= minValue;
+            }
+
+            if (maxIncluded) {
+                upper = value > maxValue;
+            } else {
+                upper = value >= maxValue;
+            }
+
+            return !lower && !upper;
+        }else{
             final boolean notLower;
             final boolean notUpper;
 

@@ -225,10 +225,10 @@ public class RangeTest {
         rangeSpoint = RangeFactory.create(arrayS[2],true,arrayS[2],true);
         rangeI2bounds = RangeFactory.create(1, true, 60, true);
         rangeIpoint = RangeFactory.create(arrayI[2],true,arrayI[2],true);
-        rangeF2bounds = RangeFactory.create(0.5f, true, 60.5f, true);
-        rangeFpoint = RangeFactory.create(arrayF[2],true,arrayF[2],true);
-        rangeD2bounds = RangeFactory.create(1.5d, true, 60.5d, true);
-        rangeDpoint = RangeFactory.create(arrayD[2],true,arrayD[2],true);
+        rangeF2bounds = RangeFactory.create(0.5f, true, 60.5f, true,false);
+        rangeFpoint = RangeFactory.create(arrayF[2],true,arrayF[2],true,false);
+        rangeD2bounds = RangeFactory.create(1.5d, true, 60.5d, true,false);
+        rangeDpoint = RangeFactory.create(arrayD[2],true,arrayD[2],true,false);
         rangeL2bounds = RangeFactory.create(1L, true, 60L, true);
         rangeLpoint = RangeFactory.create(arrayL[2],true,arrayL[2],true);
 

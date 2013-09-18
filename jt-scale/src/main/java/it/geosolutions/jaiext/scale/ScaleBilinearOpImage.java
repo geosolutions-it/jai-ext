@@ -129,19 +129,23 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             destinationNoDataInt = (int) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_FLOAT:
-            if (hasNoData) {
-                this.isNotPointRange = !noData.isPoint();
-            }
             destinationNoDataFloat = (float) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_DOUBLE:
-            if (hasNoData) {
-                this.isNotPointRange = !noData.isPoint();
-            }
             break;
         default:
             throw new IllegalArgumentException("Wrong data Type");
         }
+        
+        //Definition of the possible cases that can be found
+        // caseA = no ROI nor No Data
+        // caseB = ROI present but No Data not present
+        // caseC = No Data present but ROI not present
+        // Last case not defined = both ROI and No Data are present
+        caseA = !hasROI && !hasNoData;
+        caseB = hasROI && !hasNoData;
+        caseC = !hasROI && hasNoData;
+        
     }
 
     @Override
@@ -285,9 +289,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
+
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -296,18 +298,18 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 final byte[] dstData = dstDataArrays[k];
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
-                int bandOffset = bandOffsets[k];
+                final int bandOffset = bandOffsets[k];
                 // cycle on the y values
                 for (int j = 0; j < dheight; j++) {
                     // pixel offset initialization
                     int dstPixelOffset = dstlineOffset;
                     // y position selection
-                    int posy = ypos[j] + bandOffset;
+                    final int posy = ypos[j] + bandOffset;
                     // cycle on the x values
                     for (int i = 0; i < dwidth; i++) {
                         // x position selection
-                        int posx = xpos[i];
-                        int pos = posx + posy;
+                        final int posx = xpos[i];
+                        final int pos = posx + posy;
 
                         final int s00 = srcData[pos] & 0xff;
                         final int s01 = srcData[pos + srcPixelStride] & 0xff;
@@ -338,19 +340,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final byte[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
-                                int pos = posx + posy;
+                                final int pos = posx + posy;
 
                                 final int s00 = srcData[pos] & 0xff;
                                 final int s01 = srcData[pos + srcPixelStride] & 0xff;
@@ -402,20 +404,20 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final byte[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
                                 // PixelPositions
-                                int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                final int x0 = src.getX() + posx / srcPixelStride;
+                                final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
 
@@ -469,17 +471,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
                                 // Get the four surrounding pixel values
                                 final int s00 = srcData[posx + posy] & 0xff;
@@ -521,7 +523,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -530,17 +532,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final byte[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // Get the four surrounding pixel values
                                     final int s00 = srcData[posx + posy] & 0xff;
@@ -612,21 +614,21 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final byte[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // PixelPositions
-                                    int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                    final int x0 = src.getX() + posx / srcPixelStride;
+                                    final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
 
@@ -724,9 +726,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -735,18 +734,18 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 final short[] dstData = dstDataArrays[k];
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
-                int bandOffset = bandOffsets[k];
+                final int bandOffset = bandOffsets[k];
                 // cycle on the y values
                 for (int j = 0; j < dheight; j++) {
                     // pixel offset initialization
                     int dstPixelOffset = dstlineOffset;
                     // y position selection
-                    int posy = ypos[j] + bandOffset;
+                    final int posy = ypos[j] + bandOffset;
                     // cycle on the x values
                     for (int i = 0; i < dwidth; i++) {
                         // x position selection
-                        int posx = xpos[i];
-                        int pos = posx + posy;
+                        final int posx = xpos[i];
+                        final int pos = posx + posy;
 
                         final int s00 = srcData[pos] & 0xffff;
                         final int s01 = srcData[pos + srcPixelStride] & 0xffff;
@@ -777,19 +776,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final short[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
-                                int pos = posx + posy;
+                                final int pos = posx + posy;
 
                                 final int s00 = srcData[pos] & 0xffff;
                                 final int s01 = srcData[pos + srcPixelStride] & 0xffff;
@@ -841,20 +840,20 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final short[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
                                 // PixelPositions
-                                int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                final int x0 = src.getX() + posx / srcPixelStride;
+                                final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
 
@@ -908,17 +907,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
                                 // Get the four surrounding pixel values
                                 final short s00 = (short) (srcData[posx + posy] & 0xffff);
@@ -960,7 +959,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -969,17 +968,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final short[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // Get the four surrounding pixel values
                                     final short s00 = (short) (srcData[posx + posy] & 0xffff);
@@ -1051,21 +1050,21 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final short[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // PixelPositions
-                                    int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                    final int x0 = src.getX() + posx / srcPixelStride;
+                                    final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
 
@@ -1165,9 +1164,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -1176,18 +1172,18 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 final short[] dstData = dstDataArrays[k];
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
-                int bandOffset = bandOffsets[k];
+                final int bandOffset = bandOffsets[k];
                 // cycle on the y values
                 for (int j = 0; j < dheight; j++) {
                     // pixel offset initialization
                     int dstPixelOffset = dstlineOffset;
                     // y position selection
-                    int posy = ypos[j] + bandOffset;
+                    final int posy = ypos[j] + bandOffset;
                     // cycle on the x values
                     for (int i = 0; i < dwidth; i++) {
                         // x position selection
-                        int posx = xpos[i];
-                        int pos = posx + posy;
+                        final int posx = xpos[i];
+                        final int pos = posx + posy;
 
                         final int s00 = srcData[pos];
                         final int s01 = srcData[pos + srcPixelStride];
@@ -1218,19 +1214,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final short[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
-                                int pos = posx + posy;
+                                final int pos = posx + posy;
 
                                 final int s00 = srcData[pos];
                                 final int s01 = srcData[pos + srcPixelStride];
@@ -1282,20 +1278,20 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final short[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
                                 // PixelPositions
-                                int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                final int x0 = src.getX() + posx / srcPixelStride;
+                                final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
 
@@ -1349,17 +1345,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
                                 // Get the four surrounding pixel values
                                 final short s00 = srcData[posx + posy];
@@ -1401,7 +1397,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -1410,17 +1406,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final short[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // Get the four surrounding pixel values
                                     final short s00 = srcData[posx + posy];
@@ -1487,21 +1483,21 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final short[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // PixelPositions
-                                    int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                    final int x0 = src.getX() + posx / srcPixelStride;
+                                    final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
 
@@ -1601,9 +1597,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -1612,18 +1605,18 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 final int[] dstData = dstDataArrays[k];
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
-                int bandOffset = bandOffsets[k];
+                final int bandOffset = bandOffsets[k];
                 // cycle on the y values
                 for (int j = 0; j < dheight; j++) {
                     // pixel offset initialization
                     int dstPixelOffset = dstlineOffset;
                     // y position selection
-                    int posy = ypos[j] + bandOffset;
+                    final int posy = ypos[j] + bandOffset;
                     // cycle on the x values
                     for (int i = 0; i < dwidth; i++) {
                         // x position selection
-                        int posx = xpos[i];
-                        int pos = posx + posy;
+                        final int posx = xpos[i];
+                        final int pos = posx + posy;
 
                         final int s00 = srcData[pos];
                         final int s01 = srcData[pos + srcPixelStride];
@@ -1654,19 +1647,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final int[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
-                                int pos = posx + posy;
+                                final int pos = posx + posy;
 
                                 final int s00 = srcData[pos];
                                 final int s01 = srcData[pos + srcPixelStride];
@@ -1714,20 +1707,20 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final int[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
                                 // PixelPositions
-                                int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                final int x0 = src.getX() + posx / srcPixelStride;
+                                final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
 
@@ -1775,17 +1768,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
                                 // Get the four surrounding pixel values
                                 final int s00 = srcData[posx + posy];
@@ -1827,7 +1820,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -1836,17 +1829,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final int[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // Get the four surrounding pixel values
                                     final int s00 = srcData[posx + posy];
@@ -1913,21 +1906,21 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final int[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // PixelPositions
-                                    int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                    final int x0 = src.getX() + posx / srcPixelStride;
+                                    final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
 
@@ -2026,9 +2019,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -2037,18 +2027,18 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 final float[] dstData = dstDataArrays[k];
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
-                int bandOffset = bandOffsets[k];
+                final int bandOffset = bandOffsets[k];
                 // cycle on the y values
                 for (int j = 0; j < dheight; j++) {
                     // pixel offset initialization
                     int dstPixelOffset = dstlineOffset;
                     // y position selection
-                    int posy = ypos[j] + bandOffset;
+                    final int posy = ypos[j] + bandOffset;
                     // cycle on the x values
                     for (int i = 0; i < dwidth; i++) {
                         // x position selection
-                        int posx = xpos[i];
-                        int pos = posx + posy;
+                        final int posx = xpos[i];
+                        final int pos = posx + posy;
 
                         final float s00 = srcData[pos];
                         final float s01 = srcData[pos + srcPixelStride];
@@ -2079,19 +2069,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final float[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
-                                int pos = posx + posy;
+                                final int pos = posx + posy;
 
                                 final float s00 = srcData[pos];
                                 final float s01 = srcData[pos + srcPixelStride];
@@ -2143,20 +2133,20 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final float[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
                                 // PixelPositions
-                                int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                final int x0 = src.getX() + posx / srcPixelStride;
+                                final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
 
@@ -2208,17 +2198,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
                                 // Get the four surrounding pixel values
                                 final float s00 = srcData[posx + posy];
@@ -2232,19 +2222,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if (noData.contains(s00) || (isNotPointRange && Float.isNaN(s00))) {
+                                if (noData.contains(s00)) {
                                     w00 = 0;
                                 }
 
-                                if (noData.contains(s01) || (isNotPointRange && Float.isNaN(s01))) {
+                                if (noData.contains(s01)) {
                                     w01 = 0;
                                 }
                                                                 
-                                if (noData.contains(s10) || (isNotPointRange && Float.isNaN(s10))) {
+                                if (noData.contains(s10)) {
                                     w10 = 0;
                                 }
                                 
-                                if (noData.contains(s11) || (isNotPointRange && Float.isNaN(s11))) {
+                                if (noData.contains(s11)) {
                                     w11 = 0;
                                 }
                                 
@@ -2264,7 +2254,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -2273,17 +2263,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final float[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // Get the four surrounding pixel values
                                     final float s00 = srcData[posx + posy];
@@ -2311,25 +2301,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         dstData[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
                                         
-                                        if (noData.contains(s00)|| (isNotPointRange && Float.isNaN(s00))) {
+                                        if (noData.contains(s00)) {
                                             w00 = 0;
                                         }else {
                                             w00 = 1;
                                         }
 
-                                        if (noData.contains(s01)|| (isNotPointRange && Float.isNaN(s01))) {
+                                        if (noData.contains(s01)) {
                                             w01 = 0;
                                         }else {
                                             w01 = 1;
                                         }
                                                                         
-                                        if (noData.contains(s10)|| (isNotPointRange && Float.isNaN(s10))) {
+                                        if (noData.contains(s10)) {
                                             w10 = 0;
                                         }else {
                                             w10 = 1;
                                         }
                                         
-                                        if (noData.contains(s11)|| (isNotPointRange && Float.isNaN(s11))) {
+                                        if (noData.contains(s11)) {
                                             w11 = 0;
                                         }else {
                                             w11 = 1;
@@ -2355,21 +2345,21 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final float[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // PixelPositions
-                                    int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                    final int x0 = src.getX() + posx / srcPixelStride;
+                                    final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
 
@@ -2388,25 +2378,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final float s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            if (noData.contains(s00)|| (isNotPointRange && Float.isNaN(s00))) {
+                                            if (noData.contains(s00)) {
                                                 w00 = 0;
                                             }else {
                                                 w00 = 1;
                                             }
 
-                                            if (noData.contains(s01)|| (isNotPointRange && Float.isNaN(s01))) {
+                                            if (noData.contains(s01)) {
                                                 w01 = 0;
                                             }else {
                                                 w01 = 1;
                                             }
                                                                             
-                                            if (noData.contains(s10)|| (isNotPointRange && Float.isNaN(s10))) {
+                                            if (noData.contains(s10)) {
                                                 w10 = 0;
                                             }else {
                                                 w10 = 1;
                                             }
                                             
-                                            if (noData.contains(s11)|| (isNotPointRange && Float.isNaN(s11))) {
+                                            if (noData.contains(s11)) {
                                                 w11 = 0;
                                             }else {
                                                 w11 = 1;
@@ -2472,10 +2462,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             roiDataArray = null;
             roiDataLength = 0;
         }
-
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
+        
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -2484,18 +2471,18 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 final double[] dstData = dstDataArrays[k];
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
-                int bandOffset = bandOffsets[k];
+                final int bandOffset = bandOffsets[k];
                 // cycle on the y values
                 for (int j = 0; j < dheight; j++) {
                     // pixel offset initialization
                     int dstPixelOffset = dstlineOffset;
                     // y position selection
-                    int posy = ypos[j] + bandOffset;
+                    final int posy = ypos[j] + bandOffset;
                     // cycle on the x values
                     for (int i = 0; i < dwidth; i++) {
                         // x position selection
-                        int posx = xpos[i];
-                        int pos = posx + posy;
+                        final int posx = xpos[i];
+                        final int pos = posx + posy;
 
                         final double s00 = srcData[pos];
                         final double s01 = srcData[pos + srcPixelStride];
@@ -2526,19 +2513,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final double[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
-                                int pos = posx + posy;
+                                final int pos = posx + posy;
 
                                 final double s00 = srcData[pos];
                                 final double s01 = srcData[pos + srcPixelStride];
@@ -2590,20 +2577,20 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                         final double[] dstData = dstDataArrays[k];
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
                                 // PixelPositions
-                                int x0 = src.getX() + posx / srcPixelStride;
-                                int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                final int x0 = src.getX() + posx / srcPixelStride;
+                                final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                 if (roiBounds.contains(x0, y0)) {
 
@@ -2655,43 +2642,42 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
                                 // Get the four surrounding pixel values
                                 final double s00 = srcData[posx + posy];
                                 final double s01 = srcData[posx + srcPixelStride + posy];
                                 final double s10 = srcData[posx + posy + srcScanlineStride];
-                                final double s11 = srcData[posx + srcPixelStride + posy
-                                        + srcScanlineStride];
+                                final double s11 = srcData[posx + srcPixelStride + posy + srcScanlineStride];
 
                                 int w00 = 1;
                                 int w01 = 1;
                                 int w10 = 1;
                                 int w11 = 1;
 
-                                if (noData.contains(s00)|| (isNotPointRange && Double.isNaN(s00))) {
+                                if (noData.contains(s00)) {
                                     w00 = 0;
                                 }
 
-                                if (noData.contains(s01)|| (isNotPointRange && Double.isNaN(s01))) {
+                                if (noData.contains(s01)) {
                                     w01 = 0;
                                 }
                                                                 
-                                if (noData.contains(s10)|| (isNotPointRange && Double.isNaN(s10))) {
+                                if (noData.contains(s10)) {
                                     w10 = 0;
                                 }
                                 
-                                if (noData.contains(s11)|| (isNotPointRange && Double.isNaN(s11))) {
+                                if (noData.contains(s11)) {
                                     w11 = 0;
                                 }
 
@@ -2711,7 +2697,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -2720,17 +2706,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final double[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // Get the four surrounding pixel values
                                     final double s00 = srcData[posx + posy];
@@ -2757,25 +2743,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
-                                        if (noData.contains(s00)|| (isNotPointRange && Double.isNaN(s00))) {
+                                        if (noData.contains(s00)) {
                                             w00 = 0;
                                         }else {
                                             w00 = 1;
                                         }
 
-                                        if (noData.contains(s01)|| (isNotPointRange && Double.isNaN(s01))) {
+                                        if (noData.contains(s01)) {
                                             w01 = 0;
                                         }else {
                                             w01 = 1;
                                         }
                                                                         
-                                        if (noData.contains(s10)|| (isNotPointRange && Double.isNaN(s10))) {
+                                        if (noData.contains(s10)) {
                                             w10 = 0;
                                         }else {
                                             w10 = 1;
                                         }
                                         
-                                        if (noData.contains(s11)|| (isNotPointRange && Double.isNaN(s11))) {
+                                        if (noData.contains(s11)) {
                                             w11 = 0;
                                         }else {
                                             w11 = 1;
@@ -2802,21 +2788,21 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                             final double[] dstData = dstDataArrays[k];
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
-                            int bandOffset = bandOffsets[k];
+                            final int bandOffset = bandOffsets[k];
                             // cycle on the y values
                             for (int j = 0; j < dheight; j++) {
                                 // pixel offset initialization
                                 int dstPixelOffset = dstlineOffset;
                                 // y position selection
-                                int posy = ypos[j] + bandOffset;
+                                final int posy = ypos[j] + bandOffset;
                                 // cycle on the x values
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
-                                    int posx = xpos[i];
+                                    final int posx = xpos[i];
 
                                     // PixelPositions
-                                    int x0 = src.getX() + posx / srcPixelStride;
-                                    int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
+                                    final int x0 = src.getX() + posx / srcPixelStride;
+                                    final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
                                     if (roiBounds.contains(x0, y0)) {
 
@@ -2835,25 +2821,25 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final double s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            if (noData.contains(s00)|| (isNotPointRange && Double.isNaN(s00))) {
+                                            if (noData.contains(s00)) {
                                                 w00 = 0;
                                             }else {
                                                 w00 = 1;
                                             }
 
-                                            if (noData.contains(s01)|| (isNotPointRange && Double.isNaN(s01))) {
+                                            if (noData.contains(s01)) {
                                                 w01 = 0;
                                             }else {
                                                 w01 = 1;
                                             }
                                                                             
-                                            if (noData.contains(s10)|| (isNotPointRange && Double.isNaN(s10))) {
+                                            if (noData.contains(s10)) {
                                                 w10 = 0;
                                             }else {
                                                 w10 = 1;
                                             }
                                             
-                                            if (noData.contains(s11)|| (isNotPointRange && Double.isNaN(s11))) {
+                                            if (noData.contains(s11)) {
                                                 w11 = 0;
                                             }else {
                                                 w11 = 1;
@@ -2890,6 +2876,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
     /* Private method for calculate bilinear interpolation for byte, short/ushort, integer dataType */
     private int computeValue(int s00, int s01, int s10, int s11, int w00, int w01, int w10,
             int w11, int xfrac, int yfrac) {
+        
         int s0 = 0;
         int s1 = 0;
         int s = 0;
@@ -2898,10 +2885,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         long s1L = 0;
 
         // Complementary values of the fractional part
-        int xfracCompl = (int) Math.pow(2, subsampleBits) - xfrac;
-        int yfracCompl = (int) Math.pow(2, subsampleBits) - yfrac;
+        int xfracCompl = one - xfrac;
+        int yfracCompl = one - yfrac;
         
-        if(w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0){
+        //Boolean indicating if a pixel weight is 0
+        boolean w00z = w00==0;
+        boolean w01z = w01==0;
+        boolean w10z = w10==0;
+        boolean w11z = w11==0;
+        //Boolean indicating if 2 same line-pixel weights are 0
+        boolean w0z = w00z && w01z;
+        boolean w1z = w10z && w11z;
+        
+        if(w0z && w1z){
             switch(dataType){
                 case DataBuffer.TYPE_BYTE:
                     return destinationNoDataByte;            
@@ -2919,70 +2915,57 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         // so the samples, in this case, are expanded to Long.
         boolean s0Long = ((s00 | s10) >>> shift == 0);
         boolean s1Long = ((s01 | s11) >>> shift == 0);
-        // Otherwise all the possible weight combination are checked
-        if (w00 == 0 || w01 == 0 || w10 == 0 || w11 == 0) {
+        
+        //boolean indicating if the data type is DataBuffer.TYPE_INT
+        boolean dataINT = dataType == DataBuffer.TYPE_INT;
+        // All the possible weight combination are checked
+        if (w00z || w01z || w10z || w11z) {
             // For integers is even considered the case when the integers are expanded to longs
-            if (dataType == DataBuffer.TYPE_INT) {
+            if (dataINT) {
 
-                if (w00 == 0 && w01 == 0) {
-
+                if (w0z) {
                     s0L = 0;
-                } else if (w00 == 0) { // w01 = 1
-                    if (s1Long) {
-                        s0L = -s01 * xfracCompl + (s01 << subsampleBits);
-                    } else {
-                        s0L = -s01 * xfracCompl + ((long) s01 << subsampleBits);
-                    }
-                } else if (w01 == 0) {// w00 = 1
-                    if (s0Long) {
-                        s0L = -s00 * xfrac + (s00 << subsampleBits);
-                    } else {
-                        s0L = -s00 * xfrac + ((long) s00 << subsampleBits);
-                    }
+                } else if (w00z) { // w01 = 1
+                        s0L = s01 * xfrac;
+                } else if (w01z) {// w00 = 1
+                        s0L = s00 * xfracCompl;
                 } else {// w00 = 1 & W01 = 1
                     if (s0Long) {
                         if (s1Long) {
                             s0L = (s01 - s00) * xfrac + (s00 << subsampleBits);
                         } else {
-                            s0L = ((long) s01 - s00) * xfrac + (s00 << subsampleBits);
+                            s0L = (1L*s01 - s00) * xfrac + (1L*s00 << subsampleBits);
                         }
                     } else {
-                        s0L = ((long) s01 - s00) * xfrac + ((long) s00 << subsampleBits);
+                        s0L = (1L*s01 - s00) * xfrac + (1L*s00 << subsampleBits);
                     }
                 }
 
                 // lower value
 
-                if (w10 == 0 && w11 == 0) {
+                if (w1z) {
                     s1L = 0;
-                } else if (w10 == 0) { // w11 = 1
-                    if (s1Long) {
-                        s1L = -s11 * xfracCompl + (s11 << subsampleBits);
-                    } else {
-                        s1L = -s11 * xfracCompl + ((long) s11 << subsampleBits);
-                    }
-                } else if (w11 == 0) { // w10 = 1
-                    if (s0Long) {// - (s10 * xfrac); //s10;
-                        s1L = -s10 * xfrac + (s10 << subsampleBits);
-                    } else {
-                        s1L = -s10 * xfrac + ((long) s10 << subsampleBits);
-                    }
+                } else if (w10z) { // w11 = 1
+                        s1L = s11 * xfrac;
+                } else if (w11z) { // w10 = 1 // - (s10 * xfrac); //s10;
+                        s1L = s10 * xfracCompl;
                 } else {
                     if (s0Long) {
                         if (s1Long) {
                             s1L = (s11 - s10) * xfrac + (s10 << subsampleBits);
                         } else {
-                            s1L = ((long) s11 - s10) * xfrac + (s10 << subsampleBits);
+                            s1L = (1L*s11 - s10) * xfrac + (1L*s10 << subsampleBits);
                         }
                     } else {
-                        s1L = ((long) s11 - s10) * xfrac + ((long) s10 << subsampleBits);
+                        s1L = (1L*s11 - s10) * xfrac + (1L*s10 << subsampleBits);
                     }
-                }
-                if (w00 == 0 && w01 == 0) {
-                    s = (int) (-s1L * yfracCompl + ((s1L << subsampleBits) + round2) >> shift2);
+                }                
+                
+                if (w0z) {
+                    s = (int) ((s1L * yfrac +  round2) >> shift2);
                 } else {
-                    if (w10 == 0 && w11 == 0) {
-                        s = (int) (-s0L * yfrac + ((s0L << subsampleBits) + round2) >> shift2);
+                    if (w1z) {
+                        s = (int) ((s0L * yfracCompl + round2) >> shift2);
                     } else {
                         s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
                     }
@@ -2990,33 +2973,33 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
             } else {
                 // Interpolation for type byte, ushort, short
-                if (w00 == 0 && w01 == 0) {
+                if (w0z) {
                     s0 = 0;
-                } else if (w00 == 0) { // w01 = 1
-                    s0 = -s01 * xfracCompl + (s01 << subsampleBits);
-                } else if (w01 == 0) {// w00 = 1
-                    s0 = -s00 * xfrac + (s00 << subsampleBits);// s00;
+                } else if (w00z) { // w01 = 1
+                    s0 = s01 * xfrac;
+                } else if (w01z) {// w00 = 1
+                    s0 = s00 * xfracCompl;// s00;
                 } else {// w00 = 1 & W01 = 1
                     s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
                 }
 
                 // lower value
 
-                if (w10 == 0 && w11 == 0) {
+                if (w1z) {
                     s1 = 0;
-                } else if (w10 == 0) { // w11 = 1
-                    s1 = -s11 * xfracCompl + (s11 << subsampleBits);
-                } else if (w11 == 0) { // w10 = 1
-                    s1 = -s10 * xfrac + (s10 << subsampleBits);// - (s10 * xfrac); //s10;
+                } else if (w10z) { // w11 = 1
+                    s1 = s11 * xfrac;
+                } else if (w11z) { // w10 = 1
+                    s1 = s10 * xfracCompl;// - (s10 * xfrac); //s10;
                 } else {
                     s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
                 }
 
-                if (w00 == 0 && w01 == 0) {
-                    s = (-s1 * yfracCompl + (s1 << subsampleBits) + round2) >> shift2;
+                if (w0z) {
+                    s = (s1 * yfrac + round2) >> shift2;
                 } else {
-                    if (w10 == 0 && w11 == 0) {
-                        s = (-s0 * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                    if (w1z) {
+                        s = (s0 * yfracCompl + round2) >> shift2;
                     } else {
                         s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
                     }
@@ -3025,20 +3008,20 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             }
         } else {
             // Perform the bilinear interpolation
-            if (dataType == DataBuffer.TYPE_INT) {
+            if (dataINT) {
                 if (s0Long) {
                     if (s1Long) {
                         s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
                         s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
                         s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
                     } else {
-                        s0L = ((long) s01 - s00) * xfrac + (s00 << subsampleBits);
-                        s1L = ((long) s11 - s10) * xfrac + (s10 << subsampleBits);
+                        s0L = (1L*s01 - s00) * xfrac + (s00 << subsampleBits);
+                        s1L = (1L*s11 - s10) * xfrac + (s10 << subsampleBits);
                         s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
                     }
                 } else {
-                    s0L = ((long) s01 - s00) * xfrac + ((long) s00 << subsampleBits);
-                    s1L = ((long) s11 - s10) * xfrac + ((long) s10 << subsampleBits);
+                    s0L = (1L*s01 - s00) * xfrac + (1L*s00 << subsampleBits);
+                    s1L = (1L*s11 - s10) * xfrac + (1L*s10 << subsampleBits);
                     s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
                 }
             } else {
@@ -3048,19 +3031,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             }
         }
 
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            s = (byte) s & 0xff;
-            break;
-        case DataBuffer.TYPE_USHORT:
-            s = (short) s & 0xffff;
-            break;
-        case DataBuffer.TYPE_SHORT:
-            s = (short) s;
-            break;
-        default:
-            break;
-        }
         return s;
     }
 
@@ -3127,12 +3097,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         }
 
         // Simple conversion for float dataType.
-        if (dataType == DataBuffer.TYPE_FLOAT) {
-            return (float) s;
-        } else {
-            return s;
-        }
-
+        return s;
     }
 
 }

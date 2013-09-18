@@ -36,14 +36,14 @@ public class RangeFactory {
 
     // Float data
     public static Range create(float minValue, boolean minIncluded, float maxValue,
-            boolean maxIncluded) {
-        return new RangeFloat(minValue, minIncluded, maxValue, maxIncluded);
+            boolean maxIncluded, boolean nanIncluded) {
+        return new RangeFloat(minValue, minIncluded, maxValue, maxIncluded, nanIncluded);
     }
 
     // Double data
     public static Range create(double minValue, boolean minIncluded, double maxValue,
-            boolean maxIncluded) {
-        return new RangeDouble(minValue, minIncluded, maxValue, maxIncluded);
+            boolean maxIncluded, boolean nanIncluded) {
+        return new RangeDouble(minValue, minIncluded, maxValue, maxIncluded, nanIncluded);
     }
     
     // Long data

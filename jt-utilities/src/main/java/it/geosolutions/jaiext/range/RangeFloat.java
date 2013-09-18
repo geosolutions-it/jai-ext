@@ -24,8 +24,11 @@ public class RangeFloat extends Range {
 
     /** Boolean indicating the presence of No Data, only used for degenerated Range(single-point) */
     private final boolean isNaN;
+    
+    /** Boolean indicating if No Data in should be considered always inside or outside the Range (only for non-degenerated Ranges) */
+    private final boolean nanIncluded;
 
-    RangeFloat(float minValue, boolean minIncluded, float maxValue, boolean maxIncluded) {
+    RangeFloat(float minValue, boolean minIncluded, float maxValue, boolean maxIncluded,boolean nanIncluded) {
         // If one of the 2 bound values is NaN an exception is thrown
         if (Float.isNaN(minValue) && !Float.isNaN(maxValue) || !Float.isNaN(minValue) && Float.isNaN(maxValue)) {
             throw new UnsupportedOperationException(
@@ -38,6 +41,7 @@ public class RangeFloat extends Range {
             this.minIncluded = minIncluded;
             this.maxIncluded = maxIncluded;
             this.intValue=0;
+            this.nanIncluded=nanIncluded;
         } else if (minValue > maxValue) {
             this.minValue = maxValue;
             this.maxValue = minValue;
@@ -46,10 +50,12 @@ public class RangeFloat extends Range {
             this.minIncluded = minIncluded;
             this.maxIncluded = maxIncluded;
             this.intValue=0;
+            this.nanIncluded=nanIncluded;
         } else {
             this.minValue = minValue;
             this.maxValue = minValue;
             this.isPoint = true;
+            this.nanIncluded=false;
             if (Float.isNaN(minValue)) {
                 this.isNaN = true;
                 this.intValue=Float.floatToIntBits(minValue);
@@ -77,7 +83,24 @@ public class RangeFloat extends Range {
             } else {
                 return this.minValue == value;
             }
-        } else {
+        } else if(nanIncluded){
+            final boolean lower;
+            final boolean upper;
+
+            if (minIncluded) {
+                lower = value < minValue;
+            } else {
+                lower = value <= minValue;
+            }
+
+            if (maxIncluded) {
+                upper = value > maxValue;
+            } else {
+                upper = value >= maxValue;
+            }
+
+            return !lower && !upper;
+        }else{
             final boolean notLower;
             final boolean notUpper;
 

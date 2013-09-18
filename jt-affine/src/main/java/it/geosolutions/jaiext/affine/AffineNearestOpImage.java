@@ -119,20 +119,23 @@ public class AffineNearestOpImage extends AffineOpImage {
             destinationNoDataInt = (int) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_FLOAT:
-            if (hasNoData) {
-                this.isNotPointRange = !noData.isPoint();
-            }
             destinationNoDataFloat = (float) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_DOUBLE:
-            if (hasNoData) {
-                this.isNotPointRange = !noData.isPoint();
-            }
             break;
         default:
             throw new IllegalArgumentException("Wrong data Type");
         }
 
+        // Definition of the possible cases that can be found
+        // caseA = no ROI nor No Data
+        // caseB = ROI present but No Data not present
+        // caseC = No Data present but ROI not present
+        // Last case not defined = both ROI and No Data are present
+        caseA = !hasROI && !hasNoData;
+        caseB = hasROI && !hasNoData;
+        caseC = !hasROI && hasNoData;
+        
     }
 
     /** Method for evaluating the destination image tile without ROI */
@@ -268,10 +271,6 @@ public class AffineNearestOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
 
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
@@ -998,10 +997,6 @@ public class AffineNearestOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
 
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
@@ -1743,10 +1738,6 @@ public class AffineNearestOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
 
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
@@ -2491,10 +2482,6 @@ public class AffineNearestOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
 
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
@@ -3241,10 +3228,6 @@ public class AffineNearestOpImage extends AffineOpImage {
             roiScanlineStride = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
-
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
@@ -3639,7 +3622,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 for (int x = clipMinX; x < clipMaxX; x++) {
                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
                         float value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                        if (noData.contains(value)|| (isNotPointRange && Float.isNaN(value))) {
+                        if (noData.contains(value)) {
                             // The destination no data value is saved in the destination array
                             if(setDestinationNoData){
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
@@ -3763,7 +3746,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 // The interpolated value is saved in the destination array
                                 float value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                                if (noData.contains(value)|| (isNotPointRange && Float.isNaN(value))) {
+                                if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
                                     if(setDestinationNoData){
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
@@ -3885,7 +3868,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
                                     float value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                                    if (noData.contains(value)|| (isNotPointRange && Float.isNaN(value))) {
+                                    if (noData.contains(value)) {
                                         // The destination no data value is saved in the destination array
                                         if(setDestinationNoData){
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
@@ -3992,10 +3975,6 @@ public class AffineNearestOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
 
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
@@ -4391,7 +4370,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 for (int x = clipMinX; x < clipMaxX; x++) {
                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
                         double value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                        if (noData.contains(value)|| (isNotPointRange && Double.isNaN(value))) {
+                        if (noData.contains(value)) {
                             // The destination no data value is saved in the destination array
                             if(setDestinationNoData){
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
@@ -4515,7 +4494,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 // The interpolated value is saved in the destination array
                                 double value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                                if (noData.contains(value)|| (isNotPointRange && Double.isNaN(value))) {
+                                if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
                                     if(setDestinationNoData){
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
@@ -4638,7 +4617,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
                                     double value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                                    if (noData.contains(value)|| (isNotPointRange && Double.isNaN(value))) {
+                                    if (noData.contains(value)) {
                                         // The destination no data value is saved in the destination array
                                         if(setDestinationNoData){
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;

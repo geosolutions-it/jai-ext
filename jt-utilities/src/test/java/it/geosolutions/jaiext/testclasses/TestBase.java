@@ -44,7 +44,7 @@ public abstract class TestBase {
     
     public static boolean IMAGE_FILLER = Boolean.getBoolean("JAI.Ext.ImageFill");
     
-    public static Integer INVERSE_SCALE = Integer.getInteger("JAI.Ext.InverseScale");
+    public static Integer INVERSE_SCALE = Integer.getInteger("JAI.Ext.InverseScale",0);
 
     public static Integer TEST_SELECTOR = Integer.getInteger("JAI.Ext.TestSelector",0);
 

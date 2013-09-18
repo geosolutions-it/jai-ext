@@ -221,9 +221,6 @@ public abstract class ScaleOpImage extends GeometricOpImage {
     /** Destination value for No Data double */
     protected double destinationNoDataDouble = 0;
 
-    /** Boolean used for indicating that the No Data Range is not degenarated(useful only for NaN check inside Float or Double Range) */
-    protected boolean isNotPointRange;
-
     /** Boolean for checking if the no data is negative infinity */
     protected boolean isNegativeInf = false;
 
@@ -241,6 +238,15 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
     /** Boolean for checking if the interpolator is Bicubic */
     protected boolean isBicubicNew = false;
+
+    /** Boolean indicating if No Data and ROI are not used */
+    protected boolean caseA;
+
+    /** Boolean indicating if only the ROI is used */
+    protected boolean caseB;
+
+    /** Boolean indicating if only the No Data are used */
+    protected boolean caseC;
 
     /** ROI Border Extender */
     final static BorderExtender roiExtender = BorderExtender
@@ -437,12 +443,12 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             int[] yfracvalues, int roiScanlineStride, int[] yposRoi) {
 
         // Destination Rectangle position
-        int dwidth = destRect.width;
-        int dheight = destRect.height;
+        final int dwidth = destRect.width;
+        final int dheight = destRect.height;
 
         // Loop variables based on the destination rectangle to be calculated.
-        int dx = destRect.x;
-        int dy = destRect.y;
+        final int dx = destRect.x;
+        final int dy = destRect.y;
 
         // Initially the y source value is calculated by the destination value and then performing the inverse
         // scale operation on it.
@@ -475,9 +481,9 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
         // Normalize - Get a common denominator for the fracs of
         // src and invScaleY
-        long commonYDenom = syDenom * invScaleYRationalDenom;
+        final long commonYDenom = syDenom * invScaleYRationalDenom;
         srcYFrac *= invScaleYRationalDenom;
-        long newInvScaleYFrac = invScaleYFrac * syDenom;
+        final long newInvScaleYFrac = invScaleYFrac * syDenom;
 
         // Initially the x source value is calculated by the destination value and then performing the inverse
         // scale operation on it.
@@ -510,9 +516,9 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
         // Normalize - Get a common denominator for the fracs of
         // src and invScaleX
-        long commonXDenom = sxDenom * invScaleXRationalDenom;
+        final long commonXDenom = sxDenom * invScaleXRationalDenom;
         srcXFrac *= invScaleXRationalDenom;
-        long newInvScaleXFrac = invScaleXFrac * sxDenom;
+        final long newInvScaleXFrac = invScaleXFrac * sxDenom;
 
         // Store of the x positions
         for (int i = 0; i < dwidth; i++) {
@@ -593,12 +599,12 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             float[] yfracvalues, int roiScanlineStride, int[] yposRoi) {
 
         // Destination Rectangle position
-        int dwidth = destRect.width;
-        int dheight = destRect.height;
+        final int dwidth = destRect.width;
+        final int dheight = destRect.height;
 
         // Loop variables based on the destination rectangle to be calculated.
-        int dx = destRect.x;
-        int dy = destRect.y;
+        final int dx = destRect.x;
+        final int dy = destRect.y;
 
         // Initially the y source value is calculated by the destination value and then performing the inverse
         // scale operation on it.
@@ -631,9 +637,9 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
         // Normalize - Get a common denominator for the fracs of
         // src and invScaleY
-        long commonYDenom = syDenom * invScaleYRationalDenom;
+        final long commonYDenom = syDenom * invScaleYRationalDenom;
         srcYFrac *= invScaleYRationalDenom;
-        long newInvScaleYFrac = invScaleYFrac * syDenom;
+        final long newInvScaleYFrac = invScaleYFrac * syDenom;
 
         // Initially the x source value is calculated by the destination value and then performing the inverse
         // scale operation on it.
@@ -666,9 +672,9 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
         // Normalize - Get a common denominator for the fracs of
         // src and invScaleX
-        long commonXDenom = sxDenom * invScaleXRationalDenom;
+        final long commonXDenom = sxDenom * invScaleXRationalDenom;
         srcXFrac *= invScaleXRationalDenom;
-        long newInvScaleXFrac = invScaleXFrac * sxDenom;
+        final long newInvScaleXFrac = invScaleXFrac * sxDenom;
 
         // Store of the x positions
         for (int i = 0; i < dwidth; i++) {

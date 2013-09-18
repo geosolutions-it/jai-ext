@@ -27,7 +27,6 @@ import javax.media.jai.operator.MosaicType;
 import javax.media.jai.operator.TranslateDescriptor;
 
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -1460,17 +1459,17 @@ public class MosaicTest {
                     break;
                 case DataBuffer.TYPE_FLOAT:
                     helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue(),
-                            true, sourceNodata[k].floatValue(), true));
+                            true, sourceNodata[k].floatValue(), true,true));
                     helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue(),
-                            true, sourceNodata[k].floatValue(), true));
+                            true, sourceNodata[k].floatValue(), true,true));
                     break;
                 case DataBuffer.TYPE_DOUBLE:
                     helpBean1Band.setSourceNoData(RangeFactory.create(
                             sourceNodata[k].doubleValue(), true, sourceNodata[k].doubleValue(),
-                            true));
+                            true,true));
                     helpBean3Band.setSourceNoData(RangeFactory.create(
                             sourceNodata[k].doubleValue(), true, sourceNodata[k].doubleValue(),
-                            true));
+                            true,true));
                     break;
                 }
             }
@@ -2138,15 +2137,15 @@ public class MosaicTest {
                 break;
             case DataBuffer.TYPE_FLOAT:
                 helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue(),
-                        true, sourceNodata[k].floatValue(), true));
+                        true, sourceNodata[k].floatValue(), true,true));
                 helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].floatValue(),
-                        true, sourceNodata[k].floatValue(), true));
+                        true, sourceNodata[k].floatValue(), true,true));
                 break;
             case DataBuffer.TYPE_DOUBLE:
                 helpBean1Band.setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue(),
-                        true, sourceNodata[k].doubleValue(), true));
+                        true, sourceNodata[k].doubleValue(), true,true));
                 helpBean3Band.setSourceNoData(RangeFactory.create(sourceNodata[k].doubleValue(),
-                        true, sourceNodata[k].doubleValue(), true));
+                        true, sourceNodata[k].doubleValue(), true,true));
                 break;
             }
             helpBean1Band.setAlphaChannel(null);

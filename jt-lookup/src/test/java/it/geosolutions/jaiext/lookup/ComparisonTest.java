@@ -1,5 +1,7 @@
 package it.geosolutions.jaiext.lookup;
 
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.image.DataBuffer;
@@ -25,8 +27,8 @@ import org.junit.Test;
  * <li>Selection of the source image(4 different dataType)</li>
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
- * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor.
- * If the user wants to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
+ * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor. If the user wants to
+ * use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
 
 public class ComparisonTest extends TestBase {
@@ -40,10 +42,12 @@ public class ComparisonTest extends TestBase {
 
     /** Boolean indicating if the old descriptor must be used */
     private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
-    
-	/** Boolean indicating if the native acceleration must be used */
-	private final static boolean NATIVE_ACCELERATION = Boolean
-			.getBoolean("JAI.Ext.Acceleration");
+
+    /** Boolean indicating if the native acceleration must be used */
+    private final static boolean NATIVE_ACCELERATION = Boolean.getBoolean("JAI.Ext.Acceleration");
+
+    /** Boolean indicating if a No Data Range must be used */
+    private final static boolean RANGE_USED = Boolean.getBoolean("JAI.Ext.RangeUsed");
 
     /** Destination No Data value */
     private static double destinationNoDataValue;
@@ -83,6 +87,8 @@ public class ComparisonTest extends TestBase {
 
     /** LookupTableJAI from int to byte */
     private static LookupTableJAI intToByteTableOld;
+
+    private static Range rangeND;
 
     // Initial static method for preparing all the test data
     @BeforeClass
@@ -135,7 +141,7 @@ public class ComparisonTest extends TestBase {
 
             if (i == noDataUS) {
                 // ushort-to-all arrays
-                dataUShortB[i] = 50;
+                dataUShortB[i] = 50; 
             }
 
         }
@@ -159,26 +165,50 @@ public class ComparisonTest extends TestBase {
 
         // Destination No Data
         destinationNoDataValue = 50;
+        
+        //Range creation if selected
+        rangeND= null;
+        if(RANGE_USED && !OLD_DESCRIPTOR){
+            switch(TEST_SELECTOR){
+            case DataBuffer.TYPE_BYTE:
+                rangeND = RangeFactory.create((byte)100,true,(byte)100,true);
+                break;
+            case DataBuffer.TYPE_USHORT:
+                rangeND = RangeFactory.createU((short)100,true,(short)100,true);
+                break;
+            case DataBuffer.TYPE_SHORT:
+                rangeND = RangeFactory.create((short)100,true,(short)100,true);
+                break;
+            case DataBuffer.TYPE_INT:
+                rangeND = RangeFactory.create(100,true,100,true);
+                break;
+                default:
+                    throw new IllegalArgumentException("Wrong data type");
+            }
+            
+        }
+        
+        
     }
 
     @Test
     public void testNewLookupDescriptorByte() {
         if (TEST_SELECTOR == DataBuffer.TYPE_BYTE && !OLD_DESCRIPTOR) {
-            testLookup(testImageByte, DataBuffer.TYPE_BYTE, byteToByteTableNew, OLD_DESCRIPTOR);
+            testLookup(testImageByte, DataBuffer.TYPE_BYTE, byteToByteTableNew,rangeND, OLD_DESCRIPTOR);
         }
     }
 
     @Test
     public void testOldLookupDescriptorByte() {
         if (TEST_SELECTOR == DataBuffer.TYPE_BYTE && OLD_DESCRIPTOR) {
-            testLookup(testImageByte, DataBuffer.TYPE_BYTE, byteToByteTableOld, OLD_DESCRIPTOR);
+            testLookup(testImageByte, DataBuffer.TYPE_BYTE, byteToByteTableOld,rangeND, OLD_DESCRIPTOR);
         }
     }
 
     @Test
     public void testNewLookupDescriptorUShort() {
         if (TEST_SELECTOR == DataBuffer.TYPE_USHORT && !OLD_DESCRIPTOR) {
-            testLookup(testImageUShort, DataBuffer.TYPE_USHORT, ushortToByteTableNew,
+            testLookup(testImageUShort, DataBuffer.TYPE_USHORT, ushortToByteTableNew,rangeND,
                     OLD_DESCRIPTOR);
         }
     }
@@ -186,7 +216,7 @@ public class ComparisonTest extends TestBase {
     @Test
     public void testOldLookupDescriptorUShort() {
         if (TEST_SELECTOR == DataBuffer.TYPE_USHORT && OLD_DESCRIPTOR) {
-            testLookup(testImageUShort, DataBuffer.TYPE_USHORT, ushortToByteTableOld,
+            testLookup(testImageUShort, DataBuffer.TYPE_USHORT, ushortToByteTableOld,rangeND,
                     OLD_DESCRIPTOR);
         }
     }
@@ -194,44 +224,44 @@ public class ComparisonTest extends TestBase {
     @Test
     public void testNewLookupDescriptorShort() {
         if (TEST_SELECTOR == DataBuffer.TYPE_SHORT && !OLD_DESCRIPTOR) {
-            testLookup(testImageShort, DataBuffer.TYPE_SHORT, shortToByteTableNew, OLD_DESCRIPTOR);
+            testLookup(testImageShort, DataBuffer.TYPE_SHORT, shortToByteTableNew,rangeND, OLD_DESCRIPTOR);
         }
     }
 
     @Test
     public void testOldLookupDescriptorShort() {
         if (TEST_SELECTOR == DataBuffer.TYPE_SHORT && OLD_DESCRIPTOR) {
-            testLookup(testImageShort, DataBuffer.TYPE_SHORT, shortToByteTableOld, OLD_DESCRIPTOR);
+            testLookup(testImageShort, DataBuffer.TYPE_SHORT, shortToByteTableOld,rangeND, OLD_DESCRIPTOR);
         }
     }
 
     @Test
     public void testNewLookupDescriptorInt() {
         if (TEST_SELECTOR == DataBuffer.TYPE_INT && !OLD_DESCRIPTOR) {
-            testLookup(testImageInt, DataBuffer.TYPE_INT, intToByteTableNew, OLD_DESCRIPTOR);
+            testLookup(testImageInt, DataBuffer.TYPE_INT, intToByteTableNew,rangeND, OLD_DESCRIPTOR);
         }
     }
 
     @Test
     public void testOldLookupDescriptorInt() {
         if (TEST_SELECTOR == DataBuffer.TYPE_INT && OLD_DESCRIPTOR) {
-            testLookup(testImageInt, DataBuffer.TYPE_INT, intToByteTableOld, OLD_DESCRIPTOR);
+            testLookup(testImageInt, DataBuffer.TYPE_INT, intToByteTableOld,rangeND, OLD_DESCRIPTOR);
         }
     }
 
     // General method for showing calculation time of the 2 LookupDescriptors
-    public void testLookup(RenderedImage testIMG, int dataType, Object table, boolean old) {
+    public void testLookup(RenderedImage testIMG, int dataType, Object table,Range rangeND, boolean old) {
         // Descriptor string
         String description = "\n ";
 
         if (old) {
             description = "Old Lookup";
-			if(NATIVE_ACCELERATION){
-				description+=" accelerated ";   
-				System.setProperty("com.sun.media.jai.disableMediaLib", "false");
-			}else{
-				System.setProperty("com.sun.media.jai.disableMediaLib", "true");
-			}
+            if (NATIVE_ACCELERATION) {
+                description += " accelerated ";
+                System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+            } else {
+                System.setProperty("com.sun.media.jai.disableMediaLib", "true");
+            }
         } else {
             description = "New Lookup";
             System.setProperty("com.sun.media.jai.disableMediaLib", "true");
@@ -272,7 +302,7 @@ public class ComparisonTest extends TestBase {
                         (LookupTableJAI) table, null);
             } else {
                 imageLookup = LookupDescriptor.create(testIMG, (LookupTable) table,
-                        destinationNoDataValue, null, null, false, null);
+                        destinationNoDataValue, null, rangeND, false, null);
             }
 
             // Total calculation time
@@ -312,11 +342,10 @@ public class ComparisonTest extends TestBase {
                 + " msec.");
         System.out.println("Maximum value for " + description + "Descriptor : " + maxD + " msec.");
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
-        //Final Image disposal
-        if(imageLookup instanceof RenderedOp){
-            ((RenderedOp)imageLookup).dispose();
+        // Final Image disposal
+        if (imageLookup instanceof RenderedOp) {
+            ((RenderedOp) imageLookup).dispose();
         }
-        
 
     }
 

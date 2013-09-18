@@ -1,5 +1,8 @@
 package it.geosolutions.jaiext.mosaic;
 
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
@@ -48,6 +51,9 @@ public class ComparisonTest {
     /** Boolean for selecting one of the 2 MosaicType(Default Overlay) */
     private final static boolean MOSAIC_TYPE = Boolean.getBoolean(
             "JAI.Ext.MosaicBlend");
+    
+    /** Boolean indicating if a No Data Range must be used */
+    private final static boolean RANGE_USED = Boolean.getBoolean("JAI.Ext.RangeUsed");
 
     /** Value indicating No Data for the destination image */
     private static double destinationNoData = 0;
@@ -84,10 +90,18 @@ public class ComparisonTest {
         images[0] = image4;
         images[1] = image3;
         
+        //Range creation if selected
+        Range rangeND= null;
+        if(RANGE_USED){
+            rangeND = RangeFactory.create((byte)100,true,(byte)100,true);
+        }
+        
         ImageMosaicBean bean0 = new ImageMosaicBean();
         bean0.setImage(images[0]);
+        bean0.setSourceNoData(rangeND);
         ImageMosaicBean bean1 = new ImageMosaicBean();
         bean1.setImage(images[1]);
+        bean1.setSourceNoData(rangeND);
         
         beanArray[0] = bean0;
         beanArray[1] = bean1;

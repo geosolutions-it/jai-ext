@@ -10,6 +10,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.media.jai.BorderExtender;
@@ -169,19 +170,22 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             destinationNoDataInt = (int) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_FLOAT:
-            if (hasNoData) {
-                this.isNotPointRange = !noData.isPoint();
-            }
             destinationNoDataFloat = (float) destinationNoDataDouble;
             break;
         case DataBuffer.TYPE_DOUBLE:
-            if (hasNoData) {
-                this.isNotPointRange = !noData.isPoint();
-            }
             break;
         default:
             throw new IllegalArgumentException("Wrong data Type");
         }
+
+        // Definition of the possible cases that can be found
+        // caseA = no ROI nor No Data
+        // caseB = ROI present but No Data not present
+        // caseC = No Data present but ROI not present
+        // Last case not defined = both ROI and No Data are present
+        caseA = !hasROI && !hasNoData;
+        caseB = hasROI && !hasNoData;
+        caseC = !hasROI && hasNoData;
     }
 
     @Override
@@ -315,9 +319,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -356,10 +357,10 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 int pixelValue = srcData[pos + (z - 1) * srcPixelStride + (h - 1)
                                         * srcScanlineStride] & 0xff;
                                 // Update of the temporary sum
-                                temp += (pixelValue * (long) dataHi[offsetX + z]);
+                                temp += (pixelValue * dataHi[offsetX + z]);
                             }
                             // Vertical sum update
-                            sum += ((temp + round) >> precisionBits) * (long) dataVi[offsetY + h];
+                            sum += ((temp + round) >> precisionBits) * dataVi[offsetY + h];
                         }
                         // Interpolation
                         s = (int) ((sum + round) >> precisionBits);
@@ -447,12 +448,11 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             long tempSum = 0;
                                             for (int z = 0; z < 4; z++) {
                                                 // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
-                                                        + z]);
+                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
                                             }
                                             // Vertical sum update
                                             sum += ((tempSum + round) >> precisionBits)
-                                                    * (long) dataVi[offsetY + h];
+                                                    * dataVi[offsetY + h];
                                         }
                                         // Interpolation
                                         s = (int) ((sum + round) >> precisionBits);
@@ -533,12 +533,11 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             long tempSum = 0;
                                             for (int z = 0; z < 4; z++) {
                                                 // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
-                                                        + z]);
+                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
                                             }
                                             // Vertical sum update
                                             sum += ((tempSum + round) >> precisionBits)
-                                                    * (long) dataVi[offsetY + h];
+                                                    * dataVi[offsetY + h];
                                         }
                                         // Interpolation
                                         s = (int) ((sum + round) >> precisionBits);
@@ -575,35 +574,33 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
-                        int bandOffset = bandOffsets[k];
+                        final int bandOffset = bandOffsets[k];
                         // cycle on the y values
                         for (int j = 0; j < dheight; j++) {
                             // pixel offset initialization
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
-                            int posy = ypos[j] + bandOffset;
+                            final int posy = ypos[j] + bandOffset;
                             // Y offset initialization
-                            int offsetY = 4 * yfrac[j];
+                            final int offsetY = 4 * yfrac[j];
                             // cycle on the x values
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
-                                int posx = xpos[i];
+                                final int posx = xpos[i];
 
-                                int pos = posx + posy;
+                                final int pos = posx + posy;
 
-                                long[][] pixelKernel = new long[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
+                                final long[][] pixelKernel = new long[4][4];
+                                final int[][] weightArray = new int[4][4];
+                                final int[] weightArrayVertical = new int[4];
 
-                                // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                // Otherwise it takes the related value.
+                                final long[] sumArray = new long[4];
 
                                 int temp = 0;
                                 // X offset initialization
-                                int offsetX = 4 * xfrac[i];
+                                final int offsetX = 4 * xfrac[i];
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                // and by roiscanlinestride on the y axis.
+                                // and check if the value is a No Data.
                                 for (int h = 0; h < 4; h++) {
                                     for (int z = 0; z < 4; z++) {
                                         // Selection of one pixel
@@ -615,39 +612,35 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             weightArray[h][z] = 1;
                                         }
                                     }
+
+                                    // Row temporary sum initialization
+                                    long tempSum = 0;
+                                    final long[] tempData = bicubicInpainting(pixelKernel[h],
+                                            weightArray[h]);
+                                    for (int z = 0; z < 4; z++) {
+                                        // Update of the temporary sum
+                                        tempSum += (tempData[z] * dataHi[offsetX + z]);
+                                    }
+                                    if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                        weightArrayVertical[h] = 1;
+                                    }
+                                    sumArray[h] = ((tempSum + round) >> precisionBits);
+
                                 }
-                                // Control if the 16 pixel are outside the ROI
+                                // Control if the 16 pixel are all No Data
                                 if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataByte;
                                 } else {
-
-                                    long[] sumArray = new long[4];
-
                                     long sum = 0;
                                     int s = 0;
 
-                                    for (int h = 0; h < 4; h++) {
-                                        // Row temporary sum initialization
-                                        long tempSum = 0;
-                                        long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h], null);
-                                        for (int z = 0; z < 4; z++) {
-                                            // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
-                                        }
-                                        weightArrayVertical[h] = weightArray[h][0]
-                                                + weightArray[h][1] + weightArray[h][2]
-                                                + weightArray[h][3];
-                                        sumArray[h] = ((tempSum + round) >> precisionBits);
-                                    }
-
-                                    long[] tempData = bicubicInpainting(sumArray, null,
+                                    final long[] tempData = bicubicInpainting(sumArray,
                                             weightArrayVertical);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] * dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -669,7 +662,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -750,25 +743,25 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 long tempSum = 0;
                                                 long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        weightArray[h], null);
+                                                        weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
-                                                    tempSum += (tempData[z] * (long) dataHi[offsetX
-                                                            + z]);
+                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = ((tempSum + round) >> precisionBits);
                                             }
 
-                                            long[] tempData = bicubicInpainting(sumArray, null,
+                                            long[] tempData = bicubicInpainting(sumArray,
                                                     weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
                                                 // Update of the temporary sum
-                                                sum += tempData[h] * (long) dataVi[offsetY + h];
+                                                sum += tempData[h] * dataVi[offsetY + h];
                                             }
 
                                             // Interpolation
@@ -867,25 +860,25 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 long tempSum = 0;
                                                 long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        weightArray[h], null);
+                                                        weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
-                                                    tempSum += (tempData[z] * (long) dataHi[offsetX
-                                                            + z]);
+                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = ((tempSum + round) >> precisionBits);
                                             }
 
-                                            long[] tempData = bicubicInpainting(sumArray, null,
+                                            long[] tempData = bicubicInpainting(sumArray,
                                                     weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
                                                 // Update of the temporary sum
-                                                sum += tempData[h] * (long) dataVi[offsetY + h];
+                                                sum += tempData[h] * dataVi[offsetY + h];
                                             }
 
                                             // Interpolation
@@ -951,9 +944,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -992,10 +982,10 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 int pixelValue = srcData[pos + (z - 1) * srcPixelStride + (h - 1)
                                         * srcScanlineStride] & 0xffff;
                                 // Update of the temporary sum
-                                temp += (pixelValue * (long) dataHi[offsetX + z]);
+                                temp += (pixelValue * dataHi[offsetX + z]);
                             }
                             // Vertical sum update
-                            sum += ((temp + round) >> precisionBits) * (long) dataVi[offsetY + h];
+                            sum += ((temp + round) >> precisionBits) * dataVi[offsetY + h];
                         }
                         // Interpolation
                         s = (int) ((sum + round) >> precisionBits);
@@ -1083,12 +1073,11 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             long tempSum = 0;
                                             for (int z = 0; z < 4; z++) {
                                                 // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
-                                                        + z]);
+                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
                                             }
                                             // Vertical sum update
                                             sum += ((tempSum + round) >> precisionBits)
-                                                    * (long) dataVi[offsetY + h];
+                                                    * dataVi[offsetY + h];
                                         }
                                         // Interpolation
                                         s = (int) ((sum + round) >> precisionBits);
@@ -1169,12 +1158,11 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             long tempSum = 0;
                                             for (int z = 0; z < 4; z++) {
                                                 // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
-                                                        + z]);
+                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
                                             }
                                             // Vertical sum update
                                             sum += ((tempSum + round) >> precisionBits)
-                                                    * (long) dataVi[offsetY + h];
+                                                    * dataVi[offsetY + h];
                                         }
                                         // Interpolation
                                         s = (int) ((sum + round) >> precisionBits);
@@ -1230,16 +1218,13 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 long[][] pixelKernel = new long[4][4];
                                 int[][] weightArray = new int[4][4];
                                 int[] weightArrayVertical = new int[4];
-
-                                // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                // Otherwise it takes the related value.
+                                long[] sumArray = new long[4];
 
                                 int temp = 0;
                                 // X offset initialization
                                 int offsetX = 4 * xfrac[i];
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                // and by roiscanlinestride on the y axis.
+                                // and check if the value is a No Data.
                                 for (int h = 0; h < 4; h++) {
                                     for (int z = 0; z < 4; z++) {
                                         // Selection of one pixel
@@ -1251,39 +1236,35 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             weightArray[h][z] = 1;
                                         }
                                     }
+
+                                    // Row temporary sum initialization
+                                    long tempSum = 0;
+                                    long[] tempData = bicubicInpainting(pixelKernel[h],
+                                            weightArray[h]);
+                                    for (int z = 0; z < 4; z++) {
+                                        // Update of the temporary sum
+                                        tempSum += (tempData[z] * dataHi[offsetX + z]);
+                                    }
+                                    if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                        weightArrayVertical[h] = 1;
+                                    }
+                                    sumArray[h] = ((tempSum + round) >> precisionBits);
+
                                 }
-                                // Control if the 16 pixel are outside the ROI
+                                // Control if the 16 pixel are all No Data
                                 if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataUShort;
                                 } else {
-
-                                    long[] sumArray = new long[4];
-
                                     long sum = 0;
                                     int s = 0;
 
-                                    for (int h = 0; h < 4; h++) {
-                                        // Row temporary sum initialization
-                                        long tempSum = 0;
-                                        long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h], null);
-                                        for (int z = 0; z < 4; z++) {
-                                            // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
-                                        }
-                                        weightArrayVertical[h] = weightArray[h][0]
-                                                + weightArray[h][1] + weightArray[h][2]
-                                                + weightArray[h][3];
-                                        sumArray[h] = ((tempSum + round) >> precisionBits);
-                                    }
-
-                                    long[] tempData = bicubicInpainting(sumArray, null,
+                                    long[] tempData = bicubicInpainting(sumArray,
                                             weightArrayVertical);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] * dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -1305,7 +1286,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -1386,25 +1367,25 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 long tempSum = 0;
                                                 long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        weightArray[h], null);
+                                                        weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
-                                                    tempSum += (tempData[z] * (long) dataHi[offsetX
-                                                            + z]);
+                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = ((tempSum + round) >> precisionBits);
                                             }
 
-                                            long[] tempData = bicubicInpainting(sumArray, null,
+                                            long[] tempData = bicubicInpainting(sumArray,
                                                     weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
                                                 // Update of the temporary sum
-                                                sum += tempData[h] * (long) dataVi[offsetY + h];
+                                                sum += tempData[h] * dataVi[offsetY + h];
                                             }
 
                                             // Interpolation
@@ -1503,25 +1484,25 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 long tempSum = 0;
                                                 long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        weightArray[h], null);
+                                                        weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
-                                                    tempSum += (tempData[z] * (long) dataHi[offsetX
-                                                            + z]);
+                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = ((tempSum + round) >> precisionBits);
                                             }
 
-                                            long[] tempData = bicubicInpainting(sumArray, null,
+                                            long[] tempData = bicubicInpainting(sumArray,
                                                     weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
                                                 // Update of the temporary sum
-                                                sum += tempData[h] * (long) dataVi[offsetY + h];
+                                                sum += tempData[h] * dataVi[offsetY + h];
                                             }
 
                                             // Interpolation
@@ -1587,9 +1568,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -1628,10 +1606,10 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 int pixelValue = srcData[pos + (z - 1) * srcPixelStride + (h - 1)
                                         * srcScanlineStride];
                                 // Update of the temporary sum
-                                temp += (pixelValue * (long) dataHi[offsetX + z]);
+                                temp += (pixelValue * dataHi[offsetX + z]);
                             }
                             // Vertical sum update
-                            sum += ((temp + round) >> precisionBits) * (long) dataVi[offsetY + h];
+                            sum += ((temp + round) >> precisionBits) * dataVi[offsetY + h];
                         }
                         // Interpolation
                         s = (int) ((sum + round) >> precisionBits);
@@ -1718,12 +1696,11 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             long tempSum = 0;
                                             for (int z = 0; z < 4; z++) {
                                                 // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
-                                                        + z]);
+                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
                                             }
                                             // Vertical sum update
                                             sum += ((tempSum + round) >> precisionBits)
-                                                    * (long) dataVi[offsetY + h];
+                                                    * dataVi[offsetY + h];
                                         }
                                         // Interpolation
                                         s = (int) ((sum + round) >> precisionBits);
@@ -1804,12 +1781,11 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             long tempSum = 0;
                                             for (int z = 0; z < 4; z++) {
                                                 // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
-                                                        + z]);
+                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
                                             }
                                             // Vertical sum update
                                             sum += ((tempSum + round) >> precisionBits)
-                                                    * (long) dataVi[offsetY + h];
+                                                    * dataVi[offsetY + h];
                                         }
                                         // Interpolation
                                         s = (int) ((sum + round) >> precisionBits);
@@ -1866,15 +1842,13 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 int[][] weightArray = new int[4][4];
                                 int[] weightArrayVertical = new int[4];
 
-                                // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                // Otherwise it takes the related value.
+                                long[] sumArray = new long[4];
 
                                 int temp = 0;
                                 // X offset initialization
                                 int offsetX = 4 * xfrac[i];
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                // and by roiscanlinestride on the y axis.
+                                // and check if the value is a No Data.
                                 for (int h = 0; h < 4; h++) {
                                     for (int z = 0; z < 4; z++) {
                                         // Selection of one pixel
@@ -1886,39 +1860,36 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             weightArray[h][z] = 1;
                                         }
                                     }
+
+                                    // Row temporary sum initialization
+                                    long tempSum = 0;
+                                    long[] tempData = bicubicInpainting(pixelKernel[h],
+                                            weightArray[h]);
+                                    for (int z = 0; z < 4; z++) {
+                                        // Update of the temporary sum
+                                        tempSum += (tempData[z] * dataHi[offsetX + z]);
+                                    }
+                                    if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                        weightArrayVertical[h] = 1;
+                                    }
+                                    sumArray[h] = ((tempSum + round) >> precisionBits);
+
                                 }
-                                // Control if the 16 pixel are outside the ROI
+                                // Control if the 16 pixel are all No Data
                                 if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataShort;
                                 } else {
 
-                                    long[] sumArray = new long[4];
-
                                     long sum = 0;
                                     int s = 0;
 
-                                    for (int h = 0; h < 4; h++) {
-                                        // Row temporary sum initialization
-                                        long tempSum = 0;
-                                        long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h], null);
-                                        for (int z = 0; z < 4; z++) {
-                                            // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
-                                        }
-                                        weightArrayVertical[h] = weightArray[h][0]
-                                                + weightArray[h][1] + weightArray[h][2]
-                                                + weightArray[h][3];
-                                        sumArray[h] = ((tempSum + round) >> precisionBits);
-                                    }
-
-                                    long[] tempData = bicubicInpainting(sumArray, null,
+                                    long[] tempData = bicubicInpainting(sumArray,
                                             weightArrayVertical);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] * dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -1940,7 +1911,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -2021,25 +1992,25 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 long tempSum = 0;
                                                 long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        weightArray[h], null);
+                                                        weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
-                                                    tempSum += (tempData[z] * (long) dataHi[offsetX
-                                                            + z]);
+                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = ((tempSum + round) >> precisionBits);
                                             }
 
-                                            long[] tempData = bicubicInpainting(sumArray, null,
+                                            long[] tempData = bicubicInpainting(sumArray,
                                                     weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
                                                 // Update of the temporary sum
-                                                sum += tempData[h] * (long) dataVi[offsetY + h];
+                                                sum += tempData[h] * dataVi[offsetY + h];
                                             }
 
                                             // Interpolation
@@ -2138,25 +2109,25 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 long tempSum = 0;
                                                 long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        weightArray[h], null);
+                                                        weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
-                                                    tempSum += (tempData[z] * (long) dataHi[offsetX
-                                                            + z]);
+                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = ((tempSum + round) >> precisionBits);
                                             }
 
-                                            long[] tempData = bicubicInpainting(sumArray, null,
+                                            long[] tempData = bicubicInpainting(sumArray,
                                                     weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
                                                 // Update of the temporary sum
-                                                sum += tempData[h] * (long) dataVi[offsetY + h];
+                                                sum += tempData[h] * dataVi[offsetY + h];
                                             }
 
                                             // Interpolation
@@ -2222,9 +2193,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -2263,10 +2231,10 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 int pixelValue = srcData[pos + (z - 1) * srcPixelStride + (h - 1)
                                         * srcScanlineStride];
                                 // Update of the temporary sum
-                                temp += (pixelValue * (long) dataHi[offsetX + z]);
+                                temp += (pixelValue * dataHi[offsetX + z]);
                             }
                             // Vertical sum update
-                            sum += ((temp + round) >> precisionBits) * (long) dataVi[offsetY + h];
+                            sum += ((temp + round) >> precisionBits) * dataVi[offsetY + h];
                         }
                         // Interpolation
                         s = (int) ((sum + round) >> precisionBits);
@@ -2346,12 +2314,11 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             long tempSum = 0;
                                             for (int z = 0; z < 4; z++) {
                                                 // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
-                                                        + z]);
+                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
                                             }
                                             // Vertical sum update
                                             sum += ((tempSum + round) >> precisionBits)
-                                                    * (long) dataVi[offsetY + h];
+                                                    * dataVi[offsetY + h];
                                         }
                                         // Interpolation
                                         s = (int) ((sum + round) >> precisionBits);
@@ -2425,12 +2392,11 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             long tempSum = 0;
                                             for (int z = 0; z < 4; z++) {
                                                 // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
-                                                        + z]);
+                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
                                             }
                                             // Vertical sum update
                                             sum += ((tempSum + round) >> precisionBits)
-                                                    * (long) dataVi[offsetY + h];
+                                                    * dataVi[offsetY + h];
                                         }
                                         // Interpolation
                                         s = (int) ((sum + round) >> precisionBits);
@@ -2480,15 +2446,13 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 int[][] weightArray = new int[4][4];
                                 int[] weightArrayVertical = new int[4];
 
-                                // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                // Otherwise it takes the related value.
+                                long[] sumArray = new long[4];
 
                                 int temp = 0;
                                 // X offset initialization
                                 int offsetX = 4 * xfrac[i];
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                // and by roiscanlinestride on the y axis.
+                                // and check if the value is a No Data.
                                 for (int h = 0; h < 4; h++) {
                                     for (int z = 0; z < 4; z++) {
                                         // Selection of one pixel
@@ -2500,39 +2464,35 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             weightArray[h][z] = 1;
                                         }
                                     }
+
+                                    // Row temporary sum initialization
+                                    long tempSum = 0;
+                                    long[] tempData = bicubicInpainting(pixelKernel[h],
+                                            weightArray[h]);
+                                    for (int z = 0; z < 4; z++) {
+                                        // Update of the temporary sum
+                                        tempSum += (tempData[z] * dataHi[offsetX + z]);
+                                    }
+                                    if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                        weightArrayVertical[h] = 1;
+                                    }
+                                    sumArray[h] = ((tempSum + round) >> precisionBits);
                                 }
-                                // Control if the 16 pixel are outside the ROI
+                                // Control if the 16 pixel are all No Data
                                 if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataShort;
                                 } else {
 
-                                    long[] sumArray = new long[4];
-
                                     long sum = 0;
                                     int s = 0;
 
-                                    for (int h = 0; h < 4; h++) {
-                                        // Row temporary sum initialization
-                                        long tempSum = 0;
-                                        long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h], null);
-                                        for (int z = 0; z < 4; z++) {
-                                            // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
-                                        }
-                                        weightArrayVertical[h] = weightArray[h][0]
-                                                + weightArray[h][1] + weightArray[h][2]
-                                                + weightArray[h][3];
-                                        sumArray[h] = ((tempSum + round) >> precisionBits);
-                                    }
-
-                                    long[] tempData = bicubicInpainting(sumArray, null,
+                                    long[] tempData = bicubicInpainting(sumArray,
                                             weightArrayVertical);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] * dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -2547,7 +2507,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -2627,25 +2587,25 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 long tempSum = 0;
                                                 long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        weightArray[h], null);
+                                                        weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
-                                                    tempSum += (tempData[z] * (long) dataHi[offsetX
-                                                            + z]);
+                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = ((tempSum + round) >> precisionBits);
                                             }
 
-                                            long[] tempData = bicubicInpainting(sumArray, null,
+                                            long[] tempData = bicubicInpainting(sumArray,
                                                     weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
                                                 // Update of the temporary sum
-                                                sum += tempData[h] * (long) dataVi[offsetY + h];
+                                                sum += tempData[h] * dataVi[offsetY + h];
                                             }
 
                                             // Interpolation
@@ -2737,25 +2697,25 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 long tempSum = 0;
                                                 long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        weightArray[h], null);
+                                                        weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
-                                                    tempSum += (tempData[z] * (long) dataHi[offsetX
-                                                            + z]);
+                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = ((tempSum + round) >> precisionBits);
                                             }
 
-                                            long[] tempData = bicubicInpainting(sumArray, null,
+                                            long[] tempData = bicubicInpainting(sumArray,
                                                     weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
                                                 // Update of the temporary sum
-                                                sum += tempData[h] * (long) dataVi[offsetY + h];
+                                                sum += tempData[h] * dataVi[offsetY + h];
                                             }
 
                                             // Interpolation
@@ -2814,9 +2774,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -3081,56 +3038,46 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 int[][] weightArray = new int[4][4];
                                 int[] weightArrayVertical = new int[4];
 
-                                // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                // Otherwise it takes the related value.
+                                double[] sumArray = new double[4];
 
                                 int temp = 0;
                                 // X offset initialization
                                 int offsetX = 4 * xfrac[i];
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                // and by roiscanlinestride on the y axis.
+                                // and check if the value is a No Data.
                                 for (int h = 0; h < 4; h++) {
                                     for (int z = 0; z < 4; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcData[pos + (z - 1) * srcPixelStride
                                                 + (h - 1) * srcScanlineStride];
 
-                                        if (noData.contains((float) pixelKernel[h][z])
-                                                || (isNotPointRange && Float
-                                                        .isNaN((float) pixelKernel[h][z]))) {
-                                            weightArray[h][z] = 0;
-                                        } else {
+                                        if (!noData.contains((float) pixelKernel[h][z])) {
                                             temp++;
                                             weightArray[h][z] = 1;
                                         }
                                     }
+
+                                    // Row temporary sum initialization
+                                    double tempSum = 0;
+                                    double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
+                                            weightArray[h]);
+                                    for (int z = 0; z < 4; z++) {
+                                        // Update of the temporary sum
+                                        tempSum += (tempData[z] * dataHf[offsetX + z]);
+                                    }
+                                    if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                        weightArrayVertical[h] = 1;
+                                    }
+                                    sumArray[h] = tempSum;
+
                                 }
-                                // Control if the 16 pixel are outside the ROI
+                                // Control if the 16 pixel are all No Data
                                 if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
-
-                                    double[] sumArray = new double[4];
-
                                     double sum = 0;
 
-                                    for (int h = 0; h < 4; h++) {
-                                        // Row temporary sum initialization
-                                        double tempSum = 0;
-                                        double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
-                                                weightArray[h], null);
-                                        for (int z = 0; z < 4; z++) {
-                                            // Update of the temporary sum
-                                            tempSum += (tempData[z] * dataHf[offsetX + z]);
-                                        }
-                                        weightArrayVertical[h] = weightArray[h][0]
-                                                + weightArray[h][1] + weightArray[h][2]
-                                                + weightArray[h][3];
-                                        sumArray[h] = tempSum;
-                                    }
-
-                                    double[] tempData = bicubicInpaintingDouble(sumArray, null,
+                                    double[] tempData = bicubicInpaintingDouble(sumArray,
                                             weightArrayVertical);
 
                                     // Vertical sum update
@@ -3156,7 +3103,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -3216,11 +3163,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                     tempROI += ((roiDataArray[index]) != 0 ? 1 : 0);
                                                 }
 
-                                                if (noData.contains((float) pixelKernel[h][z])
-                                                        || (isNotPointRange && Float
-                                                                .isNaN((float) pixelKernel[h][z]))) {
-                                                    weightArray[h][z] = 0;
-                                                } else {
+                                                if (!noData.contains((float) pixelKernel[h][z])) {
                                                     tempND++;
                                                     weightArray[h][z] = 1;
                                                 }
@@ -3239,19 +3182,20 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 double tempSum = 0;
                                                 double[] tempData = bicubicInpaintingDouble(
-                                                        pixelKernel[h], weightArray[h], null);
+                                                        pixelKernel[h], weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
                                                     tempSum += (tempData[z] * dataHf[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = tempSum;
                                             }
 
                                             double[] tempData = bicubicInpaintingDouble(sumArray,
-                                                    null, weightArrayVertical);
+                                                    weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
@@ -3332,11 +3276,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 tempROI += roiIter.getSample(x0 + h - 1,
                                                         y0 + z - 1, 0);
 
-                                                if (noData.contains((float) pixelKernel[h][z])
-                                                        || (isNotPointRange && Float
-                                                                .isNaN((float) pixelKernel[h][z]))) {
-                                                    weightArray[h][z] = 0;
-                                                } else {
+                                                if (!noData.contains((float) pixelKernel[h][z])) {
                                                     tempND++;
                                                     weightArray[h][z] = 1;
                                                 }
@@ -3356,19 +3296,20 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 double tempSum = 0;
                                                 double[] tempData = bicubicInpaintingDouble(
-                                                        pixelKernel[h], weightArray[h], null);
+                                                        pixelKernel[h], weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
                                                     tempSum += (tempData[z] * dataHf[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = tempSum;
                                             }
 
                                             double[] tempData = bicubicInpaintingDouble(sumArray,
-                                                    null, weightArrayVertical);
+                                                    weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
@@ -3437,9 +3378,6 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             roiDataLength = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
         if (caseA) {
             // for all bands
             for (int k = 0; k < dnumBands; k++) {
@@ -3683,56 +3621,47 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 int[][] weightArray = new int[4][4];
                                 int[] weightArrayVertical = new int[4];
 
-                                // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                // Otherwise it takes the related value.
+                                double[] sumArray = new double[4];
 
                                 int temp = 0;
                                 // X offset initialization
                                 int offsetX = 4 * xfrac[i];
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                // and by roiscanlinestride on the y axis.
+                                // and check if the value is a No Data.
                                 for (int h = 0; h < 4; h++) {
                                     for (int z = 0; z < 4; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcData[pos + (z - 1) * srcPixelStride
                                                 + (h - 1) * srcScanlineStride];
 
-                                        if (noData.contains(pixelKernel[h][z])
-                                                || (isNotPointRange && Double
-                                                        .isNaN(pixelKernel[h][z]))) {
-                                            weightArray[h][z] = 0;
-                                        } else {
+                                        if (!noData.contains(pixelKernel[h][z])) {
                                             temp++;
                                             weightArray[h][z] = 1;
                                         }
                                     }
+
+                                    // Row temporary sum initialization
+                                    double tempSum = 0;
+                                    double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
+                                            weightArray[h]);
+                                    for (int z = 0; z < 4; z++) {
+                                        // Update of the temporary sum
+                                        tempSum += (tempData[z] * dataHd[offsetX + z]);
+                                    }
+                                    if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                        weightArrayVertical[h] = 1;
+                                    }
+                                    sumArray[h] = tempSum;
+
                                 }
-                                // Control if the 16 pixel are outside the ROI
+                                // Control if the 16 pixel are all No Data
                                 if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
 
-                                    double[] sumArray = new double[4];
-
                                     double sum = 0;
 
-                                    for (int h = 0; h < 4; h++) {
-                                        // Row temporary sum initialization
-                                        double tempSum = 0;
-                                        double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
-                                                weightArray[h], null);
-                                        for (int z = 0; z < 4; z++) {
-                                            // Update of the temporary sum
-                                            tempSum += (tempData[z] * dataHd[offsetX + z]);
-                                        }
-                                        weightArrayVertical[h] = weightArray[h][0]
-                                                + weightArray[h][1] + weightArray[h][2]
-                                                + weightArray[h][3];
-                                        sumArray[h] = tempSum;
-                                    }
-
-                                    double[] tempData = bicubicInpaintingDouble(sumArray, null,
+                                    double[] tempData = bicubicInpaintingDouble(sumArray,
                                             weightArrayVertical);
 
                                     // Vertical sum update
@@ -3751,7 +3680,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                             dstlineOffset += dstScanlineStride;
                         }
                     }
-                } else if (hasROI && hasNoData) {
+                } else {
                     if (useRoiAccessor) {
                         // for all bands
                         for (int k = 0; k < dnumBands; k++) {
@@ -3811,11 +3740,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                     tempROI += ((roiDataArray[index]) != 0 ? 1 : 0);
                                                 }
 
-                                                if (noData.contains(pixelKernel[h][z])
-                                                        || (isNotPointRange && Double
-                                                                .isNaN(pixelKernel[h][z]))) {
-                                                    weightArray[h][z] = 0;
-                                                } else {
+                                                if (!noData.contains(pixelKernel[h][z])) {
                                                     tempND++;
                                                     weightArray[h][z] = 1;
                                                 }
@@ -3834,19 +3759,20 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 double tempSum = 0;
                                                 double[] tempData = bicubicInpaintingDouble(
-                                                        pixelKernel[h], weightArray[h], null);
+                                                        pixelKernel[h], weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
                                                     tempSum += (tempData[z] * dataHd[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = tempSum;
                                             }
 
                                             double[] tempData = bicubicInpaintingDouble(sumArray,
-                                                    null, weightArrayVertical);
+                                                    weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
@@ -3919,11 +3845,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 tempROI += roiIter.getSample(x0 + h - 1,
                                                         y0 + z - 1, 0);
 
-                                                if (noData.contains(pixelKernel[h][z])
-                                                        || (isNotPointRange && Double
-                                                                .isNaN(pixelKernel[h][z]))) {
-                                                    weightArray[h][z] = 0;
-                                                } else {
+                                                if (!noData.contains(pixelKernel[h][z])) {
                                                     tempND++;
                                                     weightArray[h][z] = 1;
                                                 }
@@ -3943,19 +3865,20 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 // Row temporary sum initialization
                                                 double tempSum = 0;
                                                 double[] tempData = bicubicInpaintingDouble(
-                                                        pixelKernel[h], weightArray[h], null);
+                                                        pixelKernel[h], weightArray[h]);
                                                 for (int z = 0; z < 4; z++) {
                                                     // Update of the temporary sum
                                                     tempSum += (tempData[z] * dataHd[offsetX + z]);
                                                 }
-                                                weightArrayVertical[h] = weightArray[h][0]
-                                                        + weightArray[h][1] + weightArray[h][2]
-                                                        + weightArray[h][3];
+                                                if ((weightArray[h][0] + weightArray[h][1]
+                                                        + weightArray[h][2] + weightArray[h][3]) > 0) {
+                                                    weightArrayVertical[h] = 1;
+                                                }
                                                 sumArray[h] = tempSum;
                                             }
 
                                             double[] tempData = bicubicInpaintingDouble(sumArray,
-                                                    null, weightArrayVertical);
+                                                    weightArrayVertical);
 
                                             // Vertical sum update
                                             for (int h = 0; h < 4; h++) {
@@ -3985,144 +3908,113 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
     }
 
     // This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
-    private long[] bicubicInpainting(long[] array, int[] weightArray, int[] weight0) {
+    private long[] bicubicInpainting(long[] array, int[] weightArray) {
+        // Calculation of the number of data
+        final int sum = weightArray[0] + weightArray[1] + weightArray[2] + weightArray[3];
+        // Absence of No Data, the pixels are returned.
+        if (sum == 4) {
+            return array;
+        }
+
         long s_ = array[0];
         long s0 = array[1];
         long s1 = array[2];
         long s2 = array[3];
 
-        if (weightArray == null) {
-            weightArray = new int[4];
-            if (s_ == 0 && weight0[0] == 0) {
-                weightArray[0] = 0;
-            } else {
-                weightArray[0] = 1;
-            }
-            if (s0 == 0 && weight0[1] == 0) {
-                weightArray[1] = 0;
-            } else {
-                weightArray[1] = 1;
-            }
-            if (s1 == 0 && weight0[2] == 0) {
-                weightArray[2] = 0;
-            } else {
-                weightArray[2] = 1;
-            }
-            if (s2 == 0 && weight0[3] == 0) {
-                weightArray[3] = 0;
-            } else {
-                weightArray[3] = 1;
-            }
-        }
-
         // empty array containing the final values of the selected 4 pixels
         long[] emptyArray = new long[4];
 
-        // Calculation of the number of data
-        int sum = weightArray[0] + weightArray[1] + weightArray[2] + weightArray[3];
         // mean value used in calculations
         long meanValue = 0;
+
         switch (sum) {
         // All the 4 pixels are no data, an array of 0 data is returned
         case 0:
             return emptyArray;
             // Only one pixel is a valid data, all the pixel of the line have the same value.
         case 1:
-            long validData = 0;
-            if (weightArray[0] == 1) {
-                validData = s_;
-            } else if (weightArray[1] == 1) {
-                validData = s0;
-            } else if (weightArray[2] == 1) {
-                validData = s1;
+            // boolean comparisons
+            final boolean w0is1 = weightArray[0] == 1;
+            final boolean w3is1 = weightArray[3] == 1;
+            final boolean w2is1 = weightArray[2] == 1;
+
+            if (w0is1) {
+                Arrays.fill(emptyArray, s_);
+            } else if (w3is1) {
+                Arrays.fill(emptyArray, s2);
+            } else if (w2is1) {
+                Arrays.fill(emptyArray, s1);
             } else {
-                validData = s2;
+                Arrays.fill(emptyArray, s0);
             }
-            emptyArray[0] = validData;
-            emptyArray[1] = validData;
-            emptyArray[2] = validData;
-            emptyArray[3] = validData;
             return emptyArray;
             // Only 2 pixels are valid data. If the No Data are on the border, they takes the value of the adjacent pixel,
             // else , they take an average of the 2 neighbor pixels with valid data. A String representation is provided for a better
             // comprehension. 0 is no Data and x is valid data.
         case 2:
+            // boolean comparisons
+            final boolean w0is02 = weightArray[0] == 0;
+            final boolean w1is02 = weightArray[1] == 0;
+            final boolean w2is02 = weightArray[2] == 0;
+            final boolean w3is02 = weightArray[3] == 0;
 
             // 0 0 x x
-            if (weightArray[0] == 0 && weightArray[1] == 0) {
-                emptyArray[0] = s1;
-                emptyArray[1] = s1;
-                emptyArray[2] = s1;
-                emptyArray[3] = s2;
-                // 0 x 0 x
-            } else if (weightArray[0] == 0 && weightArray[2] == 0) {
-                meanValue = (s0 + s2) / 2;
-                emptyArray[0] = s0;
-                emptyArray[1] = s0;
-                emptyArray[2] = meanValue;
-                emptyArray[3] = s2;
-                // 0 x x 0
-            } else if (weightArray[0] == 0 && weightArray[3] == 0) {
-                emptyArray[0] = s0;
-                emptyArray[1] = s0;
-                emptyArray[2] = s1;
-                emptyArray[3] = s1;
-                // x 0 0 x
-            } else if (weightArray[1] == 0 && weightArray[2] == 0) {
-                meanValue = (s_ + s2) / 2;
-                emptyArray[0] = s_;
-                emptyArray[1] = meanValue;
-                emptyArray[2] = meanValue;
-                emptyArray[3] = s2;
-                // x 0 x 0
-            } else if (weightArray[1] == 0 && weightArray[3] == 0) {
-                meanValue = (s_ + s1) / 2;
-                emptyArray[0] = s_;
-                emptyArray[1] = meanValue;
-                emptyArray[2] = s1;
-                emptyArray[3] = s1;
+            if (w0is02 && w1is02) {
+                s_ = s1;
+                s0 = s1;
                 // x x 0 0
+            } else if (w2is02 && w3is02) {
+                s1 = s0;
+                s2 = s0;
+                // 0 x x 0
+            } else if (w0is02 && w3is02) {
+                s_ = s0;
+                s2 = s1;
+                // x 0 0 x
+            } else if (w1is02 && w2is02) {
+                meanValue = (s_ + s2) / 2;
+                s0 = meanValue;
+                s1 = meanValue;
+                // x 0 x 0
+            } else if (w1is02 && w3is02) {
+                meanValue = (s_ + s1) / 2;
+                s0 = meanValue;
+                s2 = s1;
+                // 0 x 0 x
             } else {
-                emptyArray[0] = s_;
-                emptyArray[1] = s0;
-                emptyArray[2] = s0;
-                emptyArray[3] = s0;
+                meanValue = (s0 + s2) / 2;
+                s_ = s0;
+                s1 = meanValue;
             }
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
             return emptyArray;
             // Only one pixel is a No Data. If it is at the boundaries, then it replicates the value
             // of the adjacent pixel, else if takes an average of the 2 neighbor pixels.A String representation is provided for a better
             // comprehension. 0 is no Data and x is valid data.
         case 3:
+            // boolean comparisons
+            final boolean w0is03 = weightArray[0] == 0;
+            final boolean w2is03 = weightArray[2] == 0;
+            final boolean w3is03 = weightArray[3] == 0;
+
             // 0 x x x
-            if (weightArray[0] == 0) {
-                emptyArray[0] = s0;
-                emptyArray[1] = s0;
-                emptyArray[2] = s1;
-                emptyArray[3] = s2;
-                // x 0 x x
-            } else if (weightArray[1] == 0) {
-                meanValue = (s_ + s1) / 2;
-                emptyArray[0] = s_;
-                emptyArray[1] = meanValue;
-                emptyArray[2] = s1;
-                emptyArray[3] = s2;
-                // x x 0 x
-            } else if (weightArray[2] == 0) {
-                meanValue = (s0 + s2) / 2;
-                emptyArray[0] = s_;
-                emptyArray[1] = s0;
-                emptyArray[2] = meanValue;
-                emptyArray[3] = s2;
+            if (w0is03) {
+                s_ = s0;
                 // x x x 0
+            } else if (w3is03) {
+                s2 = s1;
+                // x x 0 x
+            } else if (w2is03) {
+                meanValue = (s0 + s2) / 2;
+                s1 = meanValue;
+                // x 0 x x
             } else {
-                emptyArray[0] = s_;
-                emptyArray[1] = s0;
-                emptyArray[2] = s1;
-                emptyArray[3] = s1;
+                meanValue = (s_ + s1) / 2;
+                s0 = meanValue;
             }
-            return emptyArray;
-            // Absence of No Data, the pixels are returned.
-        case 4:
             emptyArray[0] = s_;
             emptyArray[1] = s0;
             emptyArray[2] = s1;
@@ -4134,41 +4026,22 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
     }
 
     // This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
-    private double[] bicubicInpaintingDouble(double[] array, int[] weightArray, int[] weight0) {
+    private double[] bicubicInpaintingDouble(double[] array, int[] weightArray) {
+        // Calculation of the number of data
+        final int sum = weightArray[0] + weightArray[1] + weightArray[2] + weightArray[3];
+        // Absence of No Data, the pixels are returned.
+        if (sum == 4) {
+            return array;
+        }
+
         double s_ = array[0];
         double s0 = array[1];
         double s1 = array[2];
         double s2 = array[3];
 
-        if (weightArray == null) {
-            weightArray = new int[4];
-            if (s_ == 0 && weight0[0] == 0) {
-                weightArray[0] = 0;
-            } else {
-                weightArray[0] = 1;
-            }
-            if (s0 == 0 && weight0[1] == 0) {
-                weightArray[1] = 0;
-            } else {
-                weightArray[1] = 1;
-            }
-            if (s1 == 0 && weight0[2] == 0) {
-                weightArray[2] = 0;
-            } else {
-                weightArray[2] = 1;
-            }
-            if (s2 == 0 && weight0[3] == 0) {
-                weightArray[3] = 0;
-            } else {
-                weightArray[3] = 1;
-            }
-        }
-
         // empty array containing the final values of the selected 4 pixels
-        double[] emptyArray = new double[4];
+        final double[] emptyArray = new double[4];
 
-        // Calculation of the number of data
-        int sum = weightArray[0] + weightArray[1] + weightArray[2] + weightArray[3];
         // mean value used in calculations
         double meanValue = 0;
         switch (sum) {
@@ -4176,102 +4049,89 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
         case 0:
             return emptyArray;
             // Only one pixel is a valid data, all the pixel of the line have the same value.
+            // boolean comparisons
         case 1:
-            double validData = 0;
-            if (weightArray[0] == 1) {
-                validData = s_;
-            } else if (weightArray[1] == 1) {
-                validData = s0;
-            } else if (weightArray[2] == 1) {
-                validData = s1;
+            final boolean w0is1 = weightArray[0] == 1;
+            final boolean w3is1 = weightArray[3] == 1;
+            final boolean w2is1 = weightArray[2] == 1;
+
+            if (w0is1) {
+                Arrays.fill(emptyArray, s_);
+            } else if (w3is1) {
+                Arrays.fill(emptyArray, s2);
+            } else if (w2is1) {
+                Arrays.fill(emptyArray, s1);
             } else {
-                validData = s2;
+                Arrays.fill(emptyArray, s0);
             }
-            emptyArray[0] = validData;
-            emptyArray[1] = validData;
-            emptyArray[2] = validData;
-            emptyArray[3] = validData;
             return emptyArray;
             // Only 2 pixels are valid data. If the No Data are on the border, they takes the value of the adjacent pixel,
             // else , they take an average of the 2 neighbor pixels with valid data. A String representation is provided for a better
             // comprehension. 0 is no Data and x is valid data.
         case 2:
+            // boolean comparisons
+            final boolean w0is02 = weightArray[0] == 0;
+            final boolean w1is02 = weightArray[1] == 0;
+            final boolean w2is02 = weightArray[2] == 0;
+            final boolean w3is02 = weightArray[3] == 0;
 
             // 0 0 x x
-            if (weightArray[0] == 0 && weightArray[1] == 0) {
-                emptyArray[0] = s1;
-                emptyArray[1] = s1;
-                emptyArray[2] = s1;
-                emptyArray[3] = s2;
-                // 0 x 0 x
-            } else if (weightArray[0] == 0 && weightArray[2] == 0) {
-                meanValue = (s0 + s2) / 2;
-                emptyArray[0] = s0;
-                emptyArray[1] = s0;
-                emptyArray[2] = meanValue;
-                emptyArray[3] = s2;
-                // 0 x x 0
-            } else if (weightArray[0] == 0 && weightArray[3] == 0) {
-                emptyArray[0] = s0;
-                emptyArray[1] = s0;
-                emptyArray[2] = s1;
-                emptyArray[3] = s1;
-                // x 0 0 x
-            } else if (weightArray[1] == 0 && weightArray[2] == 0) {
-                meanValue = (s_ + s2) / 2;
-                emptyArray[0] = s_;
-                emptyArray[1] = meanValue;
-                emptyArray[2] = meanValue;
-                emptyArray[3] = s2;
-                // x 0 x 0
-            } else if (weightArray[1] == 0 && weightArray[3] == 0) {
-                meanValue = (s_ + s1) / 2;
-                emptyArray[0] = s_;
-                emptyArray[1] = meanValue;
-                emptyArray[2] = s1;
-                emptyArray[3] = s1;
+            if (w0is02 && w1is02) {
+                s_ = s1;
+                s0 = s1;
                 // x x 0 0
+            } else if (w2is02 && w3is02) {
+                s1 = s0;
+                s2 = s0;
+                // 0 x x 0
+            } else if (w0is02 && w3is02) {
+                s_ = s0;
+                s2 = s1;
+                // x 0 0 x
+            } else if (w1is02 && w2is02) {
+                meanValue = (s_ + s2) / 2;
+                s0 = meanValue;
+                s1 = meanValue;
+                // x 0 x 0
+            } else if (w1is02 && w3is02) {
+                meanValue = (s_ + s1) / 2;
+                s0 = meanValue;
+                s2 = s1;
+                // 0 x 0 x
             } else {
-                emptyArray[0] = s_;
-                emptyArray[1] = s0;
-                emptyArray[2] = s0;
-                emptyArray[3] = s0;
+                meanValue = (s0 + s2) / 2;
+                s_ = s0;
+                s1 = meanValue;
             }
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
             return emptyArray;
             // Only one pixel is a No Data. If it is at the boundaries, then it replicates the value
             // of the adjacent pixel, else if takes an average of the 2 neighbor pixels.A String representation is provided for a better
             // comprehension. 0 is no Data and x is valid data.
         case 3:
+            // boolean comparisons
+            final boolean w0is03 = weightArray[0] == 0;
+            final boolean w2is03 = weightArray[2] == 0;
+            final boolean w3is03 = weightArray[3] == 0;
+
             // 0 x x x
-            if (weightArray[0] == 0) {
-                emptyArray[0] = s0;
-                emptyArray[1] = s0;
-                emptyArray[2] = s1;
-                emptyArray[3] = s2;
-                // x 0 x x
-            } else if (weightArray[1] == 0) {
-                meanValue = (s_ + s1) / 2;
-                emptyArray[0] = s_;
-                emptyArray[1] = meanValue;
-                emptyArray[2] = s1;
-                emptyArray[3] = s2;
-                // x x 0 x
-            } else if (weightArray[2] == 0) {
-                meanValue = (s0 + s2) / 2;
-                emptyArray[0] = s_;
-                emptyArray[1] = s0;
-                emptyArray[2] = meanValue;
-                emptyArray[3] = s2;
+            if (w0is03) {
+                s_ = s0;
                 // x x x 0
+            } else if (w3is03) {
+                s2 = s1;
+                // x x 0 x
+            } else if (w2is03) {
+                meanValue = (s0 + s2) / 2;
+                s1 = meanValue;
+                // x 0 x x
             } else {
-                emptyArray[0] = s_;
-                emptyArray[1] = s0;
-                emptyArray[2] = s1;
-                emptyArray[3] = s1;
+                meanValue = (s_ + s1) / 2;
+                s0 = meanValue;
             }
-            return emptyArray;
-            // Absence of No Data, the pixels are returned.
-        case 4:
             emptyArray[0] = s_;
             emptyArray[1] = s0;
             emptyArray[2] = s1;

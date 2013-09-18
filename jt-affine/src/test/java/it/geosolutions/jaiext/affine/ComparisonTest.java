@@ -107,18 +107,18 @@ public class ComparisonTest {
     /** RenderingHints used for selecting the borderExtender */
     private static RenderingHints hints;
 
+    private static int[][] weight;
+
     @BeforeClass
     public static void initialSetup() throws FileNotFoundException, IOException {
         int dataType = DataBuffer.TYPE_BYTE;
 
-        
-        //Range creation if selected
-        Range rangeND= null;
-        if(RANGE_USED){
-            rangeND = RangeFactory.create((byte)100,true,(byte)100,true);
+        // Range creation if selected
+        Range rangeND = null;
+        if (RANGE_USED) {
+            rangeND = RangeFactory.create((byte) 100, true, (byte) 100, true);
         }
-        
-        
+
         // Interpolators instantiation
         interpNearOld = new javax.media.jai.InterpolationNearest();
         interpNearNew = new InterpolationNearest(rangeND, false, destinationNoData, dataType);
@@ -149,7 +149,267 @@ public class ComparisonTest {
         translateTransform = AffineTransform.getTranslateInstance(100, 0);
         // 2 x scale
         scaleTransform = AffineTransform.getScaleInstance(1.5f, 1.5f);
+        
+        weight = new int[4][BENCHMARK_ITERATION+NOT_BENCHMARK_ITERATION];
+        
+        for(int i = 0;i<BENCHMARK_ITERATION+NOT_BENCHMARK_ITERATION;i++){
+            
+            double rnd = Math.random();
+            
+            if(rnd>=0 & rnd<0.25d){
+                weight[0][i]=0;
+                weight[1][i]=1;
+                weight[2][i]=0;
+                weight[3][i]=0;
+            }else if(rnd>=0.25d & rnd<0.5d){
+                weight[0][i]=0;
+                weight[1][i]=1;
+                weight[2][i]=0;
+                weight[3][i]=1;
+            }else if(rnd>=0.25d & rnd<0.5d){
+                weight[0][i]=1;
+                weight[1][i]=1;
+                weight[2][i]=0;
+                weight[3][i]=0;
+            }else{
+                weight[0][i]=1;
+                weight[1][i]=1;
+                weight[2][i]=1;
+                weight[3][i]=1;
+            }
+        }
+        
     }
+
+    @Test
+    public void testSpeedCalculationInt() {
+        
+        //shift and round defined
+        // Internal precision required for position calculations
+        int one = 1 << DEFAULT_SUBSAMPLE_BITS;
+
+        // Subsampling related variables
+        int shift2 = 2 * DEFAULT_SUBSAMPLE_BITS;
+        int round2 = 1 << (shift2 - 1);
+        
+        int s0 = 0;
+        int s1 = 0;
+        int s = 0;
+        
+        int s00=0;
+        int s01=1;
+        int s10=2;
+        int s11=3;
+        
+        int xfrac = (int) (Math.random()*Math.pow(2, DEFAULT_SUBSAMPLE_BITS));
+        int yfrac = (int) (Math.random()*Math.pow(2, DEFAULT_SUBSAMPLE_BITS));
+        
+        long mean = 0;
+        long max = Long.MIN_VALUE;
+        long min = Long.MAX_VALUE;
+        
+        for(int i = 0;i<BENCHMARK_ITERATION+NOT_BENCHMARK_ITERATION;i++){            
+            
+            int w00=weight[0][i];
+            int w01=weight[1][i];
+            int w10=weight[2][i];
+            int w11=weight[3][i];
+            
+            //Boolean indicating if a pixel weight is 0
+            boolean w00z= w00==0;
+            boolean w01z= w01==0;
+            boolean w10z= w10==0;
+            boolean w11z= w11==0;
+            
+            
+            // Total calculation time
+            long start = System.nanoTime();
+            
+            // Complementary values of the fractional part
+            int xfracCompl = one - xfrac;
+            int yfracCompl = one - yfrac;
+            
+            // Interpolation for type byte, ushort, short
+            if (w00z && w01z) {
+                s0 = 0;
+            } else if (w00z) { // w01 = 1
+                s0 = -s01 * xfracCompl + (s01 << DEFAULT_SUBSAMPLE_BITS);
+            } else if (w01z) {// w00 = 1
+                s0 = -s00 * xfrac + (s00 << DEFAULT_SUBSAMPLE_BITS);// s00;
+            } else {// w00 = 1 & W01 = 1
+                s0 = (s01 - s00) * xfrac + (s00 << DEFAULT_SUBSAMPLE_BITS);
+            }
+
+            // lower value
+
+            if (w10z && w11z) {
+                s1 = 0;
+            } else if (w10z) { // w11 = 1
+                s1 = -s11 * xfracCompl + (s11 << DEFAULT_SUBSAMPLE_BITS);
+            } else if (w11z) { // w10 = 1
+                s1 = -s10 * xfrac + (s10 << DEFAULT_SUBSAMPLE_BITS);// - (s10 * xfrac); //s10;
+            } else {
+                s1 = (s11 - s10) * xfrac + (s10 << DEFAULT_SUBSAMPLE_BITS);
+            }
+
+            if (w00z && w01z) {
+                s = (-s1 * yfracCompl + (s1 << DEFAULT_SUBSAMPLE_BITS) + round2) >> shift2;
+            } else {
+                if (w10z && w11z) {
+                    s = (-s0 * yfrac + (s0 << DEFAULT_SUBSAMPLE_BITS) + round2) >> shift2;
+                } else {
+                    s = ((s1 - s0) * yfrac + (s0 << DEFAULT_SUBSAMPLE_BITS) + round2) >> shift2;
+                }
+            }
+            
+            long end = System.nanoTime() - start;
+            
+            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
+            if (i > NOT_BENCHMARK_ITERATION - 1) {
+                if (i == NOT_BENCHMARK_ITERATION) {
+                    mean = end;
+                } else {
+                    mean = mean + end;
+                }
+
+                if (end > max) {
+                    max = end;
+                }
+
+                if (end < min) {
+                    min = end;
+                }
+            }
+        }
+        
+        // Mean values
+        double meanValue = mean / BENCHMARK_ITERATION;
+
+        // Max and Min values stored as double
+        double maxD = max;
+        double minD = min;
+        // Output print
+        System.out.println("\nMean value for int calculation : " + meanValue
+                + " nsec.");
+        System.out.println("Maximum value for int calculation  : " + maxD + " nsec.");
+        System.out.println("Minimum value for int calculation : " + minD + " nsec.");
+    }
+    
+    
+    @Test
+    public void testSpeedCalculationDouble() {
+        
+        double s0 = 0;
+        double s1 = 0;
+        double s = 0;
+        
+        double s00=0;
+        double s01=1;
+        double s10=2;
+        double s11=3;
+        
+        float xfrac = (float) Math.random();
+        float yfrac = (float) Math.random();
+        
+        // Complementary values of the fractional part
+        float xfracCompl = 1 - xfrac;
+        float yfracCompl = 1 - yfrac;
+        
+        long mean = 0;
+        long max = Long.MIN_VALUE;
+        long min = Long.MAX_VALUE;
+
+        for(int i = 0;i<BENCHMARK_ITERATION+NOT_BENCHMARK_ITERATION;i++){            
+            
+            int w00=weight[0][i];
+            int w01=weight[1][i];
+            int w10=weight[2][i];
+            int w11=weight[3][i];
+            
+            
+            //Boolean indicating if a pixel weight is 0
+            boolean w00z= w00==0;
+            boolean w01z= w01==0;
+            boolean w10z= w10==0;
+            boolean w11z= w11==0;
+            
+            // Total calculation time
+            long start = System.nanoTime();
+            
+            if (w00z || w01z || w10z || w11z) {
+
+                if (w00z && w01z) {
+                    s0 = 0;
+                } else if (w00z) { // w01 = 1
+                    s0 = s01 * xfrac;
+                } else if (w01z) {// w00 = 1
+                    s0 = s00 * xfracCompl;// s00;
+                } else {// w00 = 1 & W01 = 1
+                    s0 = (s01 - s00) * xfrac + s00;
+                }
+
+                // lower value
+
+                if (w10z && w11z) {
+                    s1 = 0;
+                } else if (w10z) { // w11 = 1
+                    s1 = s11 * xfrac;
+                } else if (w11z) { // w10 = 1
+                    s1 = s10 * xfracCompl;// - (s10 * xfrac); //s10;
+                } else {
+                    s1 = (s11 - s10) * xfrac + s10;
+                }
+
+                if (w00z && w01z) {
+                    s = s1 * yfrac;
+                } else {
+                    if (w10z && w11z) {
+                        s = s0 * yfracCompl;
+                    } else {
+                        s = (s1 - s0) * yfrac + s0;
+                    }
+                }
+            } else {
+
+                // Perform the bilinear interpolation because all the weight are not 0.
+                s0 = (s01 - s00) * xfrac + s00;
+                s1 = (s11 - s10) * xfrac + s10;
+                s = (s1 - s0) * yfrac + s0;
+            }
+            
+            long end = System.nanoTime() - start;
+            
+            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
+            if (i > NOT_BENCHMARK_ITERATION - 1) {
+                if (i == NOT_BENCHMARK_ITERATION) {
+                    mean = end;
+                } else {
+                    mean = mean + end;
+                }
+
+                if (end > max) {
+                    max = end;
+                }
+
+                if (end < min) {
+                    min = end;
+                }
+            }
+        }
+        
+        // Mean values
+        double meanValue = mean / BENCHMARK_ITERATION;
+
+        // Max and Min values stored as double
+        double maxD = max;
+        double minD = min;
+        // Output print
+        System.out.println("\nMean value for double calculation : " + meanValue
+                + " nsec.");
+        System.out.println("Maximum value for double calculation  : " + maxD + " nsec.");
+        System.out.println("Minimum value for double calculation : " + minD + " nsec.");
+    }
+    
 
     @Test
     public void testNearestNewAffineDescriptor() {

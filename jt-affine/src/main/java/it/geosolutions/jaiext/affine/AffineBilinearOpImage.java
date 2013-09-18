@@ -128,6 +128,16 @@ public class AffineBilinearOpImage extends AffineOpImage {
             throw new IllegalArgumentException("Wrong data Type");
         }
 
+        
+        // Definition of the possible cases that can be found
+        // caseA = no ROI nor No Data
+        // caseB = ROI present but No Data not present
+        // caseC = No Data present but ROI not present
+        // Last case not defined = both ROI and No Data are present
+        caseA = !hasROI && !hasNoData;
+        caseB = hasROI && !hasNoData;
+        caseC = !hasROI && hasNoData;
+        
     }
 
     /** Method for evaluating the destination image tile without ROI */
@@ -254,10 +264,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
 
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
@@ -1076,10 +1082,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
 
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
@@ -1901,10 +1903,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
 
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
@@ -2736,10 +2734,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
             roiScanlineStride = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
-
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
@@ -3566,10 +3560,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
             roiScanlineStride = 0;
         }
 
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
-
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
@@ -3957,10 +3947,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             int w10 = 1;
                             int w11 = 1;
 
-                            w00 = noData.contains(s00) || (isNotPointRange && Float.isNaN(s00)) ? 0 : 1;
-                            w01 = noData.contains(s01) || (isNotPointRange && Float.isNaN(s01)) ? 0 : 1;
-                            w10 = noData.contains(s10) || (isNotPointRange && Float.isNaN(s10)) ? 0 : 1;
-                            w11 = noData.contains(s11) || (isNotPointRange && Float.isNaN(s11)) ? 0 : 1;
+                            w00 = noData.contains(s00) ? 0 : 1;
+                            w01 = noData.contains(s01) ? 0 : 1;
+                            w10 = noData.contains(s10) ? 0 : 1;
+                            w11 = noData.contains(s11) ? 0 : 1;
 
                             if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                 if (setDestinationNoData) {
@@ -4099,10 +4089,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 w10 = 1;
                                 w11 = 1;
 
-                                w00 = noData.contains(s00) || (isNotPointRange && Float.isNaN(s00)) ? 0 : 1;
-                                w01 = noData.contains(s01) || (isNotPointRange && Float.isNaN(s01)) ? 0 : 1;
-                                w10 = noData.contains(s10) || (isNotPointRange && Float.isNaN(s10)) ? 0 : 1;
-                                w11 = noData.contains(s11) || (isNotPointRange && Float.isNaN(s11)) ? 0 : 1;
+                                w00 = noData.contains(s00) ? 0 : 1;
+                                w01 = noData.contains(s01) ? 0 : 1;
+                                w10 = noData.contains(s10) ? 0 : 1;
+                                w11 = noData.contains(s11) ? 0 : 1;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     if (setDestinationNoData) {
@@ -4236,10 +4226,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     w10 = 1;
                                     w11 = 1;
 
-                                    w00 = noData.contains(s00) || (isNotPointRange && Float.isNaN(s00)) ? 0 : 1;
-                                    w01 = noData.contains(s01) || (isNotPointRange && Float.isNaN(s01)) ? 0 : 1;
-                                    w10 = noData.contains(s10) || (isNotPointRange && Float.isNaN(s10)) ? 0 : 1;
-                                    w11 = noData.contains(s11) || (isNotPointRange && Float.isNaN(s11)) ? 0 : 1;
+                                    w00 = noData.contains(s00) ? 0 : 1;
+                                    w01 = noData.contains(s01) ? 0 : 1;
+                                    w10 = noData.contains(s10) ? 0 : 1;
+                                    w11 = noData.contains(s11) ? 0 : 1;
 
                                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         if (setDestinationNoData) {
@@ -4341,10 +4331,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
             roiDataLength = 0;
             roiScanlineStride = 0;
         }
-
-        final boolean caseA = !hasROI && !hasNoData;
-        final boolean caseB = hasROI && !hasNoData;
-        final boolean caseC = !hasROI && hasNoData;
 
         if (caseA) {
             for (int y = dst_min_y; y < dst_max_y; y++) {
@@ -4736,10 +4722,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             int w10 = 1;
                             int w11 = 1;
 
-                            w00 = noData.contains(s00) || (isNotPointRange && Double.isNaN(s00)) ? 0 : 1;
-                            w01 = noData.contains(s01) || (isNotPointRange && Double.isNaN(s01)) ? 0 : 1;
-                            w10 = noData.contains(s10) || (isNotPointRange && Double.isNaN(s10)) ? 0 : 1;
-                            w11 = noData.contains(s11) || (isNotPointRange && Double.isNaN(s11)) ? 0 : 1;
+                            w00 = noData.contains(s00) ? 0 : 1;
+                            w01 = noData.contains(s01) ? 0 : 1;
+                            w10 = noData.contains(s10) ? 0 : 1;
+                            w11 = noData.contains(s11) ? 0 : 1;
 
                             if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                 if (setDestinationNoData) {
@@ -4878,10 +4864,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 w10 = 1;
                                 w11 = 1;
 
-                                w00 = noData.contains(s00) || (isNotPointRange && Double.isNaN(s00)) ? 0 : 1;
-                                w01 = noData.contains(s01) || (isNotPointRange && Double.isNaN(s01)) ? 0 : 1;
-                                w10 = noData.contains(s10) || (isNotPointRange && Double.isNaN(s10)) ? 0 : 1;
-                                w11 = noData.contains(s11) || (isNotPointRange && Double.isNaN(s11)) ? 0 : 1;
+                                w00 = noData.contains(s00) ? 0 : 1;
+                                w01 = noData.contains(s01) ? 0 : 1;
+                                w10 = noData.contains(s10) ? 0 : 1;
+                                w11 = noData.contains(s11) ? 0 : 1;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     if (setDestinationNoData) {
@@ -5015,10 +5001,10 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     w10 = 1;
                                     w11 = 1;
 
-                                    w00 = noData.contains(s00) || (isNotPointRange && Double.isNaN(s00)) ? 0 : 1;
-                                    w01 = noData.contains(s01) || (isNotPointRange && Double.isNaN(s01)) ? 0 : 1;
-                                    w10 = noData.contains(s10) || (isNotPointRange && Double.isNaN(s10)) ? 0 : 1;
-                                    w11 = noData.contains(s11) || (isNotPointRange && Double.isNaN(s11)) ? 0 : 1;
+                                    w00 = noData.contains(s00) ? 0 : 1;
+                                    w01 = noData.contains(s01) ? 0 : 1;
+                                    w10 = noData.contains(s10) ? 0 : 1;
+                                    w11 = noData.contains(s11) ? 0 : 1;
 
                                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         if (setDestinationNoData) {
