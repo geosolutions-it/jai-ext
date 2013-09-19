@@ -1,7 +1,6 @@
 package it.geosolutions.jaiext.affine;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
@@ -13,9 +12,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
-import java.util.Arrays;
 import java.util.Map;
-
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
@@ -376,11 +373,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             * srcPixelStride + (h - 1) * srcScanlineStride
                                             + bandOffsets[k2]] & 0xff;
                                     // Update of the temporary sum
-                                    temp += (pixelValue * (long) dataHi[offsetX + z]);
+                                    temp += (pixelValue *  dataHi[offsetX + z]);
                                 }
                                 // Vertical sum update
                                 sum += ((temp + round) >> precisionBits)
-                                        * (long) dataVi[offsetY + h];
+                                        *  dataVi[offsetY + h];
                             }
                             // Interpolation
                             result = (int) ((sum + round) >> precisionBits);
@@ -542,12 +539,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         long tempSum = 0;
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
+                                            tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
                                         }
                                         // Vertical sum update
                                         sum += ((tempSum + round) >> precisionBits)
-                                                * (long) dataVi[offsetY + h];
+                                                *  dataVi[offsetY + h];
                                     }
                                     // Interpolation
                                     result = (int) ((sum + round) >> precisionBits);
@@ -707,12 +704,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         long tempSum = 0;
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
+                                            tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
                                         }
                                         // Vertical sum update
                                         sum += ((tempSum + round) >> precisionBits)
-                                                * (long) dataVi[offsetY + h];
+                                                *  dataVi[offsetY + h];
                                     }
                                     // Interpolation
                                     result = (int) ((sum + round) >> precisionBits);
@@ -769,6 +766,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
+            final long[][] pixelKernel = new long[4][4];
+            int[][] weightArray = new int[4][4];
+            int[] weightArrayVertical = new int[4];
+            long[] sumArray = new long[4];
+            long[] emptyArray = new long[4];
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
@@ -811,14 +813,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             long sum = 0;
 
-                            final long[][] pixelKernel = new long[4][4];
-                            int[][] weightArray = new int[4][4];
-                            int[] weightArrayVertical = new int[4];
-
-                            long[] sumArray = new long[4];
-
-                            int result = 0;
-
                             int tmpND = 0;
 
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
@@ -831,18 +825,23 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     if (byteLookupTable[(int) pixelKernel[h][z]] != destinationNoDataByte) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
+                                    } else {
+                                        weightArray[h][z] = 0;
                                     }
                                 }
 
                                 // Row temporary sum initialization
                                 long tempSum = 0;
-                                long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h]);
+                                long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h],
+                                        emptyArray);
                                 for (int z = 0; z < 4; z++) {
                                     // Update of the temporary sum
-                                    tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
                                 }
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
+                                } else {
+                                    weightArrayVertical[h] = 0;
                                 }
                                 sumArray[h] = ((tempSum + round) >> precisionBits);
 
@@ -852,16 +851,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             if (tmpND == 0) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
                             } else {
-                                long[] tempData = bicubicInpainting(sumArray, weightArrayVertical);
+                                long[] tempData = bicubicInpainting(sumArray, weightArrayVertical,
+                                        emptyArray);
 
                                 // Vertical sum update
                                 for (int h = 0; h < 4; h++) {
                                     // Update of the temporary sum
-                                    sum += tempData[h] * (long) dataVi[offsetY + h];
+                                    sum += tempData[h] * dataVi[offsetY + h];
                                 }
 
                                 // Interpolation
-                                result = (int) ((sum + round) >> precisionBits);
+                                int result = (int) ((sum + round) >> precisionBits);
 
                                 // Clamp
                                 if (result > 255) {
@@ -911,7 +911,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-
+                final long[][] pixelKernel = new long[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                long[] sumArray = new long[4];
+                long[] emptyArray = new long[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -989,10 +993,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final long[][] pixelKernel = new long[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int result = 0;
 
                                 int tmpND = 0;
@@ -1017,6 +1017,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (byteLookupTable[(int) pixelKernel[h][z]] != destinationNoDataByte) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -1024,31 +1026,32 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
                                 } else {
-                                    long[] sumArray = new long[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                            tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = ((tempSum + round) >> precisionBits);
                                     }
 
                                     long[] tempData = bicubicInpainting(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] *  dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -1104,6 +1107,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
+                final long[][] pixelKernel = new long[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                long[] sumArray = new long[4];
+                long[] emptyArray = new long[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -1179,10 +1187,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final long[][] pixelKernel = new long[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int result = 0;
 
                                 int tmpND = 0;
@@ -1202,6 +1206,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (byteLookupTable[(int) pixelKernel[h][z]] != destinationNoDataByte) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -1209,31 +1215,32 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
                                 } else {
-                                    long[] sumArray = new long[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                            tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = ((tempSum + round) >> precisionBits);
                                     }
 
                                     long[] tempData = bicubicInpainting(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] *  dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -1395,11 +1402,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             * srcPixelStride + (h - 1) * srcScanlineStride
                                             + bandOffsets[k2]] & 0xffff;
                                     // Update of the temporary sum
-                                    temp += (pixelValue * (long) dataHi[offsetX + z]);
+                                    temp += (pixelValue *  dataHi[offsetX + z]);
                                 }
                                 // Vertical sum update
                                 sum += ((temp + round) >> precisionBits)
-                                        * (long) dataVi[offsetY + h];
+                                        *  dataVi[offsetY + h];
                             }
                             // Interpolation
                             result = (int) ((sum + round) >> precisionBits);
@@ -1561,12 +1568,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         long tempSum = 0;
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
+                                            tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
                                         }
                                         // Vertical sum update
                                         sum += ((tempSum + round) >> precisionBits)
-                                                * (long) dataVi[offsetY + h];
+                                                *  dataVi[offsetY + h];
                                     }
                                     // Interpolation
                                     result = (int) ((sum + round) >> precisionBits);
@@ -1727,12 +1734,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         long tempSum = 0;
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
+                                            tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
                                         }
                                         // Vertical sum update
                                         sum += ((tempSum + round) >> precisionBits)
-                                                * (long) dataVi[offsetY + h];
+                                                *  dataVi[offsetY + h];
                                     }
                                     // Interpolation
                                     result = (int) ((sum + round) >> precisionBits);
@@ -1790,6 +1797,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
+            final long[][] pixelKernel = new long[4][4];
+            int[][] weightArray = new int[4][4];
+            int[] weightArrayVertical = new int[4];
+            long[] sumArray = new long[4];
+            long[] emptyArray = new long[4];
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
@@ -1832,12 +1844,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             long sum = 0;
 
-                            final long[][] pixelKernel = new long[4][4];
-                            int[][] weightArray = new int[4][4];
-                            int[] weightArrayVertical = new int[4];
-
-                            long[] sumArray = new long[4];
-
                             int result = 0;
 
                             int tmpND = 0;
@@ -1852,18 +1858,23 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     if (!noData.contains((short) pixelKernel[h][z])) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
+                                    } else {
+                                        weightArray[h][z] = 0;
                                     }
                                 }
 
                                 // Row temporary sum initialization
                                 long tempSum = 0;
-                                long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h]);
+                                long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h],
+                                        emptyArray);
                                 for (int z = 0; z < 4; z++) {
                                     // Update of the temporary sum
-                                    tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                    tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                 }
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
+                                } else {
+                                    weightArrayVertical[h] = 0;
                                 }
                                 sumArray[h] = ((tempSum + round) >> precisionBits);
 
@@ -1874,12 +1885,13 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                             } else {
 
-                                long[] tempData = bicubicInpainting(sumArray, weightArrayVertical);
+                                long[] tempData = bicubicInpainting(sumArray, weightArrayVertical,
+                                        emptyArray);
 
                                 // Vertical sum update
                                 for (int h = 0; h < 4; h++) {
                                     // Update of the temporary sum
-                                    sum += tempData[h] * (long) dataVi[offsetY + h];
+                                    sum += tempData[h] *  dataVi[offsetY + h];
                                 }
 
                                 // Interpolation
@@ -1934,7 +1946,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-
+                final long[][] pixelKernel = new long[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                long[] sumArray = new long[4];
+                long[] emptyArray = new long[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -2012,10 +2028,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final long[][] pixelKernel = new long[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int result = 0;
 
                                 int tmpND = 0;
@@ -2040,6 +2052,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (!noData.contains((short) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -2047,31 +2061,32 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                                 } else {
-                                    long[] sumArray = new long[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                            tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = ((tempSum + round) >> precisionBits);
                                     }
 
                                     long[] tempData = bicubicInpainting(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] *  dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -2128,6 +2143,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
+                final long[][] pixelKernel = new long[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                long[] sumArray = new long[4];
+                long[] emptyArray = new long[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -2203,10 +2223,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final long[][] pixelKernel = new long[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int result = 0;
 
                                 int tmpND = 0;
@@ -2226,6 +2242,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (!noData.contains((short) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -2233,31 +2251,32 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                                 } else {
-                                    long[] sumArray = new long[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                            tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = ((tempSum + round) >> precisionBits);
                                     }
 
                                     long[] tempData = bicubicInpainting(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] *  dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -2420,11 +2439,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             * srcPixelStride + (h - 1) * srcScanlineStride
                                             + bandOffsets[k2]];
                                     // Update of the temporary sum
-                                    temp += (pixelValue * (long) dataHi[offsetX + z]);
+                                    temp += (pixelValue *  dataHi[offsetX + z]);
                                 }
                                 // Vertical sum update
                                 sum += ((temp + round) >> precisionBits)
-                                        * (long) dataVi[offsetY + h];
+                                        *  dataVi[offsetY + h];
                             }
                             // Interpolation
                             result = (int) ((sum + round) >> precisionBits);
@@ -2586,12 +2605,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         long tempSum = 0;
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
+                                            tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
                                         }
                                         // Vertical sum update
                                         sum += ((tempSum + round) >> precisionBits)
-                                                * (long) dataVi[offsetY + h];
+                                                *  dataVi[offsetY + h];
                                     }
                                     // Interpolation
                                     result = (int) ((sum + round) >> precisionBits);
@@ -2752,12 +2771,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         long tempSum = 0;
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
+                                            tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
                                         }
                                         // Vertical sum update
                                         sum += ((tempSum + round) >> precisionBits)
-                                                * (long) dataVi[offsetY + h];
+                                                *  dataVi[offsetY + h];
                                     }
                                     // Interpolation
                                     result = (int) ((sum + round) >> precisionBits);
@@ -2815,6 +2834,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
+            final long[][] pixelKernel = new long[4][4];
+            int[][] weightArray = new int[4][4];
+            int[] weightArrayVertical = new int[4];
+            long[] sumArray = new long[4];
+            long[] emptyArray = new long[4];
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
@@ -2857,12 +2881,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             long sum = 0;
 
-                            final long[][] pixelKernel = new long[4][4];
-                            int[][] weightArray = new int[4][4];
-                            int[] weightArrayVertical = new int[4];
-
-                            long[] sumArray = new long[4];
-
                             int result = 0;
 
                             int tmpND = 0;
@@ -2877,18 +2895,23 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     if (!noData.contains((short) pixelKernel[h][z])) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
+                                    } else {
+                                        weightArray[h][z] = 0;
                                     }
                                 }
 
                                 // Row temporary sum initialization
                                 long tempSum = 0;
-                                long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h]);
+                                long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h],
+                                        emptyArray);
                                 for (int z = 0; z < 4; z++) {
                                     // Update of the temporary sum
-                                    tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                    tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                 }
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
+                                } else {
+                                    weightArrayVertical[h] = 0;
                                 }
                                 sumArray[h] = ((tempSum + round) >> precisionBits);
 
@@ -2898,12 +2921,13 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             if (tmpND == 0) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                             } else {
-                                long[] tempData = bicubicInpainting(sumArray, weightArrayVertical);
+                                long[] tempData = bicubicInpainting(sumArray, weightArrayVertical,
+                                        emptyArray);
 
                                 // Vertical sum update
                                 for (int h = 0; h < 4; h++) {
                                     // Update of the temporary sum
-                                    sum += tempData[h] * (long) dataVi[offsetY + h];
+                                    sum += tempData[h] *  dataVi[offsetY + h];
                                 }
 
                                 // Interpolation
@@ -2958,7 +2982,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-
+                final long[][] pixelKernel = new long[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                long[] sumArray = new long[4];
+                long[] emptyArray = new long[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -3036,10 +3064,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final long[][] pixelKernel = new long[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int result = 0;
 
                                 int tmpND = 0;
@@ -3064,6 +3088,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (!noData.contains((short) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -3071,31 +3097,32 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                                 } else {
-                                    long[] sumArray = new long[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                            tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = ((tempSum + round) >> precisionBits);
                                     }
 
                                     long[] tempData = bicubicInpainting(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] *  dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -3152,6 +3179,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
+                final long[][] pixelKernel = new long[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                long[] sumArray = new long[4];
+                long[] emptyArray = new long[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -3227,10 +3259,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final long[][] pixelKernel = new long[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int result = 0;
 
                                 int tmpND = 0;
@@ -3250,6 +3278,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (!noData.contains((short) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -3257,31 +3287,32 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                                 } else {
-                                    long[] sumArray = new long[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                            tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = ((tempSum + round) >> precisionBits);
                                     }
 
                                     long[] tempData = bicubicInpainting(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] *  dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -3444,11 +3475,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             * srcPixelStride + (h - 1) * srcScanlineStride
                                             + bandOffsets[k2]];
                                     // Update of the temporary sum
-                                    temp += (pixelValue * (long) dataHi[offsetX + z]);
+                                    temp += (pixelValue *  dataHi[offsetX + z]);
                                 }
                                 // Vertical sum update
                                 sum += ((temp + round) >> precisionBits)
-                                        * (long) dataVi[offsetY + h];
+                                        *  dataVi[offsetY + h];
                             }
                             // Interpolation
                             result = (int) ((sum + round) >> precisionBits);
@@ -3604,12 +3635,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         long tempSum = 0;
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
+                                            tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
                                         }
                                         // Vertical sum update
                                         sum += ((tempSum + round) >> precisionBits)
-                                                * (long) dataVi[offsetY + h];
+                                                *  dataVi[offsetY + h];
                                     }
                                     // Interpolation
                                     result = (int) ((sum + round) >> precisionBits);
@@ -3763,12 +3794,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         long tempSum = 0;
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (pixelKernel[h][z] * (long) dataHi[offsetX
+                                            tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
                                         }
                                         // Vertical sum update
                                         sum += ((tempSum + round) >> precisionBits)
-                                                * (long) dataVi[offsetY + h];
+                                                *  dataVi[offsetY + h];
                                     }
                                     // Interpolation
                                     result = (int) ((sum + round) >> precisionBits);
@@ -3819,6 +3850,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
+            final long[][] pixelKernel = new long[4][4];
+            int[][] weightArray = new int[4][4];
+            int[] weightArrayVertical = new int[4];
+            long[] sumArray = new long[4];
+            long[] emptyArray = new long[4];
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
@@ -3861,12 +3897,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             long sum = 0;
 
-                            final long[][] pixelKernel = new long[4][4];
-                            int[][] weightArray = new int[4][4];
-                            int[] weightArrayVertical = new int[4];
-
-                            long[] sumArray = new long[4];
-
                             int result = 0;
 
                             int tmpND = 0;
@@ -3881,18 +3911,23 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     if (!noData.contains((int) pixelKernel[h][z])) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
+                                    } else {
+                                        weightArray[h][z] = 0;
                                     }
                                 }
 
                                 // Row temporary sum initialization
                                 long tempSum = 0;
-                                long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h]);
+                                long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h],
+                                        emptyArray);
                                 for (int z = 0; z < 4; z++) {
                                     // Update of the temporary sum
-                                    tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                    tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                 }
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
+                                } else {
+                                    weightArrayVertical[h] = 0;
                                 }
                                 sumArray[h] = ((tempSum + round) >> precisionBits);
 
@@ -3903,12 +3938,13 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                             } else {
 
-                                long[] tempData = bicubicInpainting(sumArray, weightArrayVertical);
+                                long[] tempData = bicubicInpainting(sumArray, weightArrayVertical,
+                                        emptyArray);
 
                                 // Vertical sum update
                                 for (int h = 0; h < 4; h++) {
                                     // Update of the temporary sum
-                                    sum += tempData[h] * (long) dataVi[offsetY + h];
+                                    sum += tempData[h] *  dataVi[offsetY + h];
                                 }
 
                                 // Interpolation
@@ -3956,7 +3992,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-
+                final long[][] pixelKernel = new long[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                long[] sumArray = new long[4];
+                long[] emptyArray = new long[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -4034,10 +4074,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final long[][] pixelKernel = new long[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int result = 0;
 
                                 int tmpND = 0;
@@ -4062,6 +4098,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (!noData.contains((int) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -4069,31 +4107,32 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                                 } else {
-                                    long[] sumArray = new long[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                            tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = ((tempSum + round) >> precisionBits);
                                     }
 
                                     long[] tempData = bicubicInpainting(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] *  dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -4143,6 +4182,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
+                final long[][] pixelKernel = new long[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                long[] sumArray = new long[4];
+                long[] emptyArray = new long[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -4218,10 +4262,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final long[][] pixelKernel = new long[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int result = 0;
 
                                 int tmpND = 0;
@@ -4241,6 +4281,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (!noData.contains((int) pixelKernel[h][z])) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -4248,31 +4290,32 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                                 } else {
-                                    long[] sumArray = new long[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
-                                            tempSum += (tempData[z] * (long) dataHi[offsetX + z]);
+                                            tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = ((tempSum + round) >> precisionBits);
                                     }
 
                                     long[] tempData = bicubicInpainting(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
                                         // Update of the temporary sum
-                                        sum += tempData[h] * (long) dataVi[offsetY + h];
+                                        sum += tempData[h] *  dataVi[offsetY + h];
                                     }
 
                                     // Interpolation
@@ -4785,6 +4828,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
+            final double[][] pixelKernel = new double[4][4];
+            int[][] weightArray = new int[4][4];
+            int[] weightArrayVertical = new int[4];
+            double[] sumArray = new double[4];
+            double[] emptyArray = new double[4];
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
@@ -4826,12 +4874,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             double sum = 0;
-
-                            final double[][] pixelKernel = new double[4][4];
-                            int[][] weightArray = new int[4][4];
-                            int[] weightArrayVertical = new int[4];
                             int tmpND = 0;
-                            double[] sumArray = new double[4];
 
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                             // and check if every kernel pixel is a No Data
@@ -4845,19 +4888,23 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     if (!noData.contains(value)) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
+                                    } else {
+                                        weightArray[h][z] = 0;
                                     }
                                 }
 
                                 // Row temporary sum initialization
                                 double tempSum = 0;
                                 double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
-                                        weightArray[h]);
+                                        weightArray[h], emptyArray);
                                 for (int z = 0; z < 4; z++) {
                                     // Update of the temporary sum
                                     tempSum += (tempData[z] * dataHf[offsetX + z]);
                                 }
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
+                                } else {
+                                    weightArrayVertical[h] = 0;
                                 }
                                 sumArray[h] = tempSum;
 
@@ -4868,7 +4915,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
                             } else {
                                 double[] tempData = bicubicInpaintingDouble(sumArray,
-                                        weightArrayVertical);
+                                        weightArrayVertical, emptyArray);
 
                                 // Vertical sum update
                                 for (int h = 0; h < 4; h++) {
@@ -4917,7 +4964,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-
+                final double[][] pixelKernel = new double[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                double[] sumArray = new double[4];
+                double[] emptyArray = new double[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -4995,10 +5046,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 double sum = 0;
 
-                                final double[][] pixelKernel = new double[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int tmpND = 0;
                                 int tmpROI = 0;
 
@@ -5022,6 +5069,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (!noData.contains(value)) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -5029,13 +5078,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
                                 } else {
-                                    double[] sumArray = new double[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         double tempSum = 0;
                                         double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] * dataHf[offsetX + z]);
@@ -5043,12 +5091,14 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = tempSum;
                                     }
 
                                     double[] tempData = bicubicInpaintingDouble(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
@@ -5100,6 +5150,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
+                final double[][] pixelKernel = new double[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                double[] sumArray = new double[4];
+                double[] emptyArray = new double[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -5175,10 +5230,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 double sum = 0;
 
-                                final double[][] pixelKernel = new double[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int tmpND = 0;
                                 int tmpROI = 0;
 
@@ -5197,6 +5248,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (!noData.contains(value)) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -5205,13 +5258,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
                                 } else {
-                                    double[] sumArray = new double[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         double tempSum = 0;
                                         double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] * dataHf[offsetX + z]);
@@ -5219,12 +5271,14 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = tempSum;
                                     }
 
                                     double[] tempData = bicubicInpaintingDouble(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
@@ -5739,6 +5793,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
+            final double[][] pixelKernel = new double[4][4];
+            int[][] weightArray = new int[4][4];
+            int[] weightArrayVertical = new int[4];
+            double[] sumArray = new double[4];
+            double[] emptyArray = new double[4];
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
@@ -5780,13 +5839,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             double sum = 0;
-
-                            final double[][] pixelKernel = new double[4][4];
-                            int[][] weightArray = new int[4][4];
-                            int[] weightArrayVertical = new int[4];
                             int tmpND = 0;
-                            double[] sumArray = new double[4];
-
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                             // and check if every kernel pixel is a No Data
                             for (int h = 0; h < 4; h++) {
@@ -5799,19 +5852,23 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     if (!noData.contains(value)) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
+                                    } else {
+                                        weightArray[h][z] = 0;
                                     }
                                 }
 
                                 // Row temporary sum initialization
                                 double tempSum = 0;
                                 double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
-                                        weightArray[h]);
+                                        weightArray[h], emptyArray);
                                 for (int z = 0; z < 4; z++) {
                                     // Update of the temporary sum
                                     tempSum += (tempData[z] * dataHd[offsetX + z]);
                                 }
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
+                                } else {
+                                    weightArrayVertical[h] = 0;
                                 }
                                 sumArray[h] = tempSum;
 
@@ -5823,7 +5880,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             } else {
 
                                 double[] tempData = bicubicInpaintingDouble(sumArray,
-                                        weightArrayVertical);
+                                        weightArrayVertical, emptyArray);
 
                                 // Vertical sum update
                                 for (int h = 0; h < 4; h++) {
@@ -5872,7 +5929,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-
+                final double[][] pixelKernel = new double[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                double[] sumArray = new double[4];
+                double[] emptyArray = new double[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -5950,10 +6011,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 double sum = 0;
 
-                                final double[][] pixelKernel = new double[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int tmpND = 0;
                                 int tmpROI = 0;
 
@@ -5977,6 +6034,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (!noData.contains(value)) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -5984,13 +6043,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
                                 } else {
-                                    double[] sumArray = new double[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         double tempSum = 0;
                                         double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] * dataHd[offsetX + z]);
@@ -5998,12 +6056,14 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = tempSum;
                                     }
 
                                     double[] tempData = bicubicInpaintingDouble(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
@@ -6055,6 +6115,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
+                final double[][] pixelKernel = new double[4][4];
+                int[][] weightArray = new int[4][4];
+                int[] weightArrayVertical = new int[4];
+                double[] sumArray = new double[4];
+                double[] emptyArray = new double[4];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
@@ -6130,10 +6195,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 double sum = 0;
 
-                                final double[][] pixelKernel = new double[4][4];
-                                int[][] weightArray = new int[4][4];
-                                int[] weightArrayVertical = new int[4];
-
                                 int tmpND = 0;
                                 int tmpROI = 0;
 
@@ -6152,6 +6213,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if (!noData.contains(value)) {
                                             tmpND++;
                                             weightArray[h][z] = 1;
+                                        } else {
+                                            weightArray[h][z] = 0;
                                         }
                                     }
                                 }
@@ -6160,13 +6223,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpND == 0 || tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
                                 } else {
-                                    double[] sumArray = new double[4];
 
                                     for (int h = 0; h < 4; h++) {
                                         // Row temporary sum initialization
                                         double tempSum = 0;
                                         double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
-                                                weightArray[h]);
+                                                weightArray[h], emptyArray);
                                         for (int z = 0; z < 4; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] * dataHd[offsetX + z]);
@@ -6174,12 +6236,14 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                         if ((weightArray[h][0] + weightArray[h][1]
                                                 + weightArray[h][2] + weightArray[h][3]) > 0) {
                                             weightArrayVertical[h] = 1;
+                                        } else {
+                                            weightArrayVertical[h] = 0;
                                         }
                                         sumArray[h] = tempSum;
                                     }
 
                                     double[] tempData = bicubicInpaintingDouble(sumArray,
-                                            weightArrayVertical);
+                                            weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
                                     for (int h = 0; h < 4; h++) {
@@ -6236,7 +6300,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
     }
 
     // This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
-    private long[] bicubicInpainting(long[] array, int[] weightArray) {
+    private long[] bicubicInpainting(long[] array, int[] weightArray, long[] emptyArray) {
         // Calculation of the number of data
         final int sum = weightArray[0] + weightArray[1] + weightArray[2] + weightArray[3];
         // Absence of No Data, the pixels are returned.
@@ -6249,112 +6313,134 @@ public class AffineBicubicOpImage extends AffineOpImage {
         long s1 = array[2];
         long s2 = array[3];
 
-        // empty array containing the final values of the selected 4 pixels
-        long[] emptyArray = new long[4];
+        emptyArray[0] = 0;
+        emptyArray[1] = 0;
+        emptyArray[2] = 0;
+        emptyArray[3] = 0;
 
         // mean value used in calculations
         long meanValue = 0;
 
-        switch (sum) {
-        // All the 4 pixels are no data, an array of 0 data is returned
+        // Calculation of a number indicating the dispositions of the 1 and 0, based on a binary association
+        int valueArrayBit = 8 * weightArray[0] + 4 * weightArray[1] + 2 * weightArray[2]
+                + weightArray[3];
+
+        switch (valueArrayBit) {
         case 0:
-            return emptyArray;
-            // Only one pixel is a valid data, all the pixel of the line have the same value.
+            // 0 0 0 0
+            break;
         case 1:
-            // boolean comparisons
-            final boolean w0is1 = weightArray[0] == 1;
-            final boolean w3is1 = weightArray[3] == 1;
-            final boolean w2is1 = weightArray[2] == 1;
-
-            if (w0is1) {
-                Arrays.fill(emptyArray, s_);
-            } else if (w3is1) {
-                Arrays.fill(emptyArray, s2);
-            } else if (w2is1) {
-                Arrays.fill(emptyArray, s1);
-            } else {
-                Arrays.fill(emptyArray, s0);
-            }
-            return emptyArray;
-            // Only 2 pixels are valid data. If the No Data are on the border, they takes the value of the adjacent pixel,
-            // else , they take an average of the 2 neighbor pixels with valid data. A String representation is provided for a better
-            // comprehension. 0 is no Data and x is valid data.
+            // 0 0 0 x
+            emptyArray[0] = s2;
+            emptyArray[1] = s2;
+            emptyArray[2] = s2;
+            emptyArray[3] = s2;
+            break;
         case 2:
-            // boolean comparisons
-            final boolean w0is02 = weightArray[0] == 0;
-            final boolean w1is02 = weightArray[1] == 0;
-            final boolean w2is02 = weightArray[2] == 0;
-            final boolean w3is02 = weightArray[3] == 0;
-
-            // 0 0 x x
-            if (w0is02 && w1is02) {
-                s_ = s1;
-                s0 = s1;
-                // x x 0 0
-            } else if (w2is02 && w3is02) {
-                s1 = s0;
-                s2 = s0;
-                // 0 x x 0
-            } else if (w0is02 && w3is02) {
-                s_ = s0;
-                s2 = s1;
-                // x 0 0 x
-            } else if (w1is02 && w2is02) {
-                meanValue = (s_ + s2) / 2;
-                s0 = meanValue;
-                s1 = meanValue;
-                // x 0 x 0
-            } else if (w1is02 && w3is02) {
-                meanValue = (s_ + s1) / 2;
-                s0 = meanValue;
-                s2 = s1;
-                // 0 x 0 x
-            } else {
-                meanValue = (s0 + s2) / 2;
-                s_ = s0;
-                s1 = meanValue;
-            }
-            emptyArray[0] = s_;
-            emptyArray[1] = s0;
+            // 0 0 x 0
+            emptyArray[0] = s1;
+            emptyArray[1] = s1;
             emptyArray[2] = s1;
-            emptyArray[3] = s2;
-            return emptyArray;
-            // Only one pixel is a No Data. If it is at the boundaries, then it replicates the value
-            // of the adjacent pixel, else if takes an average of the 2 neighbor pixels.A String representation is provided for a better
-            // comprehension. 0 is no Data and x is valid data.
+            emptyArray[3] = s1;
+            break;
         case 3:
-            // boolean comparisons
-            final boolean w0is03 = weightArray[0] == 0;
-            final boolean w2is03 = weightArray[2] == 0;
-            final boolean w3is03 = weightArray[3] == 0;
-
+            // 0 0 x x
+            emptyArray[0] = s1;
+            emptyArray[1] = s1;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
+            break;
+        case 4:
+            // 0 x 0 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = s0;
+            emptyArray[3] = s0;
+            break;
+        case 5:
+            // 0 x 0 x
+            meanValue = (s0 + s2) / 2;
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = meanValue;
+            emptyArray[3] = s2;
+            break;
+        case 6:
+            // 0 x x 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 7:
             // 0 x x x
-            if (w0is03) {
-                s_ = s0;
-                // x x x 0
-            } else if (w3is03) {
-                s2 = s1;
-                // x x 0 x
-            } else if (w2is03) {
-                meanValue = (s0 + s2) / 2;
-                s1 = meanValue;
-                // x 0 x x
-            } else {
-                meanValue = (s_ + s1) / 2;
-                s0 = meanValue;
-            }
-            emptyArray[0] = s_;
+            emptyArray[0] = s0;
             emptyArray[1] = s0;
             emptyArray[2] = s1;
             emptyArray[3] = s2;
-            return emptyArray;
+            break;
+        case 8:
+            // x 0 0 0
+            emptyArray[0] = s_;
+            emptyArray[1] = s_;
+            emptyArray[2] = s_;
+            emptyArray[3] = s_;
+            break;
+        case 9:
+            // x 0 0 x
+            meanValue = (s_ + s2) / 2;
+            emptyArray[0] = s_;
+            emptyArray[1] = meanValue;
+            emptyArray[2] = meanValue;
+            emptyArray[3] = s2;
+            break;
+        case 10:
+            // x 0 x 0
+            meanValue = (s_ + s1) / 2;
+            emptyArray[0] = s_;
+            emptyArray[1] = meanValue;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 11:
+            // x 0 x x
+            meanValue = (s_ + s1) / 2;
+            emptyArray[0] = s_;
+            emptyArray[1] = meanValue;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
+            break;
+        case 12:
+            // x x 0 0
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = s0;
+            emptyArray[3] = s0;
+            break;
+        case 13:
+            // x x 0 x
+            meanValue = (s0 + s2) / 2;
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = meanValue;
+            emptyArray[3] = s2;
+            break;
+        case 14:
+            // x x x 0
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
         default:
-            throw new IllegalArgumentException("The input array cannot have more than 4 pixels");
+            throw new IllegalArgumentException("Array cannot be composed from more than 4 elements");
         }
+
+        return emptyArray;
     }
 
     // This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
-    private double[] bicubicInpaintingDouble(double[] array, int[] weightArray) {
+    private double[] bicubicInpaintingDouble(double[] array, int[] weightArray, double[] emptyArray) {
         // Calculation of the number of data
         final int sum = weightArray[0] + weightArray[1] + weightArray[2] + weightArray[3];
         // Absence of No Data, the pixels are returned.
@@ -6367,404 +6453,128 @@ public class AffineBicubicOpImage extends AffineOpImage {
         double s1 = array[2];
         double s2 = array[3];
 
-        // empty array containing the final values of the selected 4 pixels
-        final double[] emptyArray = new double[4];
+        emptyArray[0] = 0;
+        emptyArray[1] = 0;
+        emptyArray[2] = 0;
+        emptyArray[3] = 0;
 
         // mean value used in calculations
         double meanValue = 0;
-        switch (sum) {
-        // All the 4 pixels are no data, an array of 0 data is returned
+
+        // Calculation of a number indicating the dispositions of the 1 and 0, based on a binary association
+        int valueArrayBit = 8 * weightArray[0] + 4 * weightArray[1] + 2 * weightArray[2]
+                + weightArray[3];
+
+        switch (valueArrayBit) {
         case 0:
-            return emptyArray;
-            // Only one pixel is a valid data, all the pixel of the line have the same value.
-            // boolean comparisons
+            // 0 0 0 0
+            break;
         case 1:
-            final boolean w0is1 = weightArray[0] == 1;
-            final boolean w3is1 = weightArray[3] == 1;
-            final boolean w2is1 = weightArray[2] == 1;
-
-            if (w0is1) {
-                Arrays.fill(emptyArray, s_);
-            } else if (w3is1) {
-                Arrays.fill(emptyArray, s2);
-            } else if (w2is1) {
-                Arrays.fill(emptyArray, s1);
-            } else {
-                Arrays.fill(emptyArray, s0);
-            }
-            return emptyArray;
-            // Only 2 pixels are valid data. If the No Data are on the border, they takes the value of the adjacent pixel,
-            // else , they take an average of the 2 neighbor pixels with valid data. A String representation is provided for a better
-            // comprehension. 0 is no Data and x is valid data.
+            // 0 0 0 x
+            emptyArray[0] = s2;
+            emptyArray[1] = s2;
+            emptyArray[2] = s2;
+            emptyArray[3] = s2;
+            break;
         case 2:
-            // boolean comparisons
-            final boolean w0is02 = weightArray[0] == 0;
-            final boolean w1is02 = weightArray[1] == 0;
-            final boolean w2is02 = weightArray[2] == 0;
-            final boolean w3is02 = weightArray[3] == 0;
-
-            // 0 0 x x
-            if (w0is02 && w1is02) {
-                s_ = s1;
-                s0 = s1;
-                // x x 0 0
-            } else if (w2is02 && w3is02) {
-                s1 = s0;
-                s2 = s0;
-                // 0 x x 0
-            } else if (w0is02 && w3is02) {
-                s_ = s0;
-                s2 = s1;
-                // x 0 0 x
-            } else if (w1is02 && w2is02) {
-                meanValue = (s_ + s2) / 2;
-                s0 = meanValue;
-                s1 = meanValue;
-                // x 0 x 0
-            } else if (w1is02 && w3is02) {
-                meanValue = (s_ + s1) / 2;
-                s0 = meanValue;
-                s2 = s1;
-                // 0 x 0 x
-            } else {
-                meanValue = (s0 + s2) / 2;
-                s_ = s0;
-                s1 = meanValue;
-            }
-            emptyArray[0] = s_;
-            emptyArray[1] = s0;
+            // 0 0 x 0
+            emptyArray[0] = s1;
+            emptyArray[1] = s1;
             emptyArray[2] = s1;
-            emptyArray[3] = s2;
-            return emptyArray;
-            // Only one pixel is a No Data. If it is at the boundaries, then it replicates the value
-            // of the adjacent pixel, else if takes an average of the 2 neighbor pixels.A String representation is provided for a better
-            // comprehension. 0 is no Data and x is valid data.
+            emptyArray[3] = s1;
+            break;
         case 3:
-            // boolean comparisons
-            final boolean w0is03 = weightArray[0] == 0;
-            final boolean w2is03 = weightArray[2] == 0;
-            final boolean w3is03 = weightArray[3] == 0;
-
+            // 0 0 x x
+            emptyArray[0] = s1;
+            emptyArray[1] = s1;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
+            break;
+        case 4:
+            // 0 x 0 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = s0;
+            emptyArray[3] = s0;
+            break;
+        case 5:
+            // 0 x 0 x
+            meanValue = (s0 + s2) / 2;
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = meanValue;
+            emptyArray[3] = s2;
+            break;
+        case 6:
+            // 0 x x 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 7:
             // 0 x x x
-            if (w0is03) {
-                s_ = s0;
-                // x x x 0
-            } else if (w3is03) {
-                s2 = s1;
-                // x x 0 x
-            } else if (w2is03) {
-                meanValue = (s0 + s2) / 2;
-                s1 = meanValue;
-                // x 0 x x
-            } else {
-                meanValue = (s_ + s1) / 2;
-                s0 = meanValue;
-            }
-            emptyArray[0] = s_;
+            emptyArray[0] = s0;
             emptyArray[1] = s0;
             emptyArray[2] = s1;
             emptyArray[3] = s2;
-            return emptyArray;
+            break;
+        case 8:
+            // x 0 0 0
+            emptyArray[0] = s_;
+            emptyArray[1] = s_;
+            emptyArray[2] = s_;
+            emptyArray[3] = s_;
+            break;
+        case 9:
+            // x 0 0 x
+            meanValue = (s_ + s2) / 2;
+            emptyArray[0] = s_;
+            emptyArray[1] = meanValue;
+            emptyArray[2] = meanValue;
+            emptyArray[3] = s2;
+            break;
+        case 10:
+            // x 0 x 0
+            meanValue = (s_ + s1) / 2;
+            emptyArray[0] = s_;
+            emptyArray[1] = meanValue;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 11:
+            // x 0 x x
+            meanValue = (s_ + s1) / 2;
+            emptyArray[0] = s_;
+            emptyArray[1] = meanValue;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
+            break;
+        case 12:
+            // x x 0 0
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = s0;
+            emptyArray[3] = s0;
+            break;
+        case 13:
+            // x x 0 x
+            meanValue = (s0 + s2) / 2;
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = meanValue;
+            emptyArray[3] = s2;
+            break;
+        case 14:
+            // x x x 0
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
         default:
-            throw new IllegalArgumentException("The input array cannot have more than 4 pixels");
+            throw new IllegalArgumentException("Array cannot be composed from more than 4 elements");
         }
+        return emptyArray;
     }
-
-    // // This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
-    // private long[] bicubicInpainting(long[] array, int[] weightArray, int[] weight0) {
-    // long s_ = array[0];
-    // long s0 = array[1];
-    // long s1 = array[2];
-    // long s2 = array[3];
-    //
-    // if (weightArray == null) {
-    // weightArray = new int[4];
-    // if (s_ == 0 && weight0[0] == 0) {
-    // weightArray[0] = 0;
-    // } else {
-    // weightArray[0] = 1;
-    // }
-    // if (s0 == 0 && weight0[1] == 0) {
-    // weightArray[1] = 0;
-    // } else {
-    // weightArray[1] = 1;
-    // }
-    // if (s1 == 0 && weight0[2] == 0) {
-    // weightArray[2] = 0;
-    // } else {
-    // weightArray[2] = 1;
-    // }
-    // if (s2 == 0 && weight0[3] == 0) {
-    // weightArray[3] = 0;
-    // } else {
-    // weightArray[3] = 1;
-    // }
-    // }
-    //
-    // // empty array containing the final values of the selected 4 pixels
-    // long[] emptyArray = new long[4];
-    //
-    // // Calculation of the number of data
-    // int sum = weightArray[0] + weightArray[1] + weightArray[2] + weightArray[3];
-    // // mean value used in calculations
-    // long meanValue = 0;
-    // switch (sum) {
-    // // All the 4 pixels are no data, an array of 0 data is returned
-    // case 0:
-    // return emptyArray;
-    // // Only one pixel is a valid data, all the pixel of the line have the same value.
-    // case 1:
-    // long validData = 0;
-    // if (weightArray[0] == 1) {
-    // validData = s_;
-    // } else if (weightArray[1] == 1) {
-    // validData = s0;
-    // } else if (weightArray[2] == 1) {
-    // validData = s1;
-    // } else {
-    // validData = s2;
-    // }
-    // emptyArray[0] = validData;
-    // emptyArray[1] = validData;
-    // emptyArray[2] = validData;
-    // emptyArray[3] = validData;
-    // return emptyArray;
-    // // Only 2 pixels are valid data. If the No Data are on the border, they takes the value of the adjacent pixel,
-    // // else , they take an average of the 2 neighbor pixels with valid data. A String representation is provided for a better
-    // // comprehension. 0 is no Data and x is valid data.
-    // case 2:
-    //
-    // // 0 0 x x
-    // if (weightArray[0] == 0 && weightArray[1] == 0) {
-    // emptyArray[0] = s1;
-    // emptyArray[1] = s1;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s2;
-    // // 0 x 0 x
-    // } else if (weightArray[0] == 0 && weightArray[2] == 0) {
-    // meanValue = (s0 + s2) / 2;
-    // emptyArray[0] = s0;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = meanValue;
-    // emptyArray[3] = s2;
-    // // 0 x x 0
-    // } else if (weightArray[0] == 0 && weightArray[3] == 0) {
-    // emptyArray[0] = s0;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s1;
-    // // x 0 0 x
-    // } else if (weightArray[1] == 0 && weightArray[2] == 0) {
-    // meanValue = (s_ + s2) / 2;
-    // emptyArray[0] = s_;
-    // emptyArray[1] = meanValue;
-    // emptyArray[2] = meanValue;
-    // emptyArray[3] = s2;
-    // // x 0 x 0
-    // } else if (weightArray[1] == 0 && weightArray[3] == 0) {
-    // meanValue = (s_ + s1) / 2;
-    // emptyArray[0] = s_;
-    // emptyArray[1] = meanValue;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s1;
-    // // x x 0 0
-    // } else {
-    // emptyArray[0] = s_;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = s0;
-    // emptyArray[3] = s0;
-    // }
-    // return emptyArray;
-    // // Only one pixel is a No Data. If it is at the boundaries, then it replicates the value
-    // // of the adjacent pixel, else if takes an average of the 2 neighbor pixels.A String representation is provided for a better
-    // // comprehension. 0 is no Data and x is valid data.
-    // case 3:
-    // // 0 x x x
-    // if (weightArray[0] == 0) {
-    // emptyArray[0] = s0;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s2;
-    // // x 0 x x
-    // } else if (weightArray[1] == 0) {
-    // meanValue = (s_ + s1) / 2;
-    // emptyArray[0] = s_;
-    // emptyArray[1] = meanValue;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s2;
-    // // x x 0 x
-    // } else if (weightArray[2] == 0) {
-    // meanValue = (s0 + s2) / 2;
-    // emptyArray[0] = s_;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = meanValue;
-    // emptyArray[3] = s2;
-    // // x x x 0
-    // } else {
-    // emptyArray[0] = s_;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s1;
-    // }
-    // return emptyArray;
-    // // Absence of No Data, the pixels are returned.
-    // case 4:
-    // emptyArray[0] = s_;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s2;
-    // return emptyArray;
-    // default:
-    // throw new IllegalArgumentException("The input array cannot have more than 4 pixels");
-    // }
-    // }
-
-    // This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
-    // private double[] bicubicInpaintingDouble(double[] array, int[] weightArray, int[] weight0) {
-    // double s_ = array[0];
-    // double s0 = array[1];
-    // double s1 = array[2];
-    // double s2 = array[3];
-    //
-    // if (weightArray == null) {
-    // weightArray = new int[4];
-    // if (s_ == 0 && weight0[0] == 0) {
-    // weightArray[0] = 0;
-    // } else {
-    // weightArray[0] = 1;
-    // }
-    // if (s0 == 0 && weight0[1] == 0) {
-    // weightArray[1] = 0;
-    // } else {
-    // weightArray[1] = 1;
-    // }
-    // if (s1 == 0 && weight0[2] == 0) {
-    // weightArray[2] = 0;
-    // } else {
-    // weightArray[2] = 1;
-    // }
-    // if (s2 == 0 && weight0[3] == 0) {
-    // weightArray[3] = 0;
-    // } else {
-    // weightArray[3] = 1;
-    // }
-    // }
-    //
-    // // empty array containing the final values of the selected 4 pixels
-    // double[] emptyArray = new double[4];
-    //
-    // // Calculation of the number of data
-    // int sum = weightArray[0] + weightArray[1] + weightArray[2] + weightArray[3];
-    // // mean value used in calculations
-    // double meanValue = 0;
-    // switch (sum) {
-    // // All the 4 pixels are no data, an array of 0 data is returned
-    // case 0:
-    // return emptyArray;
-    // // Only one pixel is a valid data, all the pixel of the line have the same value.
-    // case 1:
-    // double validData = 0;
-    // if (weightArray[0] == 1) {
-    // validData = s_;
-    // } else if (weightArray[1] == 1) {
-    // validData = s0;
-    // } else if (weightArray[2] == 1) {
-    // validData = s1;
-    // } else {
-    // validData = s2;
-    // }
-    // emptyArray[0] = validData;
-    // emptyArray[1] = validData;
-    // emptyArray[2] = validData;
-    // emptyArray[3] = validData;
-    // return emptyArray;
-    // // Only 2 pixels are valid data. If the No Data are on the border, they takes the value of the adjacent pixel,
-    // // else , they take an average of the 2 neighbor pixels with valid data. A String representation is provided for a better
-    // // comprehension. 0 is no Data and x is valid data.
-    // case 2:
-    //
-    // // 0 0 x x
-    // if (weightArray[0] == 0 && weightArray[1] == 0) {
-    // emptyArray[0] = s1;
-    // emptyArray[1] = s1;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s2;
-    // // 0 x 0 x
-    // } else if (weightArray[0] == 0 && weightArray[2] == 0) {
-    // meanValue = (s0 + s2) / 2;
-    // emptyArray[0] = s0;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = meanValue;
-    // emptyArray[3] = s2;
-    // // 0 x x 0
-    // } else if (weightArray[0] == 0 && weightArray[3] == 0) {
-    // emptyArray[0] = s0;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s1;
-    // // x 0 0 x
-    // } else if (weightArray[1] == 0 && weightArray[2] == 0) {
-    // meanValue = (s_ + s2) / 2;
-    // emptyArray[0] = s_;
-    // emptyArray[1] = meanValue;
-    // emptyArray[2] = meanValue;
-    // emptyArray[3] = s2;
-    // // x 0 x 0
-    // } else if (weightArray[1] == 0 && weightArray[3] == 0) {
-    // meanValue = (s_ + s1) / 2;
-    // emptyArray[0] = s_;
-    // emptyArray[1] = meanValue;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s1;
-    // // x x 0 0
-    // } else {
-    // emptyArray[0] = s_;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = s0;
-    // emptyArray[3] = s0;
-    // }
-    // return emptyArray;
-    // // Only one pixel is a No Data. If it is at the boundaries, then it replicates the value
-    // // of the adjacent pixel, else if takes an average of the 2 neighbor pixels.A String representation is provided for a better
-    // // comprehension. 0 is no Data and x is valid data.
-    // case 3:
-    // // 0 x x x
-    // if (weightArray[0] == 0) {
-    // emptyArray[0] = s0;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s2;
-    // // x 0 x x
-    // } else if (weightArray[1] == 0) {
-    // meanValue = (s_ + s1) / 2;
-    // emptyArray[0] = s_;
-    // emptyArray[1] = meanValue;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s2;
-    // // x x 0 x
-    // } else if (weightArray[2] == 0) {
-    // meanValue = (s0 + s2) / 2;
-    // emptyArray[0] = s_;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = meanValue;
-    // emptyArray[3] = s2;
-    // // x x x 0
-    // } else {
-    // emptyArray[0] = s_;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s1;
-    // }
-    // return emptyArray;
-    // // Absence of No Data, the pixels are returned.
-    // case 4:
-    // emptyArray[0] = s_;
-    // emptyArray[1] = s0;
-    // emptyArray[2] = s1;
-    // emptyArray[3] = s2;
-    // return emptyArray;
-    // default:
-    // throw new IllegalArgumentException("The input array cannot have more than 4 pixels");
-    // }
-    // }
 }
