@@ -103,6 +103,9 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             byteLookupTable[i] = destinationNoDataByte;
                         } else {
                             byteLookupTable[i] = 0;
+                            if(i !=0){
+                                byteLookupTable[0] = 1;    
+                            }
                         }
                     } else {
                         byteLookupTable[i] = value;

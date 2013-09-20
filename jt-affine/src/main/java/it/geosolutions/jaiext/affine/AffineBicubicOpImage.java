@@ -21,6 +21,14 @@ import javax.media.jai.RasterFormatTag;
 
 public class AffineBicubicOpImage extends AffineOpImage {
 
+    private static final int KERNEL_LINE_DIM = 4;
+
+    private static final float OVERFLOW = 1.0F;
+
+    private static final double HALF_PIXEL = 0.5d;
+
+    private static final float AVOID_OVERFLOW = 0.999999F;
+
     /** Nearest-Neighbor interpolator */
     protected InterpolationBicubic interpBN = null;
 
@@ -157,6 +165,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             byteLookupTable[i] = destinationNoDataByte;
                         } else {
                             byteLookupTable[i] = 0;
+                            if(i !=0){
+                                byteLookupTable[0] = 1;    
+                            }                            
                         }
                     } else {
                         byteLookupTable[i] = value;
@@ -278,6 +289,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
         final float src_rect_y1 = src.getY();
         final float src_rect_x2 = src_rect_x1 + src.getWidth();
         final float src_rect_y2 = src_rect_y1 + src.getHeight();
+        
+        final float src_rect_x11 = src_rect_x1+1;
+        final float src_rect_y11 = src_rect_y1+1;
+        final float src_rect_x22 = src_rect_x2-2;
+        final float src_rect_y22 = src_rect_y2-2;
 
         double fracx = 0, fracy = 0;
 
@@ -324,7 +340,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -348,26 +364,26 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     final int xfrac = (int) (shift * fracx);
                     final int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    final int offsetX = 4 * xfrac;
-                    final int offsetY = 4 * yfrac;
+                    final int offsetX = KERNEL_LINE_DIM * xfrac;
+                    final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             long sum = 0;
 
                             int result = 0;
 
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                            for (int h = 0; h < 4; h++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                 // Row temporary sum initialization
                                 long temp = 0;
-                                for (int z = 0; z < 4; z++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
                                     int pixelValue = srcDataArrays[k2][pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride
@@ -400,9 +416,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -412,9 +428,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -434,7 +450,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -484,8 +500,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -507,15 +523,15 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final int[][] pixelKernel = new int[4][4];
+                                final int[][] pixelKernel = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int result = 0;
 
                                 int tmpROI = 0;
 
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride
@@ -534,10 +550,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
@@ -563,9 +579,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -575,9 +591,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -605,7 +621,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -655,8 +671,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -677,7 +693,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final int[][] pixelKernel = new int[4][4];
+                                final int[][] pixelKernel = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int result = 0;
 
@@ -686,8 +702,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride] & 0xff;
@@ -699,10 +715,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
@@ -728,9 +744,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -740,9 +756,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -766,23 +782,34 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
-            final long[][] pixelKernel = new long[4][4];
-            int[][] weightArray = new int[4][4];
-            int[] weightArrayVertical = new int[4];
-            long[] sumArray = new long[4];
-            long[] emptyArray = new long[4];
+            final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+            long[] sumArray = new long[KERNEL_LINE_DIM];
+            long[] emptyArray = new long[KERNEL_LINE_DIM];
+            long[] tempData;
+            // Row temporary sum initialization
+            long tempSum = 0;
+            long sum = 0;
+            int tmpND = 0;
+            //final result initialization
+            long result = 0;
+            //initial x value definition
+            final double dst_min_x_d= dst_min_x + HALF_PIXEL;
+            //Band data array creation
+            byte[] bandDataArray;
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x_d, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
                 // Get the mapped source coordinates
-                float s_x = (float) src_pt.getX();
-                float s_y = (float) src_pt.getY();
+                double s_x =  src_pt.getX();
+                double s_y =  src_pt.getY();
 
                 s_x -= 0.5;
                 s_y -= 0.5;
@@ -800,29 +827,27 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     final int xfrac = (int) (shift * fracx);
                     final int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    final int offsetX = 4 * xfrac;
-                    final int offsetY = 4 * yfrac;
+                    final int offsetX = KERNEL_LINE_DIM * xfrac;
+                    final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     final int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
-                        for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            long sum = 0;
-
-                            int tmpND = 0;
-
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
+                        for (int k2 = 0; k2 < dst_num_bands; k2++) {    
+                            bandDataArray = srcDataArrays[k2];
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                             // and check if every kernel pixel is a No Data
-                            for (int h = 0; h < 4; h++) {
-                                for (int z = 0; z < 4; z++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
-                                    pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
+                                    int sample = bandDataArray[pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride] & 0xff;
-                                    if (byteLookupTable[(int) pixelKernel[h][z]] != destinationNoDataByte) {
+                                    pixelKernel[h][z] = sample; 
+                                    if (byteLookupTable[sample] != destinationNoDataByte) {
                                         tmpND++;
                                         weightArray[h][z] = 1;
                                     } else {
@@ -830,39 +855,47 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     }
                                 }
 
-                                // Row temporary sum initialization
-                                long tempSum = 0;
-                                long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h],
+                                tempData = bicubicInpainting(pixelKernel[h], weightArray[h],
                                         emptyArray);
-                                for (int z = 0; z < 4; z++) {
-                                    // Update of the temporary sum
-                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
-                                }
+//                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
+//                                    // Update of the temporary sum
+//                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
+//                                }
+                                
+                                tempSum = tempData[0] * dataHi[offsetX]+
+                                        tempData[1] * dataHi[offsetX + 1]+
+                                        tempData[2] * dataHi[offsetX + 2]+                                        
+                                        tempData[3] * dataHi[offsetX + 3];
+                                
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
                                 } else {
                                     weightArrayVertical[h] = 0;
                                 }
                                 sumArray[h] = ((tempSum + round) >> precisionBits);
-
                             }
 
                             // Control if the 16 pixel are are all No Data
                             if (tmpND == 0) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
                             } else {
-                                long[] tempData = bicubicInpainting(sumArray, weightArrayVertical,
+                                tmpND = 0;
+                                tempData = bicubicInpainting(sumArray, weightArrayVertical,
                                         emptyArray);
 
                                 // Vertical sum update
-                                for (int h = 0; h < 4; h++) {
-                                    // Update of the temporary sum
-                                    sum += tempData[h] * dataVi[offsetY + h];
-                                }
+//                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+//                                    // Update of the temporary sum
+//                                    sum += tempData[h] * dataVi[offsetY + h];
+//                                }
+                                sum = tempData[0] * dataVi[offsetY]+
+                                        tempData[1] * dataVi[offsetY + 1]+
+                                        tempData[2] * dataVi[offsetY + 2]+                                        
+                                        tempData[3] * dataVi[offsetY + 3];
 
                                 // Interpolation
-                                int result = (int) ((sum + round) >> precisionBits);
-
+                                result =  ((sum + round) >> precisionBits);
+                                sum = 0;
                                 // Clamp
                                 if (result > 255) {
                                     result = 255;
@@ -882,9 +915,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -894,9 +927,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -911,17 +944,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-                final long[][] pixelKernel = new long[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                long[] sumArray = new long[4];
-                long[] emptyArray = new long[4];
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -978,8 +1011,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -1001,8 +1034,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride] & 0xff;
@@ -1027,12 +1060,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
@@ -1049,7 +1082,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] *  dataVi[offsetY + h];
                                     }
@@ -1071,9 +1104,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -1083,9 +1116,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -1107,17 +1140,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
-                final long[][] pixelKernel = new long[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                long[] sumArray = new long[4];
-                long[] emptyArray = new long[4];
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -1172,8 +1205,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -1195,8 +1228,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride] & 0xff;
@@ -1216,12 +1249,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
@@ -1238,7 +1271,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] *  dataVi[offsetY + h];
                                     }
@@ -1260,9 +1293,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -1272,9 +1305,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -1307,6 +1340,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
         final float src_rect_y1 = src.getY();
         final float src_rect_x2 = src_rect_x1 + src.getWidth();
         final float src_rect_y2 = src_rect_y1 + src.getHeight();
+        
+        final float src_rect_x11 = src_rect_x1+1;
+        final float src_rect_y11 = src_rect_y1+1;
+        final float src_rect_x22 = src_rect_x2-2;
+        final float src_rect_y22 = src_rect_y2-2;
 
         double fracx = 0, fracy = 0;
 
@@ -1353,7 +1391,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -1377,26 +1415,26 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     int xfrac = (int) (shift * fracx);
                     int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    int offsetX = 4 * xfrac;
-                    int offsetY = 4 * yfrac;
+                    int offsetX = KERNEL_LINE_DIM * xfrac;
+                    int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     int posx = (s_ix - srcRectX) * srcPixelStride;
                     int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             long sum = 0;
 
                             int result = 0;
 
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                            for (int h = 0; h < 4; h++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                 // Row temporary sum initialization
                                 long temp = 0;
-                                for (int z = 0; z < 4; z++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
                                     int pixelValue = srcDataArrays[k2][pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride
@@ -1429,9 +1467,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -1441,9 +1479,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -1463,7 +1501,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -1513,8 +1551,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -1536,15 +1574,15 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final int[][] pixelKernel = new int[4][4];
+                                final int[][] pixelKernel = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int result = 0;
 
                                 int tmpROI = 0;
 
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride
@@ -1563,10 +1601,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
@@ -1593,9 +1631,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -1605,9 +1643,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -1635,7 +1673,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -1685,8 +1723,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -1707,7 +1745,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final int[][] pixelKernel = new int[4][4];
+                                final int[][] pixelKernel = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int result = 0;
 
@@ -1716,8 +1754,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
@@ -1729,10 +1767,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
@@ -1759,9 +1797,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -1771,9 +1809,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -1797,17 +1835,28 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
-            final long[][] pixelKernel = new long[4][4];
-            int[][] weightArray = new int[4][4];
-            int[] weightArrayVertical = new int[4];
-            long[] sumArray = new long[4];
-            long[] emptyArray = new long[4];
+            final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+            long[] sumArray = new long[KERNEL_LINE_DIM];
+            long[] emptyArray = new long[KERNEL_LINE_DIM];
+            // Row temporary sum initialization
+            long tempSum = 0;
+            long sum = 0;
+            int tmpND = 0;
+            //final result initialization
+            long result = 0;
+            //initial x value definition
+            final double dst_min_x_d= dst_min_x + HALF_PIXEL;
+            //Band data array creation
+            short[] bandDataArray;
+            
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x_d, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -1831,29 +1880,24 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     final int xfrac = (int) (shift * fracx);
                     final int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    final int offsetX = 4 * xfrac;
-                    final int offsetY = 4 * yfrac;
+                    final int offsetX = KERNEL_LINE_DIM * xfrac;
+                    final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     final int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            long sum = 0;
-
-                            int result = 0;
-
-                            int tmpND = 0;
-
+                            bandDataArray = srcDataArrays[k2];
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                             // and check if every kernel pixel is a No Data
-                            for (int h = 0; h < 4; h++) {
-                                for (int z = 0; z < 4; z++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
-                                    pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
+                                    pixelKernel[h][z] = bandDataArray[pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
                                     if (!noData.contains((short) pixelKernel[h][z])) {
                                         tmpND++;
@@ -1863,14 +1907,14 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     }
                                 }
 
-                                // Row temporary sum initialization
-                                long tempSum = 0;
                                 long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h],
                                         emptyArray);
-                                for (int z = 0; z < 4; z++) {
-                                    // Update of the temporary sum
-                                    tempSum += (tempData[z] *  dataHi[offsetX + z]);
-                                }
+                                
+                                tempSum = tempData[0] * dataHi[offsetX]+
+                                        tempData[1] * dataHi[offsetX + 1]+
+                                        tempData[2] * dataHi[offsetX + 2]+                                        
+                                        tempData[3] * dataHi[offsetX + 3];
+                                
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
                                 } else {
@@ -1884,19 +1928,19 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             if (tmpND == 0) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                             } else {
-
+                                tmpND = 0;
                                 long[] tempData = bicubicInpainting(sumArray, weightArrayVertical,
                                         emptyArray);
 
                                 // Vertical sum update
-                                for (int h = 0; h < 4; h++) {
-                                    // Update of the temporary sum
-                                    sum += tempData[h] *  dataVi[offsetY + h];
-                                }
+                                sum = tempData[0] * dataVi[offsetY]+
+                                        tempData[1] * dataVi[offsetY + 1]+
+                                        tempData[2] * dataVi[offsetY + 2]+                                        
+                                        tempData[3] * dataVi[offsetY + 3];
 
                                 // Interpolation
                                 result = (int) ((sum + round) >> precisionBits);
-
+                                sum = 0;
                                 // Clamp
                                 if (result > USHORT_MAX_VALUE) {
                                     result = USHORT_MAX_VALUE;
@@ -1917,9 +1961,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -1929,9 +1973,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -1946,17 +1990,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-                final long[][] pixelKernel = new long[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                long[] sumArray = new long[4];
-                long[] emptyArray = new long[4];
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -2013,8 +2057,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -2036,8 +2080,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
@@ -2062,12 +2106,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
@@ -2084,7 +2128,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] *  dataVi[offsetY + h];
                                     }
@@ -2107,9 +2151,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -2119,9 +2163,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -2143,17 +2187,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
-                final long[][] pixelKernel = new long[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                long[] sumArray = new long[4];
-                long[] emptyArray = new long[4];
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -2208,8 +2252,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -2231,8 +2275,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
@@ -2252,12 +2296,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
@@ -2274,7 +2318,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] *  dataVi[offsetY + h];
                                     }
@@ -2297,9 +2341,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -2309,9 +2353,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -2344,6 +2388,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
         final float src_rect_y1 = src.getY();
         final float src_rect_x2 = src_rect_x1 + src.getWidth();
         final float src_rect_y2 = src_rect_y1 + src.getHeight();
+        
+        final float src_rect_x11 = src_rect_x1+1;
+        final float src_rect_y11 = src_rect_y1+1;
+        final float src_rect_x22 = src_rect_x2-2;
+        final float src_rect_y22 = src_rect_y2-2;
 
         double fracx = 0, fracy = 0;
 
@@ -2390,7 +2439,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -2414,26 +2463,26 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     int xfrac = (int) (shift * fracx);
                     int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    int offsetX = 4 * xfrac;
-                    int offsetY = 4 * yfrac;
+                    int offsetX = KERNEL_LINE_DIM * xfrac;
+                    int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     int posx = (s_ix - srcRectX) * srcPixelStride;
                     int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             long sum = 0;
 
                             int result = 0;
 
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                            for (int h = 0; h < 4; h++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                 // Row temporary sum initialization
                                 long temp = 0;
-                                for (int z = 0; z < 4; z++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
                                     int pixelValue = srcDataArrays[k2][pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride
@@ -2466,9 +2515,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -2478,9 +2527,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -2500,7 +2549,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -2550,8 +2599,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -2573,15 +2622,15 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final int[][] pixelKernel = new int[4][4];
+                                final int[][] pixelKernel = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int result = 0;
 
                                 int tmpROI = 0;
 
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride
@@ -2600,10 +2649,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
@@ -2630,9 +2679,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -2642,9 +2691,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -2672,7 +2721,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -2722,8 +2771,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -2744,7 +2793,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final int[][] pixelKernel = new int[4][4];
+                                final int[][] pixelKernel = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int result = 0;
 
@@ -2753,8 +2802,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -2766,10 +2815,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
@@ -2796,9 +2845,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -2808,9 +2857,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -2834,17 +2883,28 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
-            final long[][] pixelKernel = new long[4][4];
-            int[][] weightArray = new int[4][4];
-            int[] weightArrayVertical = new int[4];
-            long[] sumArray = new long[4];
-            long[] emptyArray = new long[4];
+            final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+            long[] sumArray = new long[KERNEL_LINE_DIM];
+            long[] emptyArray = new long[KERNEL_LINE_DIM];
+            // Row temporary sum initialization
+            long tempSum = 0;
+            long sum = 0;
+            int tmpND = 0;
+            //final result initialization
+            long result = 0;
+            //initial x value definition
+            final double dst_min_x_d= dst_min_x + HALF_PIXEL;
+            //Band data array creation
+            short[] bandDataArray;
+            
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x_d, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -2868,29 +2928,24 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     final int xfrac = (int) (shift * fracx);
                     final int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    final int offsetX = 4 * xfrac;
-                    final int offsetY = 4 * yfrac;
+                    final int offsetX = KERNEL_LINE_DIM * xfrac;
+                    final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     final int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            long sum = 0;
-
-                            int result = 0;
-
-                            int tmpND = 0;
-
+                            bandDataArray=srcDataArrays[k2];
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                             // and check if every kernel pixel is a No Data
-                            for (int h = 0; h < 4; h++) {
-                                for (int z = 0; z < 4; z++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
-                                    pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
+                                    pixelKernel[h][z] = bandDataArray[pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride];
                                     if (!noData.contains((short) pixelKernel[h][z])) {
                                         tmpND++;
@@ -2900,14 +2955,14 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     }
                                 }
 
-                                // Row temporary sum initialization
-                                long tempSum = 0;
                                 long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h],
                                         emptyArray);
-                                for (int z = 0; z < 4; z++) {
-                                    // Update of the temporary sum
-                                    tempSum += (tempData[z] *  dataHi[offsetX + z]);
-                                }
+                                
+                                tempSum = tempData[0] * dataHi[offsetX]+
+                                        tempData[1] * dataHi[offsetX + 1]+
+                                        tempData[2] * dataHi[offsetX + 2]+                                        
+                                        tempData[3] * dataHi[offsetX + 3];
+                                
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
                                 } else {
@@ -2921,18 +2976,19 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             if (tmpND == 0) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                             } else {
+                                tmpND = 0;
                                 long[] tempData = bicubicInpainting(sumArray, weightArrayVertical,
                                         emptyArray);
 
                                 // Vertical sum update
-                                for (int h = 0; h < 4; h++) {
-                                    // Update of the temporary sum
-                                    sum += tempData[h] *  dataVi[offsetY + h];
-                                }
+                                sum = tempData[0] * dataVi[offsetY]+
+                                        tempData[1] * dataVi[offsetY + 1]+
+                                        tempData[2] * dataVi[offsetY + 2]+                                        
+                                        tempData[3] * dataVi[offsetY + 3];
 
                                 // Interpolation
                                 result = (int) ((sum + round) >> precisionBits);
-
+                                sum = 0;
                                 // Clamp
                                 if (result > Short.MAX_VALUE) {
                                     result = Short.MAX_VALUE;
@@ -2953,9 +3009,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -2965,9 +3021,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -2982,17 +3038,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-                final long[][] pixelKernel = new long[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                long[] sumArray = new long[4];
-                long[] emptyArray = new long[4];
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -3049,8 +3105,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -3072,8 +3128,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -3098,12 +3154,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
@@ -3120,7 +3176,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] *  dataVi[offsetY + h];
                                     }
@@ -3143,9 +3199,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -3155,9 +3211,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -3179,17 +3235,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
-                final long[][] pixelKernel = new long[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                long[] sumArray = new long[4];
-                long[] emptyArray = new long[4];
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -3244,8 +3300,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -3267,8 +3323,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -3288,12 +3344,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
@@ -3310,7 +3366,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] *  dataVi[offsetY + h];
                                     }
@@ -3333,9 +3389,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -3345,9 +3401,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -3381,6 +3437,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
         final float src_rect_x2 = src_rect_x1 + src.getWidth();
         final float src_rect_y2 = src_rect_y1 + src.getHeight();
 
+        final float src_rect_x11 = src_rect_x1+1;
+        final float src_rect_y11 = src_rect_y1+1;
+        final float src_rect_x22 = src_rect_x2-2;
+        final float src_rect_y22 = src_rect_y2-2;
+        
         double fracx = 0, fracy = 0;
 
         int dstPixelOffset;
@@ -3426,7 +3487,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -3450,26 +3511,26 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     int xfrac = (int) (shift * fracx);
                     int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    int offsetX = 4 * xfrac;
-                    int offsetY = 4 * yfrac;
+                    int offsetX = KERNEL_LINE_DIM * xfrac;
+                    int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     int posx = (s_ix - srcRectX) * srcPixelStride;
                     int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             long sum = 0;
 
                             int result = 0;
 
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                            for (int h = 0; h < 4; h++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                 // Row temporary sum initialization
                                 long temp = 0;
-                                for (int z = 0; z < 4; z++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
                                     int pixelValue = srcDataArrays[k2][pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride
@@ -3496,9 +3557,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -3508,9 +3569,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -3530,7 +3591,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -3580,8 +3641,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -3603,15 +3664,15 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final int[][] pixelKernel = new int[4][4];
+                                final int[][] pixelKernel = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int result = 0;
 
                                 int tmpROI = 0;
 
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride
@@ -3630,10 +3691,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
@@ -3653,9 +3714,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -3665,9 +3726,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -3695,7 +3756,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -3745,8 +3806,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -3767,7 +3828,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 long sum = 0;
 
-                                final int[][] pixelKernel = new int[4][4];
+                                final int[][] pixelKernel = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int result = 0;
 
@@ -3776,8 +3837,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -3789,10 +3850,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] *  dataHi[offsetX
                                                     + z]);
@@ -3812,9 +3873,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -3824,9 +3885,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -3850,17 +3911,29 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
-            final long[][] pixelKernel = new long[4][4];
-            int[][] weightArray = new int[4][4];
-            int[] weightArrayVertical = new int[4];
-            long[] sumArray = new long[4];
-            long[] emptyArray = new long[4];
+            final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+            long[] sumArray = new long[KERNEL_LINE_DIM];
+            long[] emptyArray = new long[KERNEL_LINE_DIM];
+            
+            // Row temporary sum initialization
+            long tempSum = 0;
+            long sum = 0;
+            int tmpND = 0;
+            //final result initialization
+            int result = 0;
+            //initial x value definition
+            final double dst_min_x_d= dst_min_x + HALF_PIXEL;
+            //Band data array creation
+            int[] bandDataArray;
+            
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x_d, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -3884,29 +3957,24 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     final int xfrac = (int) (shift * fracx);
                     final int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    final int offsetX = 4 * xfrac;
-                    final int offsetY = 4 * yfrac;
+                    final int offsetX = KERNEL_LINE_DIM * xfrac;
+                    final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     final int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            long sum = 0;
-
-                            int result = 0;
-
-                            int tmpND = 0;
-
+                            bandDataArray=srcDataArrays[k2];
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                             // and check if every kernel pixel is a No Data
-                            for (int h = 0; h < 4; h++) {
-                                for (int z = 0; z < 4; z++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
-                                    pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
+                                    pixelKernel[h][z] = bandDataArray[pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride];
                                     if (!noData.contains((int) pixelKernel[h][z])) {
                                         tmpND++;
@@ -3916,14 +3984,14 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     }
                                 }
 
-                                // Row temporary sum initialization
-                                long tempSum = 0;
                                 long[] tempData = bicubicInpainting(pixelKernel[h], weightArray[h],
                                         emptyArray);
-                                for (int z = 0; z < 4; z++) {
-                                    // Update of the temporary sum
-                                    tempSum += (tempData[z] *  dataHi[offsetX + z]);
-                                }
+                                
+                                tempSum = tempData[0] * dataHi[offsetX]+
+                                        tempData[1] * dataHi[offsetX + 1]+
+                                        tempData[2] * dataHi[offsetX + 2]+                                        
+                                        tempData[3] * dataHi[offsetX + 3];
+                                
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
                                 } else {
@@ -3937,19 +4005,19 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             if (tmpND == 0) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                             } else {
-
+                                tmpND = 0;
                                 long[] tempData = bicubicInpainting(sumArray, weightArrayVertical,
                                         emptyArray);
 
                                 // Vertical sum update
-                                for (int h = 0; h < 4; h++) {
-                                    // Update of the temporary sum
-                                    sum += tempData[h] *  dataVi[offsetY + h];
-                                }
+                                sum = tempData[0] * dataVi[offsetY]+
+                                        tempData[1] * dataVi[offsetY + 1]+
+                                        tempData[2] * dataVi[offsetY + 2]+                                        
+                                        tempData[3] * dataVi[offsetY + 3];
 
                                 // Interpolation
                                 result = (int) ((sum + round) >> precisionBits);
-
+                                sum = 0;
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
                             }
                         }
@@ -3963,9 +4031,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -3975,9 +4043,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -3992,17 +4060,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-                final long[][] pixelKernel = new long[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                long[] sumArray = new long[4];
-                long[] emptyArray = new long[4];
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -4059,8 +4127,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -4082,8 +4150,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -4108,12 +4176,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
@@ -4130,7 +4198,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] *  dataVi[offsetY + h];
                                     }
@@ -4146,9 +4214,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -4158,9 +4226,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -4182,17 +4250,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
-                final long[][] pixelKernel = new long[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                long[] sumArray = new long[4];
-                long[] emptyArray = new long[4];
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -4247,8 +4315,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -4270,8 +4338,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -4291,12 +4359,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         long tempSum = 0;
                                         long[] tempData = bicubicInpainting(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] *  dataHi[offsetX + z]);
                                         }
@@ -4313,7 +4381,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] *  dataVi[offsetY + h];
                                     }
@@ -4329,9 +4397,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -4341,9 +4409,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -4376,6 +4444,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
         final float src_rect_y1 = src.getY();
         final float src_rect_x2 = src_rect_x1 + src.getWidth();
         final float src_rect_y2 = src_rect_y1 + src.getHeight();
+        
+        final float src_rect_x11 = src_rect_x1+1;
+        final float src_rect_y11 = src_rect_y1+1;
+        final float src_rect_x22 = src_rect_x2-2;
+        final float src_rect_y22 = src_rect_y2-2;
 
         double fracx = 0, fracy = 0;
 
@@ -4422,7 +4495,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -4446,24 +4519,24 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     int xfrac = (int) (shift * fracx);
                     int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    int offsetX = 4 * xfrac;
-                    int offsetY = 4 * yfrac;
+                    int offsetX = KERNEL_LINE_DIM * xfrac;
+                    int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     int posx = (s_ix - srcRectX) * srcPixelStride;
                     int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             float sum = 0;
 
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                            for (int h = 0; h < 4; h++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                 // Row temporary sum initialization
                                 float temp = 0;
-                                for (int z = 0; z < 4; z++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
                                     float pixelValue = srcDataArrays[k2][pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride
@@ -4487,9 +4560,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -4499,9 +4572,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -4521,7 +4594,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -4571,8 +4644,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -4594,13 +4667,13 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 float sum = 0;
 
-                                final float[][] pixelKernel = new float[4][4];
+                                final float[][] pixelKernel = new float[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int tmpROI = 0;
 
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride
@@ -4619,10 +4692,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         float tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] * dataHf[offsetX + z]);
                                         }
@@ -4637,9 +4710,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -4649,9 +4722,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -4679,7 +4752,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -4729,8 +4802,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -4751,15 +4824,15 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 float sum = 0;
 
-                                final float[][] pixelKernel = new float[4][4];
+                                final float[][] pixelKernel = new float[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int tmpROI = 0;
 
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -4771,10 +4844,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         float tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] * dataHf[offsetX + z]);
                                         }
@@ -4790,9 +4863,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -4802,9 +4875,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -4828,17 +4901,27 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
-            final double[][] pixelKernel = new double[4][4];
-            int[][] weightArray = new int[4][4];
-            int[] weightArrayVertical = new int[4];
-            double[] sumArray = new double[4];
-            double[] emptyArray = new double[4];
+            final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+            double[] sumArray = new double[KERNEL_LINE_DIM];
+            double[] emptyArray = new double[KERNEL_LINE_DIM];
+            
+            // Row temporary sum initialization
+            double tempSum = 0;
+            double sum = 0;
+            int tmpND = 0;
+            //initial x value definition
+            final double dst_min_x_d= dst_min_x + HALF_PIXEL;
+            //Band data array creation
+            float[] bandDataArray;
+            
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x_d, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -4862,26 +4945,24 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     final int xfrac = (int) (shift * fracx);
                     final int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    final int offsetX = 4 * xfrac;
-                    final int offsetY = 4 * yfrac;
+                    final int offsetX = KERNEL_LINE_DIM * xfrac;
+                    final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     final int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            double sum = 0;
-                            int tmpND = 0;
-
+                            bandDataArray=srcDataArrays[k2];
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                             // and check if every kernel pixel is a No Data
-                            for (int h = 0; h < 4; h++) {
-                                for (int z = 0; z < 4; z++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
-                                    float value = srcDataArrays[k2][pos + (z - 1) * srcPixelStride
+                                    float value = bandDataArray[pos + (z - 1) * srcPixelStride
                                             + (h - 1) * srcScanlineStride];
                                     pixelKernel[h][z] = value;
 
@@ -4893,14 +4974,14 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     }
                                 }
 
-                                // Row temporary sum initialization
-                                double tempSum = 0;
                                 double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
                                         weightArray[h], emptyArray);
-                                for (int z = 0; z < 4; z++) {
-                                    // Update of the temporary sum
-                                    tempSum += (tempData[z] * dataHf[offsetX + z]);
-                                }
+                                
+                                tempSum = tempData[0] * dataHf[offsetX]+
+                                        tempData[1] * dataHf[offsetX + 1]+
+                                        tempData[2] * dataHf[offsetX + 2]+                                        
+                                        tempData[3] * dataHf[offsetX + 3];
+                                
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
                                 } else {
@@ -4914,15 +4995,19 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             if (tmpND == 0) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
                             } else {
+                                tmpND = 0;
                                 double[] tempData = bicubicInpaintingDouble(sumArray,
                                         weightArrayVertical, emptyArray);
 
                                 // Vertical sum update
-                                for (int h = 0; h < 4; h++) {
-                                    // Update of the temporary sum
-                                    sum += tempData[h] * dataVf[offsetY + h];
-                                }
+                                sum = tempData[0] * dataVf[offsetY]+
+                                        tempData[1] * dataVf[offsetY + 1]+
+                                        tempData[2] * dataVf[offsetY + 2]+                                        
+                                        tempData[3] * dataVf[offsetY + 3];
+                                
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (float) sum;
+                                //reset of the sum value
+                                sum=0;
                             }
                         }
                     } else if (setDestinationNoData) {
@@ -4935,9 +5020,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -4947,9 +5032,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -4964,17 +5049,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-                final double[][] pixelKernel = new double[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                double[] sumArray = new double[4];
-                double[] emptyArray = new double[4];
+                final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                double[] sumArray = new double[KERNEL_LINE_DIM];
+                double[] emptyArray = new double[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -5031,8 +5116,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -5052,8 +5137,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         float value = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -5079,12 +5164,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         double tempSum = 0;
                                         double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] * dataHf[offsetX + z]);
                                         }
@@ -5101,7 +5186,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] * dataVf[offsetY + h];
                                     }
@@ -5114,9 +5199,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -5126,9 +5211,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -5150,17 +5235,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
-                final double[][] pixelKernel = new double[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                double[] sumArray = new double[4];
-                double[] emptyArray = new double[4];
+                final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                double[] sumArray = new double[KERNEL_LINE_DIM];
+                double[] emptyArray = new double[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -5215,8 +5300,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -5236,8 +5321,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         float value = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -5259,12 +5344,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         double tempSum = 0;
                                         double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] * dataHf[offsetX + z]);
                                         }
@@ -5281,7 +5366,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] * dataVf[offsetY + h];
                                     }
@@ -5294,9 +5379,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -5306,9 +5391,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -5341,6 +5426,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
         final float src_rect_y1 = src.getY();
         final float src_rect_x2 = src_rect_x1 + src.getWidth();
         final float src_rect_y2 = src_rect_y1 + src.getHeight();
+        
+        final float src_rect_x11 = src_rect_x1+1;
+        final float src_rect_y11 = src_rect_y1+1;
+        final float src_rect_x22 = src_rect_x2-2;
+        final float src_rect_y22 = src_rect_y2-2;
 
         double fracx = 0, fracy = 0;
 
@@ -5387,7 +5477,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -5411,24 +5501,24 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     int xfrac = (int) (shift * fracx);
                     int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    int offsetX = 4 * xfrac;
-                    int offsetY = 4 * yfrac;
+                    int offsetX = KERNEL_LINE_DIM * xfrac;
+                    int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     int posx = (s_ix - srcRectX) * srcPixelStride;
                     int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
                             double sum = 0;
 
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                            for (int h = 0; h < 4; h++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                 // Row temporary sum initialization
                                 double temp = 0;
-                                for (int z = 0; z < 4; z++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
                                     double pixelValue = srcDataArrays[k2][pos + (z - 1)
                                             * srcPixelStride + (h - 1) * srcScanlineStride
@@ -5452,9 +5542,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -5464,9 +5554,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -5486,7 +5576,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -5536,8 +5626,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -5559,13 +5649,13 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 double sum = 0;
 
-                                final double[][] pixelKernel = new double[4][4];
+                                final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int tmpROI = 0;
 
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride
@@ -5584,10 +5674,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         double tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] * dataHd[offsetX + z]);
                                         }
@@ -5602,9 +5692,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -5614,9 +5704,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -5644,7 +5734,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -5694,8 +5784,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int posx = (s_ix - srcRectX) * srcPixelStride;
                         final int posy = (s_iy - srcRectY) * srcScanlineStride;
@@ -5716,15 +5806,15 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 double sum = 0;
 
-                                final double[][] pixelKernel = new double[4][4];
+                                final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
 
                                 int tmpROI = 0;
 
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -5736,10 +5826,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 if (tmpROI == 0) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
                                 } else {
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         double tempSum = 0;
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (pixelKernel[h][z] * dataHd[offsetX + z]);
                                         }
@@ -5755,9 +5845,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -5767,9 +5857,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -5793,17 +5883,27 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 }
             }
         } else if (caseC) {
-            final double[][] pixelKernel = new double[4][4];
-            int[][] weightArray = new int[4][4];
-            int[] weightArrayVertical = new int[4];
-            double[] sumArray = new double[4];
-            double[] emptyArray = new double[4];
+            final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+            double[] sumArray = new double[KERNEL_LINE_DIM];
+            double[] emptyArray = new double[KERNEL_LINE_DIM];
+            
+            // Row temporary sum initialization
+            double tempSum = 0;
+            double sum = 0;
+            int tmpND = 0;
+            //initial x value definition
+            final double dst_min_x_d= dst_min_x + HALF_PIXEL;
+            //Band data array creation
+            double[] bandDataArray;
+            
             for (int y = dst_min_y; y < dst_max_y; y++) {
                 dstPixelOffset = dstOffset;
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x_d, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -5827,25 +5927,24 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     final int xfrac = (int) (shift * fracx);
                     final int yfrac = (int) (shift * fracy);
                     // X and Y offset initialization
-                    final int offsetX = 4 * xfrac;
-                    final int offsetY = 4 * yfrac;
+                    final int offsetX = KERNEL_LINE_DIM * xfrac;
+                    final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                     final int posx = (s_ix - srcRectX) * srcPixelStride;
                     final int posy = (s_iy - srcRectY) * srcScanlineStride;
 
                     final int pos = posx + posy;
 
-                    if ((s_ix >= src_rect_x1 + 1) && (s_ix < (src_rect_x2 - 2))
-                            && (s_iy >= (src_rect_y1 + 1)) && (s_iy < (src_rect_y2 - 2))) {
+                    if ((s_ix >= src_rect_x11) && (s_ix < (src_rect_x22))
+                            && (s_iy >= (src_rect_y11)) && (s_iy < (src_rect_y22))) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            double sum = 0;
-                            int tmpND = 0;
+                            bandDataArray=srcDataArrays[k2];
                             // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                             // and check if every kernel pixel is a No Data
-                            for (int h = 0; h < 4; h++) {
-                                for (int z = 0; z < 4; z++) {
+                            for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
-                                    double value = srcDataArrays[k2][pos + (z - 1) * srcPixelStride
+                                    double value = bandDataArray[pos + (z - 1) * srcPixelStride
                                             + (h - 1) * srcScanlineStride];
                                     pixelKernel[h][z] = value;
 
@@ -5857,14 +5956,14 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     }
                                 }
 
-                                // Row temporary sum initialization
-                                double tempSum = 0;
                                 double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
                                         weightArray[h], emptyArray);
-                                for (int z = 0; z < 4; z++) {
-                                    // Update of the temporary sum
-                                    tempSum += (tempData[z] * dataHd[offsetX + z]);
-                                }
+                                
+                                tempSum = tempData[0] * dataHd[offsetX]+
+                                        tempData[1] * dataHd[offsetX + 1]+
+                                        tempData[2] * dataHd[offsetX + 2]+                                        
+                                        tempData[3] * dataHd[offsetX + 3];
+                                
                                 if ((weightArray[h][0] + weightArray[h][1] + weightArray[h][2] + weightArray[h][3]) > 0) {
                                     weightArrayVertical[h] = 1;
                                 } else {
@@ -5878,16 +5977,19 @@ public class AffineBicubicOpImage extends AffineOpImage {
                             if (tmpND == 0) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
                             } else {
-
+                                tmpND = 0;
                                 double[] tempData = bicubicInpaintingDouble(sumArray,
                                         weightArrayVertical, emptyArray);
 
                                 // Vertical sum update
-                                for (int h = 0; h < 4; h++) {
-                                    // Update of the temporary sum
-                                    sum += tempData[h] * dataVd[offsetY + h];
-                                }
+                                sum = tempData[0] * dataVd[offsetY]+
+                                        tempData[1] * dataVd[offsetY + 1]+
+                                        tempData[2] * dataVd[offsetY + 2]+                                        
+                                        tempData[3] * dataVd[offsetY + 3];
+                                
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = sum;
+                                // result reset
+                                sum = 0;
                             }
                         }
                     } else if (setDestinationNoData) {
@@ -5900,9 +6002,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracx < fracdx1) {
                         s_ix += incx;
                         fracx += fracdx;
-                        if (fracx == 1.0F) {
+                        if (fracx == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracx = 0.999999F;
+                            fracx = AVOID_OVERFLOW;
                         }
                     } else {
                         s_ix += incx1;
@@ -5912,9 +6014,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (fracy < fracdy1) {
                         s_iy += incy;
                         fracy += fracdy;
-                        if (fracy == 1.0F) {
+                        if (fracy == OVERFLOW) {
                             // Avoid overflow in the interpolation table
-                            fracy = 0.999999F;
+                            fracy = AVOID_OVERFLOW;
                         }
                     } else {
                         s_iy += incy1;
@@ -5929,17 +6031,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
             }
         } else {
             if (useROIAccessor) {
-                final double[][] pixelKernel = new double[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                double[] sumArray = new double[4];
-                double[] emptyArray = new double[4];
+                final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                double[] sumArray = new double[KERNEL_LINE_DIM];
+                double[] emptyArray = new double[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -5996,8 +6098,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -6017,8 +6119,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         double value = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -6044,12 +6146,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         double tempSum = 0;
                                         double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] * dataHd[offsetX + z]);
                                         }
@@ -6066,7 +6168,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] * dataVd[offsetY + h];
                                     }
@@ -6079,9 +6181,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -6091,9 +6193,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -6115,17 +6217,17 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     dstOffset += dstScanlineStride;
                 }
             } else {
-                final double[][] pixelKernel = new double[4][4];
-                int[][] weightArray = new int[4][4];
-                int[] weightArrayVertical = new int[4];
-                double[] sumArray = new double[4];
-                double[] emptyArray = new double[4];
+                final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[][] weightArray = new int[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                int[] weightArrayVertical = new int[KERNEL_LINE_DIM];
+                double[] sumArray = new double[KERNEL_LINE_DIM];
+                double[] emptyArray = new double[KERNEL_LINE_DIM];
                 for (int y = dst_min_y; y < dst_max_y; y++) {
                     dstPixelOffset = dstOffset;
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -6180,8 +6282,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         final int xfrac = (int) (shift * fracx);
                         final int yfrac = (int) (shift * fracy);
                         // X and Y offset initialization
-                        final int offsetX = 4 * xfrac;
-                        final int offsetY = 4 * yfrac;
+                        final int offsetX = KERNEL_LINE_DIM * xfrac;
+                        final int offsetY = KERNEL_LINE_DIM * yfrac;
 
                         final int pos = posx + posy;
 
@@ -6201,8 +6303,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Cycle through all the 16 kernel pixel and calculation of the interpolated value
                                 // and cycle for filling all the ROI index by shifting of 1 on the x axis
                                 // and by 1 on the y axis.
-                                for (int h = 0; h < 4; h++) {
-                                    for (int z = 0; z < 4; z++) {
+                                for (int h = 0; h < KERNEL_LINE_DIM; h++) {
+                                    for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         double value = srcDataArrays[k2][pos + (z - 1)
                                                 * srcPixelStride + (h - 1) * srcScanlineStride];
@@ -6224,12 +6326,12 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
                                 } else {
 
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
                                         double tempSum = 0;
                                         double[] tempData = bicubicInpaintingDouble(pixelKernel[h],
                                                 weightArray[h], emptyArray);
-                                        for (int z = 0; z < 4; z++) {
+                                        for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                             // Update of the temporary sum
                                             tempSum += (tempData[z] * dataHd[offsetX + z]);
                                         }
@@ -6246,7 +6348,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                             weightArrayVertical, emptyArray);
 
                                     // Vertical sum update
-                                    for (int h = 0; h < 4; h++) {
+                                    for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Update of the temporary sum
                                         sum += tempData[h] * dataVd[offsetY + h];
                                     }
@@ -6259,9 +6361,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracx < fracdx1) {
                             s_ix += incx;
                             fracx += fracdx;
-                            if (fracx == 1.0F) {
+                            if (fracx == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracx = 0.999999F;
+                                fracx = AVOID_OVERFLOW;
                             }
                         } else {
                             s_ix += incx1;
@@ -6271,9 +6373,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (fracy < fracdy1) {
                             s_iy += incy;
                             fracy += fracdy;
-                            if (fracy == 1.0F) {
+                            if (fracy == OVERFLOW) {
                                 // Avoid overflow in the interpolation table
-                                fracy = 0.999999F;
+                                fracy = AVOID_OVERFLOW;
                             }
                         } else {
                             s_iy += incy1;
@@ -6304,7 +6406,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
         // Calculation of the number of data
         final int sum = weightArray[0] + weightArray[1] + weightArray[2] + weightArray[3];
         // Absence of No Data, the pixels are returned.
-        if (sum == 4) {
+        if (sum == KERNEL_LINE_DIM) {
             return array;
         }
 
@@ -6318,13 +6420,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
         emptyArray[2] = 0;
         emptyArray[3] = 0;
 
-        // mean value used in calculations
-        long meanValue = 0;
-
-        // Calculation of a number indicating the dispositions of the 1 and 0, based on a binary association
-        int valueArrayBit = 8 * weightArray[0] + 4 * weightArray[1] + 2 * weightArray[2]
+     // Calculation of a number indicating the dispositions of the 1 and 0, based on a binary association
+        int valueArrayBit = 8 * weightArray[0] + KERNEL_LINE_DIM * weightArray[1] + 2 * weightArray[2]
                 + weightArray[3];
-
+        
         switch (valueArrayBit) {
         case 0:
             // 0 0 0 0
@@ -6359,10 +6458,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
             break;
         case 5:
             // 0 x 0 x
-            meanValue = (s0 + s2) / 2;
             emptyArray[0] = s0;
             emptyArray[1] = s0;
-            emptyArray[2] = meanValue;
+            emptyArray[2] = (s0 + s2) / 2;
             emptyArray[3] = s2;
             break;
         case 6:
@@ -6388,25 +6486,22 @@ public class AffineBicubicOpImage extends AffineOpImage {
             break;
         case 9:
             // x 0 0 x
-            meanValue = (s_ + s2) / 2;
             emptyArray[0] = s_;
-            emptyArray[1] = meanValue;
-            emptyArray[2] = meanValue;
+            emptyArray[1] = (s_ + s2) / 2;
+            emptyArray[2] = (s_ + s2) / 2;
             emptyArray[3] = s2;
             break;
         case 10:
             // x 0 x 0
-            meanValue = (s_ + s1) / 2;
             emptyArray[0] = s_;
-            emptyArray[1] = meanValue;
+            emptyArray[1] = (s_ + s1) / 2;
             emptyArray[2] = s1;
             emptyArray[3] = s1;
             break;
         case 11:
             // x 0 x x
-            meanValue = (s_ + s1) / 2;
             emptyArray[0] = s_;
-            emptyArray[1] = meanValue;
+            emptyArray[1] = (s_ + s1) / 2;
             emptyArray[2] = s1;
             emptyArray[3] = s2;
             break;
@@ -6419,10 +6514,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
             break;
         case 13:
             // x x 0 x
-            meanValue = (s0 + s2) / 2;
             emptyArray[0] = s_;
             emptyArray[1] = s0;
-            emptyArray[2] = meanValue;
+            emptyArray[2] = (s0 + s2) / 2;
             emptyArray[3] = s2;
             break;
         case 14:
@@ -6444,7 +6538,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
         // Calculation of the number of data
         final int sum = weightArray[0] + weightArray[1] + weightArray[2] + weightArray[3];
         // Absence of No Data, the pixels are returned.
-        if (sum == 4) {
+        if (sum == KERNEL_LINE_DIM) {
             return array;
         }
 
@@ -6458,11 +6552,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
         emptyArray[2] = 0;
         emptyArray[3] = 0;
 
-        // mean value used in calculations
-        double meanValue = 0;
-
         // Calculation of a number indicating the dispositions of the 1 and 0, based on a binary association
-        int valueArrayBit = 8 * weightArray[0] + 4 * weightArray[1] + 2 * weightArray[2]
+        int valueArrayBit = 8 * weightArray[0] + KERNEL_LINE_DIM * weightArray[1] + 2 * weightArray[2]
                 + weightArray[3];
 
         switch (valueArrayBit) {
@@ -6499,10 +6590,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
             break;
         case 5:
             // 0 x 0 x
-            meanValue = (s0 + s2) / 2;
             emptyArray[0] = s0;
             emptyArray[1] = s0;
-            emptyArray[2] = meanValue;
+            emptyArray[2] = (s0 + s2) / 2;
             emptyArray[3] = s2;
             break;
         case 6:
@@ -6528,25 +6618,22 @@ public class AffineBicubicOpImage extends AffineOpImage {
             break;
         case 9:
             // x 0 0 x
-            meanValue = (s_ + s2) / 2;
             emptyArray[0] = s_;
-            emptyArray[1] = meanValue;
-            emptyArray[2] = meanValue;
+            emptyArray[1] = (s_ + s2) / 2;
+            emptyArray[2] = (s_ + s2) / 2;
             emptyArray[3] = s2;
             break;
         case 10:
             // x 0 x 0
-            meanValue = (s_ + s1) / 2;
             emptyArray[0] = s_;
-            emptyArray[1] = meanValue;
+            emptyArray[1] = (s_ + s1) / 2;
             emptyArray[2] = s1;
             emptyArray[3] = s1;
             break;
         case 11:
             // x 0 x x
-            meanValue = (s_ + s1) / 2;
             emptyArray[0] = s_;
-            emptyArray[1] = meanValue;
+            emptyArray[1] = (s_ + s1) / 2;
             emptyArray[2] = s1;
             emptyArray[3] = s2;
             break;
@@ -6559,10 +6646,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
             break;
         case 13:
             // x x 0 x
-            meanValue = (s0 + s2) / 2;
             emptyArray[0] = s_;
             emptyArray[1] = s0;
-            emptyArray[2] = meanValue;
+            emptyArray[2] = (s0 + s2) / 2;
             emptyArray[3] = s2;
             break;
         case 14:
