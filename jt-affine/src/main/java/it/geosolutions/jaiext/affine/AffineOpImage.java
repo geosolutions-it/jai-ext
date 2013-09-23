@@ -10,6 +10,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Map;
 
@@ -426,7 +427,7 @@ abstract class AffineOpImage extends GeometricOpImage {
         incy1 = incy + 1; // along y
         ifracdy = (int) Math.round(fracdy * geom_frac_max);
         ifracdy1 = geom_frac_max - ifracdy;
-
+        
         // SG Retrieve the rendered source image and its ROI.
         Object property = source.getProperty("ROI");
         if (property instanceof ROI) {
