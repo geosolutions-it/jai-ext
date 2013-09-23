@@ -46,7 +46,8 @@ import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
  */
 public class SpeedChangeMatrixTest extends AbstractBenchmark {
 
-	private final static String REFERENCE_PATH_FOR_TESTS = "d:/data/unina";
+	//private final static String REFERENCE_PATH_FOR_TESTS = "d:/data/unina";
+	private final static String REFERENCE_PATH_FOR_TESTS = "/home/giuliano/work/Projects/LIFE_Project/LUC_gpgpu/rasterize";
 
 	private final static int DEFAULT_THREAD_NUMBER = 10;
 
