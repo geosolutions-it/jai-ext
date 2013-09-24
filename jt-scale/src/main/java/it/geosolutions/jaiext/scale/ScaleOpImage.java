@@ -181,6 +181,9 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
     /** Interpolation kernel top padding */
     protected int interp_top;
+    
+    /** Value used for calculating the bilinear interpolation for integer dataTypes*/
+    protected int shift;
 
     /** Value used for calculating the bilinear interpolation */
     protected int shift2;

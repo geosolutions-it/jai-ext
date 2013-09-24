@@ -19,19 +19,6 @@ import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
 public class ScaleBilinearOpImage extends ScaleOpImage {
-    private static final int NO_BITSHIFT = 0x0F - 1;
-
-    private static final int THREE_BITSHIFT = (1 << 3);
-
-    private static final int TWO_BITSHIFT = (1 << 2);
-
-    private static final int ONE_BITSHIFT = (1 << 1);
-
-    private static final int ZERO_THREE_BITSHIFT = 0x0F - (1 << 3);
-
-    private static final int ZERO_TWO_BITSHIFT = 0x0F - (1 << 2);
-
-    private static final int ZERO_ONE_BITSHIFT = 0x0F - (1 << 1);
     
     /** boolean indicating if the data type is DataBuffer.TYPE_INT*/
     protected boolean dataINT = false;
@@ -106,6 +93,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         one = 1 << subsampleBits;
 
         // Subsampling related variables
+        shift = 29 - subsampleBits;
         shift2 = 2 * subsampleBits;
         round2 = 1 << (shift2 - 1);
 
@@ -132,7 +120,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                     } else {
                         byteLookupTable[i] = value;
                     }
-                }
+                }                
             }
 
             break;
@@ -154,7 +142,8 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         default:
             throw new IllegalArgumentException("Wrong data Type");
         }
-
+               
+        
         // Definition of the possible cases that can be found
         // caseA = no ROI nor No Data
         // caseB = ROI present but No Data not present
@@ -480,13 +469,18 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 }
             } else {
                 if (caseC) {
-                    byte weight = 0;
 
-                    // int w00 = 0;
-                    // int w01 = 0;
-                    // int w10 = 0;
-                    // int w11 = 0;
-
+                    int w00 = 0;
+                    int w01 = 0;
+                    int w10 = 0;
+                    int w11 = 0;
+                    
+                    int s00;
+                    int s01;
+                    int s10;
+                    int s11;
+                    
+                    
                     // for all bands
                     for (int k = 0; k < dnumBands; k++) {
 
@@ -508,64 +502,39 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int posx = xpos[i];
 
                                 // Get the four surrounding pixel values
-                                final int s00 = srcData[posx + posy] & 0xff;
-                                final int s01 = srcData[posx + srcPixelStride + posy] & 0xff;
-                                final int s10 = srcData[posx + posy + srcScanlineStride] & 0xff;
-                                final int s11 = srcData[posx + srcPixelStride + posy
+                                s00 = srcData[posx + posy] & 0xff;
+                                s01 = srcData[posx + srcPixelStride + posy] & 0xff;
+                                s10 = srcData[posx + posy + srcScanlineStride] & 0xff;
+                                s11 = srcData[posx + srcPixelStride + posy
                                         + srcScanlineStride] & 0xff;
 
-                                // if (byteLookupTable[s00] == destinationNoDataByte) {
-                                // w00 = 0;
-                                // }else{
-                                // w00 = 1;
-                                // }
-                                // if (byteLookupTable[s01] == destinationNoDataByte) {
-                                // w01 = 0;
-                                // }else{
-                                // w01 = 1;
-                                // }
-                                // if (byteLookupTable[s10] == destinationNoDataByte) {
-                                // w10 = 0;
-                                // }else{
-                                // w10 = 1;
-                                // }
-                                // if (byteLookupTable[s11] == destinationNoDataByte) {
-                                // w11 = 0;
-                                // }else{
-                                // w11 = 1;
-                                // }
-
                                 if (byteLookupTable[s00] == destinationNoDataByte) {
-                                    weight &= NO_BITSHIFT;
+                                    w00 = 0;
                                 } else {
-                                    weight |= 1;
+                                    w00 = 1;
                                 }
                                 if (byteLookupTable[s01] == destinationNoDataByte) {
-                                    weight &= ZERO_ONE_BITSHIFT;
+                                    w01 = 0;
                                 } else {
-                                    weight |= ONE_BITSHIFT;
+                                    w01 = 1;
                                 }
                                 if (byteLookupTable[s10] == destinationNoDataByte) {
-                                    weight &= ZERO_TWO_BITSHIFT;
+                                    w10 = 0;
                                 } else {
-                                    weight |= TWO_BITSHIFT;
+                                    w10 = 1;
                                 }
                                 if (byteLookupTable[s11] == destinationNoDataByte) {
-                                    weight &= ZERO_THREE_BITSHIFT;
+                                    w11 = 0;
                                 } else {
-                                    weight |= THREE_BITSHIFT;
+                                    w11 = 1;
                                 }
-
-                                if (weight == 0) {
-                                    // if ((w00+w01+w10+w11)==0) {
+                                                               
+                                if ((w00+w01+w10+w11)==0) {
                                     dstData[dstPixelOffset] = destinationNoDataByte;
                                 } else {
                                     // compute value
-                                    // dstData[dstPixelOffset] = (byte) (computeValue(s00, s01, s10,
-                                    // s11, w00,w01,w10,w11, xfrac[i], yfrac[j]) & 0xff);
                                     dstData[dstPixelOffset] = (byte) (computeValue(s00, s01, s10,
-                                            s11, weight, xfrac[i], yfrac[j]) & 0xff);
-                                    // weight = 0;
+                                            s11, w00,w01,w10,w11, xfrac[i], yfrac[j]) & 0xff);
                                 }
 
                                 // destination pixel offset update
@@ -2931,18 +2900,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
     /* Private method for calculate bilinear interpolation for byte, short/ushort, integer dataType */
     private int computeValue(int s00, int s01, int s10, int s11, byte weight, int xfrac, int yfrac) {
 
-        int s0 = 0;
-        int s1 = 0;
-        int s = 0;
+        int s0;
+        int s1;
+        //int s = 0;
 
-        long s0L = 0;
-        long s1L = 0;
+        long s0L;
+        long s1L;
 
         // Complementary values of the fractional part
         int xfracCompl = one - xfrac;
         int yfracCompl = one - yfrac;
 
-        int shift = 29 - subsampleBits;
         // For Integer value is possible that a bitshift of "subsampleBits" could shift over the integer bit number
         // so the samples, in this case, are expanded to Long.
 
@@ -2951,12 +2919,14 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         switch (weight) {
         case 1:
             s0 = s00 * xfracCompl;
-            s = (s0 * yfracCompl + round2) >> shift2;
-            break;
+            //s = (s0 * yfracCompl + round2) >> shift2;
+            return (s0 * yfracCompl + round2) >> shift2;
+            //break;
         case 2:
             s0 = s01 * xfrac;
-            s = (s0 * yfracCompl + round2) >> shift2;
-            break;
+            //s = (s0 * yfracCompl + round2) >> shift2;
+            return (s0 * yfracCompl + round2) >> shift2;
+            //break;
         case 3:
             if (dataINT) {
                 if (((s00 | s10) >>> shift == 0)) {
@@ -2968,39 +2938,45 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 } else {
                     s0L = (1L * s01 - s00) * xfrac + (1L * s00 << subsampleBits);
                 }
-                s = (int) ((s0L * yfracCompl + round2) >> shift2);
+                //s = (int) ((s0L * yfracCompl + round2) >> shift2);
+                return (int) ((s0L * yfracCompl + round2) >> shift2);
             } else {
                 s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
-                s = (s0 * yfracCompl + round2) >> shift2;
+                return (s0 * yfracCompl + round2) >> shift2;
+                //s = (s0 * yfracCompl + round2) >> shift2;
             }
-            break;
+            //break;
         case 4:
             s1 = s10 * xfracCompl;
-            s = (s1 * yfrac + round2) >> shift2;
-
-            break;
+            return (s1 * yfrac + round2) >> shift2;
+            //s = (s1 * yfrac + round2) >> shift2;
+            //break;
         case 5:
             if (dataINT) {
                 s0L = s00 * xfracCompl;
                 s1L = s10 * xfracCompl;
-                s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                return (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                //s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
             } else {
                 s0 = s00 * xfracCompl;
                 s1 = s10 * xfracCompl;
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                return ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                //s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
             }
-            break;
+            //break;
         case 6:
             if (dataINT) {
                 s0L = s01 * xfrac;
                 s1L = s10 * xfracCompl;
-                s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                return (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                //s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
             } else {
                 s0 = s01 * xfrac;
                 s1 = s10 * xfracCompl;
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                return ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                //s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
             }
-            break;
+            //break;
         case 7:
             if (dataINT) {
                 if (((s00 | s10) >>> shift == 0)) {
@@ -3013,40 +2989,46 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                     s0L = (1L * s01 - s00) * xfrac + (1L * s00 << subsampleBits);
                 }
                 s1L = s10 * xfracCompl;
-                s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                return (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                //s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
             } else {
                 s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
                 s1 = s10 * xfracCompl;
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                return ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                //s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
             }
-            break;
+            //break;
         case 8:
             s1 = s11 * xfrac;
-            s = (s1 * yfrac + round2) >> shift2;
-
-            break;
+            return (s1 * yfrac + round2) >> shift2;
+            //s = (s1 * yfrac + round2) >> shift2;
+            //break;
         case 9:
             if (dataINT) {
                 s0L = s00 * xfracCompl;
                 s1L = s11 * xfrac;
-                s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                return (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                //s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
             } else {
                 s0 = s00 * xfracCompl;
                 s1 = s11 * xfrac;
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                return ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                //s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
             }
-            break;
+            //break;
         case 10:
             if (dataINT) {
                 s0L = s01 * xfrac;
                 s1L = s11 * xfrac;
-                s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                return (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                //s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
             } else {
                 s0 = s01 * xfrac;
                 s1 = s11 * xfrac;
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                return ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                //s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
             }
-            break;
+            //break;
         case 11:
             if (dataINT) {
                 if (((s00 | s10) >>> shift == 0)) {
@@ -3059,13 +3041,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                     s0L = (1L * s01 - s00) * xfrac + (1L * s00 << subsampleBits);
                 }
                 s1L = s11 * xfrac;
-                s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                return (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                //s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
             } else {
                 s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
                 s1 = s11 * xfrac;
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                return ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                //s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
             }
-            break;
+            //break;
         case 12:
             if (dataINT) {
                 if (((s00 | s10) >>> shift == 0)) {
@@ -3077,12 +3061,14 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 } else {
                     s1L = (1L * s11 - s10) * xfrac + (1L * s10 << subsampleBits);
                 }
-                s = (int) ((s1L * yfrac + round2) >> shift2);
+                return (int) ((s1L * yfrac + round2) >> shift2);
+                //s = (int) ((s1L * yfrac + round2) >> shift2);
             } else {
                 s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                s = (s1 * yfrac + round2) >> shift2;
+                return (s1 * yfrac + round2) >> shift2;
+                //s = (s1 * yfrac + round2) >> shift2;
             }
-            break;
+            //break;
         case 13:
             if (dataINT) {
                 if (((s00 | s10) >>> shift == 0)) {
@@ -3095,13 +3081,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                     s1L = (1L * s11 - s10) * xfrac + (1L * s10 << subsampleBits);
                 }
                 s0L = s00 * xfracCompl;
-                s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                return (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                //s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
             } else {
                 s0 = s00 * xfracCompl;
                 s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                return ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                //s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
             }
-            break;
+            //break;
         case 14:
             if (dataINT) {
                 if (((s00 | s10) >>> shift == 0)) {
@@ -3114,13 +3102,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                     s1L = (1L * s11 - s10) * xfrac + (1L * s10 << subsampleBits);
                 }
                 s0L = s01 * xfrac;
-                s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                return (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                //s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
             } else {
                 s0 = s01 * xfrac;
                 s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                return ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                //s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
             }
-            break;
+            //break;
         case 15:
             if (dataINT) {
                 if (((s00 | s10) >>> shift == 0)) {
@@ -3141,17 +3131,19 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 } else {
                     s0L = (1L * s01 - s00) * xfrac + (1L * s00 << subsampleBits);
                 }
-                s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                return (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                //s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
             } else {
                 s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
                 s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                return ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
+                //s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
             }
-            break;
+            //break;
             default:
                 throw new IllegalArgumentException("Wrong Number of No Data");
         }
-        return s;
+        //return s;
     }
 
     /* Private method for calculate bilinear interpolation for byte, short/ushort, integer dataType */
