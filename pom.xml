@@ -532,5 +532,6 @@
     <module>jt-mosaic</module>
     <module>jt-translate</module>
     <module>jt-lookup</module>
+    <module>jt-stats</module>
   </modules>
 </project>

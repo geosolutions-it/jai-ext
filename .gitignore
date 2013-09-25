@@ -11,6 +11,7 @@ jt-utilities/target/*
 jt-mosaic/target/*
 jt-translate/target/*
 jt-lookup/target/*
+jt-stats/target/*
 concurrent-tile-cache/src/test/resources/it/geosolutions/logfiles
 concurrent-tile-cache/target/*
 concurrent-tile-cache/bin/*
