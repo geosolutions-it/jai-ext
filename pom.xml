@@ -354,13 +354,13 @@
         <artifactId>jt-utils</artifactId>
         <version>${jt.version}</version>
       </dependency>
-      <dependency>
+      <!--dependency>
         <groupId>org.jcuda</groupId>
         <artifactId>aggregation</artifactId>
         <version>0.5.0a</version>
         <scope>system</scope>
         <systemPath>/usr/local/jcuda/jre/jcuda-0.5.0a.jar</systemPath>
-      </dependency>
+      </dependency-->
     </dependencies>
   </dependencyManagement>
   

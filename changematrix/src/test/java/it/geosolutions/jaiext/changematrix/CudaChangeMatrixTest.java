@@ -1,14 +1,31 @@
 package it.geosolutions.jaiext.changematrix;
 
+import static jcuda.driver.JCudaDriver.cuCtxCreate;
+import static jcuda.driver.JCudaDriver.cuCtxSynchronize;
+import static jcuda.driver.JCudaDriver.cuDeviceGet;
+import static jcuda.driver.JCudaDriver.cuInit;
+import static jcuda.driver.JCudaDriver.cuLaunchKernel;
+import static jcuda.driver.JCudaDriver.cuMemAlloc;
+import static jcuda.driver.JCudaDriver.cuMemFree;
+import static jcuda.driver.JCudaDriver.cuMemcpyDtoH;
+import static jcuda.driver.JCudaDriver.cuMemcpyHtoD;
+import static jcuda.driver.JCudaDriver.cuModuleGetFunction;
+import static jcuda.driver.JCudaDriver.cuModuleLoad;
+
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
 import java.awt.image.DataBufferInt;
+import java.awt.image.PixelInterleavedSampleModel;
 import java.awt.image.Raster;
-//import java.io.File;
-//import java.io.IOException;
+import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
+import java.awt.image.WritableRaster;
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -23,21 +40,25 @@ import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TileCache;
+import javax.media.jai.TiledImage;
+import javax.media.jai.operator.ExtremaDescriptor;
 
+import jcuda.Pointer;
+import jcuda.Sizeof;
+import jcuda.driver.CUcontext;
+import jcuda.driver.CUdevice;
+import jcuda.driver.CUdeviceptr;
+import jcuda.driver.CUfunction;
+import jcuda.driver.CUmodule;
+import jcuda.driver.JCudaDriver;
+
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.carrotsearch.junitbenchmarks.AbstractBenchmark;
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
-
-
-/*
- * JCuda declarations: I need the "JCuda Runtime API"
- */
-import static jcuda.driver.JCudaDriver.*;
-import java.io.*; // delete or replace with already given java.io.File/IOException
-import jcuda.*;
-import jcuda.driver.*;
+import com.sun.imageio.plugins.common.ImageUtil;
 
 /**
  * This test-class is used for testing images in the directory
@@ -102,21 +123,17 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
             // call CUDA and get result
             // I am expecting the host_oMap as the first array and host_chMat as the second array
             final List<int[]> result=JCudaChangeMat(dataRef,dataCurrent);
-            System.out.println("Cuda kernels work fine !!");
-            System.out.println("");
+            System.out.println("Cuda kernels work fine !!\n");
             
             // build output image and save
             System.out.println("build output image	1");
-            final BufferedImage biImage= new BufferedImage(rect.width, rect.height, BufferedImage.TYPE_BYTE_GRAY);
-            System.out.println("build output image	2");
-            final DataBufferInt dbFinal= new DataBufferInt(result.get(0),result.get(0).length);
-            System.out.println("build output image	3");
-            final Raster finalR= RasterFactory.createRaster(biImage.getSampleModel(), dbFinal, new Point(0,0));
-            System.out.println("build output image	4");
-            biImage.setData(finalR);
+            final TiledImage image0 = createImage(rect, result.get(0));
+            final TiledImage image1 = createImage(rect, result.get(1));
+            
             try {
                 //ImageIO.write(biImage, "tiff", new File("d:/data/unina/test/row"+tileY+"_col"+tileX+"_"+".tif"));
-            	ImageIO.write(biImage, "tiff", new File("/home/giuliano/git/jai-ext/out/row"+tileY+"_col"+tileX+"_"+".tif"));
+            	ImageIO.write(image0, "tiff", new File("/home/giuliano/git/jai-ext/out/0row"+tileY+"_col"+tileX+"_"+".tif"));
+            	ImageIO.write(image1, "tiff", new File("/home/giuliano/git/jai-ext/out/1row"+tileY+"_col"+tileX+"_"+".tif"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }    
@@ -147,7 +164,7 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
 
     private final static int DEFAULT_THREAD_NUMBER = 1;
 
-	@Before
+//	@Before
 	public void init() {
 		// Source and reference images acquisition
 		/*
@@ -219,6 +236,35 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
         }
         sem.await(10,TimeUnit.MINUTES);
         ex.shutdown();
+    }
+    
+    @Test
+    public void createImage() throws IOException{
+        // fake data
+        final int[]data= new int[4096*4096];
+        for(int x=0;x<4096;x++){
+            for(int y=0;y<4096;y++){
+                data[x+y*4096]=x+y;
+            }
+        }
+        
+        // create the image
+        final RenderedImage image= createImage(new Rectangle(0,0,4096,4096), data);
+        
+        // test the image dimensions
+        Assert.assertEquals(4096, image.getWidth());
+        Assert.assertEquals(4096, image.getHeight());
+        // test the extrema
+        final RenderedOp extrema=
+            ExtremaDescriptor.create(image, null, Integer.valueOf(1), Integer.valueOf(1), Boolean.TRUE, Integer.MAX_VALUE, null);
+        double[]minimum=(double[])extrema.getProperty("minimum");
+        Assert.assertEquals(0.0, minimum[0],1e-6);
+        double[]maximum=(double[])extrema.getProperty("maximum");
+        Assert.assertEquals(8190, maximum[0],1e-6);
+        
+        // write down as tiff
+        // THIS NEEDS TO be adjusted on some platform
+        ImageIO.write(image, "tiff", new File("d:/test.tif"));
     }
 
 
@@ -403,5 +449,38 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
         cuMemFree(dev_chMat);
         //System.out.println("...here...");
         return Arrays.asList(host_oMap,host_chMat);
+    }
+
+
+    /**
+     * Creates an image from a vector of int
+     * @param rect
+     * @param data
+     * @return
+     */
+    private TiledImage createImage(Rectangle rect, final int[] data) {
+        final SampleModel sm= new PixelInterleavedSampleModel(
+                DataBuffer.TYPE_INT, 
+                rect.width, 
+                rect.height, 
+                1, 
+                rect.width, 
+                new int[]{0});
+        final DataBufferInt db1= new DataBufferInt(data, rect.width*rect.height);
+        final WritableRaster wr= 
+            com.sun.media.jai.codecimpl.util.RasterFactory.createWritableRaster(sm, db1, new Point(0,0));
+        
+        final TiledImage image= new TiledImage(
+                0,
+                0,
+                rect.width,
+                rect.height,
+                0,
+                0,
+                sm,
+                ImageUtil.createColorModel(sm)
+                );
+        image.setData(wr);
+        return image;
     }
 }
