@@ -13,7 +13,7 @@ public abstract class Statistics {
      * This enum is used for organizing the various kinds of statistics and giving them an identifier used by the {@link StatsFactory} create methods.
      */
     public enum StatsType {
-        MEAN(0), SUM(1), MAX(2), MIN(3), EXTREMA(4), VARIANCE(5), DEV_STD(6);
+        MEAN(0), SUM(1), MAX(2), MIN(3), EXTREMA(4), VARIANCE(5), DEV_STD(6),HISTOGRAM(7);
 
         private int id;
 
@@ -26,6 +26,9 @@ public abstract class Statistics {
         }
     }
 
+    /** Statistics property name */
+    public final static String SIMPLE_STATS_PROPERTY = "JAI-EXT.stats";
+    
     /** Variable indicating the statistic used */
     protected StatsType type;
 
@@ -52,4 +55,7 @@ public abstract class Statistics {
 
     /** This method returns the statistic result */
     public abstract Object getResult();
+    
+    /** This method is used for clearing the results */
+    protected abstract void clearStats();
 }

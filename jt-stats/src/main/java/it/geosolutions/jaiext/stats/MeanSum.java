@@ -68,4 +68,10 @@ public class MeanSum extends Statistics {
             return sumValues / (samples - 1);
         }
     }
+
+    @Override
+    protected void clearStats() {
+        this.sumValues = 0;
+        this.samples = 0;
+    }
 }

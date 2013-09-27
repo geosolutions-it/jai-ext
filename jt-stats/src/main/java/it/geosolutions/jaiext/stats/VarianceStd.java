@@ -83,4 +83,10 @@ public class VarianceStd extends Statistics {
         }
     }
 
+    @Override
+    protected void clearStats() {
+        this.sumValues = 0;
+        this.sumSqrtValues = 0;
+        this.samples = 0;
+    }
 }

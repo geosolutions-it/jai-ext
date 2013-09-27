@@ -51,4 +51,9 @@ public class Max extends Statistics {
         return max;
     }
 
+    @Override
+    protected void clearStats() {
+        this.max = Double.NEGATIVE_INFINITY;
+    }
+
 }

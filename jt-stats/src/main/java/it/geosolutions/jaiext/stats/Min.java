@@ -51,4 +51,9 @@ public class Min extends Statistics {
         return min;
     }
 
+    @Override
+    protected void clearStats() {
+        this.min = Double.POSITIVE_INFINITY;
+    }
+
 }

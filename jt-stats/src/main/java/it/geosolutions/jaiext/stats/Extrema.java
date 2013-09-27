@@ -71,4 +71,10 @@ public class Extrema extends Statistics {
         return extrema;
     }
 
+    @Override
+    protected void clearStats() {
+        this.max = Double.NEGATIVE_INFINITY;
+        this.min = Double.POSITIVE_INFINITY;
+    }
+
 }
