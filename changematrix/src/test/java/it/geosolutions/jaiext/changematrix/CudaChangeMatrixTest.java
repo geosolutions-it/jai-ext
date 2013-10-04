@@ -311,20 +311,12 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
      */
     private List<int[]> JCudaChangeMat(byte[] host_iMap1,byte[] host_iMap2, int crossdim)
 	{
-        //return Arrays.asList(dataRef,dataCurrent);
-        
-        
         /*
          * Copyright 2013 Massimo Nicolazzo & Giuliano Langella:
          * 		(1) correct
          * 		(2) compile
          */
         
-        /*
-         * JCuda - Java bindings for NVIDIA CUDA driver and runtime API
-         * http://www.jcuda.org
-         */
-
         /**
          * This uses the JCuda driver bindings to load and execute two 
          * CUDA kernels:
@@ -337,11 +329,31 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
          * The second kernel sum up the 3D change matrix returning one
          * 2D array being the accountancy for the whole ROI. 
          */
-/*public void main(final int[] host_iMap1,final int[] host_iMap2,
- * 				   int tiledimX, int tiledimY, int ntilesX, int ntilesY,
-                   int host_oMap, int host_chMat) throws IOException
-*/                	
 
+    	// Enable exceptions and omit all subsequent error checks
+        JCudaDriver.setExceptionsEnabled(true);
+        
+        /*
+        int deviceCount; 
+        cudaGetDeviceCount(Pointer.to(deviceCount));
+		if (deviceCount == 0) {
+		    fprintf(stderr, "error: no devices supporting CUDA.\n");
+		    exit(EXIT_FAILURE);
+		}
+		int dev = 0;
+		cudaSetDevice(dev);
+		cudaDeviceProp devProps;
+		
+		if (cudaGetDeviceProperties(&devProps, dev) == 0)
+		{
+		    printf("Using device %d:\n", dev);
+		    printf("%s; global mem: %dB; compute v%d.%d; clock: %d kHz; nMax: %d\n",
+		           devProps.name, (int)devProps.totalGlobalMem,
+		           (int)devProps.major, (int)devProps.minor,
+		           (int)devProps.clockRate, (int)devProps.maxThreadsPerBlock);
+		}
+		*/
+        
         // ----
         // opt function for different SIZEs
         /*
@@ -356,10 +368,6 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
         int ntilesY		= DEFAULT_TILE_HEIGHT / tiledimY;
         // ----
         
-        System.out.println("	iMap1: "+host_iMap1.length);
-        System.out.println("	iMap2: "+host_iMap2.length);
-        System.out.println("	ntilesX: "+ntilesX);
-        System.out.println("	ntilesY: "+ntilesY);
         
         int mapsize 	= tiledimX * tiledimY * ntilesX * ntilesY *  Integer.SIZE;
         int mapsizeb 	= tiledimX * tiledimY * ntilesX * ntilesY *  Byte.SIZE;
@@ -368,11 +376,6 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
 //        host_iMap2 		= dataCurrent;
         // ----
         
-        // Enable exceptions and omit all subsequent error checks
-        JCudaDriver.setExceptionsEnabled(true);
-        
-        // DOVE METTIAMO IL .ptx ??
-
         // Initialize the driver and create a context for the first device.
         //System.out.println("Initializing driver:");
         //System.out.println("	-cuInit(0)");
@@ -435,27 +438,28 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
 
         //System.out.println("pointers done");
         // Call the kernel function.
-        int blockSizeX = 32;//floor(sqrt(k.MaxThreadsPerBlock))
-        int blockSizeY = 32;//ntilesY;
+        int blockSizeX = 32;	// Math.floor(Math.sqrt(devProps.maxThreadsPerBlock));
+        int blockSizeY = 32;	// Math.floor(Math.sqrt(devProps.maxThreadsPerBlock));
         int blockSizeZ = 1;
-        //GRIDSIZE = ceil( sqrt(prod(ntiles)/(blockDim^2)) );
-        int gridSizeX = 4;
-        int gridSizeY = 4;
+        int gridSizeX = 4; 		// Math.ceil( Math.sqrt( (ntilesX*ntilesY) / (blockSizeX) ) );
+        int gridSizeY = 4; 		// Math.ceil( Math.sqrt( (ntilesX*ntilesY) / (blockSizeY) ) );
         int gridSizeZ = 1;
         //System.out.println("launch cuda kernel");
-        int status_k1 = cuLaunchKernel(changemap,
+        //int status_k1 = 
+		cuLaunchKernel(changemap,
     		gridSizeX,  gridSizeY, gridSizeZ,   	// Grid dimension
     		blockSizeX, blockSizeY, blockSizeZ,     // Block dimension
             0, null,               					// Shared memory size and stream
             kernelParameters1, null 				// Kernel- and extra parameters
         );
-        System.out.println("	status k1 = "+status_k1);
+        //System.out.println("	status k1 = "+status_k1);
         //System.out.println("	dev_chMat.len = "+dev_chMat.getByteBuffer(0, 4));
         //System.out.println("synchro");
-        int status_syn1 = cuCtxSynchronize();
-        System.out.println("	synchro_1 = "+status_syn1);
+        //int status_syn1 = 
+		cuCtxSynchronize();
+        //System.out.println("	synchro_1 = "+status_syn1);
 
-        System.out.println("second kernel");
+        //System.out.println("second kernel");
         // Set up the kernel parameters: A pointer to an array
         // of pointers which point to the actual values.
         Pointer kernelParameters2 = Pointer.to(
@@ -465,15 +469,17 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
             );
         //System.out.println("pointers done");
         //System.out.println("launch cuda kernel");
-        int status_k2 = cuLaunchKernel(changemat,
+        //int status_k2 = 
+		cuLaunchKernel(changemat,
     		gridSizeX,  gridSizeY, gridSizeZ,   	// Grid dimension
     		blockSizeX, blockSizeY, blockSizeZ,     // Block dimension
             0, null,               					// Shared memory size and stream
             kernelParameters2, null 				// Kernel- and extra parameters
         );
-        System.out.println("	status k2 = "+status_k2);
-        int status_syn2 = cuCtxSynchronize();
-        System.out.println("	synchro_2 = "+status_syn2);
+        //System.out.println("	status k2 = "+status_k2);
+        //int status_syn2 = 
+		cuCtxSynchronize();
+        //System.out.println("	synchro_2 = "+status_syn2);
 
         // Allocate host output memory and copy the device output
         // to the host.
@@ -487,7 +493,7 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
         cuMemFree(dev_iMap2);
         cuMemFree(dev_oMap);
         cuMemFree(dev_chMat);
-        //System.out.println("...here...");
+        
         return Arrays.asList(host_oMap,host_chMat);
     }
 
