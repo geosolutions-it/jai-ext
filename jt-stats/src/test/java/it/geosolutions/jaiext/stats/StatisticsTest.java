@@ -1,6 +1,14 @@
 package it.geosolutions.jaiext.stats;
 
 import static org.junit.Assert.*;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -12,43 +20,85 @@ import org.junit.Test;
  * Statistics object different from their type.
  */
 public class StatisticsTest {
-    /** Dimension of the random samples array*/
+    /** Dimension of the random samples array */
     private final static int ARRAY_DIMENSIONS = 100;
+
     /** Tolerance value used for comparison between double */
     private final static double TOLERANCE = 0.1d;
-    /** Random samples array*/
+
+    /** Random samples array */
     private static double[] testArray;
-    /** Object used for calculating the mean*/
+
+    /** Object used for calculating the mean */
     private static Statistics meanObj;
-    /** Object used for calculating the sum*/
+
+    /** Object used for calculating the sum */
     private static Statistics sumObj;
-    /** Object used for calculating the maximum*/
+
+    /** Object used for calculating the maximum */
     private static Statistics maxObj;
-    /** Object used for calculating the minimum*/
+
+    /** Object used for calculating the minimum */
     private static Statistics minObj;
-    /** Object used for calculating the extrema*/
+
+    /** Object used for calculating the extrema */
     private static Statistics extremaObj;
-    /** Object used for calculating the variance*/
+
+    /** Object used for calculating the variance */
     private static Statistics varianceObj;
-    /** Object used for calculating the standard deviation*/
+
+    /** Object used for calculating the standard deviation */
     private static Statistics devstdObj;
+
+    private static Statistics histogramObj;
+
+    private static Statistics modeObj;
+
+    private static Statistics medianObj;
+
+    private static double minBound;
+
+    private static double maxBound;
+
+    private static double binInterval;
+
+    private static int numBins;
+
+    private static Range interval;
 
     @BeforeClass
     public static void initialSetup() {
         // Creation of an array with random values
         testArray = new double[ARRAY_DIMENSIONS];
 
+        // Definition of the Histogram parameters
+        minBound = -3;
+        maxBound = 3;
+        numBins = 20;
+
+        binInterval = (maxBound - minBound) / numBins;
+        interval = RangeFactory.create(minBound, true, maxBound, false, false);
         for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
             testArray[i] = Math.random() * 2 + 2;
         }
         // Creation of the Statistics Object
-        meanObj = StatsFactory.createStatisticsObjectFromInt(0);
-        sumObj = StatsFactory.createStatisticsObjectFromInt(1);
-        maxObj = StatsFactory.createStatisticsObjectFromInt(2);
-        minObj = StatsFactory.createStatisticsObjectFromInt(3);
-        extremaObj = StatsFactory.createStatisticsObjectFromInt(4);
-        varianceObj = StatsFactory.createStatisticsObjectFromInt(5);
-        devstdObj = StatsFactory.createStatisticsObjectFromInt(6);
+        meanObj = StatsFactory.createSimpleStatisticsObjectFromInt(0);
+        sumObj = StatsFactory.createSimpleStatisticsObjectFromInt(1);
+        maxObj = StatsFactory.createSimpleStatisticsObjectFromInt(2);
+        minObj = StatsFactory.createSimpleStatisticsObjectFromInt(3);
+        extremaObj = StatsFactory.createSimpleStatisticsObjectFromInt(4);
+        varianceObj = StatsFactory.createSimpleStatisticsObjectFromInt(5);
+        devstdObj = StatsFactory.createSimpleStatisticsObjectFromInt(6);
+        histogramObj = StatsFactory.createComplexStatisticsObjectFromInt(7, minBound, maxBound,
+                numBins);
+        modeObj = StatsFactory.createComplexStatisticsObjectFromInt(8, minBound, maxBound, numBins);
+        medianObj = StatsFactory.createComplexStatisticsObjectFromInt(9, minBound, maxBound,
+                numBins);
+    }
+
+    private int getIndex(double sample) {
+        int index = (int) ((sample - minBound) / binInterval);
+        return index;
     }
 
     // This test is used for checking if the mean and sum objects
@@ -129,6 +179,66 @@ public class StatisticsTest {
         std = Math.sqrt(variance);
         double std2 = (Double) (devstdObj.getResult());
         assertEquals(std, std2, TOLERANCE);
+    }
+
+    // This test is used for checking if the histogram,mode and median objects
+    // have a correct behavior
+    @Test
+    public void testHistModeMedian() {
+        double[] hist = new double[numBins];
+        List<Double> listData = new ArrayList<Double>();
+        double median = 0;
+
+        // Mean and sum calculation
+        for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
+            if(interval.contains(testArray[i])){
+                int index = getIndex(testArray[i]);
+                hist[index]++;
+                listData.add(testArray[i]);   
+            }
+            modeObj.addSampleNoNaN(testArray[i], true);
+            histogramObj.addSampleNoNaN(testArray[i], true);
+            medianObj.addSampleNoNaN(testArray[i], true);
+        }
+
+        // Comparison
+        Collections.sort(listData);
+        int listSize = listData.size();
+        if (listSize == 0) {
+            median = Double.NaN;
+        } else if (listSize == 1) {
+            median = listData.get(0);
+        } else {
+            int halfSize = listSize / 2;
+            double halfValue = listData.get(halfSize);
+            if (listData.size() % 2 == 1) {
+                median = halfValue;
+            } else {
+                median = (halfValue + listData.get(halfSize + 1)) / 2;
+            }
+        }
+        
+        double max = Double.NEGATIVE_INFINITY;
+        double indexMax = 0;
+        for (int i = 0; i < numBins; i++) {
+            if (hist[i] > max) {
+                max = hist[i];
+                indexMax = i;
+            }
+        }
+        
+        if(max != 0){
+            indexMax = indexMax + minBound;
+        }
+        
+        double indexMax2 = (Double) (modeObj.getResult());
+        assertEquals(indexMax, indexMax2, TOLERANCE);
+        double[] hist2 = (double[]) (histogramObj.getResult());
+        for(int i = 0; i<numBins;i++){
+            assertEquals(hist[i], hist2[i], TOLERANCE);
+        }        
+        double median2 = (Double) (medianObj.getResult());
+        assertEquals(median, median2, TOLERANCE);
     }
 
     // This test is used for checking if the cumulation of the statistics continue to mantain
@@ -244,6 +354,15 @@ public class StatisticsTest {
 
         Statistics newDevStdObj = StatsFactory.createDevStdObject();
         newDevStdObj.addSampleNoNaN(1, true);
+        
+        Statistics newHistObj = StatsFactory.createHistogramObject(numBins, minBound, maxBound); 
+        newExtremaObj.addSampleNoNaN(1, true);
+
+        Statistics newModeObj = StatsFactory.createModeObject(numBins, minBound, maxBound);
+        newVarianceObj.addSampleNoNaN(1, true);
+
+        Statistics newMedianObj = StatsFactory.createMedianObject(minBound, maxBound);
+        newDevStdObj.addSampleNoNaN(1, true);
 
         // Clearing of the statistics
         newMeanObj.clearStats();
@@ -253,6 +372,9 @@ public class StatisticsTest {
         newExtremaObj.clearStats();
         newVarianceObj.clearStats();
         newDevStdObj.clearStats();
+        newHistObj.clearStats();
+        newModeObj.clearStats();
+        newMedianObj.clearStats();
 
         // Storage of the cleared statistics
         double newMeanUpdated = (Double) (newMeanObj.getResult());
@@ -264,6 +386,9 @@ public class StatisticsTest {
         double newExmax = newExtrema[1];
         double newVarianceUpdated = (Double) (newVarianceObj.getResult());
         double newStdUpdated = (Double) (newDevStdObj.getResult());
+        double[] newHistUpdated = (double[])(newHistObj.getResult());
+        double newModeUpdated = (Double) (newModeObj.getResult());
+        double newMedianUpdated = (Double) (newMedianObj.getResult());
 
         // Comparison
         assertEquals(0, newMeanUpdated, TOLERANCE);
@@ -274,6 +399,11 @@ public class StatisticsTest {
         assertEquals(Double.POSITIVE_INFINITY, newExmin, TOLERANCE);
         assertEquals(Double.NaN, newVarianceUpdated, TOLERANCE);
         assertEquals(Double.NaN, newStdUpdated, TOLERANCE);
+        for(int i = 0; i<numBins;i++){
+            assertEquals(0, newHistUpdated[i], TOLERANCE);
+        }
+        assertEquals(0, newModeUpdated, TOLERANCE);
+        assertEquals(Double.NaN, newMedianUpdated, TOLERANCE);
     }
 
     // This last 7 tests are used for checking if the accumulateStats() method returns an exception when

@@ -47,9 +47,24 @@ public class StatsFactory {
     public static Statistics createDevStdObject() {
         return new VarianceStd(false);
     }
+    
+    /** This method returns a statistic object for calculating the Histogram of an Image*/
+    public static Statistics createHistogramObject(int numBins, double minBound, double maxBound) {
+        return new HistogramMode(numBins,minBound,maxBound,true);
+    }
+    
+    /** This method returns a statistic object for calculating the Mode of an Image*/
+    public static Statistics createModeObject(int numBins, double minBound, double maxBound) {
+        return new HistogramMode(numBins,minBound,maxBound,false);
+    }
+    
+    /** This method returns a statistic object for calculating the Median of an Image*/
+    public static Statistics createMedianObject(double minBound, double maxBound) {
+        return new Median(minBound,maxBound);
+    }
 
-    /** This method returns the statistic object associated to the Id returned*/
-    public static Statistics createStatisticsObjectFromInt(int value) {
+    /** This method returns the simple statistic object associated to the Id returned*/
+    public static Statistics createSimpleStatisticsObjectFromInt(int value) {
         // Selection of the related StatsType
         StatsType type = StatsType.values()[value];
         // Creation of the statistical object
@@ -69,7 +84,24 @@ public class StatsFactory {
         case DEV_STD:
             return createDevStdObject();
         default:
-            throw new IllegalArgumentException("Wrong StatsType selected");
+            throw new IllegalArgumentException("Wrong StatsType object selected");
+        }
+    }
+    
+    /** This method returns the complex statistic object associated to the Id returned*/
+    public static Statistics createComplexStatisticsObjectFromInt(int value, double minBound, double maxBound, int numBins) {
+        // Selection of the related StatsType
+        StatsType type = StatsType.values()[value];
+        // Creation of the statistical object
+        switch (type) {
+        case HISTOGRAM:
+            return createHistogramObject(numBins, minBound, maxBound);
+        case MODE:
+            return createModeObject(numBins, minBound, maxBound);
+        case MEDIAN:
+            return createMedianObject(minBound, maxBound);
+        default:
+            throw new IllegalArgumentException("Wrong StatsType object selected");
         }
     }
 }

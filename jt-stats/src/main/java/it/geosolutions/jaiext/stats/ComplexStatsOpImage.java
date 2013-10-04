@@ -12,28 +12,19 @@ import javax.media.jai.ROI;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
-/**
- * The SimpleStatsOpImage class performs various statistics operations on an image. The various statistical operation are indicated by the
- * {@link StatsType} class. These operations can be calculated together by adding an entry in the definition array "statsTypes". A ROI object passed
- * to the constructor is taken into account by counting only the samples inside of it; an eventual No Data Range is considered by counting only values
- * that are not No Data. The statistical calculation is performed by calling the getProperty() method. The statistics are calculated for every image
- * tile and then the partial results are accumulated and passed to the getProperty() method. For avoiding unnecessary calculations the statistics can
- * be calculated only the first time; but if the user needs to re-calculate the statistics, they can be cleared with the clearStatistic() method and
- * then returned by calling again the getProperty() method.
- */
-public class SimpleStatsOpImage extends StatisticsOpImage {
+public class ComplexStatsOpImage extends StatisticsOpImage {
 
-    public SimpleStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+    public ComplexStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             int xPeriod, int yPeriod, ROI roi, Range noData, boolean useROIAccessor, int[] bands,
-            StatsType[] statsTypes) {
+            StatsType[] statsTypes, double[] minBound, double[] maxBound, int[] numBins) {
         super(source, layout, configuration, xPeriod, yPeriod, roi, noData, useROIAccessor, bands,
-                statsTypes, null, null, null);
-
+                statsTypes, minBound, maxBound, numBins);
+        
         // Storage of the statistic types indexes if present, and check if they are not complex statistic
         // objects like Histogram
         if (statsTypes != null) {
             for (int i = 0; i < statsTypes.length; i++) {
-                if (statsTypes[i].getStatsId() > 6) {
+                if (statsTypes[i].getStatsId() < 6) {
                     throw new IllegalArgumentException("Wrong statistic types");
                 }
             }
@@ -44,7 +35,7 @@ public class SimpleStatsOpImage extends StatisticsOpImage {
         this.statsTypes = statsTypes;
 
         // Number of statistics calculated
-        this.statNum = statsTypes.length;
+        this.statNum = statsTypes.length; 
 
         // Storage of the band indexes and length
         this.bands = bands;
@@ -54,12 +45,13 @@ public class SimpleStatsOpImage extends StatisticsOpImage {
         // Filling of the container
         for (int i = 0; i < selectedBands; i++) {
             for (int j = 0; j < statNum; j++) {
-                stats[i][j] = StatsFactory.createSimpleStatisticsObjectFromInt(statsTypes[j]
-                        .getStatsId());
+                stats[i][j] = StatsFactory.createComplexStatisticsObjectFromInt(statsTypes[j]
+                        .getStatsId(), minBound[j], maxBound[j], numBins[j]);
             }
         }
     }
-
+    
+    
     /**
      * Returns a tile for reading.
      * 
@@ -95,49 +87,26 @@ public class SimpleStatsOpImage extends StatisticsOpImage {
                     srcROIImage.getColorModel());
         }
 
-        // Creation of local objects containing the same statistics as the initials
-
-        Statistics[][] statArray = new Statistics[selectedBands][statNum];
-        // Filling of the container
-        for (int i = 0; i < selectedBands; i++) {
-            for (int j = 0; j < statNum; j++) {
-                statArray[i][j] = StatsFactory.createSimpleStatisticsObjectFromInt(statsTypes[j]
-                        .getStatsId());
-            }
-        }
-
         // Computation of the statistics
         switch (src.getDataType()) {
         case DataBuffer.TYPE_BYTE:
-            byteLoop(src, srcRect, roi, statArray);
+            byteLoop(src, srcRect, roi, stats);
             break;
         case DataBuffer.TYPE_USHORT:
-            ushortLoop(src, srcRect, roi, statArray);
+            ushortLoop(src, srcRect, roi, stats);
             break;
         case DataBuffer.TYPE_SHORT:
-            shortLoop(src, srcRect, roi, statArray);
+            shortLoop(src, srcRect, roi, stats);
             break;
         case DataBuffer.TYPE_INT:
-            intLoop(src, srcRect, roi, statArray);
+            intLoop(src, srcRect, roi, stats);
             break;
         case DataBuffer.TYPE_FLOAT:
-            floatLoop(src, srcRect, roi, statArray);
+            floatLoop(src, srcRect, roi, stats);
             break;
         case DataBuffer.TYPE_DOUBLE:
-            doubleLoop(src, srcRect, roi, statArray);
+            doubleLoop(src, srcRect, roi, stats);
             break;
-        }
-
-        // Cumulative addition (SYNCHRONIZED)
-
-        synchronized (this) {
-            // Cycle on the selected Bands
-            for (int i = 0; i < selectedBands; i++) {
-                for (int j = 0; j < statNum; j++) {
-                    // Accumulation for the selected band and the selected statistic
-                    stats[i][j].accumulateStats(statArray[i][j]);
-                }
-            }
         }
 
         return source;

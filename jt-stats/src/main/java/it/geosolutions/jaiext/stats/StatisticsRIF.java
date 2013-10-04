@@ -18,7 +18,7 @@ import com.sun.media.jai.opimage.RIFUtil;
  * RenderingHints. The first one stores all the input parameters, the second stores eventual hints used for changing the image settings. The only one
  * method of this class returns a new instance of the SimpleStatsOpImage operation.
  */
-public class SimpleStatsRIF implements RenderedImageFactory {
+public class StatisticsRIF implements RenderedImageFactory {
 
     public RenderedImage create(ParameterBlock pb, RenderingHints hints) {
         // Selection of the source
@@ -33,8 +33,25 @@ public class SimpleStatsRIF implements RenderedImageFactory {
         boolean useROIAccessor = (Boolean) pb.getObjectParameter(4);
         int[] bands = (int[]) pb.getObjectParameter(5);
         StatsType[] statsTypes = (StatsType[]) pb.getObjectParameter(6);
-        // Creation of the OpImage
-        return new SimpleStatsOpImage(source, layout, hints, xPeriod, yPeriod, roi, noData, useROIAccessor, bands, statsTypes);
+        
+        boolean isSimpleStat = true;
+        
+        for(int i = 0 ; i< statsTypes.length; i++){
+            if(statsTypes[i].getStatsId()>6){
+                isSimpleStat = false;
+                break;
+            }
+        }
+        
+     // Creation of the OpImage 
+        if(isSimpleStat){       
+            return new SimpleStatsOpImage(source, layout, hints, xPeriod, yPeriod, roi, noData, useROIAccessor, bands, statsTypes);
+        }else{
+            double[] minBounds = (double[]) pb.getObjectParameter(7);
+            double[] maxBounds = (double[]) pb.getObjectParameter(8);
+            int[] numBins = (int[]) pb.getObjectParameter(9);
+            return new ComplexStatsOpImage(source, layout, hints, xPeriod, yPeriod, roi, noData, useROIAccessor, bands, statsTypes, minBounds, maxBounds, numBins);
+        }
     }
 
 }

@@ -25,10 +25,10 @@ import com.sun.media.jai.util.PropertyGeneratorImpl;
  * and then passed as a result. If no property was found an Undefined Property object is returned. 
  */
 
-class SimpleStatsPropertyGenerator extends PropertyGeneratorImpl {
+class StatisticsPropertyGenerator extends PropertyGeneratorImpl {
 
     /** Constructor. */
-    public SimpleStatsPropertyGenerator() {
+    public StatisticsPropertyGenerator() {
         super(new String[] { "ROI" }, new Class[] { ROI.class }, new Class[] { RenderedOp.class });
     }
 
@@ -145,14 +145,14 @@ class SimpleStatsPropertyGenerator extends PropertyGeneratorImpl {
  * </table></p>
  * 
  */
-public class SimpleStatsDescriptor extends OperationDescriptorImpl {
+public class StatisticsDescriptor extends OperationDescriptorImpl {
 
     /**
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
     private static final String[][] resources = 
-            { { "GlobalName", "SimpleStats" },
-            { "LocalName", "SimpleStats" }, 
+            { { "GlobalName", "Stats" },
+            { "LocalName", "Stats" }, 
             { "Vendor", "it.geosolutions.jaiext.roiaware" },
             { "Description", "Image operator for calculating simple image statistics like mean supporting ROI and No Data" },
             { "DocURL", "Not defined" }, 
@@ -163,7 +163,10 @@ public class SimpleStatsDescriptor extends OperationDescriptorImpl {
             { "arg3Desc", "No Data Range used" },
             { "arg4Desc", "Boolean checking if ROI RasterAccessor is used" },
             { "arg5Desc", "Array containing the indexes of the bands to calculate" },
-            { "arg6Desc", "Array indicating which statistical operations must be performed on all the selected bands" }        
+            { "arg6Desc", "Array indicating which statistical operations must be performed on all the selected bands" },
+            { "arg7Desc", "Array indicating the minimum bounds for each statistic types (if needed)" },
+            { "arg8Desc", "Array indicating the maximum bounds for each statistic types (if needed)" },
+            { "arg9Desc", "Array indicating the number of bins for each statistic types (if needed)" } 
     };
 
     /** The parameter class list for this operation. */
@@ -174,7 +177,10 @@ public class SimpleStatsDescriptor extends OperationDescriptorImpl {
             it.geosolutions.jaiext.range.Range.class,
             java.lang.Boolean.class,
             int[].class,             
-            it.geosolutions.jaiext.stats.Statistics.StatsType[].class
+            it.geosolutions.jaiext.stats.Statistics.StatsType[].class,
+            double[].class,  
+            double[].class,  
+            int[].class,  
             };
 
     /** The parameter name list for this operation. */
@@ -185,7 +191,10 @@ public class SimpleStatsDescriptor extends OperationDescriptorImpl {
         "noData",  
         "useRoiAccessor",
         "bands",
-        "stats"
+        "stats",
+        "minBounds",
+        "maxBounds",
+        "numBins"
         };
 
     /** The parameter default value list for this operation. */
@@ -196,10 +205,13 @@ public class SimpleStatsDescriptor extends OperationDescriptorImpl {
         null, 
         false,
         new int[]{0}, 
+        null,
+        null,
+        null,
         null
         };
     
-    public SimpleStatsDescriptor() {
+    public StatisticsDescriptor() {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
     }
     
@@ -210,7 +222,7 @@ public class SimpleStatsDescriptor extends OperationDescriptorImpl {
      */
     public PropertyGenerator[] getPropertyGenerators() {
         PropertyGenerator[] pg = new PropertyGenerator[1];
-        pg[0] = new SimpleStatsPropertyGenerator();
+        pg[0] = new StatisticsPropertyGenerator();
         return pg;
     }
 
@@ -239,9 +251,9 @@ public class SimpleStatsDescriptor extends OperationDescriptorImpl {
      */
     public static RenderedOp create(RenderedImage source0,int xPeriod, int yPeriod,
             ROI roi, Range noData, boolean useRoiAccessor, int[] bands, StatsType[] stats,
-            RenderingHints hints) {
+            double[] minBounds, double[] maxBounds, int[] numBins, RenderingHints hints) {
         // Creation of a parameterBlockJAI containing all the operation parameters
-        ParameterBlockJAI pb = new ParameterBlockJAI("SimpleStats", RenderedRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("Stats", RenderedRegistryMode.MODE_NAME);
         // Source image
         pb.setSource("source0", source0);
         // Image parameters
@@ -252,7 +264,21 @@ public class SimpleStatsDescriptor extends OperationDescriptorImpl {
         pb.setParameter("useRoiAccessor", useRoiAccessor);
         pb.setParameter("bands", bands);
         pb.setParameter("stats", stats);
+        if(minBounds!=null && maxBounds!=null && numBins!=null){
+            pb.setParameter("minBounds", minBounds);
+            pb.setParameter("maxBounds", maxBounds);
+            pb.setParameter("numBins", numBins);
+        }else if(minBounds!=null || maxBounds!=null || numBins!=null){
+            throw new IllegalArgumentException("bounds and bins must be declared together");
+        }
         // RenderedImage creation
-        return JAI.create("SimpleStats", pb, hints);
+        return JAI.create("Stats", pb, hints);
     }
+    
+    public static RenderedOp create(RenderedImage source0,int xPeriod, int yPeriod,
+            ROI roi, Range noData, boolean useRoiAccessor, int[] bands, StatsType[] stats
+            , RenderingHints hints){
+        return create(source0,xPeriod,yPeriod,roi,noData,useRoiAccessor,bands,stats,null,null,null,hints);
+    }
+    
 }

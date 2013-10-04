@@ -36,7 +36,7 @@ public class ComparisonTest extends TestBase {
 
     /** Boolean indicating if a No Data Range must be used */
     private final static boolean RANGE_USED = Boolean.getBoolean("JAI.Ext.RangeUsed");
-    
+
     /** Boolean indicating if a ROI must be used */
     private final static boolean ROI_USED = Boolean.getBoolean("JAI.Ext.ROIUsed");
 
@@ -45,28 +45,45 @@ public class ComparisonTest extends TestBase {
 
     /** Source test image */
     private static RenderedImage testImage;
+
     /** No Data Range for Byte */
     private static Range rangeNDByte;
+
     /** No Data Range for UShort */
     private static Range rangeNDUSHort;
+
     /** No Data Range for Short */
     private static Range rangeNDShort;
+
     /** No Data Range for Integer */
     private static Range rangeNDInteger;
+
     /** No Data Range for Float */
     private static Range rangeNDFloat;
+
     /** No Data Range for Double */
     private static Range rangeNDDouble;
+
     /** Horizontal subsampling parameter */
     private static int xPeriod;
+
     /** Vertical subsampling parameter */
     private static int yPeriod;
+
     /** Array indicating the statistics to calculate */
     private static StatsType[] arrayStats;
+
     /** Array with band indexes */
     private static int[] bands;
+
     /** ROI object used for selecting the active area of the image */
-    private static ROI roi; 
+    private static ROI roi;
+
+    private static int[] numBins;
+
+    private static double[] maxBounds;
+
+    private static double[] minBounds;
 
     // Initial static method for preparing all the test data
     @BeforeClass
@@ -95,8 +112,8 @@ public class ComparisonTest extends TestBase {
                     noDataS, false);
             break;
         case DataBuffer.TYPE_INT:
-            testImage = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
-                    false);
+            testImage = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                    noDataI, false);
             break;
         case DataBuffer.TYPE_FLOAT:
             testImage = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
@@ -136,21 +153,23 @@ public class ComparisonTest extends TestBase {
                 throw new IllegalArgumentException("Wrong data type");
             }
         }
-        
-        //ROI creation
-        if(ROI_USED){
-            Rectangle rect = new Rectangle(0, 0, DEFAULT_WIDTH/4, DEFAULT_HEIGHT/4);
+
+        // ROI creation
+        if (ROI_USED) {
+            Rectangle rect = new Rectangle(0, 0, DEFAULT_WIDTH / 4, DEFAULT_HEIGHT / 4);
             roi = new ROIShape(rect);
-        }else{
+        } else {
             roi = null;
         }
-        
+
         // Statistic types definition
 
         if (STATISTIC == 0) {
             arrayStats = new StatsType[] { StatsType.MEAN };
         } else if (STATISTIC == 1) {
             arrayStats = new StatsType[] { StatsType.EXTREMA };
+        } else if (STATISTIC == 2) {
+            arrayStats = new StatsType[] { StatsType.HISTOGRAM };
         }
 
         // Band definition
@@ -159,19 +178,32 @@ public class ComparisonTest extends TestBase {
         // Period Definitions
         xPeriod = 1;
         yPeriod = 1;
-
+        
+        //Histogram variables definition
+        numBins = new int[]{5};
+        maxBounds = new double[]{3};
+        minBounds = new double[]{-3};
     }
 
     // General method for showing calculation time of the 2 StatisticDescriptors
     @Test
     public void testStatsDescriptor() {
-
+        int[] numBinsTest = null;
+        double[] maxBoundsTest = null;
+        double[] minBoundsTest = null;
+        
+        
         // Statistic string
         String stat = "";
         if (STATISTIC == 0) {
             stat += "Mean";
         } else if (STATISTIC == 1) {
             stat += "Extrema";
+        }else if(STATISTIC == 2){
+            stat += "Histogram";
+            numBinsTest = numBins;
+            maxBoundsTest = maxBounds;
+            minBoundsTest = minBounds;            
         }
 
         Range rangeND = null;
@@ -194,7 +226,7 @@ public class ComparisonTest extends TestBase {
             }
             // Control if the Range should be used for the new descriptor
         } else {
-            propertyName += Statistics.SIMPLE_STATS_PROPERTY;
+            propertyName += Statistics.STATS_PROPERTY;
             description = "New " + stat;
             System.setProperty("com.sun.media.jai.disableMediaLib", "true");
 
@@ -270,10 +302,13 @@ public class ComparisonTest extends TestBase {
                 } else if (STATISTIC == 1) {
                     imageStats = javax.media.jai.operator.ExtremaDescriptor.create(testImage, roi,
                             xPeriod, yPeriod, false, 1, null);
+                }else if (STATISTIC == 2) {
+                    imageStats = javax.media.jai.operator.HistogramDescriptor.create(testImage, roi, xPeriod, 
+                            yPeriod, numBinsTest, minBoundsTest, maxBoundsTest, null);
                 }
             } else {
-                imageStats = SimpleStatsDescriptor.create(testImage, xPeriod, yPeriod, roi, rangeND,
-                        false, bands, arrayStats, null);
+                imageStats = StatisticsDescriptor.create(testImage, xPeriod, yPeriod, roi, rangeND,
+                        false, bands, arrayStats, minBoundsTest, maxBoundsTest, numBinsTest, null);
             }
 
             // Total statistic calculation time

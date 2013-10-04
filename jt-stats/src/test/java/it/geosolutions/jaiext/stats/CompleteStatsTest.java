@@ -1,12 +1,19 @@
 package it.geosolutions.jaiext.stats;
 
 import static org.junit.Assert.*;
+
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
+import javax.swing.event.ListDataEvent;
+
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
@@ -31,7 +38,7 @@ import org.junit.Test;
  * testStatistics() method which calls the SimpleStatsDescriptor.create() method for returning a new instance of the SimpleStatsOpImage, then
  * calculates the statistics and finally compares them with the initial precalculated values.
  */
-public class SimpleStatsTest extends TestBase {
+public class CompleteStatsTest extends TestBase {
     /** Tolerance value used for comparison between double */
     private final static double TOLERANCE = 0.1d;
 
@@ -83,6 +90,9 @@ public class SimpleStatsTest extends TestBase {
     /** Array indicating the statistics to calculate */
     private static StatsType[] stats;
 
+    /** Array indicating the statistics to calculate */
+    private static StatsType[] complexStats;
+
     /** Array with only one band index */
     private static int[] band1;
 
@@ -101,6 +111,20 @@ public class SimpleStatsTest extends TestBase {
     /** Array containing the number of all samples, every entry indicates takes in account if ROI or No Data */
     private static long[] numSamples;
 
+    private static double[][] hist;
+
+    private static double[] minBound;
+
+    private static double[] maxBound;
+
+    private static double[] binInterval;
+
+    private static int[] numBins;
+
+    private static Range[] interval;
+
+    private static List<Double>[] listData;
+
     // Initial static method for preparing all the test data
     @BeforeClass
     public static void initialSetup() {
@@ -109,11 +133,34 @@ public class SimpleStatsTest extends TestBase {
 
         yPeriod = 1;
 
+        // Definition of the Histogram, Mode and Median parameters
+        minBound = new double[] { -3, -3, -3 };
+        maxBound = new double[] { 3, 3, 3 };
+        numBins = new int[] { 4, 4, 4 };
+
+        double binInterval0 = ((maxBound[0] - minBound[0]) / numBins[0]);
+
+        binInterval = new double[] { binInterval0, binInterval0, binInterval0 };
+
+        interval = new Range[3];
+
+        interval[0] = RangeFactory.create(minBound[0], true, maxBound[0], false, false);
+        interval[1] = RangeFactory.create(minBound[0], true, maxBound[0], false, false);
+        interval[1] = RangeFactory.create(minBound[0], true, maxBound[0], false, false);
+
+        hist = new double[numBins[0]][4];
+
+        listData = new List[4];
+        
+        for(int i = 0; i< listData.length;i++){
+            listData[i] = new ArrayList<Double>();
+        }
+
         // ROI creation
         Rectangle roiBounds = new Rectangle(5, 5, DEFAULT_WIDTH / 4, DEFAULT_HEIGHT / 4);
         roi = new ROIShape(roiBounds);
 
-        // Range creation
+        // No Data Range creation
 
         // No Data values
         noDataB = 50;
@@ -136,6 +183,8 @@ public class SimpleStatsTest extends TestBase {
         // Statistics types
         stats = new StatsType[] { StatsType.MEAN, StatsType.SUM, StatsType.MAX, StatsType.MIN,
                 StatsType.EXTREMA, StatsType.VARIANCE, StatsType.DEV_STD };
+
+        complexStats = new StatsType[] { StatsType.HISTOGRAM, StatsType.MODE, StatsType.MEDIAN };
 
         // Band array creation
         int[] array1Band = { 0 };
@@ -162,7 +211,7 @@ public class SimpleStatsTest extends TestBase {
 
         // Statistical calculation
         numSamples = new long[4];
-        calculations = new double[7][4];
+        calculations = new double[9][4];
 
         int minTileX = sourceIMG[0].getMinTileX();
         int minTileY = sourceIMG[0].getMinTileY();
@@ -210,6 +259,11 @@ public class SimpleStatsTest extends TestBase {
                                 if (value < calculations[3][z]) {
                                     calculations[3][z] = value;
                                 }
+                                if (interval[0].contains((double)value)) {
+                                    int index = getIndex(value);
+                                    hist[index][z]++;
+                                    listData[z].add((double) value);
+                                }
                                 break;
                             case 1:
                                 if (roi.contains(x, y)) {
@@ -221,6 +275,11 @@ public class SimpleStatsTest extends TestBase {
                                     }
                                     if (value < calculations[3][z]) {
                                         calculations[3][z] = value;
+                                    }
+                                    if (interval[0].contains((double)value)) {
+                                        int index = getIndex(value);
+                                        hist[index][z]++;
+                                        listData[z].add((double) value);
                                     }
                                 }
                                 break;
@@ -235,6 +294,11 @@ public class SimpleStatsTest extends TestBase {
                                     if (value < calculations[3][z]) {
                                         calculations[3][z] = value;
                                     }
+                                    if (interval[0].contains((double)value)) {
+                                        int index = getIndex(value);
+                                        hist[index][z]++;
+                                        listData[z].add((double) value);
+                                    }
                                 }
                                 break;
                             case 3:
@@ -247,6 +311,11 @@ public class SimpleStatsTest extends TestBase {
                                     }
                                     if (value < calculations[3][z]) {
                                         calculations[3][z] = value;
+                                    }
+                                    if (interval[0].contains((double)value)) {
+                                        int index = getIndex(value);
+                                        hist[index][z]++;
+                                        listData[z].add((double) value);
                                     }
                                 }
                                 break;
@@ -267,6 +336,37 @@ public class SimpleStatsTest extends TestBase {
                         / (numSamples[z] - 1);
                 // Calculation of the standard deviation
                 calculations[6][z] = Math.sqrt(calculations[5][z]);
+                // Calculation of the median
+                Collections.sort(listData[z]);
+                int listSize = listData[z].size();
+                if (listSize == 0) {
+                    calculations[8][z] = Double.NaN;
+                } else if (listSize == 1) {
+                    calculations[8][z] = listData[z].get(0);
+                } else {
+                    int halfSize = listSize / 2;
+                    double halfValue = listData[z].get(halfSize);
+                    if (listData[z].size() % 2 == 1) {
+                        calculations[8][z] = halfValue;
+                    } else {
+                        calculations[8][z] = (halfValue + listData[z].get(halfSize + 1)) / 2;
+                    }
+                }
+                // Calculation of the mode
+                double max = Double.NEGATIVE_INFINITY;
+                double indexMax = 0;
+                for (int i = 0; i < numBins[0]; i++) {
+                    if (hist[i][z] > max) {
+                        max = hist[i][z];
+                        indexMax = i;
+                    }
+                }
+
+                if (max != 0) {
+                    indexMax = indexMax + minBound[0];
+                }
+
+                calculations[7][z] = indexMax;
             }
         }
 
@@ -529,15 +629,24 @@ public class SimpleStatsTest extends TestBase {
             statsIndex = 2;
         }
 
-        // Image creation
-        RenderedImage destination = SimpleStatsDescriptor.create(source, xPeriod, yPeriod, roiData,
+        // Simple statistics
+        RenderedImage destination = StatisticsDescriptor.create(source, xPeriod, yPeriod, roiData,
                 noDataRange, useRoiAccessor, bands, stats, null);
         // Statistic calculation
-        Statistics[][] result = (Statistics[][]) destination
-                .getProperty(Statistics.SIMPLE_STATS_PROPERTY);
+        Statistics[][] result = (Statistics[][]) destination.getProperty(Statistics.STATS_PROPERTY);
+
+        // Complex statistics
+        RenderedImage destination2 = StatisticsDescriptor.create(source, xPeriod, yPeriod, roiData,
+                noDataRange, useRoiAccessor, bands, complexStats, minBound, maxBound, numBins, null);
+        // Statistic calculation
+        Statistics[][] result2 = (Statistics[][]) destination2
+                .getProperty(Statistics.STATS_PROPERTY);
 
         // Control only band 0
         Statistics[] stats0 = result[0];
+
+        // Control only band 0
+        Statistics[] stats02 = result2[0];
 
         // Test if the calculated values are equal with a tolerance value
         for (int i = 0; i < stats0.length; i++) {
@@ -562,6 +671,28 @@ public class SimpleStatsTest extends TestBase {
             }
         }
 
+        for (int i = 0; i < stats02.length; i++) {
+            Statistics stat = stats02[i];
+            switch (i + 7) {
+            case 7:
+                double[] hist2 = (double[]) (stat.getResult());
+                for (int j = 0; j < numBins[0]; j++) {
+                    assertEquals(hist[i][statsIndex], hist2[i], TOLERANCE);
+                }
+                break;
+            case 8:
+            case 9:
+                double value = (Double) stat.getResult();
+                assertEquals(calculations[i + 6][statsIndex], value, TOLERANCE);
+                break;
+            }
+        }
+
+    }
+
+    private static int getIndex(double sample) {
+        int index = (int) ((sample - minBound[0]) / binInterval[0]);
+        return index;
     }
 
     @Override
