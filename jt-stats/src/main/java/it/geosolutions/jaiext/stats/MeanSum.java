@@ -37,7 +37,7 @@ public class MeanSum extends Statistics {
     }
 
     @Override
-    protected void addSampleNoNaN(double sample, boolean isData) {
+    public void addSampleNoNaN(double sample, boolean isData) {
         if (isData) {
             sumValues += sample;
             samples++;
@@ -45,7 +45,7 @@ public class MeanSum extends Statistics {
     }
 
     @Override
-    protected void addSampleNaN(double sample, boolean isData, boolean isNaN) {
+    public void addSampleNaN(double sample, boolean isData, boolean isNaN) {
         if (isData && !isNaN) {
             sumValues += sample;
             samples++;

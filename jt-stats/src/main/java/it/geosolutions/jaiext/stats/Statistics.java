@@ -54,10 +54,10 @@ public abstract class Statistics {
     }
 
     /** This method add a Double value to the statistics and give informations about no Data */
-    protected abstract void addSampleNoNaN(double sample, boolean isData);
+    public abstract void addSampleNoNaN(double sample, boolean isData);
 
     /** This method add a Double value to the statistics and give informations about no Data and NaN */
-    protected abstract void addSampleNaN(double sample, boolean isData, boolean isNaN);
+    public abstract void addSampleNaN(double sample, boolean isData, boolean isNaN);
 
     /** This method is used for accumulating the statistics from another Statistics object */
     protected abstract void accumulateStats(Statistics stats);

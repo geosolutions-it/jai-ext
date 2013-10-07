@@ -22,14 +22,14 @@ public class Median extends Statistics {
     }
     
     @Override
-    protected void addSampleNoNaN(double sample, boolean isData) {
+    public void addSampleNoNaN(double sample, boolean isData) {
         if (isData && interval.contains(sample)) {
             listData.add(sample);
         }
     }
 
     @Override
-    protected void addSampleNaN(double sample, boolean isData, boolean isNaN) {
+    public void addSampleNaN(double sample, boolean isData, boolean isNaN) {
         if (isData && !isNaN && interval.contains(sample)) {
             listData.add(sample);
         }

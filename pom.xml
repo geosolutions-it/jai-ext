@@ -533,5 +533,6 @@
     <module>jt-translate</module>
     <module>jt-lookup</module>
     <module>jt-stats</module>
+    <module>jt-zonal</module>
   </modules>
 </project>
