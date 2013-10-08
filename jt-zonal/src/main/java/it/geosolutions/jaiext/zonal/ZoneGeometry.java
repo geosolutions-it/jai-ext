@@ -40,32 +40,49 @@ public class ZoneGeometry {
         }
     }
 
-    public void add(double sample, int band, boolean isNaN) {
-        add(sample, band, 0, isNaN);
-    }
-
-    public synchronized void add(double sample, int band, int zone, boolean isNaN) {
+    public void add(double sample, int band, int zone, boolean isNaN) {
 
         Map<Integer, Statistics[]> mapZone = classifyStats.get(band);
-        
+
         Statistics[] statistics = mapZone.get(zone);
-        
-        if(statistics == null){
+
+        if (statistics == null) {
             statistics = new Statistics[stats.length];
             for (int st = 0; st < stats.length; st++) {
                 statistics[st] = StatsFactory.createSimpleStatisticsObjectFromInt(stats[st]
                         .getStatsId());
             }
         }
-        
+
         for (int st = 0; st < stats.length; st++) {
             statistics[st].addSampleNaN(sample, true, isNaN);
         }
-        
-        mapZone.put(zone, statistics);
-    }
-    
-    
-    
 
+        mapZone.put(zone, statistics);
+
+        classifyStats.put(band, mapZone);
+    }
+
+    public Statistics[] getStatsPerBandPerZone(int band, int zone) {
+
+        Map<Integer, Statistics[]> resultAllZone = classifyStats.get(band);
+
+        Statistics[] statistics = resultAllZone.get(zone);
+
+        return statistics;
+    }
+
+    public int getNumZones() {
+        Map<Integer, Statistics[]> resultAllZone = classifyStats.get(0);
+
+        return resultAllZone.size();
+    }
+
+    public Object getStatsPerBand(int band) {
+
+        Map<Integer, Statistics[]> resultAllZone = classifyStats.get(band);
+
+        return resultAllZone;
+
+    }
 }
