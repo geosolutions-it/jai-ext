@@ -11,6 +11,8 @@ import static jcuda.driver.JCudaDriver.cuMemcpyDtoH;
 import static jcuda.driver.JCudaDriver.cuMemcpyHtoD;
 import static jcuda.driver.JCudaDriver.cuModuleGetFunction;
 import static jcuda.driver.JCudaDriver.cuModuleLoad;
+import static jcuda.driver.CUdevice_attribute.*;
+import static jcuda.driver.JCudaDriver.*;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -122,7 +124,7 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
             // get the raster for reference and current
             Raster ref=reference.getTile(tileX, tileY),cur=null;
             Rectangle rect= ref.getBounds();
-            rect=rect.intersection(reference.getBounds());
+//            rect=rect.intersection(reference.getBounds()); // this has been disabled to NOT cut the provided tiles
             ref=reference.getData(rect);
             cur=current.getData(rect);
             
@@ -135,29 +137,29 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
             assert dataRef.length==rect.width*rect.height;
             assert dataCurrent.length==rect.width*rect.height;
             
-            System.out.println("Calling JCUDA tileX:"+tileX+" tileY:"+tileY);
-            System.out.println("Calling JCUDA tileW:"+rect.width+" tileH:"+rect.height);
+            System.out.println("Calling JCUDA tileX:"+tileX+" tileY:"+tileY);//+" bbox:"+rect.toString());
+            //System.out.println("Calling JCUDA tileW:"+rect.width+" tileH:"+rect.height);
             // call CUDA and get result
             // I am expecting the host_oMap as the first array and host_chMat as the second array
             final List<int[]> result=JCudaChangeMat(dataRef,dataCurrent,NUM_CLASSES);
-            System.out.println("Cuda kernels work fine !!\n");
+            //System.out.println("Cuda kernels work fine !!");
             
             // build output image and save
-            System.out.println("Building output images...");
-            System.out.println("	oMap: "+result.get(0).length);
+            //System.out.println("Building output images:");
+            //System.out.println("	oMap:\t"+result.get(0).length);
             final TiledImage image0 = createImage(rect, result.get(0));
-            System.out.println("	chMat"+result.get(1).length);
+            //System.out.println("	chMat:\t"+result.get(1).length);
             final Rectangle chMatDimensions= new Rectangle(0,0,NUM_CLASSES,NUM_CLASSES);
             final TiledImage image1 = createImage(chMatDimensions, result.get(1));
             
-            System.out.println("Saving output images...");
+            //System.out.println("Saving output images.\n\n");
             try {
                 //ImageIO.write(biImage, "tiff", new File("d:/data/unina/test/row"+tileY+"_col"+tileX+"_"+".tif"));
             	ImageIO.write(image0, "tiff", new File("/home/giuliano/git/jai-ext/out/0row"+tileY+"_col"+tileX+"_"+".tif"));
             	ImageIO.write(image1, "tiff", new File("/home/giuliano/git/jai-ext/out/1row"+tileY+"_col"+tileX+"_"+".tif"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
-            }    
+            }
             image0.dispose();
             image1.dispose();
             latch.countDown();
@@ -181,8 +183,8 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
      * by TileDim[X,Y] with modulus=0.
      * This way I use a TileDim = [12750,9954] ready for that.
      */
-	private final static int DEFAULT_TILE_HEIGHT 	= 1024;//12750;//1024;
-	private final static int DEFAULT_TILE_WIDTH 	= 1024;//9954;//1024;
+	private final static int DEFAULT_TILE_HEIGHT 	= 12928;//12750;	//original:12888;
+	private final static int DEFAULT_TILE_WIDTH 	= 10112;//9954;		//original:10008;
 
 	// The first NUM_CYCLES_WARM cycles are not considered because they simply
 	// allows the
@@ -240,7 +242,9 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
                 current = JAI.create("ImageRead", pbj, hints);
         
                 pbj.setParameter("Input", file6);
-                reference = JAI.create("ImageRead", pbj, hints);        
+                reference = JAI.create("ImageRead", pbj, hints);   
+                
+                
 	}
 
     @Test
@@ -252,6 +256,7 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
         final int numTileY=reference.getNumYTiles();
         final int minTileX=reference.getMinTileX();
         final int minTileY=reference.getMinTileY();
+        System.out.println("dimensions: "+reference.getBounds());
         System.out.println("tileW: "+reference.getTileWidth()+" tileH: "+reference.getTileHeight());
         
         
@@ -275,7 +280,6 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
     @Ignore
     public void createImage() throws IOException{
         // fake data
-    	System.out.println("...here...");
         final int[]data= new int[4096*4096];
         for(int x=0;x<4096;x++){
             for(int y=0;y<4096;y++){
@@ -333,69 +337,64 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
     	// Enable exceptions and omit all subsequent error checks
         JCudaDriver.setExceptionsEnabled(true);
         
-        /*
-        int deviceCount; 
-        cudaGetDeviceCount(Pointer.to(deviceCount));
-		if (deviceCount == 0) {
-		    fprintf(stderr, "error: no devices supporting CUDA.\n");
-		    exit(EXIT_FAILURE);
-		}
-		int dev = 0;
-		cudaSetDevice(dev);
-		cudaDeviceProp devProps;
-		
-		if (cudaGetDeviceProperties(&devProps, dev) == 0)
-		{
-		    printf("Using device %d:\n", dev);
-		    printf("%s; global mem: %dB; compute v%d.%d; clock: %d kHz; nMax: %d\n",
-		           devProps.name, (int)devProps.totalGlobalMem,
-		           (int)devProps.major, (int)devProps.minor,
-		           (int)devProps.clockRate, (int)devProps.maxThreadsPerBlock);
-		}
-		*/
-        
         // ----
         // opt function for different SIZEs
-        /*
-        int tiledimX	= 150;
-        int tiledimY	= 158;
-        int ntilesX		= 86;
-        int ntilesY 	= 64;
-        */
         int tiledimX	= 128;
         int tiledimY	= 128;
         int ntilesX 	= DEFAULT_TILE_WIDTH  / tiledimX;
         int ntilesY		= DEFAULT_TILE_HEIGHT / tiledimY;
         // ----
         
+        //System.out.println("ntilesX: "+ntilesX+"\tntilesY: "+ntilesY);
+        int mapsize 	= tiledimX * tiledimY * ntilesX * ntilesY *  Sizeof.INT;//Integer.SIZE;
+        int mapsizeb 	= tiledimX * tiledimY * ntilesX * ntilesY *  Sizeof.BYTE;//Byte.SIZE;
+        //System.out.println("mapsize: "+mapsize+"\tmapsizeb: "+mapsizeb);
         
-        int mapsize 	= tiledimX * tiledimY * ntilesX * ntilesY *  Integer.SIZE;
-        int mapsizeb 	= tiledimX * tiledimY * ntilesX * ntilesY *  Byte.SIZE;
-        // change iMap or data*? about (i) type of data, (ii) string, (iii) duplication of data
-//        host_iMap1		= dataRef;
-//        host_iMap2 		= dataCurrent;
-        // ----
-        
-        // Initialize the driver and create a context for the first device.
-        //System.out.println("Initializing driver:");
-        //System.out.println("	-cuInit(0)");
+        // Initialise the driver:
         cuInit(0);
-        //System.out.println("	-CUdevice()");
+        
+        // Obtain the number of devices:
+        int gpuDeviceCount[] = {0};
+        cuDeviceGetCount( gpuDeviceCount );
+        int deviceCount = gpuDeviceCount[0];
+		if (deviceCount == 0) {
+			System.out.println("error: no devices supporting CUDA.");
+		    //exit();
+		}
+        //System.out.println("Found " + deviceCount + " devices");
+        
+        // Select first device, but I should select/split devices
+        int selDev = 0;
         CUdevice device = new CUdevice();
-        cuDeviceGet(device, 0);
-        //System.out.println("	-CUcontext()");
+        cuDeviceGet(device, selDev);
+        
+        // Get some useful properties: 
+        int amountProperty[] = { 0 };
+        // -1-
+        cuDeviceGetAttribute(amountProperty, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, device);
+        int maxThreadsPerBlock = amountProperty[0];
+        //System.out.println("maxThreadsPerBlock: "+maxThreadsPerBlock);
+        // -2-
+        //cuDeviceGetAttribute(amountProperty, CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY, device);
+        //int totalGlobalMem = amountProperty[0];
+        //System.out.println("totalGlobalMem [to be corrected!!]: "+totalGlobalMem);
+        
+        // Create a context for the selected device
         CUcontext context = new CUcontext();
-        cuCtxCreate(context, 0, device);
+        //int cuCtxCreate_STATUS = 
+        cuCtxCreate(context, selDev, device);
+        //System.out.println("cuCtxCreate_STATUS: "+cuCtxCreate_STATUS);
 
         // Load the ptx file.
         //System.out.println("Loading ptx FILE...");
         CUmodule module = new CUmodule();
+        //int cuModLoad = 
         cuModuleLoad(module, PTX_FILE_NAME);
+        //System.out.println("cuModLoad: "+cuModLoad);
         
         // Obtain a function pointer to the "add" function.
         //System.out.println("changemap MOD");
         CUfunction changemap = new CUfunction();
-        //System.out.println("...here...");
         cuModuleGetFunction(changemap, module, "_Z9changemapPKhS0_jjjjjPjS1_");
         //System.out.println("changemat MOD");
         CUfunction changemat = new CUfunction();
@@ -421,7 +420,7 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
         cuMemAlloc(dev_chMat, crossdim * crossdim * ntilesX * ntilesY*Integer.SIZE);
         
 
-        System.out.println("first kernel");
+        // System.out.println("first kernel");
         // Set up the kernel parameters: A pointer to an array
         // of pointers which point to the actual values.
         Pointer kernelParameters1 = Pointer.to(
@@ -438,12 +437,12 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
 
         //System.out.println("pointers done");
         // Call the kernel function.
-        int blockSizeX = 32;	// Math.floor(Math.sqrt(devProps.maxThreadsPerBlock));
-        int blockSizeY = 32;	// Math.floor(Math.sqrt(devProps.maxThreadsPerBlock));
-        int blockSizeZ = 1;
-        int gridSizeX = 4; 		// Math.ceil( Math.sqrt( (ntilesX*ntilesY) / (blockSizeX) ) );
-        int gridSizeY = 4; 		// Math.ceil( Math.sqrt( (ntilesX*ntilesY) / (blockSizeY) ) );
-        int gridSizeZ = 1;
+        int blockSizeX 	= (int) Math.floor(Math.sqrt(maxThreadsPerBlock));									// 32
+        int blockSizeY 	= (int) Math.floor(Math.sqrt(maxThreadsPerBlock));									// 32
+        int blockSizeZ 	= 1;
+        int gridSizeX 	= 1+ (int) Math.ceil( Math.sqrt( (ntilesX*ntilesY) / (blockSizeX*blockSizeY) ) ); 	// 1+ 4 
+        int gridSizeY 	= 1+ (int) Math.ceil( Math.sqrt( (ntilesX*ntilesY) / (blockSizeX*blockSizeY) ) ); 	// 1+ 4
+        int gridSizeZ 	= 1;
         //System.out.println("launch cuda kernel");
         //int status_k1 = 
 		cuLaunchKernel(changemap,
@@ -484,20 +483,36 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
         // Allocate host output memory and copy the device output
         // to the host.
         int host_chMat[] = new int[crossdim * crossdim];
-        cuMemcpyDtoH(Pointer.to(host_chMat), dev_chMat, crossdim * crossdim * Sizeof.INT);
+        //int cuMemcpy_oMap_STATUS = 
+		cuMemcpyDtoH(Pointer.to(host_chMat), dev_chMat, crossdim * crossdim * Sizeof.INT);
+        //System.out.println("cuMemcpy_oMap_STATUS: "+cuMemcpy_oMap_STATUS);
         int host_oMap[] = new int[tiledimX * tiledimY * ntilesX * ntilesY];
+        //System.out.println("mapsize: "+mapsize);
+        //int cuMemcpy_chMat_STATUS = 
         cuMemcpyDtoH(Pointer.to(host_oMap), dev_oMap, mapsize);
-
+        //System.out.println("cuMemcpy_chMat_STATUS: "+cuMemcpy_chMat_STATUS);
+        
         // Clean up.
         cuMemFree(dev_iMap1);
         cuMemFree(dev_iMap2);
         cuMemFree(dev_oMap);
         cuMemFree(dev_chMat);
         
+        //
+        //int cuModUnload_STATUS = 
+        cuModuleUnload ( module );
+        //System.out.println("cuModUnload_STATUS: "+cuModUnload_STATUS);
+        
+        // Destroy  CUDA context:
+        //int cuDestroy_STATUS = 
+        cuCtxDestroy( context );
+        //System.out.println("cuDestroy_STATUS: "+cuDestroy_STATUS);
+        
+        // OUTPUT:
         return Arrays.asList(host_oMap,host_chMat);
     }
 
-    /**
+	/**
      * Creates an image from a vector of int
      * @param rect
      * @param data
@@ -509,7 +524,7 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
                 rect.width,
                 rect.height,
                 1,
-                rect.width, 
+                rect.width,
                 new int[]{0});
         final DataBufferInt db1= new DataBufferInt(data, rect.width*rect.height);
         final WritableRaster wr= 
