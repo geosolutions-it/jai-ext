@@ -146,7 +146,7 @@ public class CompleteStatsTest extends TestBase {
 
         interval[0] = RangeFactory.create(minBound[0], true, maxBound[0], false, false);
         interval[1] = RangeFactory.create(minBound[0], true, maxBound[0], false, false);
-        interval[1] = RangeFactory.create(minBound[0], true, maxBound[0], false, false);
+        interval[2] = RangeFactory.create(minBound[0], true, maxBound[0], false, false);
 
         hist = new double[numBins[0]][4];
 

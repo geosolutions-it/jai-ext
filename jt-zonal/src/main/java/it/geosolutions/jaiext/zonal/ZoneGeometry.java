@@ -12,27 +12,37 @@ public class ZoneGeometry {
 
     private final Map<Integer, Map<Integer, Statistics[]>> classifyStats;
 
-    private final int idZone;
-
-    private final int[] bands;
-
     private final StatsType[] stats;
 
-    ZoneGeometry(int idZone, int[] bands, StatsType[] stats, boolean classification) {
+    private double[] minBounds;
+
+    private double[] maxBounds;
+
+    private int[] numbins;
+    
+    ZoneGeometry(int[] bands, StatsType[] stats, boolean classification, double[] minBounds,
+            double[] maxBounds, int[] numbins) {
+        
         this.classification = classification;
-        this.idZone = idZone;
-        this.bands = bands;
         this.stats = stats;
+        this.minBounds = minBounds;
+        this.maxBounds = maxBounds;
+        this.numbins = numbins;
 
         classifyStats = new TreeMap<Integer, Map<Integer, Statistics[]>>();
 
-        for (Integer i : bands) {
+        for (int i : bands) {
             Map<Integer, Statistics[]> mapZone = new TreeMap<Integer, Statistics[]>();
             if (!classification) {
                 Statistics[] statistics = new Statistics[stats.length];
                 for (int st = 0; st < stats.length; st++) {
-                    statistics[st] = StatsFactory.createSimpleStatisticsObjectFromInt(stats[st]
-                            .getStatsId());
+                    int statId = stats[st].getStatsId();
+                    if (statId <= 6) {
+                        statistics[st] = StatsFactory.createSimpleStatisticsObjectFromInt(statId);
+                    } else {
+                        statistics[st] = StatsFactory.createComplexStatisticsObjectFromInt(statId,
+                                minBounds[i], maxBounds[i], numbins[i]);
+                    }
                 }
                 mapZone.put(0, statistics);
             }
@@ -46,11 +56,16 @@ public class ZoneGeometry {
 
         Statistics[] statistics = mapZone.get(zone);
 
-        if (statistics == null) {
+        if (classification && statistics == null) {
             statistics = new Statistics[stats.length];
             for (int st = 0; st < stats.length; st++) {
-                statistics[st] = StatsFactory.createSimpleStatisticsObjectFromInt(stats[st]
-                        .getStatsId());
+                int statId = stats[st].getStatsId();
+                if (statId <= 6) {
+                    statistics[st] = StatsFactory.createSimpleStatisticsObjectFromInt(statId);
+                } else {
+                    statistics[st] = StatsFactory.createComplexStatisticsObjectFromInt(statId,
+                            minBounds[band], maxBounds[band], numbins[band]);
+                }
             }
         }
 
@@ -64,25 +79,23 @@ public class ZoneGeometry {
     }
 
     public Statistics[] getStatsPerBandPerZone(int band, int zone) {
-
         Map<Integer, Statistics[]> resultAllZone = classifyStats.get(band);
-
         Statistics[] statistics = resultAllZone.get(zone);
-
         return statistics;
     }
 
     public int getNumZones() {
         Map<Integer, Statistics[]> resultAllZone = classifyStats.get(0);
-
         return resultAllZone.size();
     }
 
     public Object getStatsPerBand(int band) {
-
         Map<Integer, Statistics[]> resultAllZone = classifyStats.get(band);
-
         return resultAllZone;
-
     }
+
+    public void clear() {
+        classifyStats.clear();
+    }
+
 }

@@ -78,6 +78,12 @@ public class ZonalStatsTest extends TestBase {
 
     private static Range noDataDouble;
 
+    private static double[] minBound;
+
+    private static double[] maxBound;
+
+    private static int[] numBins;
+
     @BeforeClass
     public static void initialSetup() {
 
@@ -88,9 +94,16 @@ public class ZonalStatsTest extends TestBase {
 
         int interval = dimension / 10;
 
+        
+        // Definition of the Histogram, Mode and Median parameters
+        minBound = new double[] { -3, -3, -3 };
+        maxBound = new double[] { 3, 3, 3 };
+        numBins = new int[] { 4, 4, 4 };
+        
         // Statistics types
         stats = new StatsType[] { StatsType.MEAN, StatsType.SUM, StatsType.MAX, StatsType.MIN,
-                StatsType.EXTREMA, StatsType.VARIANCE, StatsType.DEV_STD };
+                StatsType.EXTREMA, StatsType.VARIANCE, StatsType.DEV_STD, StatsType.HISTOGRAM,
+                StatsType.MODE, StatsType.MEDIAN};
 
         roiList = new ArrayList<ROI>();
 
@@ -117,8 +130,7 @@ public class ZonalStatsTest extends TestBase {
         // Bounds Union
         union = new Rectangle(roiList.get(0).getBounds());
         // Insertion of the zones to the spatial index and union of the bounds for every ROI/Zone object
-        for (int i = 0; i < roiList.size(); i++) {
-            ROI roi = roiList.get(i);
+        for (ROI roi : roiList) {
 
             // Spatial index creation
             Rectangle rect = roi.getBounds();
@@ -129,11 +141,11 @@ public class ZonalStatsTest extends TestBase {
             Envelope env = new Envelope(minX, maxX, minY, maxY);
             spatial.insert(env, roi);
             // Union
-            union.union(rect);
-            // Creation of a new ZoneGeometry
-            ZoneGeometry geom = new ZoneGeometry(i, bands, stats, CLASSIFIER);
+            union = union.union(rect);
             // Addition to the geometries list
             for (int z = 0; z < 4; z++) {
+                // Creation of a new ZoneGeometry
+                ZoneGeometry geom = new ZoneGeometry(bands, stats, CLASSIFIER,minBound,maxBound,numBins);
                 zoneList[z].add(geom);
             }
         }
@@ -172,10 +184,20 @@ public class ZonalStatsTest extends TestBase {
         sourceIMG = new RenderedImage[6];
 
         // Creation of a full data image
-        IMAGE_FILLER = true;
+        //IMAGE_FILLER = true;
         sourceIMG[0] = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
                 noDataB, false);
-        IMAGE_FILLER = false;
+        sourceIMG[1] = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                noDataU, false);
+        sourceIMG[2] = createTestImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                noDataS, false);
+        sourceIMG[3] = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
+                false);
+        sourceIMG[4] = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                noDataF, false);
+        sourceIMG[5] = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                noDataD, false);
+        //IMAGE_FILLER = false;
 
         int minTileX = sourceIMG[0].getMinTileX();
         int minTileY = sourceIMG[0].getMinTileY();
@@ -206,8 +228,6 @@ public class ZonalStatsTest extends TestBase {
 
                             Envelope searchEnv = new Envelope(p);
 
-                            spatial.query(searchEnv);
-
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
                             // Zone classifier initial value
@@ -217,67 +237,42 @@ public class ZonalStatsTest extends TestBase {
                                 // Selection of the zone point
                                 zone = iterator.getSample(x, y, 0);
                             }
-                            // Cycle for all the 4 cases: No roi and No NoData, only roi, only NoData, both roi and NoData
-                            for (int z = 0; z < 4; z++) {
-                                switch (z) {
-                                case 0:
-                                    // Cycle on all the geometries found
-                                    for (ROI geometry : geomList) {
-                                        // if every geometry really contains the selected point
-                                        if (geometry.contains(x, y)) {
-                                            // then the related zoneGeometry object statistics are updated
-                                            int index = roiList.indexOf(geometry);
-                                            ZoneGeometry zoneGeo = zoneList[z].get(index);
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x, y)) {
+
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = roiList.indexOf(geometry);
+
+                                    // Cycle for all the 4 cases: No roi and No NoData, only roi, only NoData, both roi and NoData
+                                    for (int z = 0; z < 4; z++) {
+                                        ZoneGeometry zoneGeo = zoneList[z].get(index);
+                                        switch (z) {
+                                        case 0:
                                             zoneGeo.add(value, 0, zone, false);
                                             zoneList[z].set(index, zoneGeo);
-                                        }
-                                    }
-                                    break;
-                                case 1:
-                                    if (roi.contains(x, y)) {
-                                        // Cycle on all the geometries found
-                                        for (ROI geometry : geomList) {
-                                            // if every geometry really contains the selected point
-                                            if (geometry.contains(x, y)) {
-                                                // then the related zoneGeometry object statistics are updated
-                                                int index = roiList.indexOf(geometry);
-                                                ZoneGeometry zoneGeo = zoneList[z].get(index);
+                                            break;
+                                        case 1:
+                                            if (roi.contains(x, y)) {
                                                 zoneGeo.add(value, 0, zone, false);
                                                 zoneList[z].set(index, zoneGeo);
                                             }
-                                        }
-                                    }
-                                    break;
-                                case 2:
-                                    if (!noDataByte.contains(value)) {
-                                        // Cycle on all the geometries found
-                                        for (ROI geometry : geomList) {
-                                            // if every geometry really contains the selected point
-                                            if (geometry.contains(x, y)) {
-                                                // then the related zoneGeometry object statistics are updated
-                                                int index = roiList.indexOf(geometry);
-                                                ZoneGeometry zoneGeo = zoneList[z].get(index);
+                                            break;
+                                        case 2:
+                                            if (!noDataByte.contains(value)) {
                                                 zoneGeo.add(value, 0, zone, false);
                                                 zoneList[z].set(index, zoneGeo);
                                             }
-                                        }
-                                    }
-                                    break;
-                                case 3:
-                                    if (!noDataByte.contains(value) && roi.contains(x, y)) {
-                                        // Cycle on all the geometries found
-                                        for (ROI geometry : geomList) {
-                                            // if every geometry really contains the selected point
-                                            if (geometry.contains(x, y)) {
-                                                // then the related zoneGeometry object statistics are updated
-                                                int index = roiList.indexOf(geometry);
-                                                ZoneGeometry zoneGeo = zoneList[z].get(index);
+                                            break;
+                                        case 3:
+                                            if (!noDataByte.contains(value) && roi.contains(x, y)) {
                                                 zoneGeo.add(value, 0, zone, false);
                                                 zoneList[z].set(index, zoneGeo);
                                             }
+                                            break;
                                         }
                                     }
-                                    break;
                                 }
                             }
                         }
@@ -288,7 +283,6 @@ public class ZonalStatsTest extends TestBase {
     }
 
     @Test
-    @Ignore
     public void testNoROINoNoData() {
 
         boolean roiUsed = false;
@@ -296,11 +290,15 @@ public class ZonalStatsTest extends TestBase {
         boolean useRoiAccessor = false;
 
         testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
 
     }
-    
+
     @Test
-    @Ignore
     public void testROINoNoData() {
 
         boolean roiUsed = true;
@@ -308,11 +306,15 @@ public class ZonalStatsTest extends TestBase {
         boolean useRoiAccessor = false;
 
         testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
 
     }
-    
+
     @Test
-    @Ignore
     public void testROIAccessorNoNoData() {
 
         boolean roiUsed = true;
@@ -320,11 +322,15 @@ public class ZonalStatsTest extends TestBase {
         boolean useRoiAccessor = true;
 
         testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
 
     }
-    
+
     @Test
-    @Ignore
     public void testNoDataNoROI() {
 
         boolean roiUsed = false;
@@ -332,11 +338,15 @@ public class ZonalStatsTest extends TestBase {
         boolean useRoiAccessor = false;
 
         testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
 
     }
-    
+
     @Test
-    @Ignore
     public void testROIAccessorNoData() {
 
         boolean roiUsed = true;
@@ -344,11 +354,15 @@ public class ZonalStatsTest extends TestBase {
         boolean useRoiAccessor = true;
 
         testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
 
     }
-    
+
     @Test
-    @Ignore
     public void testROINoData() {
 
         boolean roiUsed = true;
@@ -356,6 +370,11 @@ public class ZonalStatsTest extends TestBase {
         boolean useRoiAccessor = false;
 
         testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
 
     }
 
@@ -424,7 +443,7 @@ public class ZonalStatsTest extends TestBase {
 
         // Simple statistics
         RenderedImage destination = ZonalStatsDescriptor.create(source, classifierIMG, null,
-                roiList, roiData, noDataRange, useRoiAccessor, bands, stats, null);
+                roiList, roiData, noDataRange, useRoiAccessor, bands, stats, minBound, maxBound, numBins, null);
         // Statistic calculation
         List<ZoneGeometry> result = (List<ZoneGeometry>) destination
                 .getProperty(ZonalStatsDescriptor.ZONAL_STATS_PROPERTY);
@@ -434,15 +453,17 @@ public class ZonalStatsTest extends TestBase {
             for (int i = 0; i < result.size(); i++) {
                 ZoneGeometry zoneResult = result.get(i);
                 ZoneGeometry zoneCalculated = zoneList[statsIndex].get(i);
-                
-                Map<Integer, Statistics[]> resultPerZone = (Map<Integer, Statistics[]>) zoneResult.getStatsPerBand(0);
-                
+
+                Map<Integer, Statistics[]> resultPerZone = (Map<Integer, Statistics[]>) zoneResult
+                        .getStatsPerBand(0);
+
                 Set<Integer> zoneset = resultPerZone.keySet();
-                
-                
-                for(int zone :  zoneset){
-                    Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandPerZone(0, zone);
-                    Statistics[] statsCalculated = (Statistics[]) zoneCalculated.getStatsPerBandPerZone(0, zone);
+
+                for (int zone : zoneset) {
+                    Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandPerZone(0,
+                            zone);
+                    Statistics[] statsCalculated = (Statistics[]) zoneCalculated
+                            .getStatsPerBandPerZone(0, zone);
 
                     assertEquals(statsResult.length, statsCalculated.length);
 
@@ -456,6 +477,8 @@ public class ZonalStatsTest extends TestBase {
                         case 3:
                         case 5:
                         case 6:
+                        case 8:
+                        case 9:
                             double valueR = (Double) statR.getResult();
                             double valueC = (Double) statC.getResult();
                             assertEquals(valueR, valueC, TOLERANCE);
@@ -467,8 +490,21 @@ public class ZonalStatsTest extends TestBase {
                             double[] extremaC = (double[]) statC.getResult();
                             double maxC = extremaC[1];
                             double minC = extremaC[0];
-                            assertEquals(minR, maxC, TOLERANCE);
-                            assertEquals(maxR, minC, TOLERANCE);
+                            assertEquals(minR, minC, TOLERANCE);
+                            assertEquals(maxR, maxC, TOLERANCE);
+                            break;
+                        case 7:
+                            double[] histR = (double[]) statR.getResult();
+                            double[] histC = (double[]) statC.getResult();
+                            
+                            assertEquals(histR.length, histC.length);
+                            
+                            for(int bin = 0; bin < histR.length; bin++){
+                                double binR = histR[bin];
+                                double binC = histC[bin];
+                                assertEquals(binR, binC, TOLERANCE);
+                            }
+                            
                             break;
                         }
                     }
@@ -480,7 +516,8 @@ public class ZonalStatsTest extends TestBase {
                 ZoneGeometry zoneCalculated = zoneList[statsIndex].get(i);
 
                 Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandPerZone(0, 0);
-                Statistics[] statsCalculated = (Statistics[]) zoneCalculated.getStatsPerBandPerZone(0, 0);
+                Statistics[] statsCalculated = (Statistics[]) zoneCalculated
+                        .getStatsPerBandPerZone(0, 0);
 
                 assertEquals(statsResult.length, statsCalculated.length);
 
@@ -505,8 +542,8 @@ public class ZonalStatsTest extends TestBase {
                         double[] extremaC = (double[]) statC.getResult();
                         double maxC = extremaC[1];
                         double minC = extremaC[0];
-                        assertEquals(minR, maxC, TOLERANCE);
-                        assertEquals(maxR, minC, TOLERANCE);
+                        assertEquals(minR, minC, TOLERANCE);
+                        assertEquals(maxR, maxC, TOLERANCE);
                         break;
                     }
                 }

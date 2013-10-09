@@ -37,8 +37,7 @@ public class ZonalStatsOpImage extends OpImage {
     protected final static BorderExtender ROI_EXTENDER = BorderExtender
             .createInstance(BorderExtender.BORDER_ZERO);
 
-    private static final Logger LOGGER = Logger.getLogger(ZonalStatsOpImage.class
-            .getName());
+    private static final Logger LOGGER = Logger.getLogger(ZonalStatsOpImage.class.getName());
 
     private volatile boolean firstTime;
 
@@ -72,7 +71,7 @@ public class ZonalStatsOpImage extends OpImage {
 
     private final boolean transformation;
 
-    private final Rectangle union;
+    private Rectangle union;
 
     private final ArrayList<ZoneGeometry> zoneList;
 
@@ -90,7 +89,8 @@ public class ZonalStatsOpImage extends OpImage {
 
     public ZonalStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             RenderedImage classifier, AffineTransform transform, List<ROI> rois, ROI roiUsed,
-            Range noData, boolean useROIAccessor, int[] bands, StatsType[] statsTypes) {
+            Range noData, boolean useROIAccessor, int[] bands, StatsType[] statsTypes,
+            double[] minBound, double[] maxBound, int[] numBins) {
         super(vectorize(source), layout, configuration, true);
 
         // Check if the classifier is present
@@ -141,8 +141,20 @@ public class ZonalStatsOpImage extends OpImage {
                 }
             }
         }
-        // Statistic types selection
-        // this.statsTypes = statsTypes;
+        // Complex Statistic types validation
+        boolean minBoundsNull = minBound == null;
+        boolean maxBoundsNull = maxBound == null;
+        boolean numBinsNull = numBins == null;
+
+        boolean nullCondition = minBoundsNull || maxBoundsNull || numBinsNull;
+
+        for (int st = 0; st < statsTypes.length; st++) {
+            int statId = statsTypes[st].getStatsId();
+            if (statId > 6 && nullCondition) {
+                throw new IllegalArgumentException(
+                        "If complex statistics are used, Bounds and Bin number should be defined");
+            }
+        }
 
         // Creation of the spatial index
         spatial = new Quadtree();
@@ -166,7 +178,8 @@ public class ZonalStatsOpImage extends OpImage {
             spatial.insert(env, roi);
 
             // Creation of a new ZoneGeometry
-            ZoneGeometry geom = new ZoneGeometry(0, bands, statsTypes, classPresent);
+            ZoneGeometry geom = new ZoneGeometry(bands, statsTypes, classPresent, minBound,
+                    maxBound, numBins);
             // Addition to the geometries list
             zoneList.add(geom);
 
@@ -174,9 +187,7 @@ public class ZonalStatsOpImage extends OpImage {
             // Bounds Union
             union = new Rectangle(rois.get(0).getBounds());
             // Insertion of the zones to the spatial index and union of the bounds for every ROI/Zone object
-            for (int i = 0; i < rois.size(); i++) {
-                ROI roi = rois.get(i);
-
+            for (ROI roi : rois) {
                 // Spatial index creation
                 Rectangle rect = roi.getBounds();
                 double minX = rect.getMinX();
@@ -186,9 +197,10 @@ public class ZonalStatsOpImage extends OpImage {
                 Envelope env = new Envelope(minX, maxX, minY, maxY);
                 spatial.insert(env, roi);
                 // Union
-                union.union(rect);
+                union = union.union(rect);
                 // Creation of a new ZoneGeometry
-                ZoneGeometry geom = new ZoneGeometry(i, bands, statsTypes, classPresent);
+                ZoneGeometry geom = new ZoneGeometry(bands, statsTypes, classPresent, minBound,
+                        maxBound, numBins);
                 // Addition to the geometries list
                 zoneList.add(geom);
             }
@@ -248,7 +260,7 @@ public class ZonalStatsOpImage extends OpImage {
         caseA = !hasNoData && !hasROI;
         caseB = !hasNoData && hasROI;
         caseC = hasNoData && !hasROI;
-        
+
         firstTime = true;
     }
 
@@ -371,7 +383,7 @@ public class ZonalStatsOpImage extends OpImage {
                             inverseTrans.inverseTransform(pointSrc, pointZone);
 
                         } catch (NoninvertibleTransformException e) {
-                            LOGGER.log(Level.FINER, e.getMessage(), e);
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
                         zone = iterator.getSample(pointZone.x, pointZone.y, 0);
@@ -439,7 +451,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     inverseTrans.inverseTransform(pointSrc, pointZone);
 
                                 } catch (NoninvertibleTransformException e) {
-                                    LOGGER.log(Level.FINER, e.getMessage(), e);
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
                                 zone = iterator.getSample(pointZone.x, pointZone.y, 0);
@@ -505,7 +517,7 @@ public class ZonalStatsOpImage extends OpImage {
                                         inverseTrans.inverseTransform(pointSrc, pointZone);
 
                                     } catch (NoninvertibleTransformException e) {
-                                        LOGGER.log(Level.FINER, e.getMessage(), e);
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
                                     zone = iterator.getSample(pointZone.x, pointZone.y, 0);
@@ -588,6 +600,872 @@ public class ZonalStatsOpImage extends OpImage {
                                 for (int i = 0; i < bandNum; i++) {
                                     byte sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
+                                    if (booleanLookupTable[(int) sample]) {
+                                        // Update of all the statistics
+                                        zoneGeo.add(sample, bands[i], zone, false);
+                                    }
+                                }
+                                zoneList.set(index, zoneGeo);
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    int posyROI = y * roiScanLineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // ROI index position
+                        int windex = x + posyROI;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                        // Control if the sample is inside ROI
+                        if (w != 0) {
+                            // PixelPositions
+                            int x0 = srcX + x;
+                            int y0 = srcY + y;
+                            // Coordinate object creation for the spatial indexing
+                            Coordinate p1 = new Coordinate(x0, y0);
+                            // Envelope associated to the coordinate object
+                            Envelope searchEnv = new Envelope(p1);
+                            // Query on the geometry list
+                            List<ROI> geomList = spatial.query(searchEnv);
+                            // Zone classifier initial value
+                            int zone = 0;
+                            // If the classifier is present then the zone value is taken
+                            if (classPresent) {
+                                // Selection of the initial point
+                                Point pointSrc = new Point(x0, y0);
+                                // Initialization of the zone point
+                                Point pointZone = new Point();
+                                // Source point inverse transformation for finding the related zone point
+                                try {
+                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                } catch (NoninvertibleTransformException e) {
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                }
+                                // Selection of the zone point
+                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                            }
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x0, y0)) {
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = rois.indexOf(geometry);
+
+                                    synchronized (this) {
+                                        ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                        // Cycle on the selected Bands
+                                        for (int i = 0; i < bandNum; i++) {
+                                            byte sample = srcData[bands[i]][posx + posy
+                                                    + srcBandOffsets[bands[i]]];
+                                            if (booleanLookupTable[(int) sample]) {
+                                                // Update of all the statistics
+                                                zoneGeo.add(sample, bands[i], zone, false);
+                                            }
+                                        }
+                                        zoneList.set(index, zoneGeo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // ROI BOUNDS USED
+            } else {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+                        if (roiBounds.contains(x0, y0)) {
+                            // ROI value
+                            int w = roiIter.getSample(x0, y0, 0);
+                            // Control if the sample is inside ROI
+                            if (w != 0) {
+                                // Coordinate object creation for the spatial indexing
+                                Coordinate p1 = new Coordinate(x0, y0);
+                                // Envelope associated to the coordinate object
+                                Envelope searchEnv = new Envelope(p1);
+                                // Query on the geometry list
+                                List<ROI> geomList = spatial.query(searchEnv);
+                                // Zone classifier initial value
+                                int zone = 0;
+                                // If the classifier is present then the zone value is taken
+                                if (classPresent) {
+                                    // Selection of the initial point
+                                    Point pointSrc = new Point(x0, y0);
+                                    // Initialization of the zone point
+                                    Point pointZone = new Point();
+                                    // Source point inverse transformation for finding the related zone point
+                                    try {
+                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                    } catch (NoninvertibleTransformException e) {
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                    }
+                                    // Selection of the zone point
+                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ROI geometry : geomList) {
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x0, y0)) {
+                                        // then the related zoneGeometry object statistics are updated
+                                        int index = rois.indexOf(geometry);
+
+                                        synchronized (this) {
+                                            ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                            // Cycle on the selected Bands
+                                            for (int i = 0; i < bandNum; i++) {
+                                                byte sample = srcData[bands[i]][posx + posy
+                                                        + srcBandOffsets[bands[i]]];
+                                                if (booleanLookupTable[(int) sample]) {
+                                                    // Update of all the statistics
+                                                    zoneGeo.add(sample, bands[i], zone, false);
+                                                }
+                                            }
+                                            zoneList.set(index, zoneGeo);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void ushortLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
+
+        // Source RasterAccessor initial positions
+        final int srcX = src.getX();
+        final int srcY = src.getY();
+
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        short srcData[][] = src.getShortDataArrays();
+
+        int srcWidth = src.getWidth();
+        int srcHeight = src.getHeight();
+
+        int[] srcBandOffsets = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        // NO DATA AND ROI ARE NOT PRESENT
+        if (caseA) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ROI> geomList = spatial.query(searchEnv);
+                    // Zone classifier initial value
+                    int zone = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointZone = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                        // Selection of the zone point
+                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                    }
+                    // Cycle on all the geometries found
+                    for (ROI geometry : geomList) {
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+                            // then the related zoneGeometry object statistics are updated
+                            int index = rois.indexOf(geometry);
+
+                            synchronized (this) {
+                                ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], zone, false);
+                                }
+                                zoneList.set(index, zoneGeo);
+                            }
+                        }
+                    }
+                }
+            }
+            // ROI ACCESSOR USED
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    int posyROI = y * roiScanLineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // ROI index position
+                        int windex = x + posyROI;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                        // Control if the sample is inside ROI
+                        if (w != 0) {
+                            // PixelPositions
+                            int x0 = srcX + x;
+                            int y0 = srcY + y;
+                            // Coordinate object creation for the spatial indexing
+                            Coordinate p1 = new Coordinate(x0, y0);
+                            // Envelope associated to the coordinate object
+                            Envelope searchEnv = new Envelope(p1);
+                            // Query on the geometry list
+                            List<ROI> geomList = spatial.query(searchEnv);
+                            // Zone classifier initial value
+                            int zone = 0;
+                            // If the classifier is present then the zone value is taken
+                            if (classPresent) {
+                                // Selection of the initial point
+                                Point pointSrc = new Point(x0, y0);
+                                // Initialization of the zone point
+                                Point pointZone = new Point();
+                                // Source point inverse transformation for finding the related zone point
+                                try {
+                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                } catch (NoninvertibleTransformException e) {
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                }
+                                // Selection of the zone point
+                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                            }
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x0, y0)) {
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = rois.indexOf(geometry);
+
+                                    synchronized (this) {
+                                        ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                        // Cycle on the selected Bands
+                                        for (int i = 0; i < bandNum; i++) {
+                                            int sample = srcData[bands[i]][posx + posy
+                                                    + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                            // Update of all the statistics
+                                            zoneGeo.add(sample, bands[i], zone, false);
+                                        }
+                                        zoneList.set(index, zoneGeo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // ROI BOUNDS USED
+            } else {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+                        if (roiBounds.contains(x0, y0)) {
+                            // ROI value
+                            int w = roiIter.getSample(x0, y0, 0);
+                            // Control if the sample is inside ROI
+                            if (w != 0) {
+                                // Coordinate object creation for the spatial indexing
+                                Coordinate p1 = new Coordinate(x0, y0);
+                                // Envelope associated to the coordinate object
+                                Envelope searchEnv = new Envelope(p1);
+                                // Query on the geometry list
+                                List<ROI> geomList = spatial.query(searchEnv);
+                                // Zone classifier initial value
+                                int zone = 0;
+                                // If the classifier is present then the zone value is taken
+                                if (classPresent) {
+                                    // Selection of the initial point
+                                    Point pointSrc = new Point(x0, y0);
+                                    // Initialization of the zone point
+                                    Point pointZone = new Point();
+                                    // Source point inverse transformation for finding the related zone point
+                                    try {
+                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                    } catch (NoninvertibleTransformException e) {
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                    }
+                                    // Selection of the zone point
+                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ROI geometry : geomList) {
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x0, y0)) {
+                                        // then the related zoneGeometry object statistics are updated
+                                        int index = rois.indexOf(geometry);
+
+                                        synchronized (this) {
+                                            ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                            // Cycle on the selected Bands
+                                            for (int i = 0; i < bandNum; i++) {
+                                                int sample = srcData[bands[i]][posx + posy
+                                                        + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                                // Update of all the statistics
+                                                zoneGeo.add(sample, bands[i], zone, false);
+                                            }
+                                            zoneList.set(index, zoneGeo);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+            // NO DATA USED (ROI NOT USED)
+        } else if (caseC) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ROI> geomList = spatial.query(searchEnv);
+                    // Zone classifier initial value
+                    int zone = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointZone = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                        // Selection of the zone point
+                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                    }
+                    // Cycle on all the geometries found
+                    for (ROI geometry : geomList) {
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+                            // then the related zoneGeometry object statistics are updated
+                            int index = rois.indexOf(geometry);
+
+                            synchronized (this) {
+                                ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                    if (!noData.contains((short) sample)) {
+                                        // Update of all the statistics
+                                        zoneGeo.add(sample, bands[i], zone, false);
+                                    }
+                                }
+                                zoneList.set(index, zoneGeo);
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    int posyROI = y * roiScanLineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // ROI index position
+                        int windex = x + posyROI;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                        // Control if the sample is inside ROI
+                        if (w != 0) {
+                            // PixelPositions
+                            int x0 = srcX + x;
+                            int y0 = srcY + y;
+                            // Coordinate object creation for the spatial indexing
+                            Coordinate p1 = new Coordinate(x0, y0);
+                            // Envelope associated to the coordinate object
+                            Envelope searchEnv = new Envelope(p1);
+                            // Query on the geometry list
+                            List<ROI> geomList = spatial.query(searchEnv);
+                            // Zone classifier initial value
+                            int zone = 0;
+                            // If the classifier is present then the zone value is taken
+                            if (classPresent) {
+                                // Selection of the initial point
+                                Point pointSrc = new Point(x0, y0);
+                                // Initialization of the zone point
+                                Point pointZone = new Point();
+                                // Source point inverse transformation for finding the related zone point
+                                try {
+                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                } catch (NoninvertibleTransformException e) {
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                }
+                                // Selection of the zone point
+                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                            }
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x0, y0)) {
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = rois.indexOf(geometry);
+
+                                    synchronized (this) {
+                                        ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                        // Cycle on the selected Bands
+                                        for (int i = 0; i < bandNum; i++) {
+                                            int sample = srcData[bands[i]][posx + posy
+                                                    + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                            if (!noData.contains((short) sample)) {
+                                                // Update of all the statistics
+                                                zoneGeo.add(sample, bands[i], zone, false);
+                                            }
+                                        }
+                                        zoneList.set(index, zoneGeo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // ROI BOUNDS USED
+            } else {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+                        if (roiBounds.contains(x0, y0)) {
+                            // ROI value
+                            int w = roiIter.getSample(x0, y0, 0);
+                            // Control if the sample is inside ROI
+                            if (w != 0) {
+                                // Coordinate object creation for the spatial indexing
+                                Coordinate p1 = new Coordinate(x0, y0);
+                                // Envelope associated to the coordinate object
+                                Envelope searchEnv = new Envelope(p1);
+                                // Query on the geometry list
+                                List<ROI> geomList = spatial.query(searchEnv);
+                                // Zone classifier initial value
+                                int zone = 0;
+                                // If the classifier is present then the zone value is taken
+                                if (classPresent) {
+                                    // Selection of the initial point
+                                    Point pointSrc = new Point(x0, y0);
+                                    // Initialization of the zone point
+                                    Point pointZone = new Point();
+                                    // Source point inverse transformation for finding the related zone point
+                                    try {
+                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                    } catch (NoninvertibleTransformException e) {
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                    }
+                                    // Selection of the zone point
+                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ROI geometry : geomList) {
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x0, y0)) {
+                                        // then the related zoneGeometry object statistics are updated
+                                        int index = rois.indexOf(geometry);
+
+                                        synchronized (this) {
+                                            ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                            // Cycle on the selected Bands
+                                            for (int i = 0; i < bandNum; i++) {
+                                                int sample = srcData[bands[i]][posx + posy
+                                                        + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                                if (!noData.contains((short) sample)) {
+                                                    // Update of all the statistics
+                                                    zoneGeo.add(sample, bands[i], zone, false);
+                                                }
+                                            }
+                                            zoneList.set(index, zoneGeo);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void shortLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
+
+        // Source RasterAccessor initial positions
+        final int srcX = src.getX();
+        final int srcY = src.getY();
+
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        short srcData[][] = src.getShortDataArrays();
+
+        int srcWidth = src.getWidth();
+        int srcHeight = src.getHeight();
+
+        int[] srcBandOffsets = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        // NO DATA AND ROI ARE NOT PRESENT
+        if (caseA) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ROI> geomList = spatial.query(searchEnv);
+                    // Zone classifier initial value
+                    int zone = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointZone = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                        // Selection of the zone point
+                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                    }
+                    // Cycle on all the geometries found
+                    for (ROI geometry : geomList) {
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+                            // then the related zoneGeometry object statistics are updated
+                            int index = rois.indexOf(geometry);
+
+                            synchronized (this) {
+                                ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    short sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], zone, false);
+                                }
+                                zoneList.set(index, zoneGeo);
+                            }
+                        }
+                    }
+                }
+            }
+            // ROI ACCESSOR USED
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    int posyROI = y * roiScanLineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // ROI index position
+                        int windex = x + posyROI;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                        // Control if the sample is inside ROI
+                        if (w != 0) {
+                            // PixelPositions
+                            int x0 = srcX + x;
+                            int y0 = srcY + y;
+                            // Coordinate object creation for the spatial indexing
+                            Coordinate p1 = new Coordinate(x0, y0);
+                            // Envelope associated to the coordinate object
+                            Envelope searchEnv = new Envelope(p1);
+                            // Query on the geometry list
+                            List<ROI> geomList = spatial.query(searchEnv);
+                            // Zone classifier initial value
+                            int zone = 0;
+                            // If the classifier is present then the zone value is taken
+                            if (classPresent) {
+                                // Selection of the initial point
+                                Point pointSrc = new Point(x0, y0);
+                                // Initialization of the zone point
+                                Point pointZone = new Point();
+                                // Source point inverse transformation for finding the related zone point
+                                try {
+                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                } catch (NoninvertibleTransformException e) {
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                }
+                                // Selection of the zone point
+                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                            }
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x0, y0)) {
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = rois.indexOf(geometry);
+
+                                    synchronized (this) {
+                                        ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                        // Cycle on the selected Bands
+                                        for (int i = 0; i < bandNum; i++) {
+                                            short sample = srcData[bands[i]][posx + posy
+                                                    + srcBandOffsets[bands[i]]];
+                                            // Update of all the statistics
+                                            zoneGeo.add(sample, bands[i], zone, false);
+                                        }
+                                        zoneList.set(index, zoneGeo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // ROI BOUNDS USED
+            } else {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+                        if (roiBounds.contains(x0, y0)) {
+                            // ROI value
+                            int w = roiIter.getSample(x0, y0, 0);
+                            // Control if the sample is inside ROI
+                            if (w != 0) {
+                                // Coordinate object creation for the spatial indexing
+                                Coordinate p1 = new Coordinate(x0, y0);
+                                // Envelope associated to the coordinate object
+                                Envelope searchEnv = new Envelope(p1);
+                                // Query on the geometry list
+                                List<ROI> geomList = spatial.query(searchEnv);
+                                // Zone classifier initial value
+                                int zone = 0;
+                                // If the classifier is present then the zone value is taken
+                                if (classPresent) {
+                                    // Selection of the initial point
+                                    Point pointSrc = new Point(x0, y0);
+                                    // Initialization of the zone point
+                                    Point pointZone = new Point();
+                                    // Source point inverse transformation for finding the related zone point
+                                    try {
+                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                    } catch (NoninvertibleTransformException e) {
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                    }
+                                    // Selection of the zone point
+                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ROI geometry : geomList) {
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x0, y0)) {
+                                        // then the related zoneGeometry object statistics are updated
+                                        int index = rois.indexOf(geometry);
+
+                                        synchronized (this) {
+                                            ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                            // Cycle on the selected Bands
+                                            for (int i = 0; i < bandNum; i++) {
+                                                short sample = srcData[bands[i]][posx + posy
+                                                        + srcBandOffsets[bands[i]]];
+                                                // Update of all the statistics
+                                                zoneGeo.add(sample, bands[i], zone, false);
+                                            }
+                                            zoneList.set(index, zoneGeo);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+            // NO DATA USED (ROI NOT USED)
+        } else if (caseC) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ROI> geomList = spatial.query(searchEnv);
+                    // Zone classifier initial value
+                    int zone = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointZone = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                        // Selection of the zone point
+                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                    }
+                    // Cycle on all the geometries found
+                    for (ROI geometry : geomList) {
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+                            // then the related zoneGeometry object statistics are updated
+                            int index = rois.indexOf(geometry);
+
+                            synchronized (this) {
+                                ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    short sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
                                     if (!noData.contains(sample)) {
                                         // Update of all the statistics
                                         zoneGeo.add(sample, bands[i], zone, false);
@@ -638,7 +1516,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     inverseTrans.inverseTransform(pointSrc, pointZone);
 
                                 } catch (NoninvertibleTransformException e) {
-                                    LOGGER.log(Level.FINER, e.getMessage(), e);
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
                                 zone = iterator.getSample(pointZone.x, pointZone.y, 0);
@@ -655,7 +1533,7 @@ public class ZonalStatsOpImage extends OpImage {
 
                                         // Cycle on the selected Bands
                                         for (int i = 0; i < bandNum; i++) {
-                                            byte sample = srcData[bands[i]][posx + posy
+                                            short sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
                                             if (!noData.contains(sample)) {
                                                 // Update of all the statistics
@@ -706,7 +1584,7 @@ public class ZonalStatsOpImage extends OpImage {
                                         inverseTrans.inverseTransform(pointSrc, pointZone);
 
                                     } catch (NoninvertibleTransformException e) {
-                                        LOGGER.log(Level.FINER, e.getMessage(), e);
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
                                     zone = iterator.getSample(pointZone.x, pointZone.y, 0);
@@ -723,7 +1601,7 @@ public class ZonalStatsOpImage extends OpImage {
 
                                             // Cycle on the selected Bands
                                             for (int i = 0; i < bandNum; i++) {
-                                                byte sample = srcData[bands[i]][posx + posy
+                                                short sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
                                                 if (!noData.contains(sample)) {
                                                     // Update of all the statistics
@@ -742,29 +1620,1309 @@ public class ZonalStatsOpImage extends OpImage {
         }
     }
 
-    private void ushortLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
-        // TODO Auto-generated method stub
-
-    }
-
-    private void shortLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
-        // TODO Auto-generated method stub
-
-    }
-
     private void intLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
-        // TODO Auto-generated method stub
 
+        // Source RasterAccessor initial positions
+        final int srcX = src.getX();
+        final int srcY = src.getY();
+
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        int srcData[][] = src.getIntDataArrays();
+
+        int srcWidth = src.getWidth();
+        int srcHeight = src.getHeight();
+
+        int[] srcBandOffsets = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        // NO DATA AND ROI ARE NOT PRESENT
+        if (caseA) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ROI> geomList = spatial.query(searchEnv);
+                    // Zone classifier initial value
+                    int zone = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointZone = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                        // Selection of the zone point
+                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                    }
+                    // Cycle on all the geometries found
+                    for (ROI geometry : geomList) {
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+                            // then the related zoneGeometry object statistics are updated
+                            int index = rois.indexOf(geometry);
+
+                            synchronized (this) {
+                                ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], zone, false);
+                                }
+                                zoneList.set(index, zoneGeo);
+                            }
+                        }
+                    }
+                }
+            }
+            // ROI ACCESSOR USED
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    int posyROI = y * roiScanLineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // ROI index position
+                        int windex = x + posyROI;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                        // Control if the sample is inside ROI
+                        if (w != 0) {
+                            // PixelPositions
+                            int x0 = srcX + x;
+                            int y0 = srcY + y;
+                            // Coordinate object creation for the spatial indexing
+                            Coordinate p1 = new Coordinate(x0, y0);
+                            // Envelope associated to the coordinate object
+                            Envelope searchEnv = new Envelope(p1);
+                            // Query on the geometry list
+                            List<ROI> geomList = spatial.query(searchEnv);
+                            // Zone classifier initial value
+                            int zone = 0;
+                            // If the classifier is present then the zone value is taken
+                            if (classPresent) {
+                                // Selection of the initial point
+                                Point pointSrc = new Point(x0, y0);
+                                // Initialization of the zone point
+                                Point pointZone = new Point();
+                                // Source point inverse transformation for finding the related zone point
+                                try {
+                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                } catch (NoninvertibleTransformException e) {
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                }
+                                // Selection of the zone point
+                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                            }
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x0, y0)) {
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = rois.indexOf(geometry);
+
+                                    synchronized (this) {
+                                        ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                        // Cycle on the selected Bands
+                                        for (int i = 0; i < bandNum; i++) {
+                                            int sample = srcData[bands[i]][posx + posy
+                                                    + srcBandOffsets[bands[i]]];
+                                            // Update of all the statistics
+                                            zoneGeo.add(sample, bands[i], zone, false);
+                                        }
+                                        zoneList.set(index, zoneGeo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // ROI BOUNDS USED
+            } else {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+                        if (roiBounds.contains(x0, y0)) {
+                            // ROI value
+                            int w = roiIter.getSample(x0, y0, 0);
+                            // Control if the sample is inside ROI
+                            if (w != 0) {
+                                // Coordinate object creation for the spatial indexing
+                                Coordinate p1 = new Coordinate(x0, y0);
+                                // Envelope associated to the coordinate object
+                                Envelope searchEnv = new Envelope(p1);
+                                // Query on the geometry list
+                                List<ROI> geomList = spatial.query(searchEnv);
+                                // Zone classifier initial value
+                                int zone = 0;
+                                // If the classifier is present then the zone value is taken
+                                if (classPresent) {
+                                    // Selection of the initial point
+                                    Point pointSrc = new Point(x0, y0);
+                                    // Initialization of the zone point
+                                    Point pointZone = new Point();
+                                    // Source point inverse transformation for finding the related zone point
+                                    try {
+                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                    } catch (NoninvertibleTransformException e) {
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                    }
+                                    // Selection of the zone point
+                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ROI geometry : geomList) {
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x0, y0)) {
+                                        // then the related zoneGeometry object statistics are updated
+                                        int index = rois.indexOf(geometry);
+
+                                        synchronized (this) {
+                                            ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                            // Cycle on the selected Bands
+                                            for (int i = 0; i < bandNum; i++) {
+                                                int sample = srcData[bands[i]][posx + posy
+                                                        + srcBandOffsets[bands[i]]];
+                                                // Update of all the statistics
+                                                zoneGeo.add(sample, bands[i], zone, false);
+                                            }
+                                            zoneList.set(index, zoneGeo);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+            // NO DATA USED (ROI NOT USED)
+        } else if (caseC) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ROI> geomList = spatial.query(searchEnv);
+                    // Zone classifier initial value
+                    int zone = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointZone = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                        // Selection of the zone point
+                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                    }
+                    // Cycle on all the geometries found
+                    for (ROI geometry : geomList) {
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+                            // then the related zoneGeometry object statistics are updated
+                            int index = rois.indexOf(geometry);
+
+                            synchronized (this) {
+                                ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    if (!noData.contains(sample)) {
+                                        // Update of all the statistics
+                                        zoneGeo.add(sample, bands[i], zone, false);
+                                    }
+                                }
+                                zoneList.set(index, zoneGeo);
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    int posyROI = y * roiScanLineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // ROI index position
+                        int windex = x + posyROI;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                        // Control if the sample is inside ROI
+                        if (w != 0) {
+                            // PixelPositions
+                            int x0 = srcX + x;
+                            int y0 = srcY + y;
+                            // Coordinate object creation for the spatial indexing
+                            Coordinate p1 = new Coordinate(x0, y0);
+                            // Envelope associated to the coordinate object
+                            Envelope searchEnv = new Envelope(p1);
+                            // Query on the geometry list
+                            List<ROI> geomList = spatial.query(searchEnv);
+                            // Zone classifier initial value
+                            int zone = 0;
+                            // If the classifier is present then the zone value is taken
+                            if (classPresent) {
+                                // Selection of the initial point
+                                Point pointSrc = new Point(x0, y0);
+                                // Initialization of the zone point
+                                Point pointZone = new Point();
+                                // Source point inverse transformation for finding the related zone point
+                                try {
+                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                } catch (NoninvertibleTransformException e) {
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                }
+                                // Selection of the zone point
+                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                            }
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x0, y0)) {
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = rois.indexOf(geometry);
+
+                                    synchronized (this) {
+                                        ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                        // Cycle on the selected Bands
+                                        for (int i = 0; i < bandNum; i++) {
+                                            int sample = srcData[bands[i]][posx + posy
+                                                    + srcBandOffsets[bands[i]]];
+                                            if (!noData.contains(sample)) {
+                                                // Update of all the statistics
+                                                zoneGeo.add(sample, bands[i], zone, false);
+                                            }
+                                        }
+                                        zoneList.set(index, zoneGeo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // ROI BOUNDS USED
+            } else {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+                        if (roiBounds.contains(x0, y0)) {
+                            // ROI value
+                            int w = roiIter.getSample(x0, y0, 0);
+                            // Control if the sample is inside ROI
+                            if (w != 0) {
+                                // Coordinate object creation for the spatial indexing
+                                Coordinate p1 = new Coordinate(x0, y0);
+                                // Envelope associated to the coordinate object
+                                Envelope searchEnv = new Envelope(p1);
+                                // Query on the geometry list
+                                List<ROI> geomList = spatial.query(searchEnv);
+                                // Zone classifier initial value
+                                int zone = 0;
+                                // If the classifier is present then the zone value is taken
+                                if (classPresent) {
+                                    // Selection of the initial point
+                                    Point pointSrc = new Point(x0, y0);
+                                    // Initialization of the zone point
+                                    Point pointZone = new Point();
+                                    // Source point inverse transformation for finding the related zone point
+                                    try {
+                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                    } catch (NoninvertibleTransformException e) {
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                    }
+                                    // Selection of the zone point
+                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ROI geometry : geomList) {
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x0, y0)) {
+                                        // then the related zoneGeometry object statistics are updated
+                                        int index = rois.indexOf(geometry);
+
+                                        synchronized (this) {
+                                            ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                            // Cycle on the selected Bands
+                                            for (int i = 0; i < bandNum; i++) {
+                                                int sample = srcData[bands[i]][posx + posy
+                                                        + srcBandOffsets[bands[i]]];
+                                                if (!noData.contains(sample)) {
+                                                    // Update of all the statistics
+                                                    zoneGeo.add(sample, bands[i], zone, false);
+                                                }
+                                            }
+                                            zoneList.set(index, zoneGeo);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void floatLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
-        // TODO Auto-generated method stub
 
+        // Source RasterAccessor initial positions
+        final int srcX = src.getX();
+        final int srcY = src.getY();
+
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        float srcData[][] = src.getFloatDataArrays();
+
+        int srcWidth = src.getWidth();
+        int srcHeight = src.getHeight();
+
+        int[] srcBandOffsets = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        // NO DATA AND ROI ARE NOT PRESENT
+        if (caseA) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ROI> geomList = spatial.query(searchEnv);
+                    // Zone classifier initial value
+                    int zone = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointZone = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                        // Selection of the zone point
+                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                    }
+                    // Cycle on all the geometries found
+                    for (ROI geometry : geomList) {
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+                            // then the related zoneGeometry object statistics are updated
+                            int index = rois.indexOf(geometry);
+
+                            synchronized (this) {
+                                ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    float sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], zone, false);
+                                }
+                                zoneList.set(index, zoneGeo);
+                            }
+                        }
+                    }
+                }
+            }
+            // ROI ACCESSOR USED
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    int posyROI = y * roiScanLineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // ROI index position
+                        int windex = x + posyROI;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                        // Control if the sample is inside ROI
+                        if (w != 0) {
+                            // PixelPositions
+                            int x0 = srcX + x;
+                            int y0 = srcY + y;
+                            // Coordinate object creation for the spatial indexing
+                            Coordinate p1 = new Coordinate(x0, y0);
+                            // Envelope associated to the coordinate object
+                            Envelope searchEnv = new Envelope(p1);
+                            // Query on the geometry list
+                            List<ROI> geomList = spatial.query(searchEnv);
+                            // Zone classifier initial value
+                            int zone = 0;
+                            // If the classifier is present then the zone value is taken
+                            if (classPresent) {
+                                // Selection of the initial point
+                                Point pointSrc = new Point(x0, y0);
+                                // Initialization of the zone point
+                                Point pointZone = new Point();
+                                // Source point inverse transformation for finding the related zone point
+                                try {
+                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                } catch (NoninvertibleTransformException e) {
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                }
+                                // Selection of the zone point
+                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                            }
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x0, y0)) {
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = rois.indexOf(geometry);
+
+                                    synchronized (this) {
+                                        ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                        // Cycle on the selected Bands
+                                        for (int i = 0; i < bandNum; i++) {
+                                            float sample = srcData[bands[i]][posx + posy
+                                                    + srcBandOffsets[bands[i]]];
+                                            // Update of all the statistics
+                                            zoneGeo.add(sample, bands[i], zone, false);
+                                        }
+                                        zoneList.set(index, zoneGeo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // ROI BOUNDS USED
+            } else {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+                        if (roiBounds.contains(x0, y0)) {
+                            // ROI value
+                            int w = roiIter.getSample(x0, y0, 0);
+                            // Control if the sample is inside ROI
+                            if (w != 0) {
+                                // Coordinate object creation for the spatial indexing
+                                Coordinate p1 = new Coordinate(x0, y0);
+                                // Envelope associated to the coordinate object
+                                Envelope searchEnv = new Envelope(p1);
+                                // Query on the geometry list
+                                List<ROI> geomList = spatial.query(searchEnv);
+                                // Zone classifier initial value
+                                int zone = 0;
+                                // If the classifier is present then the zone value is taken
+                                if (classPresent) {
+                                    // Selection of the initial point
+                                    Point pointSrc = new Point(x0, y0);
+                                    // Initialization of the zone point
+                                    Point pointZone = new Point();
+                                    // Source point inverse transformation for finding the related zone point
+                                    try {
+                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                    } catch (NoninvertibleTransformException e) {
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                    }
+                                    // Selection of the zone point
+                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ROI geometry : geomList) {
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x0, y0)) {
+                                        // then the related zoneGeometry object statistics are updated
+                                        int index = rois.indexOf(geometry);
+
+                                        synchronized (this) {
+                                            ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                            // Cycle on the selected Bands
+                                            for (int i = 0; i < bandNum; i++) {
+                                                float sample = srcData[bands[i]][posx + posy
+                                                        + srcBandOffsets[bands[i]]];
+                                                // Update of all the statistics
+                                                zoneGeo.add(sample, bands[i], zone, false);
+                                            }
+                                            zoneList.set(index, zoneGeo);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+            // NO DATA USED (ROI NOT USED)
+        } else if (caseC) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ROI> geomList = spatial.query(searchEnv);
+                    // Zone classifier initial value
+                    int zone = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointZone = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                        // Selection of the zone point
+                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                    }
+                    // Cycle on all the geometries found
+                    for (ROI geometry : geomList) {
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+                            // then the related zoneGeometry object statistics are updated
+                            int index = rois.indexOf(geometry);
+
+                            synchronized (this) {
+                                ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    float sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    if (!noData.contains(sample)) {
+                                        boolean isNaN = Float.isNaN(sample);
+                                        // Update of all the statistics
+                                        zoneGeo.add(sample, bands[i], zone, isNaN);
+                                    }
+                                }
+                                zoneList.set(index, zoneGeo);
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    int posyROI = y * roiScanLineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // ROI index position
+                        int windex = x + posyROI;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                        // Control if the sample is inside ROI
+                        if (w != 0) {
+                            // PixelPositions
+                            int x0 = srcX + x;
+                            int y0 = srcY + y;
+                            // Coordinate object creation for the spatial indexing
+                            Coordinate p1 = new Coordinate(x0, y0);
+                            // Envelope associated to the coordinate object
+                            Envelope searchEnv = new Envelope(p1);
+                            // Query on the geometry list
+                            List<ROI> geomList = spatial.query(searchEnv);
+                            // Zone classifier initial value
+                            int zone = 0;
+                            // If the classifier is present then the zone value is taken
+                            if (classPresent) {
+                                // Selection of the initial point
+                                Point pointSrc = new Point(x0, y0);
+                                // Initialization of the zone point
+                                Point pointZone = new Point();
+                                // Source point inverse transformation for finding the related zone point
+                                try {
+                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                } catch (NoninvertibleTransformException e) {
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                }
+                                // Selection of the zone point
+                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                            }
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x0, y0)) {
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = rois.indexOf(geometry);
+
+                                    synchronized (this) {
+                                        ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                        // Cycle on the selected Bands
+                                        for (int i = 0; i < bandNum; i++) {
+                                            float sample = srcData[bands[i]][posx + posy
+                                                    + srcBandOffsets[bands[i]]];
+                                            if (!noData.contains(sample)) {
+                                                boolean isNaN = Float.isNaN(sample);
+                                                // Update of all the statistics
+                                                zoneGeo.add(sample, bands[i], zone, isNaN);
+                                            }
+                                        }
+                                        zoneList.set(index, zoneGeo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // ROI BOUNDS USED
+            } else {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+                        if (roiBounds.contains(x0, y0)) {
+                            // ROI value
+                            int w = roiIter.getSample(x0, y0, 0);
+                            // Control if the sample is inside ROI
+                            if (w != 0) {
+                                // Coordinate object creation for the spatial indexing
+                                Coordinate p1 = new Coordinate(x0, y0);
+                                // Envelope associated to the coordinate object
+                                Envelope searchEnv = new Envelope(p1);
+                                // Query on the geometry list
+                                List<ROI> geomList = spatial.query(searchEnv);
+                                // Zone classifier initial value
+                                int zone = 0;
+                                // If the classifier is present then the zone value is taken
+                                if (classPresent) {
+                                    // Selection of the initial point
+                                    Point pointSrc = new Point(x0, y0);
+                                    // Initialization of the zone point
+                                    Point pointZone = new Point();
+                                    // Source point inverse transformation for finding the related zone point
+                                    try {
+                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                    } catch (NoninvertibleTransformException e) {
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                    }
+                                    // Selection of the zone point
+                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ROI geometry : geomList) {
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x0, y0)) {
+                                        // then the related zoneGeometry object statistics are updated
+                                        int index = rois.indexOf(geometry);
+
+                                        synchronized (this) {
+                                            ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                            // Cycle on the selected Bands
+                                            for (int i = 0; i < bandNum; i++) {
+                                                float sample = srcData[bands[i]][posx + posy
+                                                        + srcBandOffsets[bands[i]]];
+                                                if (!noData.contains(sample)) {
+                                                    boolean isNaN = Float.isNaN(sample);
+                                                    // Update of all the statistics
+                                                    zoneGeo.add(sample, bands[i], zone, isNaN);
+                                                }
+                                            }
+                                            zoneList.set(index, zoneGeo);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void doubleLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
-        // TODO Auto-generated method stub
 
+        // Source RasterAccessor initial positions
+        final int srcX = src.getX();
+        final int srcY = src.getY();
+
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        double srcData[][] = src.getDoubleDataArrays();
+
+        int srcWidth = src.getWidth();
+        int srcHeight = src.getHeight();
+
+        int[] srcBandOffsets = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        // NO DATA AND ROI ARE NOT PRESENT
+        if (caseA) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ROI> geomList = spatial.query(searchEnv);
+                    // Zone classifier initial value
+                    int zone = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointZone = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                        // Selection of the zone point
+                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                    }
+                    // Cycle on all the geometries found
+                    for (ROI geometry : geomList) {
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+                            // then the related zoneGeometry object statistics are updated
+                            int index = rois.indexOf(geometry);
+
+                            synchronized (this) {
+                                ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    double sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], zone, false);
+                                }
+                                zoneList.set(index, zoneGeo);
+                            }
+                        }
+                    }
+                }
+            }
+            // ROI ACCESSOR USED
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    int posyROI = y * roiScanLineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // ROI index position
+                        int windex = x + posyROI;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                        // Control if the sample is inside ROI
+                        if (w != 0) {
+                            // PixelPositions
+                            int x0 = srcX + x;
+                            int y0 = srcY + y;
+                            // Coordinate object creation for the spatial indexing
+                            Coordinate p1 = new Coordinate(x0, y0);
+                            // Envelope associated to the coordinate object
+                            Envelope searchEnv = new Envelope(p1);
+                            // Query on the geometry list
+                            List<ROI> geomList = spatial.query(searchEnv);
+                            // Zone classifier initial value
+                            int zone = 0;
+                            // If the classifier is present then the zone value is taken
+                            if (classPresent) {
+                                // Selection of the initial point
+                                Point pointSrc = new Point(x0, y0);
+                                // Initialization of the zone point
+                                Point pointZone = new Point();
+                                // Source point inverse transformation for finding the related zone point
+                                try {
+                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                } catch (NoninvertibleTransformException e) {
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                }
+                                // Selection of the zone point
+                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                            }
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x0, y0)) {
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = rois.indexOf(geometry);
+
+                                    synchronized (this) {
+                                        ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                        // Cycle on the selected Bands
+                                        for (int i = 0; i < bandNum; i++) {
+                                            double sample = srcData[bands[i]][posx + posy
+                                                    + srcBandOffsets[bands[i]]];
+                                            // Update of all the statistics
+                                            zoneGeo.add(sample, bands[i], zone, false);
+                                        }
+                                        zoneList.set(index, zoneGeo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // ROI BOUNDS USED
+            } else {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+                        if (roiBounds.contains(x0, y0)) {
+                            // ROI value
+                            int w = roiIter.getSample(x0, y0, 0);
+                            // Control if the sample is inside ROI
+                            if (w != 0) {
+                                // Coordinate object creation for the spatial indexing
+                                Coordinate p1 = new Coordinate(x0, y0);
+                                // Envelope associated to the coordinate object
+                                Envelope searchEnv = new Envelope(p1);
+                                // Query on the geometry list
+                                List<ROI> geomList = spatial.query(searchEnv);
+                                // Zone classifier initial value
+                                int zone = 0;
+                                // If the classifier is present then the zone value is taken
+                                if (classPresent) {
+                                    // Selection of the initial point
+                                    Point pointSrc = new Point(x0, y0);
+                                    // Initialization of the zone point
+                                    Point pointZone = new Point();
+                                    // Source point inverse transformation for finding the related zone point
+                                    try {
+                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                    } catch (NoninvertibleTransformException e) {
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                    }
+                                    // Selection of the zone point
+                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ROI geometry : geomList) {
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x0, y0)) {
+                                        // then the related zoneGeometry object statistics are updated
+                                        int index = rois.indexOf(geometry);
+
+                                        synchronized (this) {
+                                            ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                            // Cycle on the selected Bands
+                                            for (int i = 0; i < bandNum; i++) {
+                                                double sample = srcData[bands[i]][posx + posy
+                                                        + srcBandOffsets[bands[i]]];
+                                                // Update of all the statistics
+                                                zoneGeo.add(sample, bands[i], zone, false);
+                                            }
+                                            zoneList.set(index, zoneGeo);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+            // NO DATA USED (ROI NOT USED)
+        } else if (caseC) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ROI> geomList = spatial.query(searchEnv);
+                    // Zone classifier initial value
+                    int zone = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointZone = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                        // Selection of the zone point
+                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                    }
+                    // Cycle on all the geometries found
+                    for (ROI geometry : geomList) {
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+                            // then the related zoneGeometry object statistics are updated
+                            int index = rois.indexOf(geometry);
+
+                            synchronized (this) {
+                                ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    double sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    if (!noData.contains(sample)) {
+                                        boolean isNaN = Double.isNaN(sample);
+                                        // Update of all the statistics
+                                        zoneGeo.add(sample, bands[i], zone, isNaN);
+                                    }
+                                }
+                                zoneList.set(index, zoneGeo);
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    int posyROI = y * roiScanLineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // ROI index position
+                        int windex = x + posyROI;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                        // Control if the sample is inside ROI
+                        if (w != 0) {
+                            // PixelPositions
+                            int x0 = srcX + x;
+                            int y0 = srcY + y;
+                            // Coordinate object creation for the spatial indexing
+                            Coordinate p1 = new Coordinate(x0, y0);
+                            // Envelope associated to the coordinate object
+                            Envelope searchEnv = new Envelope(p1);
+                            // Query on the geometry list
+                            List<ROI> geomList = spatial.query(searchEnv);
+                            // Zone classifier initial value
+                            int zone = 0;
+                            // If the classifier is present then the zone value is taken
+                            if (classPresent) {
+                                // Selection of the initial point
+                                Point pointSrc = new Point(x0, y0);
+                                // Initialization of the zone point
+                                Point pointZone = new Point();
+                                // Source point inverse transformation for finding the related zone point
+                                try {
+                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                } catch (NoninvertibleTransformException e) {
+                                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                }
+                                // Selection of the zone point
+                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                            }
+                            // Cycle on all the geometries found
+                            for (ROI geometry : geomList) {
+                                // if every geometry really contains the selected point
+                                if (geometry.contains(x0, y0)) {
+                                    // then the related zoneGeometry object statistics are updated
+                                    int index = rois.indexOf(geometry);
+
+                                    synchronized (this) {
+                                        ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                        // Cycle on the selected Bands
+                                        for (int i = 0; i < bandNum; i++) {
+                                            double sample = srcData[bands[i]][posx + posy
+                                                    + srcBandOffsets[bands[i]]];
+                                            if (!noData.contains(sample)) {
+                                                boolean isNaN = Double.isNaN(sample);
+                                                // Update of all the statistics
+                                                zoneGeo.add(sample, bands[i], zone, isNaN);
+                                            }
+                                        }
+                                        zoneList.set(index, zoneGeo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // ROI BOUNDS USED
+            } else {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+                        if (roiBounds.contains(x0, y0)) {
+                            // ROI value
+                            int w = roiIter.getSample(x0, y0, 0);
+                            // Control if the sample is inside ROI
+                            if (w != 0) {
+                                // Coordinate object creation for the spatial indexing
+                                Coordinate p1 = new Coordinate(x0, y0);
+                                // Envelope associated to the coordinate object
+                                Envelope searchEnv = new Envelope(p1);
+                                // Query on the geometry list
+                                List<ROI> geomList = spatial.query(searchEnv);
+                                // Zone classifier initial value
+                                int zone = 0;
+                                // If the classifier is present then the zone value is taken
+                                if (classPresent) {
+                                    // Selection of the initial point
+                                    Point pointSrc = new Point(x0, y0);
+                                    // Initialization of the zone point
+                                    Point pointZone = new Point();
+                                    // Source point inverse transformation for finding the related zone point
+                                    try {
+                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+
+                                    } catch (NoninvertibleTransformException e) {
+                                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                                    }
+                                    // Selection of the zone point
+                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ROI geometry : geomList) {
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x0, y0)) {
+                                        // then the related zoneGeometry object statistics are updated
+                                        int index = rois.indexOf(geometry);
+
+                                        synchronized (this) {
+                                            ZoneGeometry zoneGeo = zoneList.get(index);
+
+                                            // Cycle on the selected Bands
+                                            for (int i = 0; i < bandNum; i++) {
+                                                double sample = srcData[bands[i]][posx + posy
+                                                        + srcBandOffsets[bands[i]]];
+                                                if (!noData.contains(sample)) {
+                                                    boolean isNaN = Double.isNaN(sample);
+                                                    // Update of all the statistics
+                                                    zoneGeo.add(sample, bands[i], zone, isNaN);
+                                                }
+                                            }
+                                            zoneList.set(index, zoneGeo);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -828,19 +2986,23 @@ public class ZonalStatsOpImage extends OpImage {
         return propNames;
     }
 
-//    /**
-//     * This method is used if the user needs to perform again the statistical calculations.
-//     */
-//    public synchronized void clearStatistic() {
-//        //TODO
-//    }
+    /**
+     * This method is used if the user needs to perform again the statistical calculations.
+     */
+    public synchronized void clearStatistic() {
+        int zoneSize = zoneList.size();
+        for (int i = 0; i < zoneSize; i++) {
+            zoneList.remove(i);
+        }
+        firstTime = true;
+    }
 
     /**
      * When the dispose method is called, then old dispose method is performed and also the statistic container is cleared.
      */
     public void dispose() {
         super.dispose();
-        //clearStatistic();
+        clearStatistic();
     }
 
     /**
