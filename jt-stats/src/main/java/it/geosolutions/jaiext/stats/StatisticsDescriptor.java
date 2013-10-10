@@ -216,7 +216,7 @@ public class StatisticsDescriptor extends OperationDescriptorImpl {
     }
     
     /**
-     * Returns an array of <code>PropertyGenerators</code> implementing property inheritance for the "SimpleStats" operation
+     * Returns an array of <code>PropertyGenerators</code> implementing property inheritance for the "Stats" operation
      * 
      * @return An array of property generators.
      */

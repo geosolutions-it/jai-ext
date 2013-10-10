@@ -15,6 +15,10 @@ import javax.media.jai.ROI;
 
 import com.sun.media.jai.opimage.RIFUtil;
 
+/**
+ * This class is a RenderedImageFactory called by the JAI.create() method when the "Zonal" operation is requested. When called, the create() method
+ * takes the parameterBlock passed in input, unpacks it and then returns a new instance of the {@link ZonalStatsOpImage}.
+ */
 public class ZonalStatsRIF implements RenderedImageFactory {
 
     public RenderedImage create(ParameterBlock pb, RenderingHints hints) {
@@ -41,7 +45,7 @@ public class ZonalStatsRIF implements RenderedImageFactory {
         double[] minBound = (double[]) pb.getObjectParameter(8);
         double[] maxBound = (double[]) pb.getObjectParameter(9);
         int[] numBins = (int[]) pb.getObjectParameter(10);
-        //Image creation
+        // Image creation
         return new ZonalStatsOpImage(source, layout, hints, classifier, transform, roilist, roi,
                 noData, useROIAccessor, bands, statsTypes, minBound, maxBound, numBins);
     }

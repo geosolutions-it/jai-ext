@@ -2,7 +2,6 @@ package it.geosolutions.jaiext.zonal;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.stats.Statistics;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -31,60 +30,92 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.index.quadtree.Quadtree;
 
+/**
+ * This class extends the {@link OpImage} class and executes the "ZonalStats" operation. This operation consists of calculating the image statistics
+ * on different locations, defined by their geometries, on the same image. In addition this operation supports the presence of ROI or No Data. The
+ * calculations are performed only in a rectangle that contains the union of all the input geometries. For every input geometry, a
+ * {@link ZoneGeometry} object is associated to it for storing its statistics. A spatial index is used for fast accessing the geometries that
+ * intersects the selected image pixel (in the case of overlapping). The final results can be returned by calling the getProperty() method with the
+ * ZonalStatsDescriptor.ZS_PROPERTY. This method returns a list containing all the ZoneGeometries objects associated with each input geometry object.
+ * The statistic results can be returned for each band or for each zone(if the classifier is not present). It is important to remember that the
+ * classifier must be of integral data type.
+ */
 public class ZonalStatsOpImage extends OpImage {
 
     /** ROI extender */
     protected final static BorderExtender ROI_EXTENDER = BorderExtender
             .createInstance(BorderExtender.BORDER_ZERO);
 
+    /** Logger object */
     private static final Logger LOGGER = Logger.getLogger(ZonalStatsOpImage.class.getName());
 
+    /** Volatile variable indicating if the statistical computations has already been done or not */
     private volatile boolean firstTime;
 
+    /** Spatial index for fast accessing the geometries that contain the selected pixel */
     private final Quadtree spatial;
 
+    /** Boolean indicating if the classifier is present */
     private final boolean classPresent;
 
+    /** Affine transformation for mapping the source image pixels to the classifiers pixels */
     private AffineTransform inverseTrans;
 
+    /** Boolean indicating if a NoData Range is used */
     private final boolean hasNoData;
 
+    /** Boolean indicating if an optional ROI is used */
     private final boolean hasROI;
 
+    /** Boolean indicating the case when no ROI nor NoData are present */
     private final boolean caseA;
 
+    /** Boolean indicating the case when only ROI is present */
     private final boolean caseB;
 
+    /** Boolean indicating the case when only NoData are present */
     private final boolean caseC;
 
+    /** Range object used for checking if a pixel is or not a NoData */
     private final Range noData;
 
+    /** Boolean indicatig if ROI RasterAccessor should be used during computations */
     private final boolean useROIAccessor;
 
+    /** ROI image */
     private final PlanarImage srcROIImage;
 
+    /** Random Iterator used iterating on the ROI data */
     private final RandomIter roiIter;
 
+    /** Rectangle containing ROI bounds */
     private final Rectangle roiBounds;
 
+    /** Boolean lookuptable used if no data are present */
     private final boolean[] booleanLookupTable;
 
-    private final boolean transformation;
-
+    /** Rectangle containing the union of all the geometries */
     private Rectangle union;
 
+    /** List of all the ZoneGeometry objects associated to every initial geometry */
     private final ArrayList<ZoneGeometry> zoneList;
 
+    /** Source image bounds */
     private Rectangle sourceBounds;
 
+    /** Classifier image bounds */
     private Rectangle zoneBounds;
 
+    /** Iterator on the classifier image */
     private RandomIter iterator;
 
+    /** Array indicating the source image selected bands */
     private int[] bands;
 
+    /** Band array length */
     private int bandNum;
 
+    /** List of all the input geometries */
     private List<ROI> rois;
 
     public ZonalStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
@@ -95,29 +126,38 @@ public class ZonalStatsOpImage extends OpImage {
 
         // Check if the classifier is present
         classPresent = classifier != null && classifier instanceof RenderedImage;
+        // Check if the classifier is integral
+        if (classPresent) {
+            int classDataType = classifier.getSampleModel().getDataType();
+            if (!(classDataType == DataBuffer.TYPE_BYTE || classDataType == DataBuffer.TYPE_USHORT
+                    || classDataType == DataBuffer.TYPE_SHORT || classDataType == DataBuffer.TYPE_INT)) {
+                throw new IllegalArgumentException("Classifier must be integral");
+            }
+        }
 
         // Calculation of the inverse transformation
         zoneBounds = null;
         if (classPresent) {
+            // source image bounds
             sourceBounds = new Rectangle(source.getMinX(), source.getMinY(), source.getWidth(),
                     source.getHeight());
             if (transform == null) {
+                // If no transformation is set, the classifier bounds are the same of the image bounds
                 inverseTrans = new AffineTransform();
                 zoneBounds = sourceBounds;
             } else {
                 try {
+                    // If the transformation is set, then the source image bounds are mapped to the zone image bounds
                     inverseTrans = transform.createInverse();
                     zoneBounds = inverseTrans.createTransformedShape(sourceBounds).getBounds();
                 } catch (NoninvertibleTransformException ex) {
                     LOGGER.warning("The transformation matrix is non-invertible.");
                 }
             }
-
+            // Iterator on the classifier image bounds
             iterator = RandomIterFactory.create(classifier, zoneBounds, false, true);
 
         }
-        // If transformation is present a flag is set
-        transformation = classPresent && (inverseTrans != null) && !inverseTrans.isIdentity();
 
         // Band selection
         this.bands = bands;
@@ -130,10 +170,12 @@ public class ZonalStatsOpImage extends OpImage {
                     "The selected bands number cannot be greater than that of "
                             + "image band number");
         }
+        // If the band number is less or equal to 0, a new array containing only the first index is used.
         if (bandNum <= 0) {
             this.bands = new int[] { 0 };
             this.bandNum = 1;
         } else {
+            // If a band index is greater than the maximum band index, an exception is thrown
             for (int i = 0; i < bandNum; i++) {
                 if (bands[i] > numBands) {
                     throw new IllegalArgumentException(
@@ -145,15 +187,49 @@ public class ZonalStatsOpImage extends OpImage {
         boolean minBoundsNull = minBound == null;
         boolean maxBoundsNull = maxBound == null;
         boolean numBinsNull = numBins == null;
-
+        // Boolean indicating if one of the input arrays is null
         boolean nullCondition = minBoundsNull || maxBoundsNull || numBinsNull;
-
+        // Check if the bounds or the bins are not null
         for (int st = 0; st < statsTypes.length; st++) {
             int statId = statsTypes[st].getStatsId();
             if (statId > 6 && nullCondition) {
                 throw new IllegalArgumentException(
                         "If complex statistics are used, Bounds and Bin number should be defined");
             }
+        }
+        // Check if the bounds or the bins have the same length
+        int minLen = minBound.length;
+        int maxLen = maxBound.length;
+        int numLen = numBins.length;
+
+        if ((minLen + maxLen + numLen) != (minLen * 3)) {
+            throw new IllegalArgumentException("Bounds and Bin length must be equals");
+        }
+        // If the bounds and bins have a minor dimension than that of the bands array
+        // the bounds and the bin related to the index 0 are repeated on all the bound
+        // and bin array.
+        double[] minBounds;
+        double[] maxBounds;
+        int[] numBinss;
+
+        if (bandNum > minLen) {
+            double[] minBoundsTmp = new double[bands.length];
+            double[] maxBoundsTmp = new double[bands.length];
+            int[] numbinsTmp = new int[bands.length];
+            for (int i = 0; i < bands.length; i++) {
+                minBoundsTmp[i] = minBound[0];
+                maxBoundsTmp[i] = maxBound[0];
+                numbinsTmp[i] = numBins[0];
+            }
+
+            minBounds = minBoundsTmp;
+            maxBounds = maxBoundsTmp;
+            numBinss = numbinsTmp;
+
+        } else {
+            minBounds = minBound;
+            maxBounds = maxBound;
+            numBinss = numBins;
         }
 
         // Creation of the spatial index
@@ -178,8 +254,8 @@ public class ZonalStatsOpImage extends OpImage {
             spatial.insert(env, roi);
 
             // Creation of a new ZoneGeometry
-            ZoneGeometry geom = new ZoneGeometry(bands, statsTypes, classPresent, minBound,
-                    maxBound, numBins);
+            ZoneGeometry geom = new ZoneGeometry(bands, statsTypes, classPresent, minBounds,
+                    maxBounds, numBinss);
             // Addition to the geometries list
             zoneList.add(geom);
 
@@ -199,8 +275,8 @@ public class ZonalStatsOpImage extends OpImage {
                 // Union
                 union = union.union(rect);
                 // Creation of a new ZoneGeometry
-                ZoneGeometry geom = new ZoneGeometry(bands, statsTypes, classPresent, minBound,
-                        maxBound, numBins);
+                ZoneGeometry geom = new ZoneGeometry(bands, statsTypes, classPresent, minBounds,
+                        maxBounds, numBinss);
                 // Addition to the geometries list
                 zoneList.add(geom);
             }
@@ -234,6 +310,7 @@ public class ZonalStatsOpImage extends OpImage {
             // The useRoiAccessor parameter is set
             this.useROIAccessor = useROIAccessor;
         } else {
+            // The ROI parameters are all cleared
             hasROI = false;
             this.useROIAccessor = false;
             roiBounds = null;
@@ -241,7 +318,8 @@ public class ZonalStatsOpImage extends OpImage {
             srcROIImage = null;
         }
 
-        // Creation of a lookuptable containing the values to use for no data
+        // Creation of a boolean lookuptable indicating if the selected pixel is a NoData
+        // used only for byte images.
         if (hasNoData && source.getSampleModel().getDataType() == DataBuffer.TYPE_BYTE) {
             booleanLookupTable = new boolean[255];
             for (int i = 0; i < booleanLookupTable.length; i++) {
@@ -260,21 +338,21 @@ public class ZonalStatsOpImage extends OpImage {
         caseA = !hasNoData && !hasROI;
         caseB = !hasNoData && hasROI;
         caseC = hasNoData && !hasROI;
-
+        // Setting the computation flag to true
         firstTime = true;
     }
 
     public Raster computeTile(int tileX, int tileY) {
-
+        // Selection of the tile associated with the tile x and y indexes
         Raster tile = getSourceImage(0).getTile(tileX, tileY);
-
+        // Selection of the tile bounds
         Rectangle tileRect = tile.getBounds();
-
+        // Check if the tile is inside the geometry bound-union
         if (union.intersects(tileRect)) {
             // STATISTICAL ELABORATIONS
             // selection of the format tags
             RasterFormatTag[] formatTags = getFormatTags();
-
+            // Selection of the active calculation area
             Rectangle computableArea = union.intersection(tileRect);
 
             // creation of the RasterAccessor
@@ -291,9 +369,9 @@ public class ZonalStatsOpImage extends OpImage {
                         RasterAccessor.findCompatibleTags(new RenderedImage[] { srcROIImage },
                                 srcROIImage)[0], srcROIImage.getColorModel());
             }
-
+            // Image dataType
             int dataType = tile.getSampleModel().getDataType();
-
+            // From the data type is possible to choose the right calculation method
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
                 byteLoop(src, computableArea, roi);
@@ -321,9 +399,10 @@ public class ZonalStatsOpImage extends OpImage {
         return tile;
     }
 
+    // NOTE: the statistic calculation is done in a synchronized block for avoiding race conditions
     private void byteLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
 
-        // Source RasterAccessor initial positions
+        // Source and ROI RasterAccessor initial parameters
         final int srcX = src.getX();
         final int srcY = src.getY();
 
@@ -600,6 +679,7 @@ public class ZonalStatsOpImage extends OpImage {
                                 for (int i = 0; i < bandNum; i++) {
                                     byte sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
+                                    // NoData check
                                     if (booleanLookupTable[(int) sample]) {
                                         // Update of all the statistics
                                         zoneGeo.add(sample, bands[i], zone, false);
@@ -669,6 +749,7 @@ public class ZonalStatsOpImage extends OpImage {
                                         for (int i = 0; i < bandNum; i++) {
                                             byte sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
+                                            // NoData check
                                             if (booleanLookupTable[(int) sample]) {
                                                 // Update of all the statistics
                                                 zoneGeo.add(sample, bands[i], zone, false);
@@ -737,6 +818,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             for (int i = 0; i < bandNum; i++) {
                                                 byte sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
+                                                // NoData check
                                                 if (booleanLookupTable[(int) sample]) {
                                                     // Update of all the statistics
                                                     zoneGeo.add(sample, bands[i], zone, false);
@@ -756,7 +838,7 @@ public class ZonalStatsOpImage extends OpImage {
 
     private void ushortLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
 
-        // Source RasterAccessor initial positions
+        // Source and ROI RasterAccessor initial parameters
         final int srcX = src.getX();
         final int srcY = src.getY();
 
@@ -1033,6 +1115,7 @@ public class ZonalStatsOpImage extends OpImage {
                                 for (int i = 0; i < bandNum; i++) {
                                     int sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                    // NoData check
                                     if (!noData.contains((short) sample)) {
                                         // Update of all the statistics
                                         zoneGeo.add(sample, bands[i], zone, false);
@@ -1102,6 +1185,7 @@ public class ZonalStatsOpImage extends OpImage {
                                         for (int i = 0; i < bandNum; i++) {
                                             int sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                            // NoData check
                                             if (!noData.contains((short) sample)) {
                                                 // Update of all the statistics
                                                 zoneGeo.add(sample, bands[i], zone, false);
@@ -1170,6 +1254,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             for (int i = 0; i < bandNum; i++) {
                                                 int sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                                // NoData check
                                                 if (!noData.contains((short) sample)) {
                                                     // Update of all the statistics
                                                     zoneGeo.add(sample, bands[i], zone, false);
@@ -1189,7 +1274,7 @@ public class ZonalStatsOpImage extends OpImage {
 
     private void shortLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
 
-        // Source RasterAccessor initial positions
+        // Source and ROI RasterAccessor initial parameters
         final int srcX = src.getX();
         final int srcY = src.getY();
 
@@ -1466,6 +1551,7 @@ public class ZonalStatsOpImage extends OpImage {
                                 for (int i = 0; i < bandNum; i++) {
                                     short sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
+                                    // NoData check
                                     if (!noData.contains(sample)) {
                                         // Update of all the statistics
                                         zoneGeo.add(sample, bands[i], zone, false);
@@ -1535,6 +1621,7 @@ public class ZonalStatsOpImage extends OpImage {
                                         for (int i = 0; i < bandNum; i++) {
                                             short sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
+                                            // NoData check
                                             if (!noData.contains(sample)) {
                                                 // Update of all the statistics
                                                 zoneGeo.add(sample, bands[i], zone, false);
@@ -1603,6 +1690,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             for (int i = 0; i < bandNum; i++) {
                                                 short sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
+                                                // NoData check
                                                 if (!noData.contains(sample)) {
                                                     // Update of all the statistics
                                                     zoneGeo.add(sample, bands[i], zone, false);
@@ -1622,7 +1710,7 @@ public class ZonalStatsOpImage extends OpImage {
 
     private void intLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
 
-        // Source RasterAccessor initial positions
+        // Source and ROI RasterAccessor initial parameters
         final int srcX = src.getX();
         final int srcY = src.getY();
 
@@ -1899,6 +1987,7 @@ public class ZonalStatsOpImage extends OpImage {
                                 for (int i = 0; i < bandNum; i++) {
                                     int sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
+                                    // NoData check
                                     if (!noData.contains(sample)) {
                                         // Update of all the statistics
                                         zoneGeo.add(sample, bands[i], zone, false);
@@ -1968,6 +2057,7 @@ public class ZonalStatsOpImage extends OpImage {
                                         for (int i = 0; i < bandNum; i++) {
                                             int sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
+                                            // NoData check
                                             if (!noData.contains(sample)) {
                                                 // Update of all the statistics
                                                 zoneGeo.add(sample, bands[i], zone, false);
@@ -2036,6 +2126,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             for (int i = 0; i < bandNum; i++) {
                                                 int sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
+                                                // NoData check
                                                 if (!noData.contains(sample)) {
                                                     // Update of all the statistics
                                                     zoneGeo.add(sample, bands[i], zone, false);
@@ -2055,7 +2146,7 @@ public class ZonalStatsOpImage extends OpImage {
 
     private void floatLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
 
-        // Source RasterAccessor initial positions
+        // Source and ROI RasterAccessor initial parameters
         final int srcX = src.getX();
         final int srcY = src.getY();
 
@@ -2332,6 +2423,7 @@ public class ZonalStatsOpImage extends OpImage {
                                 for (int i = 0; i < bandNum; i++) {
                                     float sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
+                                    // NoData check
                                     if (!noData.contains(sample)) {
                                         boolean isNaN = Float.isNaN(sample);
                                         // Update of all the statistics
@@ -2402,6 +2494,7 @@ public class ZonalStatsOpImage extends OpImage {
                                         for (int i = 0; i < bandNum; i++) {
                                             float sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
+                                            // NoData check
                                             if (!noData.contains(sample)) {
                                                 boolean isNaN = Float.isNaN(sample);
                                                 // Update of all the statistics
@@ -2471,6 +2564,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             for (int i = 0; i < bandNum; i++) {
                                                 float sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
+                                                // NoData check
                                                 if (!noData.contains(sample)) {
                                                     boolean isNaN = Float.isNaN(sample);
                                                     // Update of all the statistics
@@ -2491,7 +2585,7 @@ public class ZonalStatsOpImage extends OpImage {
 
     private void doubleLoop(RasterAccessor src, Rectangle computableArea, RasterAccessor roi) {
 
-        // Source RasterAccessor initial positions
+        // Source and ROI RasterAccessor initial parameters
         final int srcX = src.getX();
         final int srcY = src.getY();
 
@@ -2768,6 +2862,7 @@ public class ZonalStatsOpImage extends OpImage {
                                 for (int i = 0; i < bandNum; i++) {
                                     double sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
+                                    // NoData check
                                     if (!noData.contains(sample)) {
                                         boolean isNaN = Double.isNaN(sample);
                                         // Update of all the statistics
@@ -2838,6 +2933,7 @@ public class ZonalStatsOpImage extends OpImage {
                                         for (int i = 0; i < bandNum; i++) {
                                             double sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
+                                            // NoData check
                                             if (!noData.contains(sample)) {
                                                 boolean isNaN = Double.isNaN(sample);
                                                 // Update of all the statistics
@@ -2907,6 +3003,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             for (int i = 0; i < bandNum; i++) {
                                                 double sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
+                                                // NoData check
                                                 if (!noData.contains(sample)) {
                                                     boolean isNaN = Double.isNaN(sample);
                                                     // Update of all the statistics
@@ -2925,19 +3022,16 @@ public class ZonalStatsOpImage extends OpImage {
         }
     }
 
+    /** {@link OpImage} method that returns the destination image bounds, because source and destination images are equals*/
     @Override
     public Rectangle mapDestRect(Rectangle destRect, int index) {
         return destRect;
     }
 
+    /** {@link OpImage} method that returns the source image bounds, because source and destination images are equals*/
     @Override
     public Rectangle mapSourceRect(Rectangle sourceRect, int index) {
-        if (transformation) {
-            Rectangle transformed = inverseTrans.createTransformedShape(sourceRect).getBounds();
-            return transformed;
-        } else {
             return sourceRect;
-        }
     }
 
     /**
@@ -2947,7 +3041,7 @@ public class ZonalStatsOpImage extends OpImage {
      */
     public String[] getPropertyNames() {
         // Get statistics names and names from superclass.
-        String[] statsNames = new String[] { ZonalStatsDescriptor.ZONAL_STATS_PROPERTY };
+        String[] statsNames = new String[] { ZonalStatsDescriptor.ZS_PROPERTY };
         String[] superNames = super.getPropertyNames();
 
         // Return stats names if not superclass names.
@@ -2991,7 +3085,7 @@ public class ZonalStatsOpImage extends OpImage {
      */
     public synchronized void clearStatistic() {
         int zoneSize = zoneList.size();
-        for (int i = 0; i < zoneSize; i++) {
+        for (int i = zoneSize - 1; i >= 0; i--) {
             zoneList.remove(i);
         }
         firstTime = true;
@@ -3031,7 +3125,7 @@ public class ZonalStatsOpImage extends OpImage {
     @Override
     public Object getProperty(String name) {
         // If the specified property is "JAI-EXT.stats", the calculations are performed.
-        if (ZonalStatsDescriptor.ZONAL_STATS_PROPERTY.equalsIgnoreCase(name)) {
+        if (ZonalStatsDescriptor.ZS_PROPERTY.equalsIgnoreCase(name)) {
             getTiles();
             return zoneList.clone();
         } else {

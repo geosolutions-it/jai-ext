@@ -1,7 +1,6 @@
 package it.geosolutions.jaiext.zonal;
 
 import static org.junit.Assert.assertEquals;
-
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
@@ -10,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.iterator.RandomIter;
@@ -18,13 +16,10 @@ import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.stats.Statistics;
-import it.geosolutions.jaiext.stats.StatisticsDescriptor;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import it.geosolutions.jaiext.testclasses.TestBase;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.index.quadtree.Quadtree;
@@ -33,7 +28,7 @@ public class ZonalStatsTest extends TestBase {
 
     /** Tolerance value used for comparison between double */
     private final static double TOLERANCE = 0.1d;
-
+    /** Boolean indicating if a classifier image must be used */
     private static final boolean CLASSIFIER = Boolean.parseBoolean("JAI.Ext.Classifies");
 
     private static StatsType[] stats;
@@ -183,8 +178,9 @@ public class ZonalStatsTest extends TestBase {
         // Image creations
         sourceIMG = new RenderedImage[6];
 
-        // Creation of a full data image
-        //IMAGE_FILLER = true;
+        // Creation of the source images
+        IMAGE_FILLER = false;
+
         sourceIMG[0] = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
                 noDataB, false);
         sourceIMG[1] = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
@@ -197,7 +193,6 @@ public class ZonalStatsTest extends TestBase {
                 noDataF, false);
         sourceIMG[5] = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
                 noDataD, false);
-        //IMAGE_FILLER = false;
 
         int minTileX = sourceIMG[0].getMinTileX();
         int minTileY = sourceIMG[0].getMinTileY();
@@ -446,7 +441,7 @@ public class ZonalStatsTest extends TestBase {
                 roiList, roiData, noDataRange, useRoiAccessor, bands, stats, minBound, maxBound, numBins, null);
         // Statistic calculation
         List<ZoneGeometry> result = (List<ZoneGeometry>) destination
-                .getProperty(ZonalStatsDescriptor.ZONAL_STATS_PROPERTY);
+                .getProperty(ZonalStatsDescriptor.ZS_PROPERTY);
 
         // Test if the calculated values are equal with a tolerance value
         if (CLASSIFIER) {
