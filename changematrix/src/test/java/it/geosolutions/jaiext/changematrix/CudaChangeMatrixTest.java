@@ -190,8 +190,8 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
 	// allows the
 	// Java Hotspot to compile the code. Then the other NUM_CYCLES_BENCH cycles
 	// are calculated
-	private static final int NUM_CYCLES_BENCH = 1;//=3
-	private static final int NUM_CYCLES_WARM = 1;
+	private static final int NUM_CYCLES_BENCH = 10;//=3
+	private static final int NUM_CYCLES_WARM = 10;
 
     private RenderedOp current;
 
@@ -263,12 +263,9 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
         //System.out.println(numTileX*numTileY);
         final ExecutorService ex = Executors.newFixedThreadPool(DEFAULT_THREAD_NUMBER);
         final CountDownLatch sem = new CountDownLatch(numTileX * numTileY);
-        System.out.println();
         // cycle on tiles to call the CUDA code
         for(int i=minTileY;i<minTileY+numTileY;i++){
-//        for(int i=1;i<2;i++){
             for(int j=minTileX;j<minTileX+numTileX;j++){
-//        	for(int j=1;j<2;j++){
                 ex.execute(new MyRunnable(j, i, sem));
             }
         }
@@ -308,9 +305,9 @@ public class CudaChangeMatrixTest extends AbstractBenchmark {
 
     /**
      * Stub method to be replaced with CUDA code
+     * @param host_iMap1 the reference data
+     * @param host_iMap2 the current data
      * @param crossdim 
-     * @param dataRef the reference data
-     * @param dataCurrent the current data
      * @return a list of byte arrays containing the results
      */
     private List<int[]> JCudaChangeMat(byte[] host_iMap1,byte[] host_iMap2, int crossdim)
