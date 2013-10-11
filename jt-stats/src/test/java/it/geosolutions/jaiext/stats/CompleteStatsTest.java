@@ -88,7 +88,7 @@ public class CompleteStatsTest extends TestBase {
     private static Range noDataDouble;
 
     /** Array indicating the statistics to calculate */
-    private static StatsType[] stats;
+    private static StatsType[] simpleStats;
 
     /** Array indicating the statistics to calculate */
     private static StatsType[] complexStats;
@@ -111,18 +111,25 @@ public class CompleteStatsTest extends TestBase {
     /** Array containing the number of all samples, every entry indicates takes in account if ROI or No Data */
     private static long[] numSamples;
 
+    /** 2-D array containing the histogram results for each kind of evaluation (With ROI, With NoData, With/Without ROI and NoData) */
     private static double[][] hist;
 
+    /** Array indicating the minimum bounds for each band */
     private static double[] minBound;
 
+    /** Array indicating the maximum bounds for each band */
     private static double[] maxBound;
 
+    /** Array indicating the size of one bin for each band */
     private static double[] binInterval;
 
+    /** Array indicating the number of bins for each band */
     private static int[] numBins;
 
+    /** Array containing the histogram range for each band */
     private static Range[] interval;
 
+    /** List array containing the pixel values lists used for calculating the median for each kind of evaluation */
     private static List<Double>[] listData;
 
     // Initial static method for preparing all the test data
@@ -151,8 +158,8 @@ public class CompleteStatsTest extends TestBase {
         hist = new double[numBins[0]][4];
 
         listData = new List[4];
-        
-        for(int i = 0; i< listData.length;i++){
+
+        for (int i = 0; i < listData.length; i++) {
             listData[i] = new ArrayList<Double>();
         }
 
@@ -181,8 +188,8 @@ public class CompleteStatsTest extends TestBase {
         noDataDouble = RangeFactory.create(noDataD, minIncluded, noDataD, maxIncluded, true);
 
         // Statistics types
-        stats = new StatsType[] { StatsType.MEAN, StatsType.SUM, StatsType.MAX, StatsType.MIN,
-                StatsType.EXTREMA, StatsType.VARIANCE, StatsType.DEV_STD };
+        simpleStats = new StatsType[] { StatsType.MEAN, StatsType.SUM, StatsType.MAX,
+                StatsType.MIN, StatsType.EXTREMA, StatsType.VARIANCE, StatsType.DEV_STD };
 
         complexStats = new StatsType[] { StatsType.HISTOGRAM, StatsType.MODE, StatsType.MEDIAN };
 
@@ -259,7 +266,8 @@ public class CompleteStatsTest extends TestBase {
                                 if (value < calculations[3][z]) {
                                     calculations[3][z] = value;
                                 }
-                                if (interval[0].contains((double)value)) {
+                                // update of histogram, mode and median containers
+                                if (interval[0].contains((double) value)) {
                                     int index = getIndex(value);
                                     hist[index][z]++;
                                     listData[z].add((double) value);
@@ -276,7 +284,7 @@ public class CompleteStatsTest extends TestBase {
                                     if (value < calculations[3][z]) {
                                         calculations[3][z] = value;
                                     }
-                                    if (interval[0].contains((double)value)) {
+                                    if (interval[0].contains((double) value)) {
                                         int index = getIndex(value);
                                         hist[index][z]++;
                                         listData[z].add((double) value);
@@ -294,7 +302,7 @@ public class CompleteStatsTest extends TestBase {
                                     if (value < calculations[3][z]) {
                                         calculations[3][z] = value;
                                     }
-                                    if (interval[0].contains((double)value)) {
+                                    if (interval[0].contains((double) value)) {
                                         int index = getIndex(value);
                                         hist[index][z]++;
                                         listData[z].add((double) value);
@@ -312,7 +320,7 @@ public class CompleteStatsTest extends TestBase {
                                     if (value < calculations[3][z]) {
                                         calculations[3][z] = value;
                                     }
-                                    if (interval[0].contains((double)value)) {
+                                    if (interval[0].contains((double) value)) {
                                         int index = getIndex(value);
                                         hist[index][z]++;
                                         listData[z].add((double) value);
@@ -336,6 +344,7 @@ public class CompleteStatsTest extends TestBase {
                         / (numSamples[z] - 1);
                 // Calculation of the standard deviation
                 calculations[6][z] = Math.sqrt(calculations[5][z]);
+
                 // Calculation of the median
                 Collections.sort(listData[z]);
                 int listSize = listData[z].size();
@@ -630,24 +639,27 @@ public class CompleteStatsTest extends TestBase {
         }
 
         // Simple statistics
-        RenderedImage destination = StatisticsDescriptor.create(source, xPeriod, yPeriod, roiData,
-                noDataRange, useRoiAccessor, bands, stats, null);
+        RenderedImage dstSimple = StatisticsDescriptor.create(source, xPeriod, yPeriod, roiData,
+                noDataRange, useRoiAccessor, bands, simpleStats, null);
         // Statistic calculation
-        Statistics[][] result = (Statistics[][]) destination.getProperty(Statistics.STATS_PROPERTY);
+        Statistics[][] resultSimple = (Statistics[][]) dstSimple
+                .getProperty(Statistics.STATS_PROPERTY);
 
         // Complex statistics
-        RenderedImage destination2 = StatisticsDescriptor.create(source, xPeriod, yPeriod, roiData,
-                noDataRange, useRoiAccessor, bands, complexStats, minBound, maxBound, numBins, null);
+        RenderedImage dstComplex = StatisticsDescriptor
+                .create(source, xPeriod, yPeriod, roiData, noDataRange, useRoiAccessor, bands,
+                        complexStats, minBound, maxBound, numBins, null);
         // Statistic calculation
-        Statistics[][] result2 = (Statistics[][]) destination2
+        Statistics[][] resultComplex = (Statistics[][]) dstComplex
                 .getProperty(Statistics.STATS_PROPERTY);
 
         // Control only band 0
-        Statistics[] stats0 = result[0];
+        Statistics[] stats0 = resultSimple[0];
 
         // Control only band 0
-        Statistics[] stats02 = result2[0];
+        Statistics[] stats02 = resultComplex[0];
 
+        // SIMPLE STATISTICS
         // Test if the calculated values are equal with a tolerance value
         for (int i = 0; i < stats0.length; i++) {
             Statistics stat = stats0[i];
@@ -671,6 +683,8 @@ public class CompleteStatsTest extends TestBase {
             }
         }
 
+        // COMPLEX STATISTICS
+        // Test if the calculated values are equal with a tolerance value
         for (int i = 0; i < stats02.length; i++) {
             Statistics stat = stats02[i];
             switch (i + 7) {
@@ -690,11 +704,13 @@ public class CompleteStatsTest extends TestBase {
 
     }
 
+    // Private method for calculating the bin/index related to the sample
     private static int getIndex(double sample) {
         int index = (int) ((sample - minBound[0]) / binInterval[0]);
         return index;
     }
 
+    // UNSUPPORTED OPERATIONS
     @Override
     protected void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
             boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,

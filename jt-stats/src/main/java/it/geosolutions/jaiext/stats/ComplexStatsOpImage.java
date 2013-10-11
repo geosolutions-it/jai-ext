@@ -12,6 +12,17 @@ import javax.media.jai.ROI;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
+/**
+ * The ComplexStatsOpImage class performs various comples statistics operations on an image. The statistical operation are indicated by the
+ * {@link StatsType} class. A comples operation is an operation which stores the pixel values into an array. These operations can be calculated
+ * together by adding entries in the definition array "statsTypes". A ROI object passed to the constructor is taken into account by counting only the
+ * samples inside of it; an eventual No Data Range is considered by counting only values that are not No Data. The statistical calculation is
+ * performed by calling the getProperty() method. The statistics are calculated for every image tile but the results are saved into only one global
+ * container. For avoiding to compromise the thread-safety of the class, every statistics object should handle concurrent threads. At the end of the
+ * calculation the statistics container is passed to the getProperty() method as a Result. For avoiding unnecessary operations the statistics can be
+ * calculated only the first time; but if the user needs to re-calculate the statistics, they can be cleared with the clearStatistic() method and then
+ * returned by calling again the getProperty() method.
+ */
 public class ComplexStatsOpImage extends StatisticsOpImage {
 
     public ComplexStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
@@ -19,9 +30,9 @@ public class ComplexStatsOpImage extends StatisticsOpImage {
             StatsType[] statsTypes, double[] minBound, double[] maxBound, int[] numBins) {
         super(source, layout, configuration, xPeriod, yPeriod, roi, noData, useROIAccessor, bands,
                 statsTypes, minBound, maxBound, numBins);
-        
-        // Storage of the statistic types indexes if present, and check if they are not complex statistic
-        // objects like Histogram
+
+        // Storage of the statistic types indexes if present, and check if they are not simple statistic
+        // objects like Mean
         if (statsTypes != null) {
             for (int i = 0; i < statsTypes.length; i++) {
                 if (statsTypes[i].getStatsId() < 6) {
@@ -35,7 +46,7 @@ public class ComplexStatsOpImage extends StatisticsOpImage {
         this.statsTypes = statsTypes;
 
         // Number of statistics calculated
-        this.statNum = statsTypes.length; 
+        this.statNum = statsTypes.length;
 
         // Storage of the band indexes and length
         this.bands = bands;
@@ -45,13 +56,12 @@ public class ComplexStatsOpImage extends StatisticsOpImage {
         // Filling of the container
         for (int i = 0; i < selectedBands; i++) {
             for (int j = 0; j < statNum; j++) {
-                stats[i][j] = StatsFactory.createComplexStatisticsObjectFromInt(statsTypes[j]
-                        .getStatsId(), minBound[j], maxBound[j], numBins[j]);
+                stats[i][j] = StatsFactory.createComplexStatisticsObjectFromInt(
+                        statsTypes[j].getStatsId(), minBound[j], maxBound[j], numBins[j]);
             }
         }
     }
-    
-    
+
     /**
      * Returns a tile for reading.
      * 

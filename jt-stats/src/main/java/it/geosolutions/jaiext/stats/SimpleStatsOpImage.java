@@ -13,9 +13,10 @@ import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
 /**
- * The SimpleStatsOpImage class performs various statistics operations on an image. The various statistical operation are indicated by the
- * {@link StatsType} class. These operations can be calculated together by adding an entry in the definition array "statsTypes". A ROI object passed
- * to the constructor is taken into account by counting only the samples inside of it; an eventual No Data Range is considered by counting only values
+ * The SimpleStatsOpImage class performs various simple statistics operations on an image. The statistical operation are indicated by the
+ * {@link StatsType} class. A simple operation is an operation which not stores the pixel values into an array but only updates every time its
+ * statistical parameters. These operations can be calculated together by adding entries in the definition array "statsTypes". A ROI object passed to
+ * the constructor is taken into account by counting only the samples inside of it; an eventual No Data Range is considered by counting only values
  * that are not No Data. The statistical calculation is performed by calling the getProperty() method. The statistics are calculated for every image
  * tile and then the partial results are accumulated and passed to the getProperty() method. For avoiding unnecessary calculations the statistics can
  * be calculated only the first time; but if the user needs to re-calculate the statistics, they can be cleared with the clearStatistic() method and

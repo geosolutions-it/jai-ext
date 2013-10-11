@@ -1,10 +1,10 @@
 package it.geosolutions.jaiext.stats;
 
 /**
- * This abstract class is used for containing some of the possible statistical operators used by the {@link SimpleStatisticsOpImage} class. Every
+ * This abstract class is used for containing some of the possible statistical operators used by the {@link StatisticsOpImage} class. Every
  * statistical operator is defined by its {@link StatsType} and if 2 operators are equal, they can be combined into one with the "accumulateStats()"
  * method. This method checks if the 2 operators belong to the same type and then sum the statistics. For updating the statistics 2 different methods
- * are used, one for data types without NaN values and the other fir data types with them. Finally the result is returned as Object in the case that
+ * are used, one for data types without NaN values and the other for data types with them. Finally the result is returned as Object in the case that
  * multiple results are calculated.
  */
 public abstract class Statistics {

@@ -50,20 +50,28 @@ public class StatisticsTest {
     /** Object used for calculating the standard deviation */
     private static Statistics devstdObj;
 
+    /** Object used for calculating the histogram */
     private static Statistics histogramObj;
 
+    /** Object used for calculating the mode */
     private static Statistics modeObj;
 
+    /** Object used for calculating the median */
     private static Statistics medianObj;
 
+    /** Minimum bound for complex statistics */
     private static double minBound;
 
+    /** Maximum bound for complex statistics */
     private static double maxBound;
 
+    /** Bin size for complex statistics */
     private static double binInterval;
 
+    /** Bin number for complex statistics */
     private static int numBins;
 
+    /** Values interval for complex statistics */
     private static Range interval;
 
     @BeforeClass
@@ -96,6 +104,7 @@ public class StatisticsTest {
                 numBins);
     }
 
+    // Private method for calculating the bin/index related to the sample
     private int getIndex(double sample) {
         int index = (int) ((sample - minBound) / binInterval);
         return index;
@@ -191,17 +200,17 @@ public class StatisticsTest {
 
         // Mean and sum calculation
         for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
-            if(interval.contains(testArray[i])){
+            if (interval.contains(testArray[i])) {
                 int index = getIndex(testArray[i]);
                 hist[index]++;
-                listData.add(testArray[i]);   
+                listData.add(testArray[i]);
             }
             modeObj.addSampleNoNaN(testArray[i], true);
             histogramObj.addSampleNoNaN(testArray[i], true);
             medianObj.addSampleNoNaN(testArray[i], true);
         }
 
-        // Comparison
+        // Selection of the median
         Collections.sort(listData);
         int listSize = listData.size();
         if (listSize == 0) {
@@ -217,7 +226,7 @@ public class StatisticsTest {
                 median = (halfValue + listData.get(halfSize + 1)) / 2;
             }
         }
-        
+        // Selection of the mode
         double max = Double.NEGATIVE_INFINITY;
         double indexMax = 0;
         for (int i = 0; i < numBins; i++) {
@@ -226,17 +235,18 @@ public class StatisticsTest {
                 indexMax = i;
             }
         }
-        
-        if(max != 0){
+
+        if (max != 0) {
             indexMax = indexMax + minBound;
         }
-        
+
+        // Comparison
         double indexMax2 = (Double) (modeObj.getResult());
         assertEquals(indexMax, indexMax2, TOLERANCE);
         double[] hist2 = (double[]) (histogramObj.getResult());
-        for(int i = 0; i<numBins;i++){
+        for (int i = 0; i < numBins; i++) {
             assertEquals(hist[i], hist2[i], TOLERANCE);
-        }        
+        }
         double median2 = (Double) (medianObj.getResult());
         assertEquals(median, median2, TOLERANCE);
     }
@@ -354,15 +364,15 @@ public class StatisticsTest {
 
         Statistics newDevStdObj = StatsFactory.createDevStdObject();
         newDevStdObj.addSampleNoNaN(1, true);
-        
-        Statistics newHistObj = StatsFactory.createHistogramObject(numBins, minBound, maxBound); 
-        newExtremaObj.addSampleNoNaN(1, true);
+
+        Statistics newHistObj = StatsFactory.createHistogramObject(numBins, minBound, maxBound);
+        newHistObj.addSampleNoNaN(1, true);
 
         Statistics newModeObj = StatsFactory.createModeObject(numBins, minBound, maxBound);
-        newVarianceObj.addSampleNoNaN(1, true);
+        newModeObj.addSampleNoNaN(1, true);
 
         Statistics newMedianObj = StatsFactory.createMedianObject(minBound, maxBound);
-        newDevStdObj.addSampleNoNaN(1, true);
+        newMedianObj.addSampleNoNaN(1, true);
 
         // Clearing of the statistics
         newMeanObj.clearStats();
@@ -386,7 +396,7 @@ public class StatisticsTest {
         double newExmax = newExtrema[1];
         double newVarianceUpdated = (Double) (newVarianceObj.getResult());
         double newStdUpdated = (Double) (newDevStdObj.getResult());
-        double[] newHistUpdated = (double[])(newHistObj.getResult());
+        double[] newHistUpdated = (double[]) (newHistObj.getResult());
         double newModeUpdated = (Double) (newModeObj.getResult());
         double newMedianUpdated = (Double) (newMedianObj.getResult());
 
@@ -399,15 +409,17 @@ public class StatisticsTest {
         assertEquals(Double.POSITIVE_INFINITY, newExmin, TOLERANCE);
         assertEquals(Double.NaN, newVarianceUpdated, TOLERANCE);
         assertEquals(Double.NaN, newStdUpdated, TOLERANCE);
-        for(int i = 0; i<numBins;i++){
+        for (int i = 0; i < numBins; i++) {
             assertEquals(0, newHistUpdated[i], TOLERANCE);
         }
         assertEquals(0, newModeUpdated, TOLERANCE);
         assertEquals(Double.NaN, newMedianUpdated, TOLERANCE);
     }
 
-    // This last 7 tests are used for checking if the accumulateStats() method returns an exception when
-    // the given statistical object does not belong to the same StatsType of the receiver.
+    /*
+     * These tests are used for checking if the accumulateStats() method returns an exception when the given statistical object does not belong to the
+     * same StatsType of the receiver or if it is not supported
+     */
     @Test(expected = IllegalArgumentException.class)
     public void testMeanException() {
         meanObj.accumulateStats(sumObj);
@@ -441,5 +453,17 @@ public class StatisticsTest {
     @Test(expected = IllegalArgumentException.class)
     public void testDevStdException() {
         devstdObj.accumulateStats(sumObj);
+    }
+    @Test(expected = UnsupportedOperationException.class)
+    public void testHistException() {
+        histogramObj.accumulateStats(sumObj);
+    }
+    @Test(expected = UnsupportedOperationException.class)
+    public void testModeException() {
+        modeObj.accumulateStats(sumObj);
+    }
+    @Test(expected = UnsupportedOperationException.class)
+    public void testMedianException() {
+        medianObj.accumulateStats(sumObj);
     }
 }

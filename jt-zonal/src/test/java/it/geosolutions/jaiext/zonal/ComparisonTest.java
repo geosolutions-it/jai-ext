@@ -24,9 +24,9 @@ import it.geosolutions.jaiext.testclasses.TestBase;
  * This test class is used for compare the timing between the new ZonalStats operation and the its old JaiTools version. Roi or NoData range can be
  * used by setting to true JAI.Ext.ROIUsed or JAI.Ext.RangeUsed JVM boolean parameters are set to true. If the user wants to change the number of the
  * benchmark cycles or of the not benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles
- * parameters.If the user want to use the JaiTools ZonalStats operation must pass to the JVM the JAI.Ext.OldDescriptor parameter set to true. For selecting a
- * specific data type the user must set the JAI.Ext.TestSelector JVM integer parameter to a number between 0 and 5 (where 0 means byte, 1 Ushort, 2
- * Short, 3 Integer, 4 Float and 5 Double). The test is made on a list of 10 geometries. The statistics calculated are:
+ * parameters.If the user want to use the JaiTools ZonalStats operation must pass to the JVM the JAI.Ext.OldDescriptor parameter set to true. For
+ * selecting a specific data type the user must set the JAI.Ext.TestSelector JVM integer parameter to a number between 0 and 5 (where 0 means byte, 1
+ * Ushort, 2 Short, 3 Integer, 4 Float and 5 Double). The test is made on a list of 10 geometries. The statistics calculated are:
  * <ul>
  * <li>Mean</li>
  * <li>Sum</li>
@@ -37,6 +37,8 @@ import it.geosolutions.jaiext.testclasses.TestBase;
  * <li>Standard Deviation</li>
  * <li>Median</li>
  * </ul>
+ * The user can choose if the classifier must be used by setting to true the JVM parameter JAI.Ext.Classifier.
+ * 
  */
 public class ComparisonTest extends TestBase {
 
@@ -58,7 +60,7 @@ public class ComparisonTest extends TestBase {
     private final static boolean ROI_USED = Boolean.getBoolean("JAI.Ext.ROIUsed");
 
     /** Boolean indicating if a classifier image must be used */
-    private static final boolean CLASSIFIER = Boolean.parseBoolean("JAI.Ext.Classifies");
+    private static final boolean CLASSIFIER = Boolean.getBoolean("JAI.Ext.Classifier");
 
     /** Source test image */
     private static RenderedImage testImage;

@@ -18,6 +18,21 @@ import javax.media.jai.RenderedOp;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/**
+ * This test class is used for compare the timing between the new StatisticalDescriptor operation and the old JAI version. Roi or NoData range can be
+ * used by setting to true JAI.Ext.ROIUsed or JAI.Ext.RangeUsed JVM boolean parameters are set to true. If the user wants to change the number of the
+ * benchmark cycles or of the not benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles
+ * parameters.If the user want to use the old descriptor must pass to the JVM the JAI.Ext.OldDescriptor parameter set to true. For selecting a
+ * specific data type the user must set the JAI.Ext.TestSelector JVM integer parameter to a number between 0 and 5 (where 0 means byte, 1 Ushort, 2
+ * Short, 3 Integer, 4 Float and 5 Double). The possible statistics to calculate can be chosen by setting the JVM Integer parameter JAI.Ext.Statistic
+ * to the associated value:
+ * <ul>
+ * <li>Mean 0</li>
+ * <li>Extrema 1</li>
+ * <li>Histogram 2</li>
+ * </ul>
+ */
+
 public class ComparisonTest extends TestBase {
 
     /** Number of benchmark iterations (Default 1) */
@@ -79,10 +94,13 @@ public class ComparisonTest extends TestBase {
     /** ROI object used for selecting the active area of the image */
     private static ROI roi;
 
+    /** Array indicating the number of bins for each band */
     private static int[] numBins;
 
+    /** Array indicating the maximum bounds for each band */
     private static double[] maxBounds;
 
+    /** Array indicating the minimum bounds for each band */
     private static double[] minBounds;
 
     // Initial static method for preparing all the test data
@@ -178,11 +196,11 @@ public class ComparisonTest extends TestBase {
         // Period Definitions
         xPeriod = 1;
         yPeriod = 1;
-        
-        //Histogram variables definition
-        numBins = new int[]{5};
-        maxBounds = new double[]{3};
-        minBounds = new double[]{-3};
+
+        // Histogram variables definition
+        numBins = new int[] { 5 };
+        maxBounds = new double[] { 3 };
+        minBounds = new double[] { -3 };
     }
 
     // General method for showing calculation time of the 2 StatisticDescriptors
@@ -191,23 +209,22 @@ public class ComparisonTest extends TestBase {
         int[] numBinsTest = null;
         double[] maxBoundsTest = null;
         double[] minBoundsTest = null;
-        
-        
+
         // Statistic string
         String stat = "";
         if (STATISTIC == 0) {
             stat += "Mean";
         } else if (STATISTIC == 1) {
             stat += "Extrema";
-        }else if(STATISTIC == 2){
+        } else if (STATISTIC == 2) {
             stat += "Histogram";
             numBinsTest = numBins;
             maxBoundsTest = maxBounds;
-            minBoundsTest = minBounds;            
+            minBoundsTest = minBounds;
         }
-
+        // Range initialization
         Range rangeND = null;
-
+        // Image dataType
         int dataType = TEST_SELECTOR;
 
         // Descriptor string
@@ -302,9 +319,9 @@ public class ComparisonTest extends TestBase {
                 } else if (STATISTIC == 1) {
                     imageStats = javax.media.jai.operator.ExtremaDescriptor.create(testImage, roi,
                             xPeriod, yPeriod, false, 1, null);
-                }else if (STATISTIC == 2) {
-                    imageStats = javax.media.jai.operator.HistogramDescriptor.create(testImage, roi, xPeriod, 
-                            yPeriod, numBinsTest, minBoundsTest, maxBoundsTest, null);
+                } else if (STATISTIC == 2) {
+                    imageStats = javax.media.jai.operator.HistogramDescriptor.create(testImage,
+                            roi, xPeriod, yPeriod, numBinsTest, minBoundsTest, maxBoundsTest, null);
                 }
             } else {
                 imageStats = StatisticsDescriptor.create(testImage, xPeriod, yPeriod, roi, rangeND,

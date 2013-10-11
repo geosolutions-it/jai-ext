@@ -22,6 +22,13 @@ import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.PropertyUtil;
 
+/**
+ * This abstract class is used for defining the common methods for calculating image statistics. There are 2 subclasses of this class called
+ * {@link SimpleStatsOpImage} and {@link ComplexStatsOpImage}. The first one is used for calculating simple statistics which does not requests the use
+ * of an array for saving all the values, instead of the second class which stores the statistics on an array and then performs the final computations
+ * when the result is requested. The 2 subclasses must only update their constructor for adding a control on which kind of statistics are calculated
+ * and defining the computeTile() method which is used for calculating the statistics for each tile.
+ */
 public abstract class StatisticsOpImage extends OpImage {
 
     /** ROI extender */
@@ -125,14 +132,13 @@ public abstract class StatisticsOpImage extends OpImage {
         // Storage of the band indexes and length
         this.bands = bands;
         this.selectedBands = selectedBands;
-        
-        
+
         // Check if No Data control must be done
         if (noData != null) {
             hasNoData = true;
             this.noData = noData;
         } else {
-            hasNoData = false;            
+            hasNoData = false;
         }
 
         // Check if ROI control must be done
@@ -178,7 +184,7 @@ public abstract class StatisticsOpImage extends OpImage {
         caseC = hasNoData && !hasROI;
 
     }
-    
+
     /**
      * Returns a list of property names that are recognized by this image.
      * 
@@ -224,7 +230,7 @@ public abstract class StatisticsOpImage extends OpImage {
         // Return combined name set.
         return propNames;
     }
-    
+
     /**
      * This method is used if the user needs to perform again the statistical calculations.
      */
@@ -235,6 +241,7 @@ public abstract class StatisticsOpImage extends OpImage {
                 stats[i][j].clearStats();
             }
         }
+        // Setting the calculations to be performed
         firstTime = true;
     }
 
@@ -245,8 +252,6 @@ public abstract class StatisticsOpImage extends OpImage {
         super.dispose();
         clearStatistic();
     }
-    
-
 
     /**
      * Computes and returns all tiles in the image. The tiles are returned in a sequence corresponding to the row-major order of their respective tile
@@ -261,7 +266,7 @@ public abstract class StatisticsOpImage extends OpImage {
             return null;
         }
     }
-    
+
     /**
      * Get the specified property.
      * <p>
@@ -282,8 +287,6 @@ public abstract class StatisticsOpImage extends OpImage {
         }
     }
 
-    
-    
     protected void byteLoop(RasterAccessor src, Rectangle srcRect, RasterAccessor roi,
             Statistics[][] statArray) {
 
@@ -1538,8 +1541,6 @@ public abstract class StatisticsOpImage extends OpImage {
         }
     }
 
-    
-    
     @Override
     public Rectangle mapDestRect(Rectangle destRect, int sourceIndex) {
         return destRect;
@@ -1549,5 +1550,5 @@ public abstract class StatisticsOpImage extends OpImage {
     public Rectangle mapSourceRect(Rectangle sourceRect, int sourceIndex) {
         return sourceRect;
     }
-    
+
 }

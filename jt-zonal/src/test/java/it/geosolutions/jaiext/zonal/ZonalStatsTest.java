@@ -24,91 +24,135 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.index.quadtree.Quadtree;
 
+/**
+ * This test class is used for evaluating the functionalities of the ZonalStats operation. This operation consists of calculating different statistics
+ * on a list of geometries passed to the image operator. The possible operations to do are:
+ * <ul>
+ * <li>Mean</li>
+ * <li>Sum</li>
+ * <li>Max</li>
+ * <li>Min</li>
+ * <li>Extrema</li>
+ * <li>Variance</li>
+ * <li>Standard Deviation</li>
+ * <li>Histogram</li>
+ * <li>Mode</li>
+ * <li>Median</li>
+ * </ul>
+ * An additional Classifier image can be used for dividing the statistics between the zones defined by it. The ZonalStatsOpImage is tested on 6
+ * different images each one with a different data type (except Long data type). The operation is tested with and without the presence of NoData and,
+ * when the ROI is present, with and without the ROI RasterAccessor calculations. The classifier can be used by setting to true the JVM parameter
+ * JAI.Ext.Classifier. All the results are compared with the previously calculated statistics for checking the correctness of the calculations.
+ */
 public class ZonalStatsTest extends TestBase {
 
     /** Tolerance value used for comparison between double */
     private final static double TOLERANCE = 0.1d;
-    /** Boolean indicating if a classifier image must be used */
-    private static final boolean CLASSIFIER = Boolean.parseBoolean("JAI.Ext.Classifies");
 
+    /** Boolean indicating if a classifier image must be used */
+    private static final boolean CLASSIFIER = Boolean.getBoolean("JAI.Ext.Classifier");
+
+    /** Statistics operation to execute */
     private static StatsType[] stats;
 
+    /** Source image arrays */
     private static RenderedImage[] sourceIMG;
 
+    /** Optional ROI object */
     private static ROIShape roi;
 
+    /** List of geometries */
     private static List<ROI> roiList;
 
+    /** Optional classifier image */
     private static RenderedImage classifier;
 
+    /** Spatial index for fast searching the geometries associated with a selected pixel */
     private static Quadtree spatial;
 
+    /** List of ZoneGeometry objects containing the results */
     private static ArrayList<ZoneGeometry>[] zoneList;
 
+    /** Union of all the input geometries bounds */
     private static Rectangle union;
 
+    /** Selected bands to perform statistical calculations */
     private static int[] bands;
 
+    /** NoData value for Byte images */
     private static byte noDataB;
 
+    /** NoData value for Unsigned Short images */
     private static short noDataU;
 
+    /** NoData value for Short images */
     private static short noDataS;
 
+    /** NoData value for Integer images */
     private static int noDataI;
 
+    /** NoData value for Float images */
     private static float noDataF;
 
+    /** NoData value for Double images */
     private static double noDataD;
 
+    /** NoData Range for Byte data */
     private static Range noDataByte;
 
+    /** NoData Range for Unsigned Short data */
     private static Range noDataUShort;
 
+    /** NoData Range for Short data */
     private static Range noDataShort;
 
+    /** NoData Range for Integer data */
     private static Range noDataInt;
 
+    /** NoData Range for Float data */
     private static Range noDataFloat;
 
+    /** NoData Range for Double data */
     private static Range noDataDouble;
 
+    /** Array indicating the minimum bounds for each band */
     private static double[] minBound;
 
+    /** Array indicating the maximum bounds for each band */
     private static double[] maxBound;
 
+    /** Array indicating the number of bins for each band */
     private static int[] numBins;
 
     @BeforeClass
     public static void initialSetup() {
 
+        // Definition of the Histogram, Mode and Median parameters
+        minBound = new double[] { -3, -3, -3 };
+        maxBound = new double[] { 3, 3, 3 };
+        numBins = new int[] { 4, 4, 4 };
+
+        // Statistics types
+        stats = new StatsType[] { StatsType.MEAN, StatsType.SUM, StatsType.MAX, StatsType.MIN,
+                StatsType.EXTREMA, StatsType.VARIANCE, StatsType.DEV_STD, StatsType.HISTOGRAM,
+                StatsType.MODE, StatsType.MEDIAN };
+
+        roiList = new ArrayList<ROI>();
+
+        // Geometry parameters
         int initial_value = 10;
         int final_value = 30;
 
         int dimension = (final_value - initial_value);
 
         int interval = dimension / 10;
-
-        
-        // Definition of the Histogram, Mode and Median parameters
-        minBound = new double[] { -3, -3, -3 };
-        maxBound = new double[] { 3, 3, 3 };
-        numBins = new int[] { 4, 4, 4 };
-        
-        // Statistics types
-        stats = new StatsType[] { StatsType.MEAN, StatsType.SUM, StatsType.MAX, StatsType.MIN,
-                StatsType.EXTREMA, StatsType.VARIANCE, StatsType.DEV_STD, StatsType.HISTOGRAM,
-                StatsType.MODE, StatsType.MEDIAN};
-
-        roiList = new ArrayList<ROI>();
-
         // ROI LIST
         for (int i = 0; i < 10; i++) {
-            ROI roiGeom = new ROIShape(new Rectangle(initial_value, final_value, dimension,
+            ROI roiGeom = new ROIShape(new Rectangle(initial_value, initial_value, dimension,
                     dimension));
             roiList.add(roiGeom);
+            // Translation of the geometry with overlap
             initial_value += interval;
-            final_value += interval;
         }
 
         // Band array creation
@@ -140,17 +184,18 @@ public class ZonalStatsTest extends TestBase {
             // Addition to the geometries list
             for (int z = 0; z < 4; z++) {
                 // Creation of a new ZoneGeometry
-                ZoneGeometry geom = new ZoneGeometry(bands, stats, CLASSIFIER,minBound,maxBound,numBins);
+                ZoneGeometry geom = new ZoneGeometry(bands, stats, CLASSIFIER, minBound, maxBound,
+                        numBins);
                 zoneList[z].add(geom);
             }
         }
 
         // Classifier
         classifier = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, 2, false);
-
+        // Classifier bound
         Rectangle rectClass = new Rectangle(classifier.getMinX(), classifier.getMinY(),
                 classifier.getWidth(), classifier.getHeight());
-
+        // Iterator on the classifier image
         RandomIter iterator = RandomIterFactory.create(classifier, rectClass, false, true);
 
         // ROI creation
@@ -164,16 +209,17 @@ public class ZonalStatsTest extends TestBase {
         noDataI = 50;
         noDataF = 50;
         noDataD = 50;
-
+        // Range parameters
         boolean minIncluded = true;
         boolean maxIncluded = true;
+        boolean nanIncluded = true;
 
         noDataByte = RangeFactory.create(noDataB, minIncluded, noDataB, maxIncluded);
         noDataUShort = RangeFactory.createU(noDataU, minIncluded, noDataU, maxIncluded);
         noDataShort = RangeFactory.create(noDataS, minIncluded, noDataS, maxIncluded);
         noDataInt = RangeFactory.create(noDataI, minIncluded, noDataI, maxIncluded);
-        noDataFloat = RangeFactory.create(noDataF, minIncluded, noDataF, maxIncluded, true);
-        noDataDouble = RangeFactory.create(noDataD, minIncluded, noDataD, maxIncluded, true);
+        noDataFloat = RangeFactory.create(noDataF, minIncluded, noDataF, maxIncluded, nanIncluded);
+        noDataDouble = RangeFactory.create(noDataD, minIncluded, noDataD, maxIncluded, nanIncluded);
 
         // Image creations
         sourceIMG = new RenderedImage[6];
@@ -194,6 +240,7 @@ public class ZonalStatsTest extends TestBase {
         sourceIMG[5] = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
                 noDataD, false);
 
+        // Image Tiles positions
         int minTileX = sourceIMG[0].getMinTileX();
         int minTileY = sourceIMG[0].getMinTileY();
         int maxTileX = minTileX + sourceIMG[0].getNumXTiles();
@@ -206,7 +253,7 @@ public class ZonalStatsTest extends TestBase {
             for (int j = minTileY; j < maxTileY; j++) {
                 // Selection of a Raster
                 Raster arrayRas = sourceIMG[0].getTile(i, j);
-
+                // Raster pixels positions
                 int minX = arrayRas.getMinX();
                 int minY = arrayRas.getMinY();
                 int maxX = minX + arrayRas.getWidth();
@@ -215,14 +262,13 @@ public class ZonalStatsTest extends TestBase {
                 // Cycle on the Raster pixels
                 for (int x = minX; x < maxX; x++) {
                     for (int y = minY; y < maxY; y++) {
-
+                        // Check if the selected pixel is inside the union of all the geometries
                         if (union.contains(x, y)) {
                             byte value = (byte) arrayRas.getSample(x, y, 0);
-
+                            // pixel coordinate creation for spatial indexing
                             Coordinate p = new Coordinate(x, y);
-
+                            // Creation of an Envelop containing the pixel coordinates
                             Envelope searchEnv = new Envelope(p);
-
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
                             // Zone classifier initial value
@@ -279,7 +325,7 @@ public class ZonalStatsTest extends TestBase {
 
     @Test
     public void testNoROINoNoData() {
-
+        // This test calculates zonal statistics without ROI and NoData
         boolean roiUsed = false;
         boolean noDataRangeUsed = false;
         boolean useRoiAccessor = false;
@@ -295,7 +341,7 @@ public class ZonalStatsTest extends TestBase {
 
     @Test
     public void testROINoNoData() {
-
+        // This test calculates zonal statistics with ROI and without NoData
         boolean roiUsed = true;
         boolean noDataRangeUsed = false;
         boolean useRoiAccessor = false;
@@ -311,7 +357,7 @@ public class ZonalStatsTest extends TestBase {
 
     @Test
     public void testROIAccessorNoNoData() {
-
+        // This test calculates zonal statistics with ROI RasterAccessor and without NoData
         boolean roiUsed = true;
         boolean noDataRangeUsed = false;
         boolean useRoiAccessor = true;
@@ -327,7 +373,7 @@ public class ZonalStatsTest extends TestBase {
 
     @Test
     public void testNoDataNoROI() {
-
+        // This test calculates zonal statistics with NoData and without ROI
         boolean roiUsed = false;
         boolean noDataRangeUsed = true;
         boolean useRoiAccessor = false;
@@ -343,7 +389,7 @@ public class ZonalStatsTest extends TestBase {
 
     @Test
     public void testROIAccessorNoData() {
-
+        // This test calculates zonal statistics with NoData and ROI RasterAccessor
         boolean roiUsed = true;
         boolean noDataRangeUsed = true;
         boolean useRoiAccessor = true;
@@ -359,7 +405,7 @@ public class ZonalStatsTest extends TestBase {
 
     @Test
     public void testROINoData() {
-
+        // This test calculates zonal statistics with NoData and ROI
         boolean roiUsed = true;
         boolean noDataRangeUsed = true;
         boolean useRoiAccessor = false;
@@ -436,32 +482,36 @@ public class ZonalStatsTest extends TestBase {
             statsIndex = 2;
         }
 
-        // Simple statistics
+        // Creation of the Image
         RenderedImage destination = ZonalStatsDescriptor.create(source, classifierIMG, null,
-                roiList, roiData, noDataRange, useRoiAccessor, bands, stats, minBound, maxBound, numBins, null);
+                roiList, roiData, noDataRange, useRoiAccessor, bands, stats, minBound, maxBound,
+                numBins, null);
         // Statistic calculation
         List<ZoneGeometry> result = (List<ZoneGeometry>) destination
                 .getProperty(ZonalStatsDescriptor.ZS_PROPERTY);
 
         // Test if the calculated values are equal with a tolerance value
         if (CLASSIFIER) {
+            // Cycle on all the geometries
             for (int i = 0; i < result.size(); i++) {
                 ZoneGeometry zoneResult = result.get(i);
                 ZoneGeometry zoneCalculated = zoneList[statsIndex].get(i);
-
+                // Selection of the zone statistics for the selected band
                 Map<Integer, Statistics[]> resultPerZone = (Map<Integer, Statistics[]>) zoneResult
                         .getStatsPerBand(0);
-
+                // Set of all the keys indicating the various classifier zones
                 Set<Integer> zoneset = resultPerZone.keySet();
-
+                // Cycle on all the zones
                 for (int zone : zoneset) {
+                    // Result from ZonalStats operation
                     Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandPerZone(0,
                             zone);
+                    // Result from calculation
                     Statistics[] statsCalculated = (Statistics[]) zoneCalculated
                             .getStatsPerBandPerZone(0, zone);
-
+                    // Check if the results have the same dimensions
                     assertEquals(statsResult.length, statsCalculated.length);
-
+                    // Check if all the calculations are equal, with a tolerance value
                     for (int j = 0; j < statsResult.length; j++) {
                         Statistics statR = statsResult[j];
                         Statistics statC = statsCalculated[j];
@@ -491,31 +541,34 @@ public class ZonalStatsTest extends TestBase {
                         case 7:
                             double[] histR = (double[]) statR.getResult();
                             double[] histC = (double[]) statC.getResult();
-                            
+
                             assertEquals(histR.length, histC.length);
-                            
-                            for(int bin = 0; bin < histR.length; bin++){
+
+                            for (int bin = 0; bin < histR.length; bin++) {
                                 double binR = histR[bin];
                                 double binC = histC[bin];
                                 assertEquals(binR, binC, TOLERANCE);
                             }
-                            
+
                             break;
                         }
                     }
                 }
             }
         } else {
+            // Cycle on all the geometries
             for (int i = 0; i < result.size(); i++) {
                 ZoneGeometry zoneResult = result.get(i);
                 ZoneGeometry zoneCalculated = zoneList[statsIndex].get(i);
-
-                Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandPerZone(0, 0);
+                // Selection of the statistics for the selected band
+                // Result from ZonalStats operation
+                Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandNoClassifier(0);
+                // Result from calculation
                 Statistics[] statsCalculated = (Statistics[]) zoneCalculated
-                        .getStatsPerBandPerZone(0, 0);
-
+                        .getStatsPerBandNoClassifier(0);
+                // Check if the results have the same dimensions
                 assertEquals(statsResult.length, statsCalculated.length);
-
+                // Check if all the calculations are equal, with a tolerance value
                 for (int j = 0; j < statsResult.length; j++) {
                     Statistics statR = statsResult[j];
                     Statistics statC = statsCalculated[j];
