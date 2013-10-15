@@ -29,6 +29,7 @@ import com.sun.media.jai.util.PropertyUtil;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.index.quadtree.Quadtree;
+import com.vividsolutions.jts.index.strtree.STRtree;
 
 /**
  * This class extends the {@link OpImage} class and executes the "ZonalStats" operation. This operation consists of calculating the image statistics
@@ -53,7 +54,7 @@ public class ZonalStatsOpImage extends OpImage {
     private volatile boolean firstTime;
 
     /** Spatial index for fast accessing the geometries that contain the selected pixel */
-    private final Quadtree spatial;
+    private final STRtree spatial;
 
     /** Boolean indicating if the classifier is present */
     private final boolean classPresent;
@@ -233,7 +234,7 @@ public class ZonalStatsOpImage extends OpImage {
         }
 
         // Creation of the spatial index
-        spatial = new Quadtree();
+        spatial = new STRtree();
         // Creation of a ZoneGeometry list, for storing the results
         zoneList = new ArrayList<ZoneGeometry>();
         // Check if the rois are present. Otherwise the entire image statistics

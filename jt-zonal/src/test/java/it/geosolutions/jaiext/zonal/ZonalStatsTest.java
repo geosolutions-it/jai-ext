@@ -23,6 +23,7 @@ import org.junit.Test;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.index.quadtree.Quadtree;
+import com.vividsolutions.jts.index.strtree.STRtree;
 
 /**
  * This test class is used for evaluating the functionalities of the ZonalStats operation. This operation consists of calculating different statistics
@@ -68,7 +69,7 @@ public class ZonalStatsTest extends TestBase {
     private static RenderedImage classifier;
 
     /** Spatial index for fast searching the geometries associated with a selected pixel */
-    private static Quadtree spatial;
+    private static STRtree spatial;
 
     /** List of ZoneGeometry objects containing the results */
     private static ArrayList<ZoneGeometry>[] zoneList;
@@ -160,7 +161,7 @@ public class ZonalStatsTest extends TestBase {
 
         // Spatial indexing
         // Creation of the spatial index
-        spatial = new Quadtree();
+        spatial = new STRtree();
         // Creation of a ZoneGeometry list, for storing the results
         zoneList = new ArrayList[4];
         for (int z = 0; z < 4; z++) {

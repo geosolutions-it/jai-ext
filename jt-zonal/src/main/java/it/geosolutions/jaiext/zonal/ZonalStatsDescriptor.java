@@ -25,7 +25,6 @@ import com.sun.media.jai.util.PropertyGeneratorImpl;
  * ROI is present and if so, its bounds are intersected with the source images bounds, and then passed as a result. If no property was found an
  * Undefined Property object is returned.
  */
-
 class ZonalStatsPropertyGenerator extends PropertyGeneratorImpl {
 
     /** Constructor. */

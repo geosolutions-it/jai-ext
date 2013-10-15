@@ -534,5 +534,6 @@
     <module>jt-lookup</module>
     <module>jt-stats</module>
     <module>jt-zonal</module>
+    <module>jt-crop</module>
   </modules>
 </project>
