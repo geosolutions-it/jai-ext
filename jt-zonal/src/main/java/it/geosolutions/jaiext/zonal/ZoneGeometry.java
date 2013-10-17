@@ -8,9 +8,9 @@ import it.geosolutions.jaiext.stats.StatsFactory;
 
 /**
  * This class is used for storing the statistics associated to a specific geometry. All the statistics are organized inside Map objects. The
- * "statsContainer" object contains a number of items, each one for every band. Every item object contains the statistics array for every zone, if the
- * classifier is present, or only for the zone 0 if not. The statistics object are created at the initialization time if the classifier is not
- * present, otherwise they are created when a new zone is founded.
+ * "statsContainer" object contains a number of items, each one for every band. Every item object contains the statistics array for every Class, if the
+ * classifier is present, or only for the Class 0 if not. The statistics object are created at the initialization time if the classifier is not
+ * present, otherwise they are created when a new Class is founded.
  */
 
 public class ZoneGeometry {
@@ -18,7 +18,7 @@ public class ZoneGeometry {
     /** Boolean indicating if the classifier is present */
     private final boolean classification;
 
-    /** Map containing all the statistics for every band and for every zone */
+    /** Map containing all the statistics for every band and for every Class */
     private final Map<Integer, Map<Integer, Statistics[]>> statsContainer;
 
     /** Array indicating which statistics must be calculated */
@@ -46,7 +46,7 @@ public class ZoneGeometry {
         statsContainer = new TreeMap<Integer, Map<Integer, Statistics[]>>();
         // Cicle on all the selected bands for creating the band inner map elements
         for (int i : bands) {
-            Map<Integer, Statistics[]> mapZone = new TreeMap<Integer, Statistics[]>();
+            Map<Integer, Statistics[]> mapClass = new TreeMap<Integer, Statistics[]>();
             // If the classifier is not present, the statistics objects are created at the ZoneGeometry
             // instantiation
             if (!classification) {
@@ -60,19 +60,19 @@ public class ZoneGeometry {
                                 minBounds[i], maxBounds[i], numbins[i]);
                     }
                 }
-                mapZone.put(0, statistics);
+                mapClass.put(0, statistics);
             }
-            statsContainer.put(i, mapZone);
+            statsContainer.put(i, mapClass);
         }
     }
 
-    public void add(double sample, int band, int zone, boolean isNaN) {
+    public void add(double sample, int band, int classId, boolean isNaN) {
         // Selection of the map associated with the band indicated by the index
-        Map<Integer, Statistics[]> mapZone = statsContainer.get(band);
+        Map<Integer, Statistics[]> mapClass = statsContainer.get(band);
         // Selection of the Statistics array associated with the zone indicated by the index
         // (always 0 if the classifier is not present)
-        Statistics[] statistics = mapZone.get(zone);
-        // if the classifier is present and a new zone is founded, then a new statistics object is created
+        Statistics[] statistics = mapClass.get(classId);
+        // if the classifier is present and a new Class is founded, then a new statistics object is created
         if (classification && statistics == null) {
             statistics = new Statistics[stats.length];
             for (int st = 0; st < stats.length; st++) {
@@ -92,17 +92,17 @@ public class ZoneGeometry {
         }
 
         // The updated statistics are inserted in the related containers
-        mapZone.put(zone, statistics);
+        mapClass.put(classId, statistics);
 
-        statsContainer.put(band, mapZone);
+        statsContainer.put(band, mapClass);
     }
 
     /**
      * Utility method for having the Statistics of a specific band inside a specific zone class
      */
-    public Statistics[] getStatsPerBandPerZone(int band, int zone) {
-        Map<Integer, Statistics[]> resultAllZone = statsContainer.get(band);
-        Statistics[] statistics = resultAllZone.get(zone);
+    public Statistics[] getStatsPerBandPerClass(int band, int classId) {
+        Map<Integer, Statistics[]> resultAllClass = statsContainer.get(band);
+        Statistics[] statistics = resultAllClass.get(classId);
         return statistics;
     }
 
@@ -110,22 +110,22 @@ public class ZoneGeometry {
      * Utility method for having the Statistics of a specific band if no classifier is used
      */
     public Statistics[] getStatsPerBandNoClassifier(int band) {
-        Map<Integer, Statistics[]> resultAllZone = statsContainer.get(band);
-        Statistics[] statistics = resultAllZone.get(0);
+        Map<Integer, Statistics[]> resultAllClass = statsContainer.get(band);
+        Statistics[] statistics = resultAllClass.get(0);
         return statistics;
     }
 
-    public int getNumZones() {
-        Map<Integer, Statistics[]> resultAllZone = statsContainer.get(0);
-        return resultAllZone.size();
+    public int getNumClass() {
+        Map<Integer, Statistics[]> resultAllClass = statsContainer.get(0);
+        return resultAllClass.size();
     }
 
     /**
      * Utility method for having all the zone-class statistics for a selected band.
      */
     public Map<Integer, Statistics[]> getStatsPerBand(int band) {
-        Map<Integer, Statistics[]> resultAllZone = statsContainer.get(band);
-        return resultAllZone;
+        Map<Integer, Statistics[]> resultAllClass = statsContainer.get(band);
+        return resultAllClass;
     }
 
     /**

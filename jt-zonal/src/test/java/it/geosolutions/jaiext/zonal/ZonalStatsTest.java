@@ -22,7 +22,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.index.quadtree.Quadtree;
 import com.vividsolutions.jts.index.strtree.STRtree;
 
 /**
@@ -40,7 +39,7 @@ import com.vividsolutions.jts.index.strtree.STRtree;
  * <li>Mode</li>
  * <li>Median</li>
  * </ul>
- * An additional Classifier image can be used for dividing the statistics between the zones defined by it. The ZonalStatsOpImage is tested on 6
+ * An additional Classifier image can be used for dividing the statistics between the classes defined by it. The ZonalStatsOpImage is tested on 6
  * different images each one with a different data type (except Long data type). The operation is tested with and without the presence of NoData and,
  * when the ROI is present, with and without the ROI RasterAccessor calculations. The classifier can be used by setting to true the JVM parameter
  * JAI.Ext.Classifier. All the results are compared with the previously calculated statistics for checking the correctness of the calculations.
@@ -272,12 +271,12 @@ public class ZonalStatsTest extends TestBase {
                             Envelope searchEnv = new Envelope(p);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
-                            // If the classifier is present then the zone value is taken
+                            // classId classifier initial value
+                            int classId = 0;
+                            // If the classifier is present then the classId value is taken
                             if (CLASSIFIER) {
-                                // Selection of the zone point
-                                zone = iterator.getSample(x, y, 0);
+                                // Selection of the classId point
+                                classId = iterator.getSample(x, y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -292,24 +291,24 @@ public class ZonalStatsTest extends TestBase {
                                         ZoneGeometry zoneGeo = zoneList[z].get(index);
                                         switch (z) {
                                         case 0:
-                                            zoneGeo.add(value, 0, zone, false);
+                                            zoneGeo.add(value, 0, classId, false);
                                             zoneList[z].set(index, zoneGeo);
                                             break;
                                         case 1:
                                             if (roi.contains(x, y)) {
-                                                zoneGeo.add(value, 0, zone, false);
+                                                zoneGeo.add(value, 0, classId, false);
                                                 zoneList[z].set(index, zoneGeo);
                                             }
                                             break;
                                         case 2:
                                             if (!noDataByte.contains(value)) {
-                                                zoneGeo.add(value, 0, zone, false);
+                                                zoneGeo.add(value, 0, classId, false);
                                                 zoneList[z].set(index, zoneGeo);
                                             }
                                             break;
                                         case 3:
                                             if (!noDataByte.contains(value) && roi.contains(x, y)) {
-                                                zoneGeo.add(value, 0, zone, false);
+                                                zoneGeo.add(value, 0, classId, false);
                                                 zoneList[z].set(index, zoneGeo);
                                             }
                                             break;
@@ -505,11 +504,11 @@ public class ZonalStatsTest extends TestBase {
                 // Cycle on all the zones
                 for (int zone : zoneset) {
                     // Result from ZonalStats operation
-                    Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandPerZone(0,
+                    Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandPerClass(0,
                             zone);
                     // Result from calculation
                     Statistics[] statsCalculated = (Statistics[]) zoneCalculated
-                            .getStatsPerBandPerZone(0, zone);
+                            .getStatsPerBandPerClass(0, zone);
                     // Check if the results have the same dimensions
                     assertEquals(statsResult.length, statsCalculated.length);
                     // Check if all the calculations are equal, with a tolerance value

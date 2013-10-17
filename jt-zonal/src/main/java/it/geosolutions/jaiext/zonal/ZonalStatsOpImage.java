@@ -28,7 +28,6 @@ import javax.media.jai.iterator.RandomIter;
 import com.sun.media.jai.util.PropertyUtil;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.index.quadtree.Quadtree;
 import com.vividsolutions.jts.index.strtree.STRtree;
 
 /**
@@ -38,7 +37,7 @@ import com.vividsolutions.jts.index.strtree.STRtree;
  * {@link ZoneGeometry} object is associated to it for storing its statistics. A spatial index is used for fast accessing the geometries that
  * intersects the selected image pixel (in the case of overlapping). The final results can be returned by calling the getProperty() method with the
  * ZonalStatsDescriptor.ZS_PROPERTY. This method returns a list containing all the ZoneGeometries objects associated with each input geometry object.
- * The statistic results can be returned for each band or for each zone(if the classifier is not present). It is important to remember that the
+ * The statistic results can be returned for each band or for each Class(if the classifier is present). It is important to remember that the
  * classifier must be of integral data type.
  */
 public class ZonalStatsOpImage extends OpImage {
@@ -105,7 +104,7 @@ public class ZonalStatsOpImage extends OpImage {
     private Rectangle sourceBounds;
 
     /** Classifier image bounds */
-    private Rectangle zoneBounds;
+    private Rectangle classBounds;
 
     /** Iterator on the classifier image */
     private RandomIter iterator;
@@ -137,7 +136,7 @@ public class ZonalStatsOpImage extends OpImage {
         }
 
         // Calculation of the inverse transformation
-        zoneBounds = null;
+        classBounds = null;
         if (classPresent) {
             // source image bounds
             sourceBounds = new Rectangle(source.getMinX(), source.getMinY(), source.getWidth(),
@@ -145,18 +144,18 @@ public class ZonalStatsOpImage extends OpImage {
             if (transform == null) {
                 // If no transformation is set, the classifier bounds are the same of the image bounds
                 inverseTrans = new AffineTransform();
-                zoneBounds = sourceBounds;
+                classBounds = sourceBounds;
             } else {
                 try {
                     // If the transformation is set, then the source image bounds are mapped to the zone image bounds
                     inverseTrans = transform.createInverse();
-                    zoneBounds = inverseTrans.createTransformedShape(sourceBounds).getBounds();
+                    classBounds = inverseTrans.createTransformedShape(sourceBounds).getBounds();
                 } catch (NoninvertibleTransformException ex) {
                     LOGGER.warning("The transformation matrix is non-invertible.");
                 }
             }
             // Iterator on the classifier image bounds
-            iterator = RandomIterFactory.create(classifier, zoneBounds, false, true);
+            iterator = RandomIterFactory.create(classifier, classBounds, false, true);
 
         }
 
@@ -450,23 +449,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
-                    // If the classifier is present then the zone value is taken
+                    // classId classifier initial value
+                    int classId = 0;
+                    // If the classifier is present then the classId value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
-                        // Initialization of the zone point
-                        Point pointZone = new Point();
+                        // Initialization of the classId point
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
-                        // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        // Selection of the classId point
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -483,7 +482,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     byte sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], zone, false);
+                                    zoneGeo.add(sample, bands[i], classId, false);
                                 }
                                 zoneList.set(index, zoneGeo);
                             }
@@ -518,23 +517,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
-                            // If the classifier is present then the zone value is taken
+                            // classId classifier initial value
+                            int classId = 0;
+                            // If the classifier is present then the classId value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
-                                // Initialization of the zone point
-                                Point pointZone = new Point();
+                                // Initialization of the classId point
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -551,7 +550,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             byte sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
                                             // Update of all the statistics
-                                            zoneGeo.add(sample, bands[i], zone, false);
+                                            zoneGeo.add(sample, bands[i], classId, false);
                                         }
                                         zoneList.set(index, zoneGeo);
                                     }
@@ -584,23 +583,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -617,7 +616,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 byte sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, false);
+                                                zoneGeo.add(sample, bands[i], classId, false);
                                             }
                                             zoneList.set(index, zoneGeo);
                                         }
@@ -648,23 +647,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -683,7 +682,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     // NoData check
                                     if (booleanLookupTable[(int) sample]) {
                                         // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], zone, false);
+                                        zoneGeo.add(sample, bands[i], classId, false);
                                     }
                                 }
                                 zoneList.set(index, zoneGeo);
@@ -718,23 +717,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -753,7 +752,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             // NoData check
                                             if (booleanLookupTable[(int) sample]) {
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, false);
+                                                zoneGeo.add(sample, bands[i], classId, false);
                                             }
                                         }
                                         zoneList.set(index, zoneGeo);
@@ -787,23 +786,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -822,7 +821,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 // NoData check
                                                 if (booleanLookupTable[(int) sample]) {
                                                     // Update of all the statistics
-                                                    zoneGeo.add(sample, bands[i], zone, false);
+                                                    zoneGeo.add(sample, bands[i], classId, false);
                                                 }
                                             }
                                             zoneList.set(index, zoneGeo);
@@ -886,23 +885,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -919,7 +918,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     int sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]] & 0xFFFF;
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], zone, false);
+                                    zoneGeo.add(sample, bands[i], classId, false);
                                 }
                                 zoneList.set(index, zoneGeo);
                             }
@@ -954,23 +953,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -987,7 +986,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             int sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]] & 0xFFFF;
                                             // Update of all the statistics
-                                            zoneGeo.add(sample, bands[i], zone, false);
+                                            zoneGeo.add(sample, bands[i], classId, false);
                                         }
                                         zoneList.set(index, zoneGeo);
                                     }
@@ -1020,23 +1019,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -1053,7 +1052,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 int sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]] & 0xFFFF;
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, false);
+                                                zoneGeo.add(sample, bands[i], classId, false);
                                             }
                                             zoneList.set(index, zoneGeo);
                                         }
@@ -1084,23 +1083,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -1119,7 +1118,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     // NoData check
                                     if (!noData.contains((short) sample)) {
                                         // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], zone, false);
+                                        zoneGeo.add(sample, bands[i], classId, false);
                                     }
                                 }
                                 zoneList.set(index, zoneGeo);
@@ -1154,23 +1153,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -1189,7 +1188,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             // NoData check
                                             if (!noData.contains((short) sample)) {
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, false);
+                                                zoneGeo.add(sample, bands[i], classId, false);
                                             }
                                         }
                                         zoneList.set(index, zoneGeo);
@@ -1223,23 +1222,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -1258,7 +1257,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 // NoData check
                                                 if (!noData.contains((short) sample)) {
                                                     // Update of all the statistics
-                                                    zoneGeo.add(sample, bands[i], zone, false);
+                                                    zoneGeo.add(sample, bands[i], classId, false);
                                                 }
                                             }
                                             zoneList.set(index, zoneGeo);
@@ -1322,23 +1321,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -1355,7 +1354,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     short sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], zone, false);
+                                    zoneGeo.add(sample, bands[i], classId, false);
                                 }
                                 zoneList.set(index, zoneGeo);
                             }
@@ -1390,23 +1389,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -1423,7 +1422,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             short sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
                                             // Update of all the statistics
-                                            zoneGeo.add(sample, bands[i], zone, false);
+                                            zoneGeo.add(sample, bands[i], classId, false);
                                         }
                                         zoneList.set(index, zoneGeo);
                                     }
@@ -1456,23 +1455,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -1489,7 +1488,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 short sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, false);
+                                                zoneGeo.add(sample, bands[i], classId, false);
                                             }
                                             zoneList.set(index, zoneGeo);
                                         }
@@ -1520,23 +1519,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -1555,7 +1554,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     // NoData check
                                     if (!noData.contains(sample)) {
                                         // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], zone, false);
+                                        zoneGeo.add(sample, bands[i], classId, false);
                                     }
                                 }
                                 zoneList.set(index, zoneGeo);
@@ -1590,23 +1589,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -1625,7 +1624,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             // NoData check
                                             if (!noData.contains(sample)) {
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, false);
+                                                zoneGeo.add(sample, bands[i], classId, false);
                                             }
                                         }
                                         zoneList.set(index, zoneGeo);
@@ -1659,23 +1658,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -1694,7 +1693,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 // NoData check
                                                 if (!noData.contains(sample)) {
                                                     // Update of all the statistics
-                                                    zoneGeo.add(sample, bands[i], zone, false);
+                                                    zoneGeo.add(sample, bands[i], classId, false);
                                                 }
                                             }
                                             zoneList.set(index, zoneGeo);
@@ -1758,23 +1757,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -1791,7 +1790,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     int sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], zone, false);
+                                    zoneGeo.add(sample, bands[i], classId, false);
                                 }
                                 zoneList.set(index, zoneGeo);
                             }
@@ -1826,23 +1825,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -1859,7 +1858,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             int sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
                                             // Update of all the statistics
-                                            zoneGeo.add(sample, bands[i], zone, false);
+                                            zoneGeo.add(sample, bands[i], classId, false);
                                         }
                                         zoneList.set(index, zoneGeo);
                                     }
@@ -1892,23 +1891,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -1925,7 +1924,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 int sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, false);
+                                                zoneGeo.add(sample, bands[i], classId, false);
                                             }
                                             zoneList.set(index, zoneGeo);
                                         }
@@ -1956,23 +1955,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -1991,7 +1990,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     // NoData check
                                     if (!noData.contains(sample)) {
                                         // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], zone, false);
+                                        zoneGeo.add(sample, bands[i], classId, false);
                                     }
                                 }
                                 zoneList.set(index, zoneGeo);
@@ -2026,23 +2025,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -2061,7 +2060,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             // NoData check
                                             if (!noData.contains(sample)) {
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, false);
+                                                zoneGeo.add(sample, bands[i], classId, false);
                                             }
                                         }
                                         zoneList.set(index, zoneGeo);
@@ -2095,23 +2094,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -2130,7 +2129,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 // NoData check
                                                 if (!noData.contains(sample)) {
                                                     // Update of all the statistics
-                                                    zoneGeo.add(sample, bands[i], zone, false);
+                                                    zoneGeo.add(sample, bands[i], classId, false);
                                                 }
                                             }
                                             zoneList.set(index, zoneGeo);
@@ -2194,23 +2193,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -2227,7 +2226,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     float sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], zone, false);
+                                    zoneGeo.add(sample, bands[i], classId, false);
                                 }
                                 zoneList.set(index, zoneGeo);
                             }
@@ -2262,23 +2261,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -2295,7 +2294,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             float sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
                                             // Update of all the statistics
-                                            zoneGeo.add(sample, bands[i], zone, false);
+                                            zoneGeo.add(sample, bands[i], classId, false);
                                         }
                                         zoneList.set(index, zoneGeo);
                                     }
@@ -2328,23 +2327,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -2361,7 +2360,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 float sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, false);
+                                                zoneGeo.add(sample, bands[i], classId, false);
                                             }
                                             zoneList.set(index, zoneGeo);
                                         }
@@ -2392,23 +2391,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -2428,7 +2427,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     if (!noData.contains(sample)) {
                                         boolean isNaN = Float.isNaN(sample);
                                         // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], zone, isNaN);
+                                        zoneGeo.add(sample, bands[i], classId, isNaN);
                                     }
                                 }
                                 zoneList.set(index, zoneGeo);
@@ -2463,23 +2462,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -2499,7 +2498,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             if (!noData.contains(sample)) {
                                                 boolean isNaN = Float.isNaN(sample);
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, isNaN);
+                                                zoneGeo.add(sample, bands[i], classId, isNaN);
                                             }
                                         }
                                         zoneList.set(index, zoneGeo);
@@ -2533,23 +2532,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -2569,7 +2568,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 if (!noData.contains(sample)) {
                                                     boolean isNaN = Float.isNaN(sample);
                                                     // Update of all the statistics
-                                                    zoneGeo.add(sample, bands[i], zone, isNaN);
+                                                    zoneGeo.add(sample, bands[i], classId, isNaN);
                                                 }
                                             }
                                             zoneList.set(index, zoneGeo);
@@ -2633,23 +2632,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -2666,7 +2665,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     double sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], zone, false);
+                                    zoneGeo.add(sample, bands[i], classId, false);
                                 }
                                 zoneList.set(index, zoneGeo);
                             }
@@ -2701,23 +2700,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -2734,7 +2733,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             double sample = srcData[bands[i]][posx + posy
                                                     + srcBandOffsets[bands[i]]];
                                             // Update of all the statistics
-                                            zoneGeo.add(sample, bands[i], zone, false);
+                                            zoneGeo.add(sample, bands[i], classId, false);
                                         }
                                         zoneList.set(index, zoneGeo);
                                     }
@@ -2767,23 +2766,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -2800,7 +2799,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 double sample = srcData[bands[i]][posx + posy
                                                         + srcBandOffsets[bands[i]]];
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, false);
+                                                zoneGeo.add(sample, bands[i], classId, false);
                                             }
                                             zoneList.set(index, zoneGeo);
                                         }
@@ -2831,23 +2830,23 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     List<ROI> geomList = spatial.query(searchEnv);
-                    // Zone classifier initial value
-                    int zone = 0;
+                    // classId classifier initial value
+                    int classId = 0;
                     // If the classifier is present then the zone value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
                         // Initialization of the zone point
-                        Point pointZone = new Point();
+                        Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointZone);
+                            inverseTrans.inverseTransform(pointSrc, pointClass);
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ROI geometry : geomList) {
@@ -2867,7 +2866,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     if (!noData.contains(sample)) {
                                         boolean isNaN = Double.isNaN(sample);
                                         // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], zone, isNaN);
+                                        zoneGeo.add(sample, bands[i], classId, isNaN);
                                     }
                                 }
                                 zoneList.set(index, zoneGeo);
@@ -2902,23 +2901,23 @@ public class ZonalStatsOpImage extends OpImage {
                             Envelope searchEnv = new Envelope(p1);
                             // Query on the geometry list
                             List<ROI> geomList = spatial.query(searchEnv);
-                            // Zone classifier initial value
-                            int zone = 0;
+                            // classId classifier initial value
+                            int classId = 0;
                             // If the classifier is present then the zone value is taken
                             if (classPresent) {
                                 // Selection of the initial point
                                 Point pointSrc = new Point(x0, y0);
                                 // Initialization of the zone point
-                                Point pointZone = new Point();
+                                Point pointClass = new Point();
                                 // Source point inverse transformation for finding the related zone point
                                 try {
-                                    inverseTrans.inverseTransform(pointSrc, pointZone);
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                 } catch (NoninvertibleTransformException e) {
                                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                 }
                                 // Selection of the zone point
-                                zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                             }
                             // Cycle on all the geometries found
                             for (ROI geometry : geomList) {
@@ -2938,7 +2937,7 @@ public class ZonalStatsOpImage extends OpImage {
                                             if (!noData.contains(sample)) {
                                                 boolean isNaN = Double.isNaN(sample);
                                                 // Update of all the statistics
-                                                zoneGeo.add(sample, bands[i], zone, isNaN);
+                                                zoneGeo.add(sample, bands[i], classId, isNaN);
                                             }
                                         }
                                         zoneList.set(index, zoneGeo);
@@ -2972,23 +2971,23 @@ public class ZonalStatsOpImage extends OpImage {
                                 Envelope searchEnv = new Envelope(p1);
                                 // Query on the geometry list
                                 List<ROI> geomList = spatial.query(searchEnv);
-                                // Zone classifier initial value
-                                int zone = 0;
+                                // classId classifier initial value
+                                int classId = 0;
                                 // If the classifier is present then the zone value is taken
                                 if (classPresent) {
                                     // Selection of the initial point
                                     Point pointSrc = new Point(x0, y0);
                                     // Initialization of the zone point
-                                    Point pointZone = new Point();
+                                    Point pointClass = new Point();
                                     // Source point inverse transformation for finding the related zone point
                                     try {
-                                        inverseTrans.inverseTransform(pointSrc, pointZone);
+                                        inverseTrans.inverseTransform(pointSrc, pointClass);
 
                                     } catch (NoninvertibleTransformException e) {
                                         LOGGER.log(Level.SEVERE, e.getMessage(), e);
                                     }
                                     // Selection of the zone point
-                                    zone = iterator.getSample(pointZone.x, pointZone.y, 0);
+                                    classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                                 }
                                 // Cycle on all the geometries found
                                 for (ROI geometry : geomList) {
@@ -3008,7 +3007,7 @@ public class ZonalStatsOpImage extends OpImage {
                                                 if (!noData.contains(sample)) {
                                                     boolean isNaN = Double.isNaN(sample);
                                                     // Update of all the statistics
-                                                    zoneGeo.add(sample, bands[i], zone, isNaN);
+                                                    zoneGeo.add(sample, bands[i], classId, isNaN);
                                                 }
                                             }
                                             zoneList.set(index, zoneGeo);

@@ -535,5 +535,6 @@
     <module>jt-stats</module>
     <module>jt-zonal</module>
     <module>jt-crop</module>
+    <module>jt-rescale</module>
   </modules>
 </project>
