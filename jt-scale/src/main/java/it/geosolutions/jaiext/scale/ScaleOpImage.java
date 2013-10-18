@@ -134,16 +134,22 @@ public abstract class ScaleOpImage extends GeometricOpImage {
     // Padding
     private int lpad, rpad, tpad, bpad;
 
+    /** Source ROI */
     protected final ROI srcROI;
 
+    /** ROI image */
     protected final PlanarImage srcROIImage;
 
+    /** Random Iterator used iterating on the ROI data */
     protected final RandomIter roiIter;
 
+    /** Boolean indicating if a ROI object is used */
     protected final boolean hasROI;
 
+    /** Rectangle containing ROI bounds */
     protected final Rectangle roiBounds;
 
+    /** Value indicating if roi RasterAccessor should be used on computations */
     protected boolean useRoiAccessor;
 
     /** Inverse scale value X */
@@ -181,8 +187,8 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
     /** Interpolation kernel top padding */
     protected int interp_top;
-    
-    /** Value used for calculating the bilinear interpolation for integer dataTypes*/
+
+    /** Value used for calculating the bilinear interpolation for integer dataTypes */
     protected int shift;
 
     /** Value used for calculating the bilinear interpolation */

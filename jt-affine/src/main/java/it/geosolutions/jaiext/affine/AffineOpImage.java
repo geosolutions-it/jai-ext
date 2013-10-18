@@ -66,7 +66,7 @@ abstract class AffineOpImage extends GeometricOpImage {
 
     /** Store source & padded rectangle info */
     protected Rectangle srcimg;
-
+    
     protected Rectangle padimg;
 
     /** The BorderExtender */
@@ -127,15 +127,15 @@ abstract class AffineOpImage extends GeometricOpImage {
      * Padding values for interpolation
      */
     protected int lpad, rpad, tpad, bpad;
-
+    /** Source ROI */
     protected final ROI srcROI;
-
+    /** ROI image */
     protected final PlanarImage srcROIImage;
-
+    /** Random Iterator used iterating on the ROI data */
     protected final RandomIter roiIter;
-
+    /** Rectangle containing ROI bounds */
     protected final Rectangle roiBounds;
-
+    /** Boolean indicating if a ROI object is used */
     protected final boolean hasROI;
 
     /** Boolean for checking if no data range is present */

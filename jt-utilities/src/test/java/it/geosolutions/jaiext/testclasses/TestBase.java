@@ -92,8 +92,9 @@ public abstract class TestBase {
         , ROI_ACCESSOR_ONLY_DATA(1)
         , ROI_ONLY_DATA(2)
         , ROI_ACCESSOR_NO_DATA(3)
-        ,BINARY_ROI_ACCESSOR_NO_DATA(4),
-        NO_ROI_NO_DATA(5);
+        ,NO_ROI_NO_DATA(4)
+        ,ROI_NO_DATA(5)
+        ,BINARY_ROI_ACCESSOR_NO_DATA(6);
 
         private int type;
 
