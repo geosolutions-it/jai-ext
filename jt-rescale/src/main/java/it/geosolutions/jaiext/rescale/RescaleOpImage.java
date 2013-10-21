@@ -18,6 +18,14 @@ import javax.media.jai.RasterFormatTag;
 import javax.media.jai.iterator.RandomIter;
 import com.sun.media.jai.util.ImageUtil;
 
+/**
+ * This class is used for rescaling the source image pixels with the given scale and offset factors. At the instantiation time this class checks if
+ * the input parameters are suitable for the Rescale operation. If the image data type is Byte, the rescale operation on every pixel value is
+ * pre-calculated and stored inside a byte array and the rescaling is effectively a simple lookup operation. For the other data types the Rescale
+ * operation is performed at runtime. The rescale operation is executed for each tile independently. If input ROI or NoData values are founded, then
+ * they are not rescaled, but the input destination No Data value is returned.
+ */
+
 public class RescaleOpImage extends PointOpImage {
 
     /** ROI extender */
@@ -91,11 +99,15 @@ public class RescaleOpImage extends PointOpImage {
 
         // Check if the constants number is equal to the band number
         // If they are not equal the first constant is used for all bands
-        if (valueScale.length < numBands) {
+        if (valueScale.length < numBands && valueScale.length >= 1) {
             this.scaleFactors = new double[numBands];
             for (int i = 0; i < numBands; i++) {
                 this.scaleFactors[i] = valueScale[0];
             }
+        } else if (valueScale.length < 1) {
+            // In this case an exception is thrown
+            throw new IllegalArgumentException(
+                    "Input Scale factor array should have almost dimension 1");
         } else {
             // Else the constants are copied
             this.scaleFactors = valueScale;
@@ -103,11 +115,14 @@ public class RescaleOpImage extends PointOpImage {
 
         // Check if the offsets number is equal to the band number
         // If they are not equal the first offset is used for all bands
-        if (valueOffsets.length < numBands) {
+        if (valueOffsets.length < numBands && valueOffsets.length >= 1) {
             this.offsetArray = new double[numBands];
             for (int i = 0; i < numBands; i++) {
                 this.offsetArray[i] = valueOffsets[0];
             }
+        } else if (valueOffsets.length < 1) {
+            // In this case an exception is thrown
+            throw new IllegalArgumentException("Input offset array should have almost dimension 1");
         } else {
             // Else the offsets are copied
             this.offsetArray = valueOffsets;
@@ -150,7 +165,7 @@ public class RescaleOpImage extends PointOpImage {
         }
 
         // Image dataType
-        int dataType = source.getSampleModel().getDataType();
+        int dataType = getSampleModel().getDataType();
 
         // Boolean indicating if the image data type is byte
         boolean isByte = dataType == DataBuffer.TYPE_BYTE;
@@ -268,8 +283,7 @@ public class RescaleOpImage extends PointOpImage {
         default:
             throw new IllegalArgumentException("Wrong data type");
         }
-        
-        
+
         if (destAccessor.needsClamping()) {
             /* Further clamp down to underlying raster data type. */
             destAccessor.clampDataArrays();
@@ -436,38 +450,44 @@ public class RescaleOpImage extends PointOpImage {
             }
             // NODATA WITHOUT ROI
         } else if (caseC) {
-            // Initial offsets
-            int dstOffset = 0;
-            int srcOffset = 0;
-            // Cycle on the y-axis
-            for (int y = 0; y < dstHeight; y++) {
-                // creation of the pixel offsets
-                int dstPixelOffset = dstOffset;
-                int srcPixelOffset = srcOffset;
-                // Cycle on the x-axis
-                for (int x = 0; x < dstWidth; x++) {
-                    // Cycle on all the bands
-                    for (int b = 0; b < dstBands; b++) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstBands; b++) {
+                // creation of the line offsets
+                int dstLineOffset = dstBandOffsets[b];
+                int srcLineOffset = srcBandOffsets[b];
+                // Selection of the rescale table already created for the selected band
+                byte[] clamp = byteRescaleTable[b];
+                // Selection of the input band array
+                byte[] bandDataIn = srcData[b];
+                // Selection of the output band array
+                byte[] bandDataOut = dstData[b];
+                // Cycle on the y-axis
+                for (int y = 0; y < dstHeight; y++) {
+                    // creation of the pixel offsets
+                    int dstPixelOffset = dstLineOffset;
+                    int srcPixelOffset = srcLineOffset;
+                    // update of the line offsets
+                    dstLineOffset += dstLineStride;
+                    srcLineOffset += srcLineStride;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < dstWidth; x++) {
                         // Selection of the value to calculate
-                        byte value = srcData[b][srcPixelOffset + srcBandOffsets[b]];
+                        int value = bandDataIn[srcPixelOffset] & 0xFF;
                         // Check if the value is not a NoData
-                        if (booleanLookupTable[value & 0xFF]) {
+                        if (booleanLookupTable[value]) {
                             // Rescale operation
-                            byte[] clamp = byteRescaleTable[b];
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = clamp[value & 0xFF];
+                            bandDataOut[dstPixelOffset] = clamp[value];
                         } else {
                             // Else, destination No Data is set
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataByte;
+                            bandDataOut[dstPixelOffset] = destinationNoDataByte;
                         }
+                        // update of the pixel offsets
+                        dstPixelOffset += dstPixelStride;
+                        srcPixelOffset += srcPixelStride;
                     }
-                    // update of the pixel offsets
-                    dstPixelOffset += dstPixelStride;
-                    srcPixelOffset += srcPixelStride;
                 }
-                // update of the initial offsets
-                dstOffset += dstLineStride;
-                srcOffset += srcLineStride;
             }
+
             // ROI AND NODATA
         } else {
             // ROI RASTERACCESSOR USED
@@ -494,12 +514,12 @@ public class RescaleOpImage extends PointOpImage {
                             // Cycle on all the bands
                             for (int b = 0; b < dstBands; b++) {
                                 // Selection of the value to calculate
-                                byte value = srcData[b][srcPixelOffset + srcBandOffsets[b]];
+                                int value = srcData[b][srcPixelOffset + srcBandOffsets[b]] & 0xFF;
                                 // Check if the value is not a NoData
-                                if (booleanLookupTable[value & 0xFF]) {
+                                if (booleanLookupTable[value]) {
                                     // Rescale operation
                                     byte[] clamp = byteRescaleTable[b];
-                                    dstData[b][dstPixelOffset + dstBandOffsets[b]] = clamp[value & 0xFF];
+                                    dstData[b][dstPixelOffset + dstBandOffsets[b]] = clamp[value];
                                 } else {
                                     // Else, destination No Data is set
                                     dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataByte;
@@ -544,12 +564,12 @@ public class RescaleOpImage extends PointOpImage {
                                 // Cycle on all the bands
                                 for (int b = 0; b < dstBands; b++) {
                                     // Selection of the value to calculate
-                                    byte value = srcData[b][srcPixelOffset + srcBandOffsets[b]];
+                                    int value = srcData[b][srcPixelOffset + srcBandOffsets[b]] & 0xFF;
                                     // Check if the value is not a NoData
-                                    if (booleanLookupTable[value & 0xFF]) {
+                                    if (booleanLookupTable[value]) {
                                         // Rescale operation
                                         byte[] clamp = byteRescaleTable[b];
-                                        dstData[b][dstPixelOffset + dstBandOffsets[b]] = clamp[value & 0xFF];
+                                        dstData[b][dstPixelOffset + dstBandOffsets[b]] = clamp[value];
                                     } else {
                                         // Else, destination No Data is set
                                         dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataByte;
@@ -674,7 +694,8 @@ public class RescaleOpImage extends PointOpImage {
                                 double offset = offsetArray[b];
                                 // Rescale operation
                                 dstData[b][dstPixelOffset + dstBandOffsets[b]] = ImageUtil
-                                        .clampRoundUShort((srcData[b][srcPixelOffset + srcBandOffsets[b]] & 0xFFFF)
+                                        .clampRoundUShort((srcData[b][srcPixelOffset
+                                                + srcBandOffsets[b]] & 0xFFFF)
                                                 * scale + offset);
                             }
                         } else {
@@ -720,7 +741,8 @@ public class RescaleOpImage extends PointOpImage {
                                     double offset = offsetArray[b];
                                     // Rescale operation
                                     dstData[b][dstPixelOffset + dstBandOffsets[b]] = ImageUtil
-                                            .clampRoundUShort((srcData[b][srcPixelOffset + srcBandOffsets[b]] & 0xFFFF)
+                                            .clampRoundUShort((srcData[b][srcPixelOffset
+                                                    + srcBandOffsets[b]] & 0xFFFF)
                                                     * scale + offset);
                                 }
                             } else {
@@ -746,41 +768,44 @@ public class RescaleOpImage extends PointOpImage {
             }
             // NODATA WITHOUT ROI
         } else if (caseC) {
-            // Initial offsets
-            int dstOffset = 0;
-            int srcOffset = 0;
-            // Cycle on the y-axis
-            for (int y = 0; y < dstHeight; y++) {
-                // creation of the pixel offsets
-                int dstPixelOffset = dstOffset;
-                int srcPixelOffset = srcOffset;
-                // Cycle on the x-axis
-                for (int x = 0; x < dstWidth; x++) {
-                    // Cycle on all the bands
-                    for (int b = 0; b < dstBands; b++) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstBands; b++) {
+                // selection of the rescale parameters
+                double scale = scaleFactors[b];
+                double offset = offsetArray[b];
+                // creation of the line offsets
+                int dstLineOffset = dstBandOffsets[b];
+                int srcLineOffset = srcBandOffsets[b];
+                // Selection of the input band array
+                short[] bandDataIn = srcData[b];
+                // Selection of the output band array
+                short[] bandDataOut = dstData[b];
+                // Cycle on the y-axis
+                for (int y = 0; y < dstHeight; y++) {
+                    // creation of the pixel offsets
+                    int dstPixelOffset = dstLineOffset;
+                    int srcPixelOffset = srcLineOffset;
+                    // update of the line offsets
+                    dstLineOffset += dstLineStride;
+                    srcLineOffset += srcLineStride;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < dstWidth; x++) {
                         // Selection of the value to calculate
-                        short value = srcData[b][srcPixelOffset + srcBandOffsets[b]];
+                        short value = bandDataIn[srcPixelOffset];
                         // Check if the value is not a NoData
                         if (!noData.contains(value)) {
                             // Rescale operation
-                            // Selection of the rescale parameters
-                            double scale = scaleFactors[b];
-                            double offset = offsetArray[b];
-                            // Rescale operation
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = ImageUtil
+                            bandDataOut[dstPixelOffset] = ImageUtil
                                     .clampRoundUShort((value & 0xFFFF) * scale + offset);
                         } else {
                             // Else, destination No Data is set
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataShort;
+                            bandDataOut[dstPixelOffset] = destinationNoDataShort;
                         }
+                        // update of the pixel offsets
+                        dstPixelOffset += dstPixelStride;
+                        srcPixelOffset += srcPixelStride;
                     }
-                    // update of the pixel offsets
-                    dstPixelOffset += dstPixelStride;
-                    srcPixelOffset += srcPixelStride;
                 }
-                // update of the initial offsets
-                dstOffset += dstLineStride;
-                srcOffset += srcLineStride;
             }
             // ROI AND NODATA
         } else {
@@ -995,8 +1020,9 @@ public class RescaleOpImage extends PointOpImage {
                                 double offset = offsetArray[b];
                                 // Rescale operation
                                 dstData[b][dstPixelOffset + dstBandOffsets[b]] = ImageUtil
-                                        .clampRoundShort((srcData[b][srcPixelOffset + srcBandOffsets[b]]) * scale
-                                                + offset);
+                                        .clampRoundShort((srcData[b][srcPixelOffset
+                                                + srcBandOffsets[b]])
+                                                * scale + offset);
                             }
                         } else {
                             // Cycle on all the bands
@@ -1041,8 +1067,9 @@ public class RescaleOpImage extends PointOpImage {
                                     double offset = offsetArray[b];
                                     // Rescale operation
                                     dstData[b][dstPixelOffset + dstBandOffsets[b]] = ImageUtil
-                                            .clampRoundShort((srcData[b][srcPixelOffset + srcBandOffsets[b]]) * scale
-                                                    + offset);
+                                            .clampRoundShort((srcData[b][srcPixelOffset
+                                                    + srcBandOffsets[b]])
+                                                    * scale + offset);
                                 }
                             } else {
                                 // Cycle on all the bands
@@ -1067,42 +1094,46 @@ public class RescaleOpImage extends PointOpImage {
             }
             // NODATA WITHOUT ROI
         } else if (caseC) {
-            // Initial offsets
-            int dstOffset = 0;
-            int srcOffset = 0;
-            // Cycle on the y-axis
-            for (int y = 0; y < dstHeight; y++) {
-                // creation of the pixel offsets
-                int dstPixelOffset = dstOffset;
-                int srcPixelOffset = srcOffset;
-                // Cycle on the x-axis
-                for (int x = 0; x < dstWidth; x++) {
-                    // Cycle on all the bands
-                    for (int b = 0; b < dstBands; b++) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstBands; b++) {
+                // selection of the rescale parameters
+                double scale = scaleFactors[b];
+                double offset = offsetArray[b];
+                // creation of the line offsets
+                int dstLineOffset = dstBandOffsets[b];
+                int srcLineOffset = srcBandOffsets[b];
+                // Selection of the input band array
+                short[] bandDataIn = srcData[b];
+                // Selection of the output band array
+                short[] bandDataOut = dstData[b];
+                // Cycle on the y-axis
+                for (int y = 0; y < dstHeight; y++) {
+                    // creation of the pixel offsets
+                    int dstPixelOffset = dstLineOffset;
+                    int srcPixelOffset = srcLineOffset;
+                    // update of the line offsets
+                    dstLineOffset += dstLineStride;
+                    srcLineOffset += srcLineStride;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < dstWidth; x++) {
                         // Selection of the value to calculate
-                        short value = srcData[b][srcPixelOffset + srcBandOffsets[b]];
+                        short value = bandDataIn[srcPixelOffset];
                         // Check if the value is not a NoData
                         if (!noData.contains(value)) {
                             // Rescale operation
-                            // Selection of the rescale parameters
-                            double scale = scaleFactors[b];
-                            double offset = offsetArray[b];
-                            // Rescale operation
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = ImageUtil
-                                    .clampRoundShort((value) * scale + offset);
+                            bandDataOut[dstPixelOffset] = ImageUtil.clampRoundShort((value) * scale
+                                    + offset);
                         } else {
                             // Else, destination No Data is set
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataShort;
+                            bandDataOut[dstPixelOffset] = destinationNoDataShort;
                         }
+                        // update of the pixel offsets
+                        dstPixelOffset += dstPixelStride;
+                        srcPixelOffset += srcPixelStride;
                     }
-                    // update of the pixel offsets
-                    dstPixelOffset += dstPixelStride;
-                    srcPixelOffset += srcPixelStride;
                 }
-                // update of the initial offsets
-                dstOffset += dstLineStride;
-                srcOffset += srcLineStride;
             }
+
             // ROI AND NODATA
         } else {
             // ROI RASTERACCESSOR USED
@@ -1316,8 +1347,9 @@ public class RescaleOpImage extends PointOpImage {
                                 double offset = offsetArray[b];
                                 // Rescale operation
                                 dstData[b][dstPixelOffset + dstBandOffsets[b]] = ImageUtil
-                                        .clampRoundInt((srcData[b][srcPixelOffset + srcBandOffsets[b]]) * scale
-                                                + offset);
+                                        .clampRoundInt((srcData[b][srcPixelOffset
+                                                + srcBandOffsets[b]])
+                                                * scale + offset);
                             }
                         } else {
                             // Cycle on all the bands
@@ -1362,8 +1394,9 @@ public class RescaleOpImage extends PointOpImage {
                                     double offset = offsetArray[b];
                                     // Rescale operation
                                     dstData[b][dstPixelOffset + dstBandOffsets[b]] = ImageUtil
-                                            .clampRoundInt((srcData[b][srcPixelOffset + srcBandOffsets[b]]) * scale
-                                                    + offset);
+                                            .clampRoundInt((srcData[b][srcPixelOffset
+                                                    + srcBandOffsets[b]])
+                                                    * scale + offset);
                                 }
                             } else {
                                 // Cycle on all the bands
@@ -1388,41 +1421,44 @@ public class RescaleOpImage extends PointOpImage {
             }
             // NODATA WITHOUT ROI
         } else if (caseC) {
-            // Initial offsets
-            int dstOffset = 0;
-            int srcOffset = 0;
-            // Cycle on the y-axis
-            for (int y = 0; y < dstHeight; y++) {
-                // creation of the pixel offsets
-                int dstPixelOffset = dstOffset;
-                int srcPixelOffset = srcOffset;
-                // Cycle on the x-axis
-                for (int x = 0; x < dstWidth; x++) {
-                    // Cycle on all the bands
-                    for (int b = 0; b < dstBands; b++) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstBands; b++) {
+                // selection of the rescale parameters
+                double scale = scaleFactors[b];
+                double offset = offsetArray[b];
+                // creation of the line offsets
+                int dstLineOffset = dstBandOffsets[b];
+                int srcLineOffset = srcBandOffsets[b];
+                // Selection of the input band array
+                int[] bandDataIn = srcData[b];
+                // Selection of the output band array
+                int[] bandDataOut = dstData[b];
+                // Cycle on the y-axis
+                for (int y = 0; y < dstHeight; y++) {
+                    // creation of the pixel offsets
+                    int dstPixelOffset = dstLineOffset;
+                    int srcPixelOffset = srcLineOffset;
+                    // update of the line offsets
+                    dstLineOffset += dstLineStride;
+                    srcLineOffset += srcLineStride;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < dstWidth; x++) {
                         // Selection of the value to calculate
-                        int value = srcData[b][srcPixelOffset + srcBandOffsets[b]];
+                        int value = bandDataIn[srcPixelOffset];
                         // Check if the value is not a NoData
                         if (!noData.contains(value)) {
                             // Rescale operation
-                            // Selection of the rescale parameters
-                            double scale = scaleFactors[b];
-                            double offset = offsetArray[b];
-                            // Rescale operation
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = ImageUtil
-                                    .clampRoundInt((value) * scale + offset);
+                            bandDataOut[dstPixelOffset] = ImageUtil.clampRoundInt((value) * scale
+                                    + offset);
                         } else {
                             // Else, destination No Data is set
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataInt;
+                            bandDataOut[dstPixelOffset] = destinationNoDataInt;
                         }
+                        // update of the pixel offsets
+                        dstPixelOffset += dstPixelStride;
+                        srcPixelOffset += srcPixelStride;
                     }
-                    // update of the pixel offsets
-                    dstPixelOffset += dstPixelStride;
-                    srcPixelOffset += srcPixelStride;
                 }
-                // update of the initial offsets
-                dstOffset += dstLineStride;
-                srcOffset += srcLineStride;
             }
             // ROI AND NODATA
         } else {
@@ -1635,7 +1671,8 @@ public class RescaleOpImage extends PointOpImage {
                                 double scale = scaleFactors[b];
                                 double offset = offsetArray[b];
                                 // Rescale operation
-                                dstData[b][dstPixelOffset + dstBandOffsets[b]] = (float) ((srcData[b][srcPixelOffset + srcBandOffsets[b]])
+                                dstData[b][dstPixelOffset + dstBandOffsets[b]] = (float) ((srcData[b][srcPixelOffset
+                                        + srcBandOffsets[b]])
                                         * scale + offset);
                             }
                         } else {
@@ -1680,7 +1717,8 @@ public class RescaleOpImage extends PointOpImage {
                                     double scale = scaleFactors[b];
                                     double offset = offsetArray[b];
                                     // Rescale operation
-                                    dstData[b][dstPixelOffset + dstBandOffsets[b]] = (float) ((srcData[b][srcPixelOffset + srcBandOffsets[b]])
+                                    dstData[b][dstPixelOffset + dstBandOffsets[b]] = (float) ((srcData[b][srcPixelOffset
+                                            + srcBandOffsets[b]])
                                             * scale + offset);
                                 }
                             } else {
@@ -1706,40 +1744,43 @@ public class RescaleOpImage extends PointOpImage {
             }
             // NODATA WITHOUT ROI
         } else if (caseC) {
-            // Initial offsets
-            int dstOffset = 0;
-            int srcOffset = 0;
-            // Cycle on the y-axis
-            for (int y = 0; y < dstHeight; y++) {
-                // creation of the pixel offsets
-                int dstPixelOffset = dstOffset;
-                int srcPixelOffset = srcOffset;
-                // Cycle on the x-axis
-                for (int x = 0; x < dstWidth; x++) {
-                    // Cycle on all the bands
-                    for (int b = 0; b < dstBands; b++) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstBands; b++) {
+                // selection of the rescale parameters
+                double scale = scaleFactors[b];
+                double offset = offsetArray[b];
+                // creation of the line offsets
+                int dstLineOffset = dstBandOffsets[b];
+                int srcLineOffset = srcBandOffsets[b];
+                // Selection of the input band array
+                float[] bandDataIn = srcData[b];
+                // Selection of the output band array
+                float[] bandDataOut = dstData[b];
+                // Cycle on the y-axis
+                for (int y = 0; y < dstHeight; y++) {
+                    // creation of the pixel offsets
+                    int dstPixelOffset = dstLineOffset;
+                    int srcPixelOffset = srcLineOffset;
+                    // update of the line offsets
+                    dstLineOffset += dstLineStride;
+                    srcLineOffset += srcLineStride;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < dstWidth; x++) {
                         // Selection of the value to calculate
-                        float value = srcData[b][srcPixelOffset + srcBandOffsets[b]];
+                        float value = bandDataIn[srcPixelOffset];
                         // Check if the value is not a NoData
                         if (!noData.contains(value)) {
                             // Rescale operation
-                            // Selection of the rescale parameters
-                            double scale = scaleFactors[b];
-                            double offset = offsetArray[b];
-                            // Rescale operation
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = (float) (value * scale + offset);
+                            bandDataOut[dstPixelOffset] = (float) (value * scale + offset);
                         } else {
                             // Else, destination No Data is set
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataFloat;
+                            bandDataOut[dstPixelOffset] = destinationNoDataFloat;
                         }
+                        // update of the pixel offsets
+                        dstPixelOffset += dstPixelStride;
+                        srcPixelOffset += srcPixelStride;
                     }
-                    // update of the pixel offsets
-                    dstPixelOffset += dstPixelStride;
-                    srcPixelOffset += srcPixelStride;
                 }
-                // update of the initial offsets
-                dstOffset += dstLineStride;
-                srcOffset += srcLineStride;
             }
             // ROI AND NODATA
         } else {
@@ -1775,7 +1816,8 @@ public class RescaleOpImage extends PointOpImage {
                                     double scale = scaleFactors[b];
                                     double offset = offsetArray[b];
                                     // Rescale operation
-                                    dstData[b][dstPixelOffset + dstBandOffsets[b]] = (float) (value * scale + offset);
+                                    dstData[b][dstPixelOffset + dstBandOffsets[b]] = (float) (value
+                                            * scale + offset);
                                 } else {
                                     // Else, destination No Data is set
                                     dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataFloat;
@@ -1828,7 +1870,8 @@ public class RescaleOpImage extends PointOpImage {
                                         double scale = scaleFactors[b];
                                         double offset = offsetArray[b];
                                         // Rescale operation
-                                        dstData[b][dstPixelOffset + dstBandOffsets[b]] = (float) (value * scale + offset);
+                                        dstData[b][dstPixelOffset + dstBandOffsets[b]] = (float) (value
+                                                * scale + offset);
                                     } else {
                                         // Else, destination No Data is set
                                         dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataFloat;
@@ -1950,8 +1993,9 @@ public class RescaleOpImage extends PointOpImage {
                                 double scale = scaleFactors[b];
                                 double offset = offsetArray[b];
                                 // Rescale operation
-                                dstData[b][dstPixelOffset + dstBandOffsets[b]] = (srcData[b][srcPixelOffset + srcBandOffsets[b]]) * scale
-                                        + offset;
+                                dstData[b][dstPixelOffset + dstBandOffsets[b]] = (srcData[b][srcPixelOffset
+                                        + srcBandOffsets[b]])
+                                        * scale + offset;
                             }
                         } else {
                             // Cycle on all the bands
@@ -1995,7 +2039,8 @@ public class RescaleOpImage extends PointOpImage {
                                     double scale = scaleFactors[b];
                                     double offset = offsetArray[b];
                                     // Rescale operation
-                                    dstData[b][dstPixelOffset + dstBandOffsets[b]] = (srcData[b][srcPixelOffset + srcBandOffsets[b]])
+                                    dstData[b][dstPixelOffset + dstBandOffsets[b]] = (srcData[b][srcPixelOffset
+                                            + srcBandOffsets[b]])
                                             * scale + offset;
                                 }
                             } else {
@@ -2021,40 +2066,43 @@ public class RescaleOpImage extends PointOpImage {
             }
             // NODATA WITHOUT ROI
         } else if (caseC) {
-            // Initial offsets
-            int dstOffset = 0;
-            int srcOffset = 0;
-            // Cycle on the y-axis
-            for (int y = 0; y < dstHeight; y++) {
-                // creation of the pixel offsets
-                int dstPixelOffset = dstOffset;
-                int srcPixelOffset = srcOffset;
-                // Cycle on the x-axis
-                for (int x = 0; x < dstWidth; x++) {
-                    // Cycle on all the bands
-                    for (int b = 0; b < dstBands; b++) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstBands; b++) {
+                // selection of the rescale parameters
+                double scale = scaleFactors[b];
+                double offset = offsetArray[b];
+                // creation of the line offsets
+                int dstLineOffset = dstBandOffsets[b];
+                int srcLineOffset = srcBandOffsets[b];
+                // Cycle on the y-axis
+                for (int y = 0; y < dstHeight; y++) {
+                    // creation of the pixel offsets
+                    int dstPixelOffset = dstLineOffset;
+                    int srcPixelOffset = srcLineOffset;
+                    // update of the line offsets
+                    dstLineOffset += dstLineStride;
+                    srcLineOffset += srcLineStride;
+                    // Selection of the input band array
+                    double[] bandDataIn = srcData[b];
+                    // Selection of the output band array
+                    double[] bandDataOut = dstData[b];
+                    // Cycle on the x-axis
+                    for (int x = 0; x < dstWidth; x++) {
                         // Selection of the value to calculate
-                        double value = srcData[b][srcPixelOffset + srcBandOffsets[b]];
+                        double value = bandDataIn[srcPixelOffset];
                         // Check if the value is not a NoData
                         if (!noData.contains(value)) {
                             // Rescale operation
-                            // Selection of the rescale parameters
-                            double scale = scaleFactors[b];
-                            double offset = offsetArray[b];
-                            // Rescale operation
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = (value * scale) + offset;
+                            bandDataOut[dstPixelOffset] = (value * scale) + offset;
                         } else {
                             // Else, destination No Data is set
-                            dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataDouble;
+                            bandDataOut[dstPixelOffset] = destinationNoDataDouble;
                         }
+                        // update of the pixel offsets
+                        dstPixelOffset += dstPixelStride;
+                        srcPixelOffset += srcPixelStride;
                     }
-                    // update of the pixel offsets
-                    dstPixelOffset += dstPixelStride;
-                    srcPixelOffset += srcPixelStride;
                 }
-                // update of the initial offsets
-                dstOffset += dstLineStride;
-                srcOffset += srcLineStride;
             }
             // ROI AND NODATA
         } else {
@@ -2090,7 +2138,8 @@ public class RescaleOpImage extends PointOpImage {
                                     double scale = scaleFactors[b];
                                     double offset = offsetArray[b];
                                     // Rescale operation
-                                    dstData[b][dstPixelOffset + dstBandOffsets[b]] = (value * scale) + offset;
+                                    dstData[b][dstPixelOffset + dstBandOffsets[b]] = (value * scale)
+                                            + offset;
                                 } else {
                                     // Else, destination No Data is set
                                     dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataDouble;
@@ -2143,7 +2192,8 @@ public class RescaleOpImage extends PointOpImage {
                                         double scale = scaleFactors[b];
                                         double offset = offsetArray[b];
                                         // Rescale operation
-                                        dstData[b][dstPixelOffset + dstBandOffsets[b]] = (value * scale) + offset;
+                                        dstData[b][dstPixelOffset + dstBandOffsets[b]] = (value * scale)
+                                                + offset;
                                     } else {
                                         // Else, destination No Data is set
                                         dstData[b][dstPixelOffset + dstBandOffsets[b]] = destinationNoDataDouble;

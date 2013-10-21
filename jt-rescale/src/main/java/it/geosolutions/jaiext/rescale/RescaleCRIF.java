@@ -12,10 +12,13 @@ import javax.media.jai.ROI;
 
 import com.sun.media.jai.opimage.RIFUtil;
 
+/**
+ * This RenderedImageFactory class is called by the JAI.create("Rescaling") method for returning a new instance of the RescaleOpImage class. The
+ * function of this class is to unpack the input parameterBlock, take every parameter and then pass them to a new RescaleOpImage instance.
+ */
 public class RescaleCRIF extends CRIFImpl {
-    
-    
-    public RescaleCRIF(){
+
+    public RescaleCRIF() {
         super("Rescaling");
     }
 

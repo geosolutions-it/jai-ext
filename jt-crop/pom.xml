@@ -44,6 +44,7 @@
 			<groupId>it.geosolutions.jaiext.stats</groupId>
 			<artifactId>jt-stats</artifactId>
 			<version>1.0-SNAPSHOT</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 </project>

@@ -1,8 +1,5 @@
-package it.geosolutions.jaiext.crop;
+package it.geosolutions.jaiext.rescale;
 
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-import it.geosolutions.jaiext.testclasses.TestBase;
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
@@ -13,13 +10,17 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.testclasses.TestBase;
 
 /**
- * This test class is used for compare the timing between the new and the old versions of the Crop descriptor . If the user wants to change the number
+ * This test class is used for compare the timing between the new and the old versions of the Rescale operator. If the user wants to change the number
  * of the benchmark cycles or of the not benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or
  * JAI.Ext.NotBenchmarkCycles parameters. The selection of the old or new descriptor must be done by setting to true or false the JVM parameter
  * JAI.Ext.OldDescriptor. For the old descriptor it is possible to use the MediaLibAcceleration by setting to true the JVM parameter
- * JAI.Ext.Acceleration. ROI or No Data Range can be used by simply setting to true the JAI.Ext.ROIUsed and JAI.Ext.RangeUsed JVM parameters
+ * JAI.Ext.Acceleration. ROI or No Data Range can be used by simply setting to true the JAI.Ext.ROIUsed and JAI.Ext.RangeUsed JVM parameters. The
+ * results are printed to the screen.
  */
 public class ComparisonTest extends TestBase {
 
@@ -46,23 +47,20 @@ public class ComparisonTest extends TestBase {
     /** Image to elaborate */
     private static RenderedImage image;
 
-    /** X origin parameter */
-    private static float cropX;
-
-    /** Y origin parameter */
-    private static float cropY;
-
-    /** Width parameter */
-    private static float cropWidth;
-
-    /** Height parameter */
-    private static float cropHeight;
-
     /** ROI parameter */
     private static ROI roi;
 
     /** No Data Range parameter */
     private static Range range;
+
+    /** Scale factors */
+    private static double[] scales;
+
+    /** Offset values */
+    private static double[] offsets;
+
+    /** Destination No Data value used when an input data is a No Data value */
+    private static double destNoData;
 
     @BeforeClass
     public static void initialSetup() {
@@ -142,21 +140,22 @@ public class ComparisonTest extends TestBase {
             }
         }
 
-        // Crop dimensions setting
-        cropX = 10;
-        cropY = 10;
-        cropWidth = 20;
-        cropHeight = 20;
+        // Rescale Factors
+        scales = new double[] { 2, 4, 8 };
+        offsets = new double[] { 1, 2, 3 };
+
+        // Destination No Data
+        destNoData = 0.0d;
     }
 
     @Test
-    public void testCrop() {
+    public void testRescale() {
 
         // Image dataType
         int dataType = TEST_SELECTOR;
 
         // Descriptor string
-        String description = "Crop";
+        String description = "Rescale";
 
         // Control if the acceleration should be used for the old descriptor
         if (OLD_DESCRIPTOR) {
@@ -202,7 +201,7 @@ public class ComparisonTest extends TestBase {
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image
-        PlanarImage imageCrop = null;
+        PlanarImage imageRescale = null;
 
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -213,16 +212,16 @@ public class ComparisonTest extends TestBase {
 
             // creation of the image
             if (OLD_DESCRIPTOR) {
-                imageCrop = javax.media.jai.operator.CropDescriptor.create(image, cropX, cropY,
-                        cropWidth, cropHeight, null);
+                imageRescale = javax.media.jai.operator.RescaleDescriptor.create(image, scales,
+                        offsets, null);
             } else {
-                imageCrop = CropDescriptor.create(image, cropX, cropY, cropWidth, cropHeight, roi,
-                        range, null, null);
+                imageRescale = RescaleDescriptor.create(image, scales, offsets, roi, range, false,
+                        destNoData, null);
             }
 
             // Total calculation time
             long start = System.nanoTime();
-            imageCrop.getTiles();
+            imageRescale.getTiles();
             long end = System.nanoTime() - start;
 
             // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
@@ -259,8 +258,8 @@ public class ComparisonTest extends TestBase {
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
 
         // Final Image disposal
-        if (imageCrop instanceof RenderedOp) {
-            ((RenderedOp) imageCrop).dispose();
+        if (imageRescale instanceof RenderedOp) {
+            ((RenderedOp) imageRescale).dispose();
         }
 
     }

@@ -75,17 +75,18 @@ class RescalePropertyGenerator extends PropertyGeneratorImpl {
  * An <code>OperationDescriptor</code> describing the "Rescale" operation.
  * 
  * <p>
- * The "Rescale" operation takes a rendered or renderable source image and maps the pixel values of an image from one range to another range by
- * multiplying each pixel value by one of a set of constants and then adding another constant to the result of the multiplication. If the number of
- * constants supplied is less than the number of bands of the destination, then the constant from entry 0 is applied to all the bands. Otherwise, a
- * constant from a different entry is applied to each band. There must be at least one entry in each of the contants and offsets arrays.
+ * The "Rescale" operation takes a rendered or renderable source image and changes the image dynamics by multiplying each pixel value by a constant
+ * and then adding another constant to the result of the multiplication. Each constant value is associated to a band. If the number of constants
+ * supplied is less than the number of bands of the destination, then the constant from entry 0 is applied to all the bands. Otherwise, a constant
+ * from a different entry is applied to each band. The optional presence of NoData or ROI is taken into account by replacing each value out of ROI or
+ * each NoData, with the supplied DestinationNoData value.
  * 
  * <p>
- * The destination pixel values are defined by the pseudocode:
+ * The destination pixel values are defined by the following pseudocode:
  * 
  * <pre>
- * constant = (constants.length &lt; dstNumBands) ? constants[0] : constants[b];
- * offset = (offsets.length &lt; dstNumBands) ? offsets[0] : offsets[b];
+ * dst = destination pixel array
+ * src = source pixel array
  * 
  * dst[x][y][b] = src[x][y][b] * constant + offset;
  * </pre>
@@ -103,23 +104,23 @@ class RescalePropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>GlobalName</td>
- * <td>Rescale</td>
+ * <td>Rescaling</td>
  * </tr>
  * <tr>
  * <td>LocalName</td>
- * <td>Rescale</td>
+ * <td>Rescaling</td>
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>com.sun.media.jai</td>
+ * <td>it.geosolutions.jaiext.roiaware</td>
  * </tr>
  * <tr>
  * <td>Description</td>
- * <td>Maps the pixels values of an image from one range to another range.</td>
+ * <td>Operation which converts the image dynamic to a new dynamic.</td>
  * </tr>
  * <tr>
  * <td>DocURL</td>
- * <td>http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/RescaleDescriptor.html</td>
+ * <td>Not Defined</td>
  * </tr>
  * <tr>
  * <td>Version</td>
@@ -127,11 +128,27 @@ class RescalePropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>arg0Desc</td>
- * <td>The per-band constants to multiply by.</td>
+ * <td>Scale factors used for rescaling values.</td>
  * </tr>
  * <tr>
  * <td>arg1Desc</td>
- * <td>The per-band offsets to be added.</td>
+ * <td>Offset factors used for rescaling values.</td>
+ * </tr>
+ * <tr>
+ * <td>arg2Desc</td>
+ * <td>ROI object used.</td>
+ * </tr>
+ * <tr>
+ * <td>arg3Desc</td>
+ * <td>No Data Range used.</td>
+ * </tr>
+ * <tr>
+ * <td>arg4Desc</td>
+ * <td>Boolean checking if ROI RasterAccessor is used.</td>
+ * </tr>
+ * <tr>
+ * <td>arg5Desc</td>
+ * <td>Destination No Data value.</td>
  * </tr>
  * </table>
  * </p>
@@ -145,34 +162,45 @@ class RescalePropertyGenerator extends PropertyGeneratorImpl {
  * <th>Default Value</th>
  * </tr>
  * <tr>
- * <td>constants</td>
+ * <td>scale</td>
  * <td>double[]</td>
  * <td>{1.0}</td>
  * <tr>
- * <td>offsets</td>
+ * <td>offset</td>
  * <td>double[]</td>
  * <td>{0.0}</td>
+ * <tr>
+ * <td>ROI</td>
+ * <td>javax.media.jai.ROI</td>
+ * <td>null</td>
+ * <tr>
+ * <td>noData</td>
+ * <td>it.geosolutions.jaiext.range.Range</td>
+ * <td>null</td>
+ * <tr>
+ * <td>useRoiAccessor</td>
+ * <td>Boolean</td>
+ * <td>false</td>
+ * <tr>
+ * <td>destNoData</td>
+ * <td>Double</td>
+ * <td>0.0d</td>
  * </table>
  * </p>
- * 
- * @see javax.media.jai.OperationDescriptor
  */
+@SuppressWarnings("serial")
 public class RescaleDescriptor extends OperationDescriptorImpl {
 
     /**
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
-    private static final String[][] resources = { 
-            { "GlobalName", "Rescaling" },
-            { "LocalName", "Rescaling" }, 
-            { "Vendor", "it.geosolutions.jaiext.roiaware" },
-            { "Description", "Operation which converts the image dynamics to another dynamyc"}, 
-            { "DocURL", "Not Defined" }, 
-            { "Version", "1.0" },
+    private static final String[][] resources = { { "GlobalName", "Rescaling" },
+            { "LocalName", "Rescaling" }, { "Vendor", "it.geosolutions.jaiext.roiaware" },
+            { "Description", "Operation which converts the image dynamic to a new dynamic" },
+            { "DocURL", "Not Defined" }, { "Version", "1.0" },
             { "arg0Desc", "Scale factors used for rescaling values" },
             { "arg1Desc", "Offset factors used for rescaling values" },
-            { "arg2Desc", "ROI object used" }, 
-            { "arg3Desc", "No Data Range used" },
+            { "arg2Desc", "ROI object used" }, { "arg3Desc", "No Data Range used" },
             { "arg4Desc", "Boolean checking if ROI RasterAccessor is used" },
             { "arg5Desc", "Destination No Data value" } };
 
@@ -187,8 +215,7 @@ public class RescaleDescriptor extends OperationDescriptorImpl {
 
     /** The parameter default value list for this operation. */
     private static final Object[] paramDefaults = { new double[] { 1.0 }, new double[] { 0.0 },
-            null, null, false, 0.0d
-    };
+            null, null, false, 0.0d };
 
     /** Constructor. */
     public RescaleDescriptor() {
