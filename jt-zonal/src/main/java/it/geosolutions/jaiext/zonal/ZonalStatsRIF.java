@@ -37,17 +37,15 @@ public class ZonalStatsRIF implements RenderedImageFactory {
             transform = null;
         }
         List<ROI> roilist = (List<ROI>) pb.getObjectParameter(2);
-        ROI roi = (ROI) pb.getObjectParameter(3);
-        Range noData = (Range) pb.getObjectParameter(4);
-        boolean useROIAccessor = (Boolean) pb.getObjectParameter(5);
-        int[] bands = (int[]) pb.getObjectParameter(6);
-        StatsType[] statsTypes = (StatsType[]) pb.getObjectParameter(7);
-        double[] minBound = (double[]) pb.getObjectParameter(8);
-        double[] maxBound = (double[]) pb.getObjectParameter(9);
-        int[] numBins = (int[]) pb.getObjectParameter(10);
+        Range noData = (Range) pb.getObjectParameter(3);
+        int[] bands = (int[]) pb.getObjectParameter(4);
+        StatsType[] statsTypes = (StatsType[]) pb.getObjectParameter(5);
+        double[] minBound = (double[]) pb.getObjectParameter(6);
+        double[] maxBound = (double[]) pb.getObjectParameter(7);
+        int[] numBins = (int[]) pb.getObjectParameter(8);
         // Image creation
-        return new ZonalStatsOpImage(source, layout, hints, classifier, transform, roilist, roi,
-                noData, useROIAccessor, bands, statsTypes, minBound, maxBound, numBins);
+        return new ZonalStatsOpImage(source, layout, hints, classifier, transform, roilist, noData,
+                bands, statsTypes, minBound, maxBound, numBins);
     }
 
 }

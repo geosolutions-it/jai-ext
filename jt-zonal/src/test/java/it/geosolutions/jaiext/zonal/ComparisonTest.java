@@ -21,12 +21,12 @@ import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 /**
- * This test class is used for compare the timing between the new ZonalStats operation and the its old JaiTools version. Roi or NoData range can be
- * used by setting to true JAI.Ext.ROIUsed or JAI.Ext.RangeUsed JVM boolean parameters are set to true. If the user wants to change the number of the
- * benchmark cycles or of the not benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles
- * parameters.If the user want to use the JaiTools ZonalStats operation must pass to the JVM the JAI.Ext.OldDescriptor parameter set to true. For
- * selecting a specific data type the user must set the JAI.Ext.TestSelector JVM integer parameter to a number between 0 and 5 (where 0 means byte, 1
- * Ushort, 2 Short, 3 Integer, 4 Float and 5 Double). The test is made on a list of 10 geometries. The statistics calculated are:
+ * This test class is used for compare the timing between the new ZonalStats operation and the its old JaiTools version. NoData range can be used by
+ * setting to true the JAI.Ext.RangeUsed JVM boolean parameters. If the user wants to change the number of the benchmark cycles or of the not
+ * benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles parameters.If the user want to use
+ * the JaiTools ZonalStats operation must pass to the JVM the JAI.Ext.OldDescriptor parameter set to true. For selecting a specific data type the user
+ * must set the JAI.Ext.TestSelector JVM integer parameter to a number between 0 and 5 (where 0 means byte, 1 Ushort, 2 Short, 3 Integer, 4 Float and
+ * 5 Double). The test is made on a list of 10 geometries. The statistics calculated are:
  * <ul>
  * <li>Mean</li>
  * <li>Sum</li>
@@ -55,9 +55,6 @@ public class ComparisonTest extends TestBase {
 
     /** Boolean indicating if a No Data Range must be used */
     private final static boolean RANGE_USED = Boolean.getBoolean("JAI.Ext.RangeUsed");
-
-    /** Boolean indicating if a ROI must be used */
-    private final static boolean ROI_USED = Boolean.getBoolean("JAI.Ext.ROIUsed");
 
     /** Boolean indicating if a classifier image must be used */
     private static final boolean CLASSIFIER = Boolean.getBoolean("JAI.Ext.Classifier");
@@ -91,9 +88,6 @@ public class ComparisonTest extends TestBase {
 
     /** Array with band indexes (Integer format) */
     private static Integer[] bandsInteger;
-
-    /** ROI object used for selecting the active area of the image */
-    private static ROI roi;
 
     /** Array indicating the number of bins for each band */
     private static int[] numBins;
@@ -197,14 +191,6 @@ public class ComparisonTest extends TestBase {
             noDataRanges = new ArrayList<org.jaitools.numeric.Range<Double>>();
             noDataRanges.add(new org.jaitools.numeric.Range<Double>(noDataD, true, noDataD, true));
 
-        }
-
-        // ROI creation
-        if (ROI_USED) {
-            Rectangle rect = new Rectangle(0, 0, DEFAULT_WIDTH / 4, DEFAULT_HEIGHT / 4);
-            roi = new ROIShape(rect);
-        } else {
-            roi = null;
         }
 
         // Statistic types definition for new descriptor
@@ -347,8 +333,8 @@ public class ComparisonTest extends TestBase {
                 }
             } else {
                 // New descriptor calculations
-                imageStats = ZonalStatsDescriptor.create(testImage, classifier, null, roilist, roi,
-                        rangeND, false, bands, arrayStats, minBounds, maxBounds, numBins, null);
+                imageStats = ZonalStatsDescriptor.create(testImage, classifier, null, roilist,
+                        rangeND, bands, arrayStats, minBounds, maxBounds, numBins, null);
             }
 
             // Total statistic calculation time

@@ -40,9 +40,9 @@ import com.vividsolutions.jts.index.strtree.STRtree;
  * <li>Median</li>
  * </ul>
  * An additional Classifier image can be used for dividing the statistics between the classes defined by it. The ZonalStatsOpImage is tested on 6
- * different images each one with a different data type (except Long data type). The operation is tested with and without the presence of NoData and,
- * when the ROI is present, with and without the ROI RasterAccessor calculations. The classifier can be used by setting to true the JVM parameter
- * JAI.Ext.Classifier. All the results are compared with the previously calculated statistics for checking the correctness of the calculations.
+ * different images each one with a different data type (except Long data type). The operation is tested with and without the presence of NoData. The
+ * classifier can be used by setting to true the JVM parameter JAI.Ext.Classifier. All the results are compared with the previously calculated
+ * statistics for checking the correctness of the calculations.
  */
 public class ZonalStatsTest extends TestBase {
 
@@ -57,9 +57,6 @@ public class ZonalStatsTest extends TestBase {
 
     /** Source image arrays */
     private static RenderedImage[] sourceIMG;
-
-    /** Optional ROI object */
-    private static ROIShape roi;
 
     /** List of geometries */
     private static List<ROI> roiList;
@@ -198,10 +195,6 @@ public class ZonalStatsTest extends TestBase {
         // Iterator on the classifier image
         RandomIter iterator = RandomIterFactory.create(classifier, rectClass, false, true);
 
-        // ROI creation
-        Rectangle roiBounds = new Rectangle(5, 5, DEFAULT_WIDTH / 4, DEFAULT_HEIGHT / 4);
-        roi = new ROIShape(roiBounds);
-
         // No Data values
         noDataB = 50;
         noDataU = 50;
@@ -295,19 +288,7 @@ public class ZonalStatsTest extends TestBase {
                                             zoneList[z].set(index, zoneGeo);
                                             break;
                                         case 1:
-                                            if (roi.contains(x, y)) {
-                                                zoneGeo.add(value, 0, classId, false);
-                                                zoneList[z].set(index, zoneGeo);
-                                            }
-                                            break;
-                                        case 2:
                                             if (!noDataByte.contains(value)) {
-                                                zoneGeo.add(value, 0, classId, false);
-                                                zoneList[z].set(index, zoneGeo);
-                                            }
-                                            break;
-                                        case 3:
-                                            if (!noDataByte.contains(value) && roi.contains(x, y)) {
                                                 zoneGeo.add(value, 0, classId, false);
                                                 zoneList[z].set(index, zoneGeo);
                                             }
@@ -324,113 +305,36 @@ public class ZonalStatsTest extends TestBase {
     }
 
     @Test
-    public void testNoROINoNoData() {
-        // This test calculates zonal statistics without ROI and NoData
-        boolean roiUsed = false;
+    public void testNoNoData() {
+        // This test calculates zonal statistics without NoData
         boolean noDataRangeUsed = false;
-        boolean useRoiAccessor = false;
 
-        testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-
-    }
-
-    @Test
-    public void testROINoNoData() {
-        // This test calculates zonal statistics with ROI and without NoData
-        boolean roiUsed = true;
-        boolean noDataRangeUsed = false;
-        boolean useRoiAccessor = false;
-
-        testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-
-    }
-
-    @Test
-    public void testROIAccessorNoNoData() {
-        // This test calculates zonal statistics with ROI RasterAccessor and without NoData
-        boolean roiUsed = true;
-        boolean noDataRangeUsed = false;
-        boolean useRoiAccessor = true;
-
-        testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[0], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[1], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[2], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[3], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[4], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[5], CLASSIFIER, noDataRangeUsed);
 
     }
 
     @Test
     public void testNoDataNoROI() {
         // This test calculates zonal statistics with NoData and without ROI
-        boolean roiUsed = false;
         boolean noDataRangeUsed = true;
-        boolean useRoiAccessor = false;
 
-        testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
+        testZonalStats(sourceIMG[0], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[1], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[2], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[3], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[4], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[5], CLASSIFIER, noDataRangeUsed);
 
     }
 
-    @Test
-    public void testROIAccessorNoData() {
-        // This test calculates zonal statistics with NoData and ROI RasterAccessor
-        boolean roiUsed = true;
-        boolean noDataRangeUsed = true;
-        boolean useRoiAccessor = true;
-
-        testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-
-    }
-
-    @Test
-    public void testROINoData() {
-        // This test calculates zonal statistics with NoData and ROI
-        boolean roiUsed = true;
-        boolean noDataRangeUsed = true;
-        boolean useRoiAccessor = false;
-
-        testZonalStats(sourceIMG[0], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[1], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[2], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[3], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[4], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-        testZonalStats(sourceIMG[5], CLASSIFIER, roiUsed, noDataRangeUsed, useRoiAccessor);
-
-    }
-
-    public void testZonalStats(RenderedImage source, boolean classifierUsed, boolean roiUsed,
-            boolean noDataRangeUsed, boolean useRoiAccessor) {
-
-        // The precalculated roi is used, if selected by the related boolean.
-        ROI roiData;
-
-        if (roiUsed) {
-            roiData = roi;
-        } else {
-            roiData = null;
-        }
-
+    public void testZonalStats(RenderedImage source, boolean classifierUsed,
+            boolean noDataRangeUsed) {
+        
         // The classifier is used, if selected by the related boolean.
         RenderedImage classifierIMG;
 
@@ -474,17 +378,13 @@ public class ZonalStatsTest extends TestBase {
         // Index used for indicating which index of the "calculation" array must be taken for reading the precalculated statistic values
         int statsIndex = 0;
 
-        if (roiUsed && noDataRangeUsed) {
-            statsIndex = 3;
-        } else if (roiUsed) {
+        if (noDataRangeUsed) {
             statsIndex = 1;
-        } else if (noDataRangeUsed) {
-            statsIndex = 2;
         }
 
         // Creation of the Image
         RenderedImage destination = ZonalStatsDescriptor.create(source, classifierIMG, null,
-                roiList, roiData, noDataRange, useRoiAccessor, bands, stats, minBound, maxBound,
+                roiList, noDataRange, bands, stats, minBound, maxBound,
                 numBins, null);
         // Statistic calculation
         List<ZoneGeometry> result = (List<ZoneGeometry>) destination
