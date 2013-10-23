@@ -68,7 +68,7 @@ public class ZoneGeometry {
         }
     }
 
-    public void add(double sample, int band, int classId, boolean isNaN) {
+    public synchronized void  add(double sample, int band, int classId, boolean isNaN) {
         // Selection of the map associated with the band indicated by the index
         Map<Integer, Statistics[]> mapClass = statsContainer.get(band);
         // Selection of the Statistics array associated with the zone indicated by the index

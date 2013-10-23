@@ -14,6 +14,7 @@ import java.awt.image.SampleModel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.media.jai.BorderExtender;
@@ -49,10 +50,10 @@ public class ZonalStatsOpImage extends OpImage {
     private static final Logger LOGGER = Logger.getLogger(ZonalStatsOpImage.class.getName());
 
     /** Volatile variable indicating if the statistical computations has already been done or not */
-    private volatile boolean firstTime;
+    private AtomicBoolean firstTime = new AtomicBoolean(true);
 
     /** Spatial index for fast accessing the geometries that contain the selected pixel */
-    private final STRtree spatial;
+    private final STRtree spatialIndex = new STRtree();
 
     /** Boolean indicating if the classifier is present */
     private final boolean classPresent;
@@ -93,6 +94,9 @@ public class ZonalStatsOpImage extends OpImage {
     /** List of all the input geometries */
     private List<ROI> rois;
 
+    /** Boolean indicating if the eventual transformation is not an Identity */
+    private boolean isNotIdentity;
+
     public ZonalStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             RenderedImage classifier, AffineTransform transform, List<ROI> rois, Range noData,
             int[] bands, StatsType[] statsTypes, double[] minBound, double[] maxBound, int[] numBins) {
@@ -111,6 +115,7 @@ public class ZonalStatsOpImage extends OpImage {
 
         // Calculation of the inverse transformation
         classBounds = null;
+        isNotIdentity = false;
         if (classPresent) {
             // source image bounds
             sourceBounds = new Rectangle(source.getMinX(), source.getMinY(), source.getWidth(),
@@ -130,6 +135,8 @@ public class ZonalStatsOpImage extends OpImage {
             }
             // Iterator on the classifier image bounds
             iterator = RandomIterFactory.create(classifier, classBounds, false, true);
+
+            isNotIdentity = !inverseTrans.isIdentity();
 
         }
 
@@ -159,16 +166,14 @@ public class ZonalStatsOpImage extends OpImage {
         }
         // Complex Statistic types validation
 
-
         double[] minBounds = null;
         double[] maxBounds = null;
         int[] numBinss = null;
 
-        
         boolean minBoundsNull = minBound == null;
         boolean maxBoundsNull = maxBound == null;
         boolean numBinsNull = numBins == null;
-                
+
         // Boolean indicating if one of the input arrays is null
         boolean nullCondition = minBoundsNull || maxBoundsNull || numBinsNull;
         // Check if the bounds or the bins are not null
@@ -179,8 +184,8 @@ public class ZonalStatsOpImage extends OpImage {
                         "If complex statistics are used, Bounds and Bin number should be defined");
             }
         }
-        
-        if(!nullCondition){
+
+        if (!nullCondition) {
             // Check if the bounds or the bins have the same length
             int minLen = minBound.length;
             int maxLen = maxBound.length;
@@ -189,8 +194,7 @@ public class ZonalStatsOpImage extends OpImage {
             if ((minLen + maxLen + numLen) != (minLen * 3)) {
                 throw new IllegalArgumentException("Bounds and Bin length must be equals");
             }
-            
-            
+
             // If the bounds and bins have a minor dimension than that of the bands array
             // the bounds and the bin related to the index 0 are repeated on all the bound
             // and bin array.
@@ -212,13 +216,9 @@ public class ZonalStatsOpImage extends OpImage {
                 minBounds = minBound;
                 maxBounds = maxBound;
                 numBinss = numBins;
-            } 
+            }
         }
-        
 
-
-        // Creation of the spatial index
-        spatial = new STRtree();
         // Creation of a ZoneGeometry list, for storing the results
         zoneList = new ArrayList<ZoneGeometry>();
         // Check if the rois are present. Otherwise the entire image statistics
@@ -236,7 +236,7 @@ public class ZonalStatsOpImage extends OpImage {
             double minY = rect.getMinY();
             double maxY = rect.getMaxY();
             Envelope env = new Envelope(minX, maxX, minY, maxY);
-            spatial.insert(env, roi);
+            spatialIndex.insert(env, roi);
 
             // Creation of a new ZoneGeometry
             ZoneGeometry geom = new ZoneGeometry(bands, statsTypes, classPresent, minBounds,
@@ -256,7 +256,7 @@ public class ZonalStatsOpImage extends OpImage {
                 double minY = rect.getMinY();
                 double maxY = rect.getMaxY();
                 Envelope env = new Envelope(minX, maxX, minY, maxY);
-                spatial.insert(env, roi);
+                spatialIndex.insert(env, roi);
                 // Union
                 union = union.union(rect);
                 // Creation of a new ZoneGeometry
@@ -289,8 +289,6 @@ public class ZonalStatsOpImage extends OpImage {
             booleanLookupTable = null;
         }
 
-        // Setting the computation flag to true
-        firstTime = true;
     }
 
     public Raster computeTile(int tileX, int tileY) {
@@ -369,12 +367,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the classId value is taken
@@ -385,7 +389,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -429,12 +435,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -445,7 +457,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -511,12 +525,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -527,7 +547,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -571,12 +593,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -587,7 +615,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -653,12 +683,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -669,7 +705,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -713,12 +751,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -729,7 +773,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -795,12 +841,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -811,7 +863,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -855,12 +909,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -871,7 +931,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -937,12 +999,19 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    @SuppressWarnings("unchecked")
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -953,7 +1022,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -967,9 +1038,9 @@ public class ZonalStatsOpImage extends OpImage {
                         if (geometry.contains(x0, y0)) {
                             // then the related zoneGeometry object statistics are updated
                             int index = rois.indexOf(geometry);
+                            ZoneGeometry zoneGeo = zoneList.get(index);
 
                             synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -978,7 +1049,6 @@ public class ZonalStatsOpImage extends OpImage {
                                     // Update of all the statistics
                                     zoneGeo.add(sample, bands[i], classId, false);
                                 }
-                                zoneList.set(index, zoneGeo);
                             }
                         }
                     }
@@ -997,12 +1067,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -1013,7 +1089,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -1080,12 +1158,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -1096,7 +1180,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -1140,12 +1226,18 @@ public class ZonalStatsOpImage extends OpImage {
                     // PixelPositions
                     int x0 = srcX + x;
                     int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        continue;
+                    }
+
                     // Coordinate object creation for the spatial indexing
                     Coordinate p1 = new Coordinate(x0, y0);
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatial.query(searchEnv);
+                    List<ROI> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -1156,7 +1248,9 @@ public class ZonalStatsOpImage extends OpImage {
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
-                            inverseTrans.inverseTransform(pointSrc, pointClass);
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                            }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -1260,7 +1354,7 @@ public class ZonalStatsOpImage extends OpImage {
         for (int i = zoneSize - 1; i >= 0; i--) {
             zoneList.remove(i);
         }
-        firstTime = true;
+        firstTime.set(true);
     }
 
     /**
@@ -1277,8 +1371,7 @@ public class ZonalStatsOpImage extends OpImage {
      * computation. This method is overridden such that can be invoked only one time by using a flag for avoiding unnecessary computations.
      */
     public Raster[] getTiles() {
-        if (firstTime) {
-            firstTime = false;
+        if (firstTime.getAndSet(false)) {
             return getTiles(getTileIndices(getBounds()));
         } else {
             return null;

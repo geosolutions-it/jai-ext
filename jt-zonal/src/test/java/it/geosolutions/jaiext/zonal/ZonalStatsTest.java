@@ -319,7 +319,7 @@ public class ZonalStatsTest extends TestBase {
     }
 
     @Test
-    public void testNoDataNoROI() {
+    public void testNoData() {
         // This test calculates zonal statistics with NoData and without ROI
         boolean noDataRangeUsed = true;
 
