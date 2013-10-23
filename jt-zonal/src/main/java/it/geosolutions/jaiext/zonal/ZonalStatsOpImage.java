@@ -158,9 +158,17 @@ public class ZonalStatsOpImage extends OpImage {
             }
         }
         // Complex Statistic types validation
+
+
+        double[] minBounds = null;
+        double[] maxBounds = null;
+        int[] numBinss = null;
+
+        
         boolean minBoundsNull = minBound == null;
         boolean maxBoundsNull = maxBound == null;
         boolean numBinsNull = numBins == null;
+                
         // Boolean indicating if one of the input arrays is null
         boolean nullCondition = minBoundsNull || maxBoundsNull || numBinsNull;
         // Check if the bounds or the bins are not null
@@ -171,40 +179,43 @@ public class ZonalStatsOpImage extends OpImage {
                         "If complex statistics are used, Bounds and Bin number should be defined");
             }
         }
-        // Check if the bounds or the bins have the same length
-        int minLen = minBound.length;
-        int maxLen = maxBound.length;
-        int numLen = numBins.length;
+        
+        if(!nullCondition){
+            // Check if the bounds or the bins have the same length
+            int minLen = minBound.length;
+            int maxLen = maxBound.length;
+            int numLen = numBins.length;
 
-        if ((minLen + maxLen + numLen) != (minLen * 3)) {
-            throw new IllegalArgumentException("Bounds and Bin length must be equals");
-        }
-        // If the bounds and bins have a minor dimension than that of the bands array
-        // the bounds and the bin related to the index 0 are repeated on all the bound
-        // and bin array.
-        double[] minBounds;
-        double[] maxBounds;
-        int[] numBinss;
-
-        if (bandNum > minLen) {
-            double[] minBoundsTmp = new double[bands.length];
-            double[] maxBoundsTmp = new double[bands.length];
-            int[] numbinsTmp = new int[bands.length];
-            for (int i = 0; i < bands.length; i++) {
-                minBoundsTmp[i] = minBound[0];
-                maxBoundsTmp[i] = maxBound[0];
-                numbinsTmp[i] = numBins[0];
+            if ((minLen + maxLen + numLen) != (minLen * 3)) {
+                throw new IllegalArgumentException("Bounds and Bin length must be equals");
             }
+            
+            
+            // If the bounds and bins have a minor dimension than that of the bands array
+            // the bounds and the bin related to the index 0 are repeated on all the bound
+            // and bin array.
+            if (bandNum > minLen) {
+                double[] minBoundsTmp = new double[bands.length];
+                double[] maxBoundsTmp = new double[bands.length];
+                int[] numbinsTmp = new int[bands.length];
+                for (int i = 0; i < bands.length; i++) {
+                    minBoundsTmp[i] = minBound[0];
+                    maxBoundsTmp[i] = maxBound[0];
+                    numbinsTmp[i] = numBins[0];
+                }
 
-            minBounds = minBoundsTmp;
-            maxBounds = maxBoundsTmp;
-            numBinss = numbinsTmp;
+                minBounds = minBoundsTmp;
+                maxBounds = maxBoundsTmp;
+                numBinss = numbinsTmp;
 
-        } else {
-            minBounds = minBound;
-            maxBounds = maxBound;
-            numBinss = numBins;
+            } else {
+                minBounds = minBound;
+                maxBounds = maxBound;
+                numBinss = numBins;
+            } 
         }
+        
+
 
         // Creation of the spatial index
         spatial = new STRtree();

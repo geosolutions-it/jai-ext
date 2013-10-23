@@ -1,7 +1,9 @@
 package it.geosolutions.jaiext.zonal;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import it.geosolutions.jaiext.stats.Statistics;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import it.geosolutions.jaiext.stats.StatsFactory;
@@ -115,9 +117,24 @@ public class ZoneGeometry {
         return statistics;
     }
 
+    /**
+     * Utility method indicating the number of classes
+     */
     public int getNumClass() {
         Map<Integer, Statistics[]> resultAllClass = statsContainer.get(0);
         return resultAllClass.size();
+    }
+    
+    /**
+     * Utility method indicating the index of all the classes
+     */
+    public Set<Integer> getClasses() {
+        Map<Integer, Statistics[]> resultAllClass = statsContainer.get(0);
+        Set<Integer> classes = resultAllClass.keySet();
+        
+        TreeSet<Integer> orderedSet = new TreeSet<Integer>(classes);
+        
+        return java.util.Collections.unmodifiableSet(orderedSet); 
     }
 
     /**
