@@ -19,21 +19,10 @@ public class Max extends Statistics {
     }
 
     @Override
-    public void addSampleNoNaN(double sample, boolean isData) {
-        if (isData) {
+    public void addSample(double sample) {
             if (sample > max) {
                 max = sample;
             }
-        }
-    }
-
-    @Override
-    public void addSampleNaN(double sample, boolean isData, boolean isNaN) {
-        if (isData && !isNaN) {
-            if (sample > max) {
-                max = sample;
-            }
-        }
     }
 
     @Override

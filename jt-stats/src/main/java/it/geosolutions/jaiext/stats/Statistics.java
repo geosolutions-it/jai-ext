@@ -46,20 +46,27 @@ public abstract class Statistics {
         return type;
     }
 
-    /** This method checks if the 2 Statistics objects belong to the same subclass */
+    /** This method checks if the provided Statistics object belong to the same subclass of the current object
+     * 
+     * @param stats Statistics object to compare
+     */
     protected void checkSameStats(Statistics stats) {
         if (stats.getStatsType() != type) {
             throw new IllegalArgumentException("These statistics are not the same");
         }
     }
 
-    /** This method add a Double value to the statistics and give informations about no Data */
-    public abstract void addSampleNoNaN(double sample, boolean isData);
+    /**
+     * This method adds a Double value to the statistics and updates them
+     * 
+     * @param sample sample value used for updating statistics
+     */
+    public abstract void addSample(double sample);
 
-    /** This method add a Double value to the statistics and give informations about no Data and NaN */
-    public abstract void addSampleNaN(double sample, boolean isData, boolean isNaN);
-
-    /** This method is used for accumulating the statistics from another Statistics object */
+    /** This method is used for accumulating the statistics from another Statistics object 
+     * 
+     * @param stats Statistics object to add to the current object
+     */
     protected abstract void accumulateStats(Statistics stats);
 
     /** This method returns the statistic result */

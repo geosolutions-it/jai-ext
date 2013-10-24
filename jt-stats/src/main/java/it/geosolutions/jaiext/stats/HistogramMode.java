@@ -57,18 +57,8 @@ public class HistogramMode extends Statistics {
     }
 
     @Override
-    public void addSampleNoNaN(double sample, boolean isData) {
-        if (isData && interval.contains(sample)) {
-            // Selection of the index
-            int index = getIndex(sample);
-            // Update of the bin count
-            bins[index].addAndGet(1);
-        }
-    }
-
-    @Override
-    public void addSampleNaN(double sample, boolean isData, boolean isNaN) {
-        if (isData && !isNaN && interval.contains(sample)) {
+    public void addSample(double sample) {
+        if (interval.contains(sample)) {
             // Selection of the index
             int index = getIndex(sample);
             // Update of the bin count

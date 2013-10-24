@@ -119,8 +119,8 @@ public class StatisticsTest {
         // Mean and sum calculation
         for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
             sum += testArray[i];
-            sumObj.addSampleNoNaN(testArray[i], true);
-            meanObj.addSampleNoNaN(testArray[i], true);
+            sumObj.addSample(testArray[i]);
+            meanObj.addSample(testArray[i]);
         }
         // Comparison
         double sum2 = (Double) (sumObj.getResult());
@@ -144,9 +144,9 @@ public class StatisticsTest {
             if (testArray[i] < min) {
                 min = testArray[i];
             }
-            minObj.addSampleNoNaN(testArray[i], true);
-            maxObj.addSampleNoNaN(testArray[i], true);
-            extremaObj.addSampleNoNaN(testArray[i], true);
+            minObj.addSample(testArray[i]);
+            maxObj.addSample(testArray[i]);
+            extremaObj.addSample(testArray[i]);
         }
         // Comparison
         double[] array = (double[]) (extremaObj.getResult());
@@ -171,8 +171,8 @@ public class StatisticsTest {
         // Variance and standard deviation calculation
         for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
             sum += testArray[i];
-            varianceObj.addSampleNoNaN(testArray[i], true);
-            devstdObj.addSampleNoNaN(testArray[i], true);
+            varianceObj.addSample(testArray[i]);
+            devstdObj.addSample(testArray[i]);
         }
         mean = sum / (ARRAY_DIMENSIONS - 1);
         double sum2 = 0;
@@ -205,9 +205,9 @@ public class StatisticsTest {
                 hist[index]++;
                 listData.add(testArray[i]);
             }
-            modeObj.addSampleNoNaN(testArray[i], true);
-            histogramObj.addSampleNoNaN(testArray[i], true);
-            medianObj.addSampleNoNaN(testArray[i], true);
+            modeObj.addSample(testArray[i]);
+            histogramObj.addSample(testArray[i]);
+            medianObj.addSample(testArray[i]);
         }
 
         // Selection of the median
@@ -258,25 +258,25 @@ public class StatisticsTest {
 
         // Addition of dummy data
         Statistics newMeanObj = StatsFactory.createMeanObject();
-        newMeanObj.addSampleNoNaN(1, true);
+        newMeanObj.addSample(1);
 
         Statistics newSumObj = StatsFactory.createSumObject();
-        newSumObj.addSampleNoNaN(1, true);
+        newSumObj.addSample(1);
 
         Statistics newMaxObj = StatsFactory.createMaxObject();
-        newMaxObj.addSampleNoNaN(1, true);
+        newMaxObj.addSample(1);
 
         Statistics newMinObj = StatsFactory.createMinObject();
-        newMinObj.addSampleNoNaN(1, true);
+        newMinObj.addSample(1);
 
         Statistics newExtremaObj = StatsFactory.createExtremaObject();
-        newExtremaObj.addSampleNoNaN(1, true);
+        newExtremaObj.addSample(1);
 
         Statistics newVarianceObj = StatsFactory.createVarianceObject();
-        newVarianceObj.addSampleNoNaN(1, true);
+        newVarianceObj.addSample(1);
 
         Statistics newDevStdObj = StatsFactory.createDevStdObject();
-        newDevStdObj.addSampleNoNaN(1, true);
+        newDevStdObj.addSample(1);
 
         // Statistics accumulation
         newMeanObj.accumulateStats(meanObj);
@@ -345,34 +345,34 @@ public class StatisticsTest {
     public void testEmptyStats() {
         // Addition of dummy data
         Statistics newMeanObj = StatsFactory.createMeanObject();
-        newMeanObj.addSampleNoNaN(1, true);
+        newMeanObj.addSample(1);
 
         Statistics newSumObj = StatsFactory.createSumObject();
-        newSumObj.addSampleNoNaN(1, true);
+        newSumObj.addSample(1);
 
         Statistics newMaxObj = StatsFactory.createMaxObject();
-        newMaxObj.addSampleNoNaN(1, true);
+        newMaxObj.addSample(1);
 
         Statistics newMinObj = StatsFactory.createMinObject();
-        newMinObj.addSampleNoNaN(1, true);
+        newMinObj.addSample(1);
 
         Statistics newExtremaObj = StatsFactory.createExtremaObject();
-        newExtremaObj.addSampleNoNaN(1, true);
+        newExtremaObj.addSample(1);
 
         Statistics newVarianceObj = StatsFactory.createVarianceObject();
-        newVarianceObj.addSampleNoNaN(1, true);
+        newVarianceObj.addSample(1);
 
         Statistics newDevStdObj = StatsFactory.createDevStdObject();
-        newDevStdObj.addSampleNoNaN(1, true);
+        newDevStdObj.addSample(1);
 
         Statistics newHistObj = StatsFactory.createHistogramObject(numBins, minBound, maxBound);
-        newHistObj.addSampleNoNaN(1, true);
+        newHistObj.addSample(1);
 
         Statistics newModeObj = StatsFactory.createModeObject(numBins, minBound, maxBound);
-        newModeObj.addSampleNoNaN(1, true);
+        newModeObj.addSample(1);
 
         Statistics newMedianObj = StatsFactory.createMedianObject(minBound, maxBound);
-        newMedianObj.addSampleNoNaN(1, true);
+        newMedianObj.addSample(1);
 
         // Clearing of the statistics
         newMeanObj.clearStats();

@@ -4,6 +4,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import javax.media.jai.ROI;
+
 import it.geosolutions.jaiext.stats.Statistics;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import it.geosolutions.jaiext.stats.StatsFactory;
@@ -34,8 +37,11 @@ public class ZoneGeometry {
 
     /** Array indicating the number of bins for each band */
     private int[] numbins;
+    
+    /** Geometry associated to the selected zone*/
+    private final ROI roi;
 
-    ZoneGeometry(int[] bands, StatsType[] stats, boolean classification, double[] minBounds,
+    ZoneGeometry(ROI roi, int[] bands, StatsType[] stats, boolean classification, double[] minBounds,
             double[] maxBounds, int[] numbins) {
 
         // Setting of the parameters
@@ -44,6 +50,7 @@ public class ZoneGeometry {
         this.minBounds = minBounds;
         this.maxBounds = maxBounds;
         this.numbins = numbins;
+        this.roi = roi;
         // creation of the new map associated with this ZoneGeometry instance
         statsContainer = new TreeMap<Integer, Map<Integer, Statistics[]>>();
         // Cicle on all the selected bands for creating the band inner map elements
@@ -68,7 +75,7 @@ public class ZoneGeometry {
         }
     }
 
-    public synchronized void  add(double sample, int band, int classId, boolean isNaN) {
+    public synchronized void  add(double sample, int band, int classId) {
         // Selection of the map associated with the band indicated by the index
         Map<Integer, Statistics[]> mapClass = statsContainer.get(band);
         // Selection of the Statistics array associated with the zone indicated by the index
@@ -77,6 +84,8 @@ public class ZoneGeometry {
         // if the classifier is present and a new Class is founded, then a new statistics object is created
         if (classification && statistics == null) {
             statistics = new Statistics[stats.length];
+            // The updated statistics are inserted in the related containers
+            mapClass.put(classId, statistics);
             for (int st = 0; st < stats.length; st++) {
                 int statId = stats[st].getStatsId();
                 if (statId <= 6) {
@@ -90,13 +99,8 @@ public class ZoneGeometry {
 
         // Update of the statistics
         for (int st = 0; st < stats.length; st++) {
-            statistics[st].addSampleNaN(sample, true, isNaN);
+            statistics[st].addSample(sample);
         }
-
-        // The updated statistics are inserted in the related containers
-        mapClass.put(classId, statistics);
-
-        statsContainer.put(band, mapClass);
     }
 
     /**
@@ -151,6 +155,14 @@ public class ZoneGeometry {
     public Map<Integer, Map<Integer, Statistics[]>> getTotalStats() {
         return new TreeMap<Integer, Map<Integer, Statistics[]>>(statsContainer);
     }
+    
+    /**
+     * Utility method for finding the zone associated geometry.
+     */
+    public ROI getROI(){
+        return roi;        
+    }
+    
 
     /** Simple method for clearing all the image statistics */
     public void clear() {

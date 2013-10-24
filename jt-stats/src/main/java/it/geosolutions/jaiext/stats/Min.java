@@ -19,21 +19,10 @@ public class Min extends Statistics {
     }
 
     @Override
-    public void addSampleNoNaN(double sample, boolean isData) {
-        if (isData) {
+    public void addSample(double sample) {
             if (sample < min) {
                 min = sample;
             }
-        }
-    }
-
-    @Override
-    public void addSampleNaN(double sample, boolean isData, boolean isNaN) {
-        if (isData && !isNaN) {
-            if (sample < min) {
-                min = sample;
-            }
-        }
     }
 
     @Override

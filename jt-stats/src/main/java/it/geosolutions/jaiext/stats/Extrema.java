@@ -28,26 +28,12 @@ public class Extrema extends Statistics {
     }
 
     @Override
-    public void addSampleNoNaN(double sample, boolean isData) {
-        if (isData) {
-            if (sample > max) {
-                max = sample;
-            }
-            if (sample < min) {
-                min = sample;
-            }
+    public void addSample(double sample) {
+        if (sample > max) {
+            max = sample;
         }
-    }
-
-    @Override
-    public void addSampleNaN(double sample, boolean isData, boolean isNaN) {
-        if (isData && !isNaN) {
-            if (sample > max) {
-                max = sample;
-            }
-            if (sample < min) {
-                min = sample;
-            }
+        if (sample < min) {
+            min = sample;
         }
     }
 

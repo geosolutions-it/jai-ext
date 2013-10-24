@@ -12,6 +12,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -74,7 +75,7 @@ public class ZonalStatsOpImage extends OpImage {
     private Rectangle union;
 
     /** List of all the ZoneGeometry objects associated to every initial geometry */
-    private final ArrayList<ZoneGeometry> zoneList;
+    // private final ArrayList<ZoneGeometry> zoneList;
 
     /** Source image bounds */
     private Rectangle sourceBounds;
@@ -220,7 +221,7 @@ public class ZonalStatsOpImage extends OpImage {
         }
 
         // Creation of a ZoneGeometry list, for storing the results
-        zoneList = new ArrayList<ZoneGeometry>();
+        // zoneList = new ArrayList<ZoneGeometry>();
         // Check if the rois are present. Otherwise the entire image statistics
         // are calculated
         if (rois == null) {
@@ -236,13 +237,14 @@ public class ZonalStatsOpImage extends OpImage {
             double minY = rect.getMinY();
             double maxY = rect.getMaxY();
             Envelope env = new Envelope(minX, maxX, minY, maxY);
-            spatialIndex.insert(env, roi);
+            // spatialIndex.insert(env, roi);
 
             // Creation of a new ZoneGeometry
-            ZoneGeometry geom = new ZoneGeometry(bands, statsTypes, classPresent, minBounds,
+            ZoneGeometry geom = new ZoneGeometry(roi, bands, statsTypes, classPresent, minBounds,
                     maxBounds, numBinss);
             // Addition to the geometries list
-            zoneList.add(geom);
+            spatialIndex.insert(env, geom);
+            // zoneList.add(geom);
 
         } else {
             // Bounds Union
@@ -256,14 +258,15 @@ public class ZonalStatsOpImage extends OpImage {
                 double minY = rect.getMinY();
                 double maxY = rect.getMaxY();
                 Envelope env = new Envelope(minX, maxX, minY, maxY);
-                spatialIndex.insert(env, roi);
+                // spatialIndex.insert(env, roi);
                 // Union
                 union = union.union(rect);
                 // Creation of a new ZoneGeometry
-                ZoneGeometry geom = new ZoneGeometry(bands, statsTypes, classPresent, minBounds,
-                        maxBounds, numBinss);
+                ZoneGeometry geom = new ZoneGeometry(roi, bands, statsTypes, classPresent,
+                        minBounds, maxBounds, numBinss);
                 // Addition to the geometries list
-                zoneList.add(geom);
+                spatialIndex.insert(env, geom);
+                // zoneList.add(geom);
             }
             // Sets of the roi list
             this.rois = rois;
@@ -378,7 +381,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the classId value is taken
@@ -400,23 +403,17 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
-
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    byte sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
-                                    // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId, false);
-                                }
-                                zoneList.set(index, zoneGeo);
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                byte sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // Update of all the statistics
+                                zoneGeo.add(sample, bands[i], classId);
                             }
                         }
                     }
@@ -446,7 +443,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -468,27 +465,24 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
 
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    byte sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
-                                    // NoData check
-                                    if (booleanLookupTable[(int) sample]) {
-                                        // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], classId, false);
-                                    }
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                byte sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // NoData check
+                                if (booleanLookupTable[(int) sample]) {
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], classId);
                                 }
-                                zoneList.set(index, zoneGeo);
                             }
+
                         }
                     }
                 }
@@ -536,7 +530,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -558,23 +552,19 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
 
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    int sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]] & 0xFFFF;
-                                    // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId, false);
-                                }
-                                zoneList.set(index, zoneGeo);
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                int sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                // Update of all the statistics
+                                zoneGeo.add(sample, bands[i], classId);
                             }
                         }
                     }
@@ -604,7 +594,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -626,26 +616,22 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
 
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    int sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]] & 0xFFFF;
-                                    // NoData check
-                                    if (!noData.contains((short) sample)) {
-                                        // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], classId, false);
-                                    }
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                int sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                // NoData check
+                                if (!noData.contains((short) sample)) {
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], classId);
                                 }
-                                zoneList.set(index, zoneGeo);
                             }
                         }
                     }
@@ -694,7 +680,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -716,24 +702,21 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
 
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    short sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
-                                    // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId, false);
-                                }
-                                zoneList.set(index, zoneGeo);
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                short sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // Update of all the statistics
+                                zoneGeo.add(sample, bands[i], classId);
                             }
+
                         }
                     }
                 }
@@ -762,7 +745,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -784,26 +767,22 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
 
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    short sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
-                                    // NoData check
-                                    if (!noData.contains(sample)) {
-                                        // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], classId, false);
-                                    }
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                short sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // NoData check
+                                if (!noData.contains(sample)) {
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], classId);
                                 }
-                                zoneList.set(index, zoneGeo);
                             }
                         }
                     }
@@ -852,7 +831,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -874,23 +853,19 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
 
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    int sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
-                                    // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId, false);
-                                }
-                                zoneList.set(index, zoneGeo);
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                int sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // Update of all the statistics
+                                zoneGeo.add(sample, bands[i], classId);
                             }
                         }
                     }
@@ -920,7 +895,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -942,26 +917,22 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
 
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    int sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
-                                    // NoData check
-                                    if (!noData.contains(sample)) {
-                                        // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], classId, false);
-                                    }
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                int sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // NoData check
+                                if (!noData.contains(sample)) {
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], classId);
                                 }
-                                zoneList.set(index, zoneGeo);
                             }
                         }
                     }
@@ -1011,7 +982,7 @@ public class ZonalStatsOpImage extends OpImage {
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
                     @SuppressWarnings("unchecked")
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -1033,22 +1004,19 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
-                            ZoneGeometry zoneGeo = zoneList.get(index);
 
-                            synchronized (this) {
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    float sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
-                                    // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId, false);
-                                }
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                float sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // Update of all the statistics
+                                zoneGeo.add(sample, bands[i], classId);
                             }
                         }
                     }
@@ -1078,7 +1046,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -1100,27 +1068,22 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
 
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    float sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
-                                    // NoData check
-                                    if (!noData.contains(sample)) {
-                                        boolean isNaN = Float.isNaN(sample);
-                                        // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], classId, isNaN);
-                                    }
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                float sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // NoData check
+                                if (!noData.contains(sample)) {
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], classId);
                                 }
-                                zoneList.set(index, zoneGeo);
                             }
                         }
                     }
@@ -1169,7 +1132,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -1191,23 +1154,19 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
 
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    double sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
-                                    // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId, false);
-                                }
-                                zoneList.set(index, zoneGeo);
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                double sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // Update of all the statistics
+                                zoneGeo.add(sample, bands[i], classId);
                             }
                         }
                     }
@@ -1237,7 +1196,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    List<ROI> geomList = spatialIndex.query(searchEnv);
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
                     // If the classifier is present then the zone value is taken
@@ -1259,27 +1218,21 @@ public class ZonalStatsOpImage extends OpImage {
                         classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
-                    for (ROI geometry : geomList) {
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-                            // then the related zoneGeometry object statistics are updated
-                            int index = rois.indexOf(geometry);
-
-                            synchronized (this) {
-                                ZoneGeometry zoneGeo = zoneList.get(index);
-
-                                // Cycle on the selected Bands
-                                for (int i = 0; i < bandNum; i++) {
-                                    double sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
-                                    // NoData check
-                                    if (!noData.contains(sample)) {
-                                        boolean isNaN = Double.isNaN(sample);
-                                        // Update of all the statistics
-                                        zoneGeo.add(sample, bands[i], classId, isNaN);
-                                    }
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                double sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // NoData check
+                                if (!noData.contains(sample)) {
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], classId);
                                 }
-                                zoneList.set(index, zoneGeo);
                             }
                         }
                     }
@@ -1350,19 +1303,7 @@ public class ZonalStatsOpImage extends OpImage {
      * This method is used if the user needs to perform again the statistical calculations.
      */
     public synchronized void clearStatistic() {
-        int zoneSize = zoneList.size();
-        for (int i = zoneSize - 1; i >= 0; i--) {
-            zoneList.remove(i);
-        }
         firstTime.set(true);
-    }
-
-    /**
-     * When the dispose method is called, then old dispose method is performed and also the statistic container is cleared.
-     */
-    public void dispose() {
-        super.dispose();
-        clearStatistic();
     }
 
     /**
@@ -1392,7 +1333,8 @@ public class ZonalStatsOpImage extends OpImage {
         // If the specified property is "JAI-EXT.stats", the calculations are performed.
         if (ZonalStatsDescriptor.ZS_PROPERTY.equalsIgnoreCase(name)) {
             getTiles();
-            return zoneList.clone();
+            List<ZoneGeometry> result = spatialIndex.itemsTree();
+            return Collections.unmodifiableList(result);
         } else {
             return super.getProperty(name);
         }

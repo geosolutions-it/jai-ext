@@ -333,7 +333,7 @@ public abstract class StatisticsOpImage extends OpImage {
                         byte sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
                         for (int j = 0; j < statNum; j++) {
                             // Update of all the statistics
-                            statArray[i][j].addSampleNoNaN(sample, true);
+                            statArray[i][j].addSample(sample);
                         }
                     }
                 }
@@ -364,7 +364,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]];
                                 for (int j = 0; j < statNum; j++) {
                                     // Update of all the statistics
-                                    statArray[i][j].addSampleNoNaN(sample, true);
+                                    statArray[i][j].addSample(sample);
                                 }
                             }
                         }
@@ -394,7 +394,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]];
                                     for (int j = 0; j < statNum; j++) {
                                         // Update of all the statistics
-                                        statArray[i][j].addSampleNoNaN(sample, true);
+                                        statArray[i][j].addSample(sample);
                                     }
                                 }
                             }
@@ -416,10 +416,11 @@ public abstract class StatisticsOpImage extends OpImage {
                     for (int i = 0; i < selectedBands; i++) {
                         byte sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
                         // Control if the sample is Not a NO Data
-                        boolean isData = booleanLookupTable[sample & 0xFF];
-                        for (int j = 0; j < statNum; j++) {
-                            // Update of all the statistics
-                            statArray[i][j].addSampleNoNaN(sample, isData);
+                        if (booleanLookupTable[sample & 0xFF]) {
+                            for (int j = 0; j < statNum; j++) {
+                                // Update of all the statistics
+                                statArray[i][j].addSample(sample);
+                            }
                         }
                     }
                 }
@@ -449,10 +450,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                 byte sample = srcData[bands[i]][posx + posy
                                         + srcBandOffsets[bands[i]]];
                                 // Control if the sample is Not a NO Data
-                                boolean isData = booleanLookupTable[sample & 0xFF];
-                                for (int j = 0; j < statNum; j++) {
-                                    // Update of all the statistics
-                                    statArray[i][j].addSampleNoNaN(sample, isData);
+                                if (booleanLookupTable[sample & 0xFF]) {
+                                    for (int j = 0; j < statNum; j++) {
+                                        // Update of all the statistics
+                                        statArray[i][j].addSample(sample);
+                                    }
                                 }
                             }
                         }
@@ -481,10 +483,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                     byte sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
                                     // Control if the sample is Not a NO Data
-                                    boolean isData = booleanLookupTable[sample & 0xFF];
-                                    for (int j = 0; j < statNum; j++) {
-                                        // Update of all the statistics
-                                        statArray[i][j].addSampleNoNaN(sample, isData);
+                                    if (booleanLookupTable[sample & 0xFF]) {
+                                        for (int j = 0; j < statNum; j++) {
+                                            // Update of all the statistics
+                                            statArray[i][j].addSample(sample);
+                                        }
                                     }
                                 }
                             }
@@ -541,7 +544,7 @@ public abstract class StatisticsOpImage extends OpImage {
                         int sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]] & 0xFFFF;
                         for (int j = 0; j < statNum; j++) {
                             // Update of all the statistics
-                            statArray[i][j].addSampleNoNaN(sample, true);
+                            statArray[i][j].addSample(sample);
                         }
                     }
                 }
@@ -572,7 +575,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]] & 0xFFFF;
                                 for (int j = 0; j < statNum; j++) {
                                     // Update of all the statistics
-                                    statArray[i][j].addSampleNoNaN(sample, true);
+                                    statArray[i][j].addSample(sample);
                                 }
                             }
                         }
@@ -602,7 +605,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]] & 0xFFFF;
                                     for (int j = 0; j < statNum; j++) {
                                         // Update of all the statistics
-                                        statArray[i][j].addSampleNoNaN(sample, true);
+                                        statArray[i][j].addSample(sample);
                                     }
                                 }
                             }
@@ -625,9 +628,11 @@ public abstract class StatisticsOpImage extends OpImage {
                         int sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]] & 0xFFFF;
                         // Control if the sample is Not a NO Data
                         boolean isData = !noData.contains((short) sample);
-                        for (int j = 0; j < statNum; j++) {
-                            // Update of all the statistics
-                            statArray[i][j].addSampleNoNaN(sample, isData);
+                        if (isData) {
+                            for (int j = 0; j < statNum; j++) {
+                                // Update of all the statistics
+                                statArray[i][j].addSample(sample);
+                            }
                         }
                     }
                 }
@@ -658,9 +663,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]] & 0xFFFF;
                                 // Control if the sample is Not a NO Data
                                 boolean isData = !noData.contains((short) sample);
-                                for (int j = 0; j < statNum; j++) {
-                                    // Update of all the statistics
-                                    statArray[i][j].addSampleNoNaN(sample, isData);
+                                if (isData) {
+                                    for (int j = 0; j < statNum; j++) {
+                                        // Update of all the statistics
+                                        statArray[i][j].addSample(sample);
+                                    }
                                 }
                             }
                         }
@@ -690,9 +697,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]] & 0xFFFF;
                                     // Control if the sample is Not a NO Data
                                     boolean isData = !noData.contains((short) sample);
-                                    for (int j = 0; j < statNum; j++) {
-                                        // Update of all the statistics
-                                        statArray[i][j].addSampleNoNaN(sample, isData);
+                                    if (isData) {
+                                        for (int j = 0; j < statNum; j++) {
+                                            // Update of all the statistics
+                                            statArray[i][j].addSample(sample);
+                                        }
                                     }
                                 }
                             }
@@ -749,7 +758,7 @@ public abstract class StatisticsOpImage extends OpImage {
                         short sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
                         for (int j = 0; j < statNum; j++) {
                             // Update of all the statistics
-                            statArray[i][j].addSampleNoNaN(sample, true);
+                            statArray[i][j].addSample(sample);
                         }
                     }
                 }
@@ -780,7 +789,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]];
                                 for (int j = 0; j < statNum; j++) {
                                     // Update of all the statistics
-                                    statArray[i][j].addSampleNoNaN(sample, true);
+                                    statArray[i][j].addSample(sample);
                                 }
                             }
                         }
@@ -810,7 +819,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]];
                                     for (int j = 0; j < statNum; j++) {
                                         // Update of all the statistics
-                                        statArray[i][j].addSampleNoNaN(sample, true);
+                                        statArray[i][j].addSample(sample);
                                     }
                                 }
                             }
@@ -833,9 +842,11 @@ public abstract class StatisticsOpImage extends OpImage {
                         short sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
                         // Control if the sample is Not a NO Data
                         boolean isData = !noData.contains(sample);
-                        for (int j = 0; j < statNum; j++) {
-                            // Update of all the statistics
-                            statArray[i][j].addSampleNoNaN(sample, isData);
+                        if (isData) {
+                            for (int j = 0; j < statNum; j++) {
+                                // Update of all the statistics
+                                statArray[i][j].addSample(sample);
+                            }
                         }
                     }
                 }
@@ -866,9 +877,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]];
                                 // Control if the sample is Not a NO Data
                                 boolean isData = !noData.contains(sample);
-                                for (int j = 0; j < statNum; j++) {
-                                    // Update of all the statistics
-                                    statArray[i][j].addSampleNoNaN(sample, isData);
+                                if (isData) {
+                                    for (int j = 0; j < statNum; j++) {
+                                        // Update of all the statistics
+                                        statArray[i][j].addSample(sample);
+                                    }
                                 }
                             }
                         }
@@ -898,9 +911,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]];
                                     // Control if the sample is Not a NO Data
                                     boolean isData = !noData.contains(sample);
-                                    for (int j = 0; j < statNum; j++) {
-                                        // Update of all the statistics
-                                        statArray[i][j].addSampleNoNaN(sample, isData);
+                                    if (isData) {
+                                        for (int j = 0; j < statNum; j++) {
+                                            // Update of all the statistics
+                                            statArray[i][j].addSample(sample);
+                                        }
                                     }
                                 }
                             }
@@ -957,7 +972,7 @@ public abstract class StatisticsOpImage extends OpImage {
                         int sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
                         for (int j = 0; j < statNum; j++) {
                             // Update of all the statistics
-                            statArray[i][j].addSampleNoNaN(sample, true);
+                            statArray[i][j].addSample(sample);
                         }
                     }
                 }
@@ -988,7 +1003,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]];
                                 for (int j = 0; j < statNum; j++) {
                                     // Update of all the statistics
-                                    statArray[i][j].addSampleNoNaN(sample, true);
+                                    statArray[i][j].addSample(sample);
                                 }
                             }
                         }
@@ -1018,7 +1033,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]];
                                     for (int j = 0; j < statNum; j++) {
                                         // Update of all the statistics
-                                        statArray[i][j].addSampleNoNaN(sample, true);
+                                        statArray[i][j].addSample(sample);
                                     }
                                 }
                             }
@@ -1041,9 +1056,11 @@ public abstract class StatisticsOpImage extends OpImage {
                         int sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
                         // Control if the sample is Not a NO Data
                         boolean isData = !noData.contains(sample);
-                        for (int j = 0; j < statNum; j++) {
-                            // Update of all the statistics
-                            statArray[i][j].addSampleNoNaN(sample, isData);
+                        if (isData) {
+                            for (int j = 0; j < statNum; j++) {
+                                // Update of all the statistics
+                                statArray[i][j].addSample(sample);
+                            }
                         }
                     }
                 }
@@ -1074,9 +1091,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]];
                                 // Control if the sample is Not a NO Data
                                 boolean isData = !noData.contains(sample);
-                                for (int j = 0; j < statNum; j++) {
-                                    // Update of all the statistics
-                                    statArray[i][j].addSampleNoNaN(sample, isData);
+                                if (isData) {
+                                    for (int j = 0; j < statNum; j++) {
+                                        // Update of all the statistics
+                                        statArray[i][j].addSample(sample);
+                                    }
                                 }
                             }
                         }
@@ -1106,9 +1125,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]];
                                     // Control if the sample is Not a NO Data
                                     boolean isData = !noData.contains(sample);
-                                    for (int j = 0; j < statNum; j++) {
-                                        // Update of all the statistics
-                                        statArray[i][j].addSampleNoNaN(sample, isData);
+                                    if (isData) {
+                                        for (int j = 0; j < statNum; j++) {
+                                            // Update of all the statistics
+                                            statArray[i][j].addSample(sample);
+                                        }
                                     }
                                 }
                             }
@@ -1165,7 +1186,7 @@ public abstract class StatisticsOpImage extends OpImage {
                         float sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
                         for (int j = 0; j < statNum; j++) {
                             // Update of all the statistics
-                            statArray[i][j].addSampleNoNaN(sample, true);
+                            statArray[i][j].addSample(sample);
                         }
                     }
                 }
@@ -1196,7 +1217,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]];
                                 for (int j = 0; j < statNum; j++) {
                                     // Update of all the statistics
-                                    statArray[i][j].addSampleNoNaN(sample, true);
+                                    statArray[i][j].addSample(sample);
                                 }
                             }
                         }
@@ -1226,7 +1247,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]];
                                     for (int j = 0; j < statNum; j++) {
                                         // Update of all the statistics
-                                        statArray[i][j].addSampleNoNaN(sample, true);
+                                        statArray[i][j].addSample(sample);
                                     }
                                 }
                             }
@@ -1249,10 +1270,11 @@ public abstract class StatisticsOpImage extends OpImage {
                         float sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
                         // Control if the sample is Not a NO Data
                         boolean isData = !noData.contains(sample);
-                        boolean isNaN = Float.isNaN(sample);
-                        for (int j = 0; j < statNum; j++) {
-                            // Update of all the statistics
-                            statArray[i][j].addSampleNaN(sample, isData, isNaN);
+                        if (isData) {
+                            for (int j = 0; j < statNum; j++) {
+                                // Update of all the statistics
+                                statArray[i][j].addSample(sample);
+                            }
                         }
                     }
                 }
@@ -1283,10 +1305,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]];
                                 // Control if the sample is Not a NO Data
                                 boolean isData = !noData.contains(sample);
-                                boolean isNaN = Float.isNaN(sample);
-                                for (int j = 0; j < statNum; j++) {
-                                    // Update of all the statistics
-                                    statArray[i][j].addSampleNaN(sample, isData, isNaN);
+                                if (isData) {
+                                    for (int j = 0; j < statNum; j++) {
+                                        // Update of all the statistics
+                                        statArray[i][j].addSample(sample);
+                                    }
                                 }
                             }
                         }
@@ -1316,10 +1339,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]];
                                     // Control if the sample is Not a NO Data
                                     boolean isData = !noData.contains(sample);
-                                    boolean isNaN = Float.isNaN(sample);
-                                    for (int j = 0; j < statNum; j++) {
-                                        // Update of all the statistics
-                                        statArray[i][j].addSampleNaN(sample, isData, isNaN);
+                                    if (isData) {
+                                        for (int j = 0; j < statNum; j++) {
+                                            // Update of all the statistics
+                                            statArray[i][j].addSample(sample);
+                                        }
                                     }
                                 }
                             }
@@ -1376,7 +1400,7 @@ public abstract class StatisticsOpImage extends OpImage {
                         double sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
                         for (int j = 0; j < statNum; j++) {
                             // Update of all the statistics
-                            statArray[i][j].addSampleNoNaN(sample, true);
+                            statArray[i][j].addSample(sample);
                         }
                     }
                 }
@@ -1407,7 +1431,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]];
                                 for (int j = 0; j < statNum; j++) {
                                     // Update of all the statistics
-                                    statArray[i][j].addSampleNoNaN(sample, true);
+                                    statArray[i][j].addSample(sample);
                                 }
                             }
                         }
@@ -1437,7 +1461,7 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]];
                                     for (int j = 0; j < statNum; j++) {
                                         // Update of all the statistics
-                                        statArray[i][j].addSampleNoNaN(sample, true);
+                                        statArray[i][j].addSample(sample);
                                     }
                                 }
                             }
@@ -1460,10 +1484,11 @@ public abstract class StatisticsOpImage extends OpImage {
                         double sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
                         // Control if the sample is Not a NO Data
                         boolean isData = !noData.contains(sample);
-                        boolean isNaN = Double.isNaN(sample);
-                        for (int j = 0; j < statNum; j++) {
-                            // Update of all the statistics
-                            statArray[i][j].addSampleNaN(sample, isData, isNaN);
+                        if (isData) {
+                            for (int j = 0; j < statNum; j++) {
+                                // Update of all the statistics
+                                statArray[i][j].addSample(sample);
+                            }
                         }
                     }
                 }
@@ -1494,10 +1519,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                         + srcBandOffsets[bands[i]]];
                                 // Control if the sample is Not a NO Data
                                 boolean isData = !noData.contains(sample);
-                                boolean isNaN = Double.isNaN(sample);
-                                for (int j = 0; j < statNum; j++) {
-                                    // Update of all the statistics
-                                    statArray[i][j].addSampleNaN(sample, isData, isNaN);
+                                if (isData) {
+                                    for (int j = 0; j < statNum; j++) {
+                                        // Update of all the statistics
+                                        statArray[i][j].addSample(sample);
+                                    }
                                 }
                             }
                         }
@@ -1527,10 +1553,11 @@ public abstract class StatisticsOpImage extends OpImage {
                                             + srcBandOffsets[bands[i]]];
                                     // Control if the sample is Not a NO Data
                                     boolean isData = !noData.contains(sample);
-                                    boolean isNaN = Double.isNaN(sample);
-                                    for (int j = 0; j < statNum; j++) {
-                                        // Update of all the statistics
-                                        statArray[i][j].addSampleNaN(sample, isData, isNaN);
+                                    if (isData) {
+                                        for (int j = 0; j < statNum; j++) {
+                                            // Update of all the statistics
+                                            statArray[i][j].addSample(sample);
+                                        }
                                     }
                                 }
                             }

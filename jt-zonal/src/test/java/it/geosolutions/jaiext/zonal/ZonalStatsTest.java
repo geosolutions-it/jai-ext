@@ -65,10 +65,7 @@ public class ZonalStatsTest extends TestBase {
     private static RenderedImage classifier;
 
     /** Spatial index for fast searching the geometries associated with a selected pixel */
-    private static STRtree spatial;
-
-    /** List of ZoneGeometry objects containing the results */
-    private static ArrayList<ZoneGeometry>[] zoneList;
+    private static STRtree[] spatial;
 
     /** Union of all the input geometries bounds */
     private static Rectangle union;
@@ -156,13 +153,10 @@ public class ZonalStatsTest extends TestBase {
         bands = new int[] { 0 };
 
         // Spatial indexing
-        // Creation of the spatial index
-        spatial = new STRtree();
-        // Creation of a ZoneGeometry list, for storing the results
-        zoneList = new ArrayList[4];
-        for (int z = 0; z < 4; z++) {
-            zoneList[z] = new ArrayList<ZoneGeometry>();
-        }
+        // Creation of the spatial indexes
+        spatial = new STRtree[2];        
+        spatial[0] = new STRtree();
+        spatial[1] = new STRtree();
         // Bounds Union
         union = new Rectangle(roiList.get(0).getBounds());
         // Insertion of the zones to the spatial index and union of the bounds for every ROI/Zone object
@@ -175,15 +169,14 @@ public class ZonalStatsTest extends TestBase {
             double minY = rect.getMinY();
             double maxY = rect.getMaxY();
             Envelope env = new Envelope(minX, maxX, minY, maxY);
-            spatial.insert(env, roi);
             // Union
             union = union.union(rect);
             // Addition to the geometries list
-            for (int z = 0; z < 4; z++) {
+            for (int z = 0; z < 2; z++) {
                 // Creation of a new ZoneGeometry
-                ZoneGeometry geom = new ZoneGeometry(bands, stats, CLASSIFIER, minBound, maxBound,
+                ZoneGeometry geom = new ZoneGeometry(roi, bands, stats, CLASSIFIER, minBound, maxBound,
                         numBins);
-                zoneList[z].add(geom);
+                spatial[z].insert(env, geom);
             }
         }
 
@@ -255,49 +248,48 @@ public class ZonalStatsTest extends TestBase {
                 // Cycle on the Raster pixels
                 for (int x = minX; x < maxX; x++) {
                     for (int y = minY; y < maxY; y++) {
-                        // Check if the selected pixel is inside the union of all the geometries
-                        if (union.contains(x, y)) {
-                            byte value = (byte) arrayRas.getSample(x, y, 0);
-                            // pixel coordinate creation for spatial indexing
-                            Coordinate p = new Coordinate(x, y);
-                            // Creation of an Envelop containing the pixel coordinates
-                            Envelope searchEnv = new Envelope(p);
-                            // Query on the geometry list
-                            List<ROI> geomList = spatial.query(searchEnv);
-                            // classId classifier initial value
-                            int classId = 0;
-                            // If the classifier is present then the classId value is taken
-                            if (CLASSIFIER) {
-                                // Selection of the classId point
-                                classId = iterator.getSample(x, y, 0);
-                            }
-                            // Cycle on all the geometries found
-                            for (ROI geometry : geomList) {
-                                // if every geometry really contains the selected point
-                                if (geometry.contains(x, y)) {
+                        
+                        for(int z = 0; z < 2; z++){
+                            // Check if the selected pixel is inside the union of all the geometries
+                            if (union.contains(x, y)) {
+                                byte value = (byte) arrayRas.getSample(x, y, 0);
+                                // pixel coordinate creation for spatial indexing
+                                Coordinate p = new Coordinate(x, y);
+                                // Creation of an Envelop containing the pixel coordinates
+                                Envelope searchEnv = new Envelope(p);
+                                // Query on the geometry list
+                                List<ZoneGeometry> geomList = spatial[z].query(searchEnv);
+                                // classId classifier initial value
+                                int classId = 0;
+                                // If the classifier is present then the classId value is taken
+                                if (CLASSIFIER) {
+                                    // Selection of the classId point
+                                    classId = iterator.getSample(x, y, 0);
+                                }
+                                // Cycle on all the geometries found
+                                for (ZoneGeometry zoneGeo : geomList) {
+                                    
+                                    ROI geometry = zoneGeo.getROI();
+                                    
+                                    // if every geometry really contains the selected point
+                                    if (geometry.contains(x, y)) {
 
-                                    // then the related zoneGeometry object statistics are updated
-                                    int index = roiList.indexOf(geometry);
 
-                                    // Cycle for all the 4 cases: No roi and No NoData, only roi, only NoData, both roi and NoData
-                                    for (int z = 0; z < 4; z++) {
-                                        ZoneGeometry zoneGeo = zoneList[z].get(index);
-                                        switch (z) {
-                                        case 0:
-                                            zoneGeo.add(value, 0, classId, false);
-                                            zoneList[z].set(index, zoneGeo);
-                                            break;
-                                        case 1:
-                                            if (!noDataByte.contains(value)) {
-                                                zoneGeo.add(value, 0, classId, false);
-                                                zoneList[z].set(index, zoneGeo);
-                                            }
-                                            break;
-                                        }
+                                        // Cycle for the 2 cases: with and without NoData
+                                            switch (z) {
+                                            case 0:
+                                                zoneGeo.add(value, 0, classId);
+                                                break;
+                                            case 1:
+                                                if (!noDataByte.contains(value)) {
+                                                    zoneGeo.add(value, 0, classId);
+                                                }
+                                                break;
+                                            }                                        
                                     }
                                 }
                             }
-                        }
+                        }                        
                     }
                 }
             }
@@ -389,6 +381,11 @@ public class ZonalStatsTest extends TestBase {
         // Statistic calculation
         List<ZoneGeometry> result = (List<ZoneGeometry>) destination
                 .getProperty(ZonalStatsDescriptor.ZS_PROPERTY);
+        
+        //Calculated Results
+        List<ZoneGeometry>[] zoneList = new ArrayList[2];
+        
+        zoneList[statsIndex] = spatial[statsIndex].itemsTree();
 
         // Test if the calculated values are equal with a tolerance value
         if (CLASSIFIER) {
