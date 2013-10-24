@@ -26,6 +26,9 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 import javax.media.jai.iterator.RandomIter;
+import javax.media.jai.iterator.RectIter;
+import javax.media.jai.iterator.RectIterFactory;
+
 import com.sun.media.jai.util.PropertyUtil;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -83,8 +86,11 @@ public class ZonalStatsOpImage extends OpImage {
     /** Classifier image bounds */
     private Rectangle classBounds;
 
-    /** Iterator on the classifier image */
-    private RandomIter iterator;
+    /** Random Iterator on the classifier image, if transformation is present */
+    private RandomIter randomIterator;
+    
+    /** Iterator on the classifier image, if no transformation i provided */
+    private RectIter rectIterator;
 
     /** Array indicating the source image selected bands */
     private int[] bands;
@@ -97,6 +103,9 @@ public class ZonalStatsOpImage extends OpImage {
 
     /** Boolean indicating if the eventual transformation is not an Identity */
     private boolean isNotIdentity;
+
+    /** Boolean indicating if the eventual rectIterator needs to be updated */
+    private final boolean updateIterator;
 
     public ZonalStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             RenderedImage classifier, AffineTransform transform, List<ROI> rois, Range noData,
@@ -134,11 +143,21 @@ public class ZonalStatsOpImage extends OpImage {
                     LOGGER.warning("The transformation matrix is non-invertible.");
                 }
             }
-            // Iterator on the classifier image bounds
-            iterator = RandomIterFactory.create(classifier, classBounds, false, true);
-
             isNotIdentity = !inverseTrans.isIdentity();
-
+            
+            // Iterator on the classifier image bounds
+            if(isNotIdentity){
+                randomIterator = RandomIterFactory.create(classifier, classBounds, false, true);
+                rectIterator = null;
+            }else{
+                randomIterator = null;
+                rectIterator = RectIterFactory.create(classifier, classBounds);
+                
+            }
+            
+            updateIterator = classPresent && !isNotIdentity;
+        }else{
+            updateIterator = false;
         }
 
         // Band selection
@@ -358,8 +377,15 @@ public class ZonalStatsOpImage extends OpImage {
 
         // NO DATA NOT PRESENT
         if (notHasNoData) {
+            if(updateIterator){
+                rectIterator.startBands();
+                rectIterator.startLines();
+            }
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
+                if(updateIterator){
+                    rectIterator.startPixels();
+                }
                 // y position on the source data array
                 int posy = y * srcScanlineStride;
                 // Cycle on the x axis
@@ -373,6 +399,10 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
+                        // Update of the RectIterator
+                        if(updateIterator){
+                            rectIterator.nextPixel();
+                        }
                         continue;
                     }
 
@@ -394,13 +424,17 @@ public class ZonalStatsOpImage extends OpImage {
                         try {
                             if (isNotIdentity) {
                                 inverseTrans.inverseTransform(pointSrc, pointClass);
+                             // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            }else{
+                             // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
                             }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
-                        // Selection of the classId point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -417,6 +451,9 @@ public class ZonalStatsOpImage extends OpImage {
                             }
                         }
                     }
+                }
+                if(updateIterator){
+                    rectIterator.nextLine();
                 }
             }
             // NO DATA PRESENT
@@ -462,7 +499,7 @@ public class ZonalStatsOpImage extends OpImage {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
+                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -549,7 +586,7 @@ public class ZonalStatsOpImage extends OpImage {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
+                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -613,7 +650,7 @@ public class ZonalStatsOpImage extends OpImage {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
+                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -699,7 +736,7 @@ public class ZonalStatsOpImage extends OpImage {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
+                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -764,7 +801,7 @@ public class ZonalStatsOpImage extends OpImage {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
+                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -850,7 +887,7 @@ public class ZonalStatsOpImage extends OpImage {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
+                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -914,7 +951,7 @@ public class ZonalStatsOpImage extends OpImage {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
+                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -958,8 +995,15 @@ public class ZonalStatsOpImage extends OpImage {
 
         // NO DATA NOT PRESENT
         if (notHasNoData) {
+            if(updateIterator){
+                rectIterator.startBands();
+                rectIterator.startLines();
+            }
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
+                if(updateIterator){
+                    rectIterator.startPixels();
+                }
                 // y position on the source data array
                 int posy = y * srcScanlineStride;
                 // Cycle on the x axis
@@ -973,6 +1017,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
+                        
+                     // Update of the RectIterator
+                        if(updateIterator){
+                            rectIterator.nextPixel();
+                        }                       
                         continue;
                     }
 
@@ -995,13 +1044,17 @@ public class ZonalStatsOpImage extends OpImage {
                         try {
                             if (isNotIdentity) {
                                 inverseTrans.inverseTransform(pointSrc, pointClass);
+                             // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            }else{
+                             // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
                             }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
-                        // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -1020,6 +1073,9 @@ public class ZonalStatsOpImage extends OpImage {
                             }
                         }
                     }
+                }
+                if(updateIterator){
+                    rectIterator.nextLine();
                 }
             }
             // NO DATA PRESENT
@@ -1065,7 +1121,7 @@ public class ZonalStatsOpImage extends OpImage {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
+                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -1151,7 +1207,7 @@ public class ZonalStatsOpImage extends OpImage {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
+                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -1215,7 +1271,7 @@ public class ZonalStatsOpImage extends OpImage {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
                         // Selection of the zone point
-                        classId = iterator.getSample(pointClass.x, pointClass.y, 0);
+                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
