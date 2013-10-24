@@ -344,7 +344,7 @@ public class ComparisonTest extends TestBase {
                 start = System.nanoTime();
                 for (RenderedImage image : listIMG) {
                     ZonalStats zs = (ZonalStats) image.getProperty(propertyName);
-                    listZs.add(zs);
+                    //listZs.add(zs);
                 }
                 end = System.nanoTime() - start;
 

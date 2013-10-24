@@ -88,9 +88,6 @@ public class ZonalStatsOpImage extends OpImage {
 
     /** Random Iterator on the classifier image, if transformation is present */
     private RandomIter randomIterator;
-    
-    /** Iterator on the classifier image, if no transformation i provided */
-    private RectIter rectIterator;
 
     /** Array indicating the source image selected bands */
     private int[] bands;
@@ -107,6 +104,9 @@ public class ZonalStatsOpImage extends OpImage {
     /** Boolean indicating if the eventual rectIterator needs to be updated */
     private final boolean updateIterator;
 
+    /** Classifier image */
+    private final RenderedImage classifier;
+
     public ZonalStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             RenderedImage classifier, AffineTransform transform, List<ROI> rois, Range noData,
             int[] bands, StatsType[] statsTypes, double[] minBound, double[] maxBound, int[] numBins) {
@@ -121,6 +121,9 @@ public class ZonalStatsOpImage extends OpImage {
                     || classDataType == DataBuffer.TYPE_SHORT || classDataType == DataBuffer.TYPE_INT)) {
                 throw new IllegalArgumentException("Classifier must be integral");
             }
+            this.classifier = classifier;
+        } else {
+            this.classifier = null;
         }
 
         // Calculation of the inverse transformation
@@ -144,19 +147,14 @@ public class ZonalStatsOpImage extends OpImage {
                 }
             }
             isNotIdentity = !inverseTrans.isIdentity();
-            
+
             // Iterator on the classifier image bounds
-            if(isNotIdentity){
+            if (isNotIdentity) {
                 randomIterator = RandomIterFactory.create(classifier, classBounds, false, true);
-                rectIterator = null;
-            }else{
-                randomIterator = null;
-                rectIterator = RectIterFactory.create(classifier, classBounds);
-                
             }
-            
+
             updateIterator = classPresent && !isNotIdentity;
-        }else{
+        } else {
             updateIterator = false;
         }
 
@@ -290,6 +288,16 @@ public class ZonalStatsOpImage extends OpImage {
             // Sets of the roi list
             this.rois = rois;
         }
+        
+        //Building of the spatial index
+        // Coordinate object creation for the spatial indexing
+        Coordinate p1 = new Coordinate(0, 0);
+        // Envelope associated to the coordinate object
+        Envelope searchEnv = new Envelope(p1);
+        // Query on the geometry list
+        spatialIndex.query(searchEnv);
+        
+        
         // Check if No Data control must be done
         if (noData != null) {
             notHasNoData = false;
@@ -334,22 +342,22 @@ public class ZonalStatsOpImage extends OpImage {
             // From the data type is possible to choose the right calculation method
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
-                byteLoop(src, computableArea);
+                byteLoop(src, computableArea, tileX, tileY);
                 break;
             case DataBuffer.TYPE_USHORT:
-                ushortLoop(src, computableArea);
+                ushortLoop(src, computableArea, tileX, tileY);
                 break;
             case DataBuffer.TYPE_SHORT:
-                shortLoop(src, computableArea);
+                shortLoop(src, computableArea, tileX, tileY);
                 break;
             case DataBuffer.TYPE_INT:
-                intLoop(src, computableArea);
+                intLoop(src, computableArea, tileX, tileY);
                 break;
             case DataBuffer.TYPE_FLOAT:
-                floatLoop(src, computableArea);
+                floatLoop(src, computableArea, tileX, tileY);
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                doubleLoop(src, computableArea);
+                doubleLoop(src, computableArea, tileX, tileY);
                 break;
             default:
                 throw new IllegalArgumentException("Wrong data type");
@@ -360,7 +368,7 @@ public class ZonalStatsOpImage extends OpImage {
     }
 
     // NOTE: the statistic calculation is done in a synchronized block for avoiding race conditions
-    private void byteLoop(RasterAccessor src, Rectangle computableArea) {
+    private void byteLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
 
         // Source RasterAccessor initial parameters
         final int srcX = src.getX();
@@ -375,15 +383,20 @@ public class ZonalStatsOpImage extends OpImage {
         int srcPixelStride = src.getPixelStride();
         int srcScanlineStride = src.getScanlineStride();
 
+        RectIter rectIterator = null;
+
+        if (updateIterator) {
+            Raster ras = classifier.getTile(tileX, tileY);
+            rectIterator = RectIterFactory.create(ras, computableArea);
+            rectIterator.startBands();
+            rectIterator.startLines();
+        }
+
         // NO DATA NOT PRESENT
         if (notHasNoData) {
-            if(updateIterator){
-                rectIterator.startBands();
-                rectIterator.startLines();
-            }
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
-                if(updateIterator){
+                if (updateIterator) {
                     rectIterator.startPixels();
                 }
                 // y position on the source data array
@@ -400,7 +413,7 @@ public class ZonalStatsOpImage extends OpImage {
                     // check on containment
                     if (!union.contains(x0, y0)) {
                         // Update of the RectIterator
-                        if(updateIterator){
+                        if (updateIterator) {
                             rectIterator.nextPixel();
                         }
                         continue;
@@ -424,10 +437,10 @@ public class ZonalStatsOpImage extends OpImage {
                         try {
                             if (isNotIdentity) {
                                 inverseTrans.inverseTransform(pointSrc, pointClass);
-                             // Selection of the classId point
+                                // Selection of the classId point
                                 classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
-                            }else{
-                             // Selection of the classId point
+                            } else {
+                                // Selection of the classId point
                                 classId = rectIterator.getSample();
                                 rectIterator.nextPixel();
                             }
@@ -452,7 +465,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
                     }
                 }
-                if(updateIterator){
+                if (updateIterator) {
                     rectIterator.nextLine();
                 }
             }
@@ -460,6 +473,9 @@ public class ZonalStatsOpImage extends OpImage {
         } else {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
+                if (updateIterator) {
+                    rectIterator.startPixels();
+                }
                 // y position on the source data array
                 int posy = y * srcScanlineStride;
                 // Cycle on the x axis
@@ -472,6 +488,10 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
+                        // Update of the RectIterator
+                        if (updateIterator) {
+                            rectIterator.nextPixel();
+                        }
                         continue;
                     }
 
@@ -493,13 +513,17 @@ public class ZonalStatsOpImage extends OpImage {
                         try {
                             if (isNotIdentity) {
                                 inverseTrans.inverseTransform(pointSrc, pointClass);
+                                // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            } else {
+                                // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
                             }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
-                        // Selection of the zone point
-                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -523,11 +547,14 @@ public class ZonalStatsOpImage extends OpImage {
                         }
                     }
                 }
+                if (updateIterator) {
+                    rectIterator.nextLine();
+                }
             }
         }
     }
 
-    private void ushortLoop(RasterAccessor src, Rectangle computableArea) {
+    private void ushortLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
 
         // Source RasterAccessor initial parameters
         final int srcX = src.getX();
@@ -542,10 +569,22 @@ public class ZonalStatsOpImage extends OpImage {
         int srcPixelStride = src.getPixelStride();
         int srcScanlineStride = src.getScanlineStride();
 
+        RectIter rectIterator = null;
+
+        if (updateIterator) {
+            Raster ras = classifier.getTile(tileX, tileY);
+            rectIterator = RectIterFactory.create(ras, computableArea);
+            rectIterator.startBands();
+            rectIterator.startLines();
+        }
+
         // NO DATA NOT PRESENT
         if (notHasNoData) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
+                if (updateIterator) {
+                    rectIterator.startPixels();
+                }
                 // y position on the source data array
                 int posy = y * srcScanlineStride;
                 // Cycle on the x axis
@@ -559,6 +598,10 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
+                        // Update of the RectIterator
+                        if (updateIterator) {
+                            rectIterator.nextPixel();
+                        }
                         continue;
                     }
 
@@ -580,13 +623,17 @@ public class ZonalStatsOpImage extends OpImage {
                         try {
                             if (isNotIdentity) {
                                 inverseTrans.inverseTransform(pointSrc, pointClass);
+                                // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            } else {
+                                // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
                             }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
-                        // Selection of the zone point
-                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -606,11 +653,17 @@ public class ZonalStatsOpImage extends OpImage {
                         }
                     }
                 }
+                if (updateIterator) {
+                    rectIterator.nextLine();
+                }
             }
             // NO DATA PRESENT
         } else {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
+                if (updateIterator) {
+                    rectIterator.startPixels();
+                }
                 // y position on the source data array
                 int posy = y * srcScanlineStride;
                 // Cycle on the x axis
@@ -623,6 +676,10 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
+                        // Update of the RectIterator
+                        if (updateIterator) {
+                            rectIterator.nextPixel();
+                        }
                         continue;
                     }
 
@@ -644,13 +701,17 @@ public class ZonalStatsOpImage extends OpImage {
                         try {
                             if (isNotIdentity) {
                                 inverseTrans.inverseTransform(pointSrc, pointClass);
+                                // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            } else {
+                                // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
                             }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
-                        // Selection of the zone point
-                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -673,11 +734,14 @@ public class ZonalStatsOpImage extends OpImage {
                         }
                     }
                 }
+                if (updateIterator) {
+                    rectIterator.nextLine();
+                }
             }
         }
     }
 
-    private void shortLoop(RasterAccessor src, Rectangle computableArea) {
+    private void shortLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
 
         // Source RasterAccessor initial parameters
         final int srcX = src.getX();
@@ -692,316 +756,20 @@ public class ZonalStatsOpImage extends OpImage {
         int srcPixelStride = src.getPixelStride();
         int srcScanlineStride = src.getScanlineStride();
 
-        // NO DATA NOT PRESENT
-        if (notHasNoData) {
-            // Cycle on the y axis
-            for (int y = 0; y < srcHeight; y++) {
-                // y position on the source data array
-                int posy = y * srcScanlineStride;
-                // Cycle on the x axis
-                for (int x = 0; x < srcWidth; x++) {
-                    // x position on the source data array
-                    int posx = x * srcPixelStride;
+        RectIter rectIterator = null;
 
-                    // PixelPositions
-                    int x0 = srcX + x;
-                    int y0 = srcY + y;
-
-                    // check on containment
-                    if (!union.contains(x0, y0)) {
-                        continue;
-                    }
-
-                    // Coordinate object creation for the spatial indexing
-                    Coordinate p1 = new Coordinate(x0, y0);
-                    // Envelope associated to the coordinate object
-                    Envelope searchEnv = new Envelope(p1);
-                    // Query on the geometry list
-                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
-                    // classId classifier initial value
-                    int classId = 0;
-                    // If the classifier is present then the zone value is taken
-                    if (classPresent) {
-                        // Selection of the initial point
-                        Point pointSrc = new Point(x0, y0);
-                        // Initialization of the zone point
-                        Point pointClass = new Point();
-                        // Source point inverse transformation for finding the related zone point
-                        try {
-                            if (isNotIdentity) {
-                                inverseTrans.inverseTransform(pointSrc, pointClass);
-                            }
-
-                        } catch (NoninvertibleTransformException e) {
-                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
-                        }
-                        // Selection of the zone point
-                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
-                    }
-                    // Cycle on all the geometries found
-                    for (ZoneGeometry zoneGeo : geomList) {
-
-                        ROI geometry = zoneGeo.getROI();
-
-                        // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
-
-                            // Cycle on the selected Bands
-                            for (int i = 0; i < bandNum; i++) {
-                                short sample = srcData[bands[i]][posx + posy
-                                        + srcBandOffsets[bands[i]]];
-                                // Update of all the statistics
-                                zoneGeo.add(sample, bands[i], classId);
-                            }
-
-                        }
-                    }
-                }
-            }
-            // NO DATA PRESENT
-        } else {
-            // Cycle on the y axis
-            for (int y = 0; y < srcHeight; y++) {
-                // y position on the source data array
-                int posy = y * srcScanlineStride;
-                // Cycle on the x axis
-                for (int x = 0; x < srcWidth; x++) {
-                    // x position on the source data array
-                    int posx = x * srcPixelStride;
-                    // PixelPositions
-                    int x0 = srcX + x;
-                    int y0 = srcY + y;
-
-                    // check on containment
-                    if (!union.contains(x0, y0)) {
-                        continue;
-                    }
-
-                    // Coordinate object creation for the spatial indexing
-                    Coordinate p1 = new Coordinate(x0, y0);
-                    // Envelope associated to the coordinate object
-                    Envelope searchEnv = new Envelope(p1);
-                    // Query on the geometry list
-                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
-                    // classId classifier initial value
-                    int classId = 0;
-                    // If the classifier is present then the zone value is taken
-                    if (classPresent) {
-                        // Selection of the initial point
-                        Point pointSrc = new Point(x0, y0);
-                        // Initialization of the zone point
-                        Point pointClass = new Point();
-                        // Source point inverse transformation for finding the related zone point
-                        try {
-                            if (isNotIdentity) {
-                                inverseTrans.inverseTransform(pointSrc, pointClass);
-                            }
-
-                        } catch (NoninvertibleTransformException e) {
-                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
-                        }
-                        // Selection of the zone point
-                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
-                    }
-                    // Cycle on all the geometries found
-                    for (ZoneGeometry zoneGeo : geomList) {
-
-                        ROI geometry = zoneGeo.getROI();
-
-                        // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
-
-                            // Cycle on the selected Bands
-                            for (int i = 0; i < bandNum; i++) {
-                                short sample = srcData[bands[i]][posx + posy
-                                        + srcBandOffsets[bands[i]]];
-                                // NoData check
-                                if (!noData.contains(sample)) {
-                                    // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        if (updateIterator) {
+            Raster ras = classifier.getTile(tileX, tileY);
+            rectIterator = RectIterFactory.create(ras, computableArea);
+            rectIterator.startBands();
+            rectIterator.startLines();
         }
-    }
-
-    private void intLoop(RasterAccessor src, Rectangle computableArea) {
-
-        // Source and ROI RasterAccessor initial parameters
-        final int srcX = src.getX();
-        final int srcY = src.getY();
-
-        int srcData[][] = src.getIntDataArrays();
-
-        int srcWidth = src.getWidth();
-        int srcHeight = src.getHeight();
-
-        int[] srcBandOffsets = src.getBandOffsets();
-        int srcPixelStride = src.getPixelStride();
-        int srcScanlineStride = src.getScanlineStride();
 
         // NO DATA NOT PRESENT
         if (notHasNoData) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
-                // y position on the source data array
-                int posy = y * srcScanlineStride;
-                // Cycle on the x axis
-                for (int x = 0; x < srcWidth; x++) {
-                    // x position on the source data array
-                    int posx = x * srcPixelStride;
-
-                    // PixelPositions
-                    int x0 = srcX + x;
-                    int y0 = srcY + y;
-
-                    // check on containment
-                    if (!union.contains(x0, y0)) {
-                        continue;
-                    }
-
-                    // Coordinate object creation for the spatial indexing
-                    Coordinate p1 = new Coordinate(x0, y0);
-                    // Envelope associated to the coordinate object
-                    Envelope searchEnv = new Envelope(p1);
-                    // Query on the geometry list
-                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
-                    // classId classifier initial value
-                    int classId = 0;
-                    // If the classifier is present then the zone value is taken
-                    if (classPresent) {
-                        // Selection of the initial point
-                        Point pointSrc = new Point(x0, y0);
-                        // Initialization of the zone point
-                        Point pointClass = new Point();
-                        // Source point inverse transformation for finding the related zone point
-                        try {
-                            if (isNotIdentity) {
-                                inverseTrans.inverseTransform(pointSrc, pointClass);
-                            }
-
-                        } catch (NoninvertibleTransformException e) {
-                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
-                        }
-                        // Selection of the zone point
-                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
-                    }
-                    // Cycle on all the geometries found
-                    for (ZoneGeometry zoneGeo : geomList) {
-
-                        ROI geometry = zoneGeo.getROI();
-
-                        // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
-
-                            // Cycle on the selected Bands
-                            for (int i = 0; i < bandNum; i++) {
-                                int sample = srcData[bands[i]][posx + posy
-                                        + srcBandOffsets[bands[i]]];
-                                // Update of all the statistics
-                                zoneGeo.add(sample, bands[i], classId);
-                            }
-                        }
-                    }
-                }
-            }
-            // NO DATA PRESENT
-        } else {
-            // Cycle on the y axis
-            for (int y = 0; y < srcHeight; y++) {
-                // y position on the source data array
-                int posy = y * srcScanlineStride;
-                // Cycle on the x axis
-                for (int x = 0; x < srcWidth; x++) {
-                    // x position on the source data array
-                    int posx = x * srcPixelStride;
-                    // PixelPositions
-                    int x0 = srcX + x;
-                    int y0 = srcY + y;
-
-                    // check on containment
-                    if (!union.contains(x0, y0)) {
-                        continue;
-                    }
-
-                    // Coordinate object creation for the spatial indexing
-                    Coordinate p1 = new Coordinate(x0, y0);
-                    // Envelope associated to the coordinate object
-                    Envelope searchEnv = new Envelope(p1);
-                    // Query on the geometry list
-                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
-                    // classId classifier initial value
-                    int classId = 0;
-                    // If the classifier is present then the zone value is taken
-                    if (classPresent) {
-                        // Selection of the initial point
-                        Point pointSrc = new Point(x0, y0);
-                        // Initialization of the zone point
-                        Point pointClass = new Point();
-                        // Source point inverse transformation for finding the related zone point
-                        try {
-                            if (isNotIdentity) {
-                                inverseTrans.inverseTransform(pointSrc, pointClass);
-                            }
-
-                        } catch (NoninvertibleTransformException e) {
-                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
-                        }
-                        // Selection of the zone point
-                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
-                    }
-                    // Cycle on all the geometries found
-                    for (ZoneGeometry zoneGeo : geomList) {
-
-                        ROI geometry = zoneGeo.getROI();
-
-                        // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
-
-                            // Cycle on the selected Bands
-                            for (int i = 0; i < bandNum; i++) {
-                                int sample = srcData[bands[i]][posx + posy
-                                        + srcBandOffsets[bands[i]]];
-                                // NoData check
-                                if (!noData.contains(sample)) {
-                                    // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private void floatLoop(RasterAccessor src, Rectangle computableArea) {
-
-        // Source RasterAccessor initial parameters
-        final int srcX = src.getX();
-        final int srcY = src.getY();
-
-        float srcData[][] = src.getFloatDataArrays();
-
-        int srcWidth = src.getWidth();
-        int srcHeight = src.getHeight();
-
-        int[] srcBandOffsets = src.getBandOffsets();
-        int srcPixelStride = src.getPixelStride();
-        int srcScanlineStride = src.getScanlineStride();
-
-        // NO DATA NOT PRESENT
-        if (notHasNoData) {
-            if(updateIterator){
-                rectIterator.startBands();
-                rectIterator.startLines();
-            }
-            // Cycle on the y axis
-            for (int y = 0; y < srcHeight; y++) {
-                if(updateIterator){
+                if (updateIterator) {
                     rectIterator.startPixels();
                 }
                 // y position on the source data array
@@ -1017,11 +785,386 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
-                        
-                     // Update of the RectIterator
-                        if(updateIterator){
+                        // Update of the RectIterator
+                        if (updateIterator) {
                             rectIterator.nextPixel();
-                        }                       
+                        }
+                        continue;
+                    }
+
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                    // classId classifier initial value
+                    int classId = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointClass = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                                // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            } else {
+                                // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
+                            }
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                    }
+                    // Cycle on all the geometries found
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                short sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // Update of all the statistics
+                                zoneGeo.add(sample, bands[i], classId);
+                            }
+
+                        }
+                    }
+                }
+                if (updateIterator) {
+                    rectIterator.nextLine();
+                }
+            }
+            // NO DATA PRESENT
+        } else {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                if (updateIterator) {
+                    rectIterator.startPixels();
+                }
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        // Update of the RectIterator
+                        if (updateIterator) {
+                            rectIterator.nextPixel();
+                        }
+                        continue;
+                    }
+
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                    // classId classifier initial value
+                    int classId = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointClass = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                                // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            } else {
+                                // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
+                            }
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                    }
+                    // Cycle on all the geometries found
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                short sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // NoData check
+                                if (!noData.contains(sample)) {
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], classId);
+                                }
+                            }
+                        }
+                    }
+                }
+                if (updateIterator) {
+                    rectIterator.nextLine();
+                }
+            }
+        }
+    }
+
+    private void intLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
+
+        // Source and ROI RasterAccessor initial parameters
+        final int srcX = src.getX();
+        final int srcY = src.getY();
+
+        int srcData[][] = src.getIntDataArrays();
+
+        int srcWidth = src.getWidth();
+        int srcHeight = src.getHeight();
+
+        int[] srcBandOffsets = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        RectIter rectIterator = null;
+
+        if (updateIterator) {
+            Raster ras = classifier.getTile(tileX, tileY);
+            rectIterator = RectIterFactory.create(ras, computableArea);
+            rectIterator.startBands();
+            rectIterator.startLines();
+        }
+
+        // NO DATA NOT PRESENT
+        if (notHasNoData) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                if (updateIterator) {
+                    rectIterator.startPixels();
+                }
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        // Update of the RectIterator
+                        if (updateIterator) {
+                            rectIterator.nextPixel();
+                        }
+                        continue;
+                    }
+
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                    // classId classifier initial value
+                    int classId = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointClass = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                                // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            } else {
+                                // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
+                            }
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                    }
+                    // Cycle on all the geometries found
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                int sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // Update of all the statistics
+                                zoneGeo.add(sample, bands[i], classId);
+                            }
+                        }
+                    }
+                }
+                if (updateIterator) {
+                    rectIterator.nextLine();
+                }
+            }
+            // NO DATA PRESENT
+        } else {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                if (updateIterator) {
+                    rectIterator.startPixels();
+                }
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+                        // Update of the RectIterator
+                        if (updateIterator) {
+                            rectIterator.nextPixel();
+                        }
+                        continue;
+                    }
+
+                    // Coordinate object creation for the spatial indexing
+                    Coordinate p1 = new Coordinate(x0, y0);
+                    // Envelope associated to the coordinate object
+                    Envelope searchEnv = new Envelope(p1);
+                    // Query on the geometry list
+                    List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                    // classId classifier initial value
+                    int classId = 0;
+                    // If the classifier is present then the zone value is taken
+                    if (classPresent) {
+                        // Selection of the initial point
+                        Point pointSrc = new Point(x0, y0);
+                        // Initialization of the zone point
+                        Point pointClass = new Point();
+                        // Source point inverse transformation for finding the related zone point
+                        try {
+                            if (isNotIdentity) {
+                                inverseTrans.inverseTransform(pointSrc, pointClass);
+                                // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            } else {
+                                // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
+                            }
+
+                        } catch (NoninvertibleTransformException e) {
+                            LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        }
+                    }
+                    // Cycle on all the geometries found
+                    for (ZoneGeometry zoneGeo : geomList) {
+
+                        ROI geometry = zoneGeo.getROI();
+
+                        // if every geometry really contains the selected point
+                        if (geometry.contains(x0, y0)) {
+
+                            // Cycle on the selected Bands
+                            for (int i = 0; i < bandNum; i++) {
+                                int sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]];
+                                // NoData check
+                                if (!noData.contains(sample)) {
+                                    // Update of all the statistics
+                                    zoneGeo.add(sample, bands[i], classId);
+                                }
+                            }
+                        }
+                    }
+                }
+                if (updateIterator) {
+                    rectIterator.nextLine();
+                }
+            }
+        }
+    }
+
+    private void floatLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
+
+        // Source RasterAccessor initial parameters
+        final int srcX = src.getX();
+        final int srcY = src.getY();
+
+        float srcData[][] = src.getFloatDataArrays();
+
+        int srcWidth = src.getWidth();
+        int srcHeight = src.getHeight();
+
+        int[] srcBandOffsets = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        RectIter rectIterator = null;
+
+        if (updateIterator) {
+            Raster ras = classifier.getTile(tileX, tileY);
+            rectIterator = RectIterFactory.create(ras, computableArea);
+            rectIterator.startBands();
+            rectIterator.startLines();
+        }
+
+        // NO DATA NOT PRESENT
+        if (notHasNoData) {
+            // Cycle on the y axis
+            for (int y = 0; y < srcHeight; y++) {
+                if (updateIterator) {
+                    rectIterator.startPixels();
+                }
+                // y position on the source data array
+                int posy = y * srcScanlineStride;
+                // Cycle on the x axis
+                for (int x = 0; x < srcWidth; x++) {
+                    // x position on the source data array
+                    int posx = x * srcPixelStride;
+
+                    // PixelPositions
+                    int x0 = srcX + x;
+                    int y0 = srcY + y;
+
+                    // check on containment
+                    if (!union.contains(x0, y0)) {
+
+                        // Update of the RectIterator
+                        if (updateIterator) {
+                            rectIterator.nextPixel();
+                        }
                         continue;
                     }
 
@@ -1044,10 +1187,10 @@ public class ZonalStatsOpImage extends OpImage {
                         try {
                             if (isNotIdentity) {
                                 inverseTrans.inverseTransform(pointSrc, pointClass);
-                             // Selection of the classId point
+                                // Selection of the classId point
                                 classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
-                            }else{
-                             // Selection of the classId point
+                            } else {
+                                // Selection of the classId point
                                 classId = rectIterator.getSample();
                                 rectIterator.nextPixel();
                             }
@@ -1074,7 +1217,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
                     }
                 }
-                if(updateIterator){
+                if (updateIterator) {
                     rectIterator.nextLine();
                 }
             }
@@ -1082,6 +1225,9 @@ public class ZonalStatsOpImage extends OpImage {
         } else {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
+                if (updateIterator) {
+                    rectIterator.startPixels();
+                }
                 // y position on the source data array
                 int posy = y * srcScanlineStride;
                 // Cycle on the x axis
@@ -1094,6 +1240,12 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
+
+                        // Update of the RectIterator
+                        if (updateIterator) {
+                            rectIterator.nextPixel();
+                        }
+
                         continue;
                     }
 
@@ -1115,13 +1267,17 @@ public class ZonalStatsOpImage extends OpImage {
                         try {
                             if (isNotIdentity) {
                                 inverseTrans.inverseTransform(pointSrc, pointClass);
+                                // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            } else {
+                                // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
                             }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
-                        // Selection of the zone point
-                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -1144,11 +1300,14 @@ public class ZonalStatsOpImage extends OpImage {
                         }
                     }
                 }
+                if (updateIterator) {
+                    rectIterator.nextLine();
+                }
             }
         }
     }
 
-    private void doubleLoop(RasterAccessor src, Rectangle computableArea) {
+    private void doubleLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
 
         // Source RasterAccessor initial parameters
         final int srcX = src.getX();
@@ -1163,10 +1322,22 @@ public class ZonalStatsOpImage extends OpImage {
         int srcPixelStride = src.getPixelStride();
         int srcScanlineStride = src.getScanlineStride();
 
+        RectIter rectIterator = null;
+
+        if (updateIterator) {
+            Raster ras = classifier.getTile(tileX, tileY);
+            rectIterator = RectIterFactory.create(ras, computableArea);
+            rectIterator.startBands();
+            rectIterator.startLines();
+        }
+
         // NO DATA NOT PRESENT
         if (notHasNoData) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
+                if (updateIterator) {
+                    rectIterator.startPixels();
+                }
                 // y position on the source data array
                 int posy = y * srcScanlineStride;
                 // Cycle on the x axis
@@ -1180,6 +1351,10 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
+                        // Update of the RectIterator
+                        if (updateIterator) {
+                            rectIterator.nextPixel();
+                        }
                         continue;
                     }
 
@@ -1201,13 +1376,17 @@ public class ZonalStatsOpImage extends OpImage {
                         try {
                             if (isNotIdentity) {
                                 inverseTrans.inverseTransform(pointSrc, pointClass);
+                                // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            } else {
+                                // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
                             }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
-                        // Selection of the zone point
-                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -1227,11 +1406,17 @@ public class ZonalStatsOpImage extends OpImage {
                         }
                     }
                 }
+                if (updateIterator) {
+                    rectIterator.nextLine();
+                }
             }
             // NO DATA PRESENT
         } else {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
+                if (updateIterator) {
+                    rectIterator.startPixels();
+                }
                 // y position on the source data array
                 int posy = y * srcScanlineStride;
                 // Cycle on the x axis
@@ -1244,6 +1429,10 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
+                        // Update of the RectIterator
+                        if (updateIterator) {
+                            rectIterator.nextPixel();
+                        }
                         continue;
                     }
 
@@ -1265,13 +1454,17 @@ public class ZonalStatsOpImage extends OpImage {
                         try {
                             if (isNotIdentity) {
                                 inverseTrans.inverseTransform(pointSrc, pointClass);
+                                // Selection of the classId point
+                                classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
+                            } else {
+                                // Selection of the classId point
+                                classId = rectIterator.getSample();
+                                rectIterator.nextPixel();
                             }
 
                         } catch (NoninvertibleTransformException e) {
                             LOGGER.log(Level.SEVERE, e.getMessage(), e);
                         }
-                        // Selection of the zone point
-                        classId = randomIterator.getSample(pointClass.x, pointClass.y, 0);
                     }
                     // Cycle on all the geometries found
                     for (ZoneGeometry zoneGeo : geomList) {
@@ -1292,6 +1485,9 @@ public class ZonalStatsOpImage extends OpImage {
                             }
                         }
                     }
+                }
+                if (updateIterator) {
+                    rectIterator.nextLine();
                 }
             }
         }
