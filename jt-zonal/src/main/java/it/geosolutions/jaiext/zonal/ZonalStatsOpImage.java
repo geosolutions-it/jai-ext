@@ -77,9 +77,6 @@ public class ZonalStatsOpImage extends OpImage {
     /** Rectangle containing the union of all the geometries */
     private Rectangle union;
 
-    /** List of all the ZoneGeometry objects associated to every initial geometry */
-    // private final ArrayList<ZoneGeometry> zoneList;
-
     /** Source image bounds */
     private Rectangle sourceBounds;
 
@@ -254,14 +251,12 @@ public class ZonalStatsOpImage extends OpImage {
             double minY = rect.getMinY();
             double maxY = rect.getMaxY();
             Envelope env = new Envelope(minX, maxX, minY, maxY);
-            // spatialIndex.insert(env, roi);
 
             // Creation of a new ZoneGeometry
             ZoneGeometry geom = new ZoneGeometry(roi, bands, statsTypes, classPresent, minBounds,
                     maxBounds, numBinss);
             // Addition to the geometries list
             spatialIndex.insert(env, geom);
-            // zoneList.add(geom);
 
         } else {
             // Bounds Union
@@ -275,7 +270,6 @@ public class ZonalStatsOpImage extends OpImage {
                 double minY = rect.getMinY();
                 double maxY = rect.getMaxY();
                 Envelope env = new Envelope(minX, maxX, minY, maxY);
-                // spatialIndex.insert(env, roi);
                 // Union
                 union = union.union(rect);
                 // Creation of a new ZoneGeometry
@@ -283,21 +277,19 @@ public class ZonalStatsOpImage extends OpImage {
                         minBounds, maxBounds, numBinss);
                 // Addition to the geometries list
                 spatialIndex.insert(env, geom);
-                // zoneList.add(geom);
             }
             // Sets of the roi list
             this.rois = rois;
         }
-        
-        //Building of the spatial index
+
+        // Building of the spatial index
         // Coordinate object creation for the spatial indexing
         Coordinate p1 = new Coordinate(0, 0);
         // Envelope associated to the coordinate object
         Envelope searchEnv = new Envelope(p1);
         // Query on the geometry list
         spatialIndex.query(searchEnv);
-        
-        
+
         // Check if No Data control must be done
         if (noData != null) {
             notHasNoData = false;
@@ -1586,7 +1578,9 @@ public class ZonalStatsOpImage extends OpImage {
         if (ZonalStatsDescriptor.ZS_PROPERTY.equalsIgnoreCase(name)) {
             getTiles();
             List<ZoneGeometry> result = spatialIndex.itemsTree();
-            return Collections.unmodifiableList(result);
+            List<ZoneGeometry> copy = new ArrayList<ZoneGeometry>(result);
+            Collections.reverse(copy);
+            return Collections.unmodifiableList(copy);
         } else {
             return super.getProperty(name);
         }

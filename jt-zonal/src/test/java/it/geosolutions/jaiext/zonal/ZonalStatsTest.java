@@ -6,6 +6,7 @@ import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -386,6 +387,7 @@ public class ZonalStatsTest extends TestBase {
         List<ZoneGeometry>[] zoneList = new ArrayList[2];
         
         zoneList[statsIndex] = spatial[statsIndex].itemsTree();
+        Collections.reverse(zoneList[statsIndex]);
 
         // Test if the calculated values are equal with a tolerance value
         if (CLASSIFIER) {
