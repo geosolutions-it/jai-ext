@@ -34,6 +34,7 @@ public class Median extends Statistics {
 
     @Override
     public void addSample(double sample) {
+        samples++;
         if (interval.contains(sample)) {
             listData.add(sample);
         }
@@ -69,6 +70,11 @@ public class Median extends Statistics {
         }
     }
 
+    @Override
+    protected long getNumSamples() {
+        return samples;
+    }
+    
     @Override
     protected void clearStats() {
         // The list is cleared by creating a new empty list

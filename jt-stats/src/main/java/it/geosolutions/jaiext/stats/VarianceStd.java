@@ -15,9 +15,6 @@ public class VarianceStd extends Statistics {
     /** Internal variable storing the sum of all the squared samples */
     private double sumSqrtValues;
 
-    /** Internal variable storing the number of all samples */
-    private long samples;
-
     VarianceStd(boolean variance) {
         this.variance = variance;
         this.sumValues = 0;
@@ -40,11 +37,6 @@ public class VarianceStd extends Statistics {
         return sumSqrtValues;
     }
 
-    /** This method returns the current state of the samples number */
-    private long getNumberOfSamples() {
-        return samples;
-    }
-
     @Override
     public void addSample(double sample) {
             sumValues += sample;
@@ -56,7 +48,7 @@ public class VarianceStd extends Statistics {
     protected synchronized void accumulateStats(Statistics stats) {
         checkSameStats(stats);
         VarianceStd vstd = (VarianceStd) stats;
-        samples += vstd.getNumberOfSamples();
+        samples += vstd.getNumSamples();
         sumValues += vstd.getSumValues();
         sumSqrtValues += vstd.getSumSqrtValues();
     }
@@ -77,5 +69,10 @@ public class VarianceStd extends Statistics {
         this.sumValues = 0;
         this.sumSqrtValues = 0;
         this.samples = 0;
+    }
+
+    @Override
+    protected long getNumSamples() {
+        return samples;
     }
 }

@@ -66,7 +66,7 @@ public class ZonalStatsTest extends TestBase {
     private static RenderedImage classifier;
 
     /** Spatial index for fast searching the geometries associated with a selected pixel */
-    private static STRtree[] spatial;
+    private static STRtree[][] spatial;
 
     /** Union of all the input geometries bounds */
     private static Rectangle union;
@@ -119,6 +119,8 @@ public class ZonalStatsTest extends TestBase {
     /** Array indicating the number of bins for each band */
     private static int[] numBins;
 
+    private static List<Range>[] rangeList;
+    
     @BeforeClass
     public static void initialSetup() {
 
@@ -150,14 +152,36 @@ public class ZonalStatsTest extends TestBase {
             initial_value += interval;
         }
 
+        rangeList = new ArrayList[6];
+        
+        rangeList[0] = new ArrayList<Range>(1);
+        rangeList[1] = new ArrayList<Range>(1);
+        rangeList[2] = new ArrayList<Range>(1);
+        rangeList[3] = new ArrayList<Range>(1);
+        rangeList[4] = new ArrayList<Range>(1);
+        rangeList[5] = new ArrayList<Range>(1);
+        
+        //Data Range creation
+        rangeList[0].add(RangeFactory.create((byte)-1, true, (byte)100, true)); 
+        rangeList[1].add(RangeFactory.createU((short)0.0, true, (short)100, true)); 
+        rangeList[2].add(RangeFactory.create((short)-1, true,(short)100, true)); 
+        rangeList[3].add(RangeFactory.create(-1, true, 100, true)); 
+        rangeList[4].add(RangeFactory.create(-1f, true, 100f, true,false)); 
+        rangeList[5].add(RangeFactory.create(-1d, true, 100d, true,false)); 
+        
         // Band array creation
         bands = new int[] { 0 };
 
         // Spatial indexing
         // Creation of the spatial indexes
-        spatial = new STRtree[2];        
-        spatial[0] = new STRtree();
-        spatial[1] = new STRtree();
+        spatial = new STRtree[6][2]; 
+        
+        for(int i = 0; i< 6; i++){
+            spatial[i][0] = new STRtree();
+            spatial[i][1] = new STRtree();
+        }
+        
+
         // Bounds Union
         union = new Rectangle(roiList.get(0).getBounds());
         // Insertion of the zones to the spatial index and union of the bounds for every ROI/Zone object
@@ -173,11 +197,13 @@ public class ZonalStatsTest extends TestBase {
             // Union
             union = union.union(rect);
             // Addition to the geometries list
-            for (int z = 0; z < 2; z++) {
-                // Creation of a new ZoneGeometry
-                ZoneGeometry geom = new ZoneGeometry(roi, bands, stats, CLASSIFIER, minBound, maxBound,
-                        numBins);
-                spatial[z].insert(env, geom);
+            for(int i = 0; i< 6; i++){
+                for (int z = 0; z < 2; z++) {
+                    // Creation of a new ZoneGeometry
+                    ZoneGeometry geom = new ZoneGeometry(roi, rangeList[i], bands, stats, CLASSIFIER, minBound, maxBound,
+                            numBins);
+                    spatial[i][z].insert(env, geom);
+                }
             }
         }
 
@@ -259,36 +285,38 @@ public class ZonalStatsTest extends TestBase {
                                 // Creation of an Envelop containing the pixel coordinates
                                 Envelope searchEnv = new Envelope(p);
                                 // Query on the geometry list
-                                List<ZoneGeometry> geomList = spatial[z].query(searchEnv);
-                                // classId classifier initial value
-                                int classId = 0;
-                                // If the classifier is present then the classId value is taken
-                                if (CLASSIFIER) {
-                                    // Selection of the classId point
-                                    classId = iterator.getSample(x, y, 0);
-                                }
-                                // Cycle on all the geometries found
-                                for (ZoneGeometry zoneGeo : geomList) {
-                                    
-                                    ROI geometry = zoneGeo.getROI();
-                                    
-                                    // if every geometry really contains the selected point
-                                    if (geometry.contains(x, y)) {
-
-
-                                        // Cycle for the 2 cases: with and without NoData
-                                            switch (z) {
-                                            case 0:
-                                                zoneGeo.add(value, 0, classId);
-                                                break;
-                                            case 1:
-                                                if (!noDataByte.contains(value)) {
-                                                    zoneGeo.add(value, 0, classId);
-                                                }
-                                                break;
-                                            }                                        
+                                for(int v =0; v < 6; v++){
+                                    List<ZoneGeometry> geomList = spatial[v][z].query(searchEnv);
+                                    // classId classifier initial value
+                                    int classId = 0;
+                                    // If the classifier is present then the classId value is taken
+                                    if (CLASSIFIER) {
+                                        // Selection of the classId point
+                                        classId = iterator.getSample(x, y, 0);
                                     }
-                                }
+                                    // Cycle on all the geometries found
+                                    for (ZoneGeometry zoneGeo : geomList) {
+                                        
+                                        ROI geometry = zoneGeo.getROI();
+                                        
+                                        // if every geometry really contains the selected point
+                                        if (geometry.contains(x, y)) {
+
+
+                                            // Cycle for the 2 cases: with and without NoData
+                                                switch (z) {
+                                                case 0:
+                                                    zoneGeo.add(value, 0, classId, rangeList[v].get(0));
+                                                    break;
+                                                case 1:
+                                                    if (!noDataByte.contains(value)) {
+                                                        zoneGeo.add(value, 0, classId, rangeList[v].get(0));
+                                                    }
+                                                    break;
+                                                }                                        
+                                        }
+                                    }
+                                }                              
                             }
                         }                        
                     }
@@ -302,12 +330,12 @@ public class ZonalStatsTest extends TestBase {
         // This test calculates zonal statistics without NoData
         boolean noDataRangeUsed = false;
 
-        testZonalStats(sourceIMG[0], CLASSIFIER, noDataRangeUsed);
-        testZonalStats(sourceIMG[1], CLASSIFIER, noDataRangeUsed);
-        testZonalStats(sourceIMG[2], CLASSIFIER, noDataRangeUsed);
-        testZonalStats(sourceIMG[3], CLASSIFIER, noDataRangeUsed);
-        testZonalStats(sourceIMG[4], CLASSIFIER, noDataRangeUsed);
-        testZonalStats(sourceIMG[5], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[0], CLASSIFIER, noDataRangeUsed, rangeList[0]);
+        testZonalStats(sourceIMG[1], CLASSIFIER, noDataRangeUsed, rangeList[1]);
+        testZonalStats(sourceIMG[2], CLASSIFIER, noDataRangeUsed, rangeList[2]);
+        testZonalStats(sourceIMG[3], CLASSIFIER, noDataRangeUsed, rangeList[3]);
+        testZonalStats(sourceIMG[4], CLASSIFIER, noDataRangeUsed, rangeList[4]);
+        testZonalStats(sourceIMG[5], CLASSIFIER, noDataRangeUsed, rangeList[5]);
 
     }
 
@@ -316,17 +344,17 @@ public class ZonalStatsTest extends TestBase {
         // This test calculates zonal statistics with NoData and without ROI
         boolean noDataRangeUsed = true;
 
-        testZonalStats(sourceIMG[0], CLASSIFIER, noDataRangeUsed);
-        testZonalStats(sourceIMG[1], CLASSIFIER, noDataRangeUsed);
-        testZonalStats(sourceIMG[2], CLASSIFIER, noDataRangeUsed);
-        testZonalStats(sourceIMG[3], CLASSIFIER, noDataRangeUsed);
-        testZonalStats(sourceIMG[4], CLASSIFIER, noDataRangeUsed);
-        testZonalStats(sourceIMG[5], CLASSIFIER, noDataRangeUsed);
+        testZonalStats(sourceIMG[0], CLASSIFIER, noDataRangeUsed, rangeList[0]);
+        testZonalStats(sourceIMG[1], CLASSIFIER, noDataRangeUsed, rangeList[1]);
+        testZonalStats(sourceIMG[2], CLASSIFIER, noDataRangeUsed, rangeList[2]);
+        testZonalStats(sourceIMG[3], CLASSIFIER, noDataRangeUsed, rangeList[3]);
+        testZonalStats(sourceIMG[4], CLASSIFIER, noDataRangeUsed, rangeList[4]);
+        testZonalStats(sourceIMG[5], CLASSIFIER, noDataRangeUsed, rangeList[5]);
 
     }
 
     public void testZonalStats(RenderedImage source, boolean classifierUsed,
-            boolean noDataRangeUsed) {
+            boolean noDataRangeUsed , List<Range> rangeList) {
         
         // The classifier is used, if selected by the related boolean.
         RenderedImage classifierIMG;
@@ -378,7 +406,7 @@ public class ZonalStatsTest extends TestBase {
         // Creation of the Image
         RenderedImage destination = ZonalStatsDescriptor.create(source, classifierIMG, null,
                 roiList, noDataRange, bands, stats, minBound, maxBound,
-                numBins, null);
+                numBins, rangeList, false, null);
         // Statistic calculation
         List<ZoneGeometry> result = (List<ZoneGeometry>) destination
                 .getProperty(ZonalStatsDescriptor.ZS_PROPERTY);
@@ -386,7 +414,9 @@ public class ZonalStatsTest extends TestBase {
         //Calculated Results
         List<ZoneGeometry>[] zoneList = new ArrayList[2];
         
-        zoneList[statsIndex] = spatial[statsIndex].itemsTree();
+        int dataType = destination.getSampleModel().getDataType();
+        
+        zoneList[statsIndex] = spatial[dataType][statsIndex].itemsTree();
         Collections.reverse(zoneList[statsIndex]);
 
         // Test if the calculated values are equal with a tolerance value
@@ -396,18 +426,16 @@ public class ZonalStatsTest extends TestBase {
                 ZoneGeometry zoneResult = result.get(i);
                 ZoneGeometry zoneCalculated = zoneList[statsIndex].get(i);
                 // Selection of the zone statistics for the selected band
-                Map<Integer, Statistics[]> resultPerZone = (Map<Integer, Statistics[]>) zoneResult
+                Map<Integer, Map<Range,Statistics[]>> resultPerClass = (Map<Integer, Map<Range,Statistics[]>>) zoneResult
                         .getStatsPerBand(0);
                 // Set of all the keys indicating the various classifier zones
-                Set<Integer> zoneset = resultPerZone.keySet();
+                Set<Integer> zoneset = resultPerClass.keySet();
                 // Cycle on all the zones
                 for (int zone : zoneset) {
                     // Result from ZonalStats operation
-                    Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandPerClass(0,
-                            zone);
+                    Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandNoRange(0, zone); 
                     // Result from calculation
-                    Statistics[] statsCalculated = (Statistics[]) zoneCalculated
-                            .getStatsPerBandPerClass(0, zone);
+                    Statistics[] statsCalculated = (Statistics[]) zoneResult.getStatsPerBandNoRange(0, zone);
                     // Check if the results have the same dimensions
                     assertEquals(statsResult.length, statsCalculated.length);
                     // Check if all the calculations are equal, with a tolerance value
@@ -461,10 +489,10 @@ public class ZonalStatsTest extends TestBase {
                 ZoneGeometry zoneCalculated = zoneList[statsIndex].get(i);
                 // Selection of the statistics for the selected band
                 // Result from ZonalStats operation
-                Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandNoClassifier(0);
+                Statistics[] statsResult = (Statistics[]) zoneResult.getStatsPerBandNoClassifierNoRange(0);
                 // Result from calculation
                 Statistics[] statsCalculated = (Statistics[]) zoneCalculated
-                        .getStatsPerBandNoClassifier(0);
+                        .getStatsPerBandNoClassifier(0, rangeList.get(0));
                 // Check if the results have the same dimensions
                 assertEquals(statsResult.length, statsCalculated.length);
                 // Check if all the calculations are equal, with a tolerance value

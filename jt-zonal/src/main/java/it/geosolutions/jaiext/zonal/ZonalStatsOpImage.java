@@ -2,6 +2,8 @@ package it.geosolutions.jaiext.zonal;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.Range.DataType;
+import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -28,6 +30,8 @@ import javax.media.jai.RasterFormatTag;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RectIter;
 import javax.media.jai.iterator.RectIterFactory;
+
+import org.jaitools.numeric.Range.Type;
 
 import com.sun.media.jai.util.PropertyUtil;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -104,9 +108,20 @@ public class ZonalStatsOpImage extends OpImage {
     /** Classifier image */
     private final RenderedImage classifier;
 
+    private List<Range> rangeList;
+
+    private final boolean ranges;
+
+    private final boolean localStats;
+
+    private Range rangeHelper;
+
+    private final boolean rangesNoClass;
+
     public ZonalStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             RenderedImage classifier, AffineTransform transform, List<ROI> rois, Range noData,
-            int[] bands, StatsType[] statsTypes, double[] minBound, double[] maxBound, int[] numBins) {
+            int[] bands, StatsType[] statsTypes, double[] minBound, double[] maxBound,
+            int[] numBins, List<Range> rangeData, boolean localStats) {
         super(vectorize(source), layout, configuration, true);
 
         // Check if the classifier is present
@@ -160,6 +175,9 @@ public class ZonalStatsOpImage extends OpImage {
         this.bandNum = bands.length;
         // Control on the bands number
         SampleModel sm = source.getSampleModel();
+        // source data type
+        int dataType = sm.getDataType();
+        // Number of source bands
         int numBands = sm.getNumBands();
         if (bandNum > numBands) {
             throw new IllegalArgumentException(
@@ -234,6 +252,38 @@ public class ZonalStatsOpImage extends OpImage {
             }
         }
 
+        // If Range list is present then it is saved else a full Range is used
+
+        Range fullRange = RangeFactory.create(Double.NEGATIVE_INFINITY, true,
+                Double.POSITIVE_INFINITY, true, false);
+        List<Range> simpleRange = new ArrayList<Range>(1);
+        simpleRange.add(fullRange);
+
+        if (rangeData != null && !rangeData.isEmpty()) {
+            
+            for(Range r : rangeData){
+                DataType type = r.getDataType();
+                if(type.getDataType() != dataType){
+                    throw new IllegalArgumentException("Wrong Range data type"); 
+                }
+            }
+            
+            this.rangeList = Collections.unmodifiableList(rangeData);
+
+            this.ranges = true;
+            this.localStats = localStats;
+
+            if (!localStats) {
+                this.rangeHelper = fullRange;
+            }
+        } else {
+            this.rangeHelper = fullRange;
+            this.ranges = false;
+            this.localStats = false;
+        }
+
+        rangesNoClass = ranges && !classPresent; 
+        
         // Creation of a ZoneGeometry list, for storing the results
         // zoneList = new ArrayList<ZoneGeometry>();
         // Check if the rois are present. Otherwise the entire image statistics
@@ -253,8 +303,15 @@ public class ZonalStatsOpImage extends OpImage {
             Envelope env = new Envelope(minX, maxX, minY, maxY);
 
             // Creation of a new ZoneGeometry
-            ZoneGeometry geom = new ZoneGeometry(roi, bands, statsTypes, classPresent, minBounds,
-                    maxBounds, numBinss);
+            ZoneGeometry geom;
+            if (ranges && localStats) {
+                geom = new ZoneGeometry(roi, rangeList, bands, statsTypes, classPresent, minBounds,
+                        maxBounds, numBinss);
+            } else {
+
+                geom = new ZoneGeometry(roi, simpleRange, bands, statsTypes, classPresent,
+                        minBounds, maxBounds, numBinss);
+            }
             // Addition to the geometries list
             spatialIndex.insert(env, geom);
 
@@ -273,8 +330,15 @@ public class ZonalStatsOpImage extends OpImage {
                 // Union
                 union = union.union(rect);
                 // Creation of a new ZoneGeometry
-                ZoneGeometry geom = new ZoneGeometry(roi, bands, statsTypes, classPresent,
-                        minBounds, maxBounds, numBinss);
+                ZoneGeometry geom;
+                if (ranges && localStats) {
+                    geom = new ZoneGeometry(roi, rangeList, bands, statsTypes, classPresent,
+                            minBounds, maxBounds, numBinss);
+                } else {
+
+                    geom = new ZoneGeometry(roi, simpleRange, bands, statsTypes, classPresent,
+                            minBounds, maxBounds, numBinss);
+                }
                 // Addition to the geometries list
                 spatialIndex.insert(env, geom);
             }
@@ -310,7 +374,6 @@ public class ZonalStatsOpImage extends OpImage {
         } else {
             booleanLookupTable = null;
         }
-
     }
 
     public Raster computeTile(int tileX, int tileY) {
@@ -452,7 +515,24 @@ public class ZonalStatsOpImage extends OpImage {
                                 byte sample = srcData[bands[i]][posx + posy
                                         + srcBandOffsets[bands[i]]];
                                 // Update of all the statistics
-                                zoneGeo.add(sample, bands[i], classId);
+                                // If a range list is present then the sample is checked if it is inside the range
+                                if (rangesNoClass) {
+                                    for (Range range : rangeList) {
+                                        if (range.contains(sample)) {
+                                            // For local statistics the pixel is checked for every range
+                                            if (localStats) {
+                                                zoneGeo.add(sample, bands[i], classId, range);
+                                            } else {
+                                                // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                // it is added to the statistic container
+                                                zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                }
                             }
                         }
                     }
@@ -532,7 +612,25 @@ public class ZonalStatsOpImage extends OpImage {
                                 // NoData check
                                 if (booleanLookupTable[(int) sample]) {
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId);
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
                                 }
                             }
 
@@ -640,7 +738,24 @@ public class ZonalStatsOpImage extends OpImage {
                                 int sample = srcData[bands[i]][posx + posy
                                         + srcBandOffsets[bands[i]]] & 0xFFFF;
                                 // Update of all the statistics
-                                zoneGeo.add(sample, bands[i], classId);
+                                // If a range list is present then the sample is checked if it is inside the range
+                                if (rangesNoClass) {
+                                    for (Range range : rangeList) {
+                                        if (range.contains((short) sample)) {
+                                            // For local statistics the pixel is checked for every range
+                                            if (localStats) {
+                                                zoneGeo.add(sample, bands[i], classId, range);
+                                            } else {
+                                                // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                // it is added to the statistic container
+                                                zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                }
                             }
                         }
                     }
@@ -720,7 +835,25 @@ public class ZonalStatsOpImage extends OpImage {
                                 // NoData check
                                 if (!noData.contains((short) sample)) {
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId);
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains((short) sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
                                 }
                             }
                         }
@@ -827,7 +960,24 @@ public class ZonalStatsOpImage extends OpImage {
                                 short sample = srcData[bands[i]][posx + posy
                                         + srcBandOffsets[bands[i]]];
                                 // Update of all the statistics
-                                zoneGeo.add(sample, bands[i], classId);
+                                // If a range list is present then the sample is checked if it is inside the range
+                                if (rangesNoClass) {
+                                    for (Range range : rangeList) {
+                                        if (range.contains(sample)) {
+                                            // For local statistics the pixel is checked for every range
+                                            if (localStats) {
+                                                zoneGeo.add(sample, bands[i], classId, range);
+                                            } else {
+                                                // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                // it is added to the statistic container
+                                                zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                }
                             }
 
                         }
@@ -908,7 +1058,25 @@ public class ZonalStatsOpImage extends OpImage {
                                 // NoData check
                                 if (!noData.contains(sample)) {
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId);
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
                                 }
                             }
                         }
@@ -1015,7 +1183,24 @@ public class ZonalStatsOpImage extends OpImage {
                                 int sample = srcData[bands[i]][posx + posy
                                         + srcBandOffsets[bands[i]]];
                                 // Update of all the statistics
-                                zoneGeo.add(sample, bands[i], classId);
+                                // If a range list is present then the sample is checked if it is inside the range
+                                if (rangesNoClass) {
+                                    for (Range range : rangeList) {
+                                        if (range.contains(sample)) {
+                                            // For local statistics the pixel is checked for every range
+                                            if (localStats) {
+                                                zoneGeo.add(sample, bands[i], classId, range);
+                                            } else {
+                                                // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                // it is added to the statistic container
+                                                zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                }
                             }
                         }
                     }
@@ -1095,7 +1280,25 @@ public class ZonalStatsOpImage extends OpImage {
                                 // NoData check
                                 if (!noData.contains(sample)) {
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId);
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
                                 }
                             }
                         }
@@ -1204,7 +1407,24 @@ public class ZonalStatsOpImage extends OpImage {
                                 float sample = srcData[bands[i]][posx + posy
                                         + srcBandOffsets[bands[i]]];
                                 // Update of all the statistics
-                                zoneGeo.add(sample, bands[i], classId);
+                                // If a range list is present then the sample is checked if it is inside the range
+                                if (rangesNoClass) {
+                                    for (Range range : rangeList) {
+                                        if (range.contains(sample)) {
+                                            // For local statistics the pixel is checked for every range
+                                            if (localStats) {
+                                                zoneGeo.add(sample, bands[i], classId, range);
+                                            } else {
+                                                // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                // it is added to the statistic container
+                                                zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                }
                             }
                         }
                     }
@@ -1286,7 +1506,25 @@ public class ZonalStatsOpImage extends OpImage {
                                 // NoData check
                                 if (!noData.contains(sample)) {
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId);
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
                                 }
                             }
                         }
@@ -1393,7 +1631,24 @@ public class ZonalStatsOpImage extends OpImage {
                                 double sample = srcData[bands[i]][posx + posy
                                         + srcBandOffsets[bands[i]]];
                                 // Update of all the statistics
-                                zoneGeo.add(sample, bands[i], classId);
+                                // If a range list is present then the sample is checked if it is inside the range
+                                if (rangesNoClass) {
+                                    for (Range range : rangeList) {
+                                        if (range.contains(sample)) {
+                                            // For local statistics the pixel is checked for every range
+                                            if (localStats) {
+                                                zoneGeo.add(sample, bands[i], classId, range);
+                                            } else {
+                                                // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                // it is added to the statistic container
+                                                zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                }
                             }
                         }
                     }
@@ -1472,7 +1727,25 @@ public class ZonalStatsOpImage extends OpImage {
                                 // NoData check
                                 if (!noData.contains(sample)) {
                                     // Update of all the statistics
-                                    zoneGeo.add(sample, bands[i], classId);
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
                                 }
                             }
                         }
@@ -1585,5 +1858,4 @@ public class ZonalStatsOpImage extends OpImage {
             return super.getProperty(name);
         }
     }
-
 }

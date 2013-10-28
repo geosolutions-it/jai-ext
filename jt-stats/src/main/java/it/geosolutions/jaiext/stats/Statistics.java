@@ -40,6 +40,9 @@ public abstract class Statistics {
     
     /** Variable indicating the statistic used */
     protected StatsType type;
+    
+    /** Internal variable storing the number of all samples */
+    protected long samples;
 
     /** This method returns the statistical type of the object instance */
     protected StatsType getStatsType() {
@@ -74,4 +77,7 @@ public abstract class Statistics {
     
     /** This method is used for clearing the results */
     protected abstract void clearStats();
+    
+    /** This method returns the number of samples calculated */
+    protected abstract long getNumSamples();
 }

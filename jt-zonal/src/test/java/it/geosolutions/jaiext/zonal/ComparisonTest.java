@@ -334,7 +334,7 @@ public class ComparisonTest extends TestBase {
             } else {
                 // New descriptor calculations
                 imageStats = ZonalStatsDescriptor.create(testImage, classifier, null, roilist,
-                        rangeND, bands, arrayStats, minBounds, maxBounds, numBins, null);
+                        rangeND, bands, arrayStats, minBounds, maxBounds, numBins, null, false, null);
             }
 
             // Total statistic calculation time

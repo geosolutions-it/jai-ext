@@ -31,11 +31,6 @@ public class MeanSum extends Statistics {
         return sumValues;
     }
 
-    /** This method returns the current state of the samples number */
-    private long getNumberOfSamples() {
-        return samples;
-    }
-
     @Override
     public void addSample(double sample) {
             sumValues += sample;
@@ -46,7 +41,7 @@ public class MeanSum extends Statistics {
     protected synchronized void accumulateStats(Statistics stats) {
         checkSameStats(stats);
         MeanSum msum = (MeanSum) stats;
-        samples += msum.getNumberOfSamples();
+        samples += msum.getNumSamples();
         sumValues += msum.getSumValues();
     }
 
@@ -59,6 +54,11 @@ public class MeanSum extends Statistics {
         }
     }
 
+    @Override
+    protected long getNumSamples() {
+        return samples;
+    }
+    
     @Override
     protected void clearStats() {
         this.sumValues = 0;

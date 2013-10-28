@@ -58,6 +58,7 @@ public class HistogramMode extends Statistics {
 
     @Override
     public void addSample(double sample) {
+        samples++;
         if (interval.contains(sample)) {
             // Selection of the index
             int index = getIndex(sample);
@@ -99,6 +100,11 @@ public class HistogramMode extends Statistics {
         }
     }
 
+    @Override
+    protected long getNumSamples() {
+        return samples;
+    }
+    
     @Override
     protected synchronized void clearStats() {
         // All the bins are set to 0

@@ -122,6 +122,14 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <td>arg8Desc</td>
  * <td>Array indicating the number of bins for complex statistics on all the selected bands.</td>
  * </tr>
+ * <tr>
+ * <td>arg9Desc</td>
+ * <td>List of the possible ranges for dividing the statistics.</td>
+ * </tr>
+ * <tr>
+ * <td>arg10Desc</td>
+ * <td>Boolean indicating if the results must be calculated for each range.</td>
+ * </tr>
  * </table>
  * </p>
  * 
@@ -169,6 +177,14 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <td>numbin</td>
  * <td>int[]</td>
  * <td>null</td>
+ * <tr>
+ * <td>rangeData</td>
+ * <td>List</td>
+ * <td>null</td>
+ * <tr>
+ * <td>localStats</td>
+ * <td>Boolean</td>
+ * <td>false</td>
  * </table>
  * </p>
  * 
@@ -202,7 +218,11 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
             { "arg7Desc",
                     "Array indicating the maximum bounds for complex statistics on all the selected bands" },
             { "arg8Desc",
-                    "Array indicating the number of bins for complex statistics on all the selected bands" }
+                    "Array indicating the number of bins for complex statistics on all the selected bands" },
+            { "arg9Desc",
+                    "List of the possible ranges for dividing the statistics" },
+            { "arg10Desc",
+                    "Boolean indicating if the results must be calculated for each range" }
 
     };
 
@@ -210,15 +230,15 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
     private static final Class[] paramClasses = { RenderedImage.class, AffineTransform.class,
             java.util.List.class, it.geosolutions.jaiext.range.Range.class, int[].class,
             it.geosolutions.jaiext.stats.Statistics.StatsType[].class, double[].class,
-            double[].class, int[].class };
+            double[].class, int[].class, java.util.List.class, Boolean.class };
 
     /** The parameter name list for this operation. */
     private static final String[] paramNames = { "classifier", "transform", "roilist", "noData",
-            "bands", "stats", "minbound", "maxbound", "numbin" };
+            "bands", "stats", "minbound", "maxbound", "numbin", "rangeData", "localStats"};
 
     /** The parameter default value list for this operation. */
     private static final Object[] paramDefaults = { null, null, null, null, new int[] { 0 }, null,
-            null, null, null };
+            null, null, null, null, false };
 
     public ZonalStatsDescriptor() {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
@@ -245,6 +265,8 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
      * @param minBound Array indicating minimum bounds for complex computations.
      * @param maxBound Array indicating maximum bounds for complex computations.
      * @param numBins Array indicating the number of bins for complex computations.
+     * @param rangeData List of the possible range to calculate the statistics.
+     * @param localStats Boolean indicating if the statistics must be stored for each range.
      * @param hints The <code>RenderingHints</code> to use.
      * @return The <code>RenderedOp</code> source image.
      * @throws IllegalArgumentException if <code>source</code> is <code>null</code>.
@@ -252,7 +274,7 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
     public static RenderedOp create(RenderedImage source, RenderedImage classifier,
             AffineTransform transform, List<ROI> roilist, Range noData, int[] bands,
             StatsType[] stats, double[] minBound, double[] maxBound, int[] numBins,
-            RenderingHints hints) {
+            List<Range> rangeData, boolean localStats, RenderingHints hints) {
         // Creation of a parameterBlockJAI containing all the operation parameters
         ParameterBlockJAI pb = new ParameterBlockJAI("Zonal", RenderedRegistryMode.MODE_NAME);
         // Source image
@@ -267,6 +289,8 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
         pb.setParameter("minbound", minBound);
         pb.setParameter("maxbound", maxBound);
         pb.setParameter("numbin", numBins);
+        pb.setParameter("rangeData", rangeData);
+        pb.setParameter("localStats", localStats);
 
         // RenderedImage creation
         return JAI.create("Zonal", pb, hints);
@@ -290,14 +314,16 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
      * @param NoData No Data range used for calculation.
      * @param bands Array indicating which band to consider.
      * @param stats Array indicating which statistics to consider.
+     * @param rangeData List of the possible range to calculate the statistics.
+     * @param localStats Boolean indicating if the statistics must be stored for each range.
      * @return The <code>RenderedOp</code> source image.
      * @throws IllegalArgumentException if <code>source</code> is <code>null</code>.
      */
     public static RenderedOp create(RenderedImage source, RenderedImage classifier,
             AffineTransform transform, List<ROI> roilist, Range noData, int[] bands,
-            StatsType[] stats, RenderingHints hints) {
+            StatsType[] stats, List<Range> rangeData, boolean localStats, RenderingHints hints) {
         return create(source, classifier, transform, roilist, noData, bands, stats, null, null,
-                null, hints);
+                null, rangeData, localStats, hints);
     }
 
 }

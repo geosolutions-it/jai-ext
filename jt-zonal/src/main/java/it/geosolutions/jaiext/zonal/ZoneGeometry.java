@@ -1,5 +1,8 @@
 package it.geosolutions.jaiext.zonal;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -7,6 +10,7 @@ import java.util.TreeSet;
 
 import javax.media.jai.ROI;
 
+import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.stats.Statistics;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import it.geosolutions.jaiext.stats.StatsFactory;
@@ -24,7 +28,7 @@ public class ZoneGeometry {
     private final boolean classification;
 
     /** Map containing all the statistics for every band and for every Class */
-    private final Map<Integer, Map<Integer, Statistics[]>> statsContainer;
+    private final Map<Integer, Map<Integer, Map<Range, Statistics[]>>> statsContainer;
 
     /** Array indicating which statistics must be calculated */
     private final StatsType[] stats;
@@ -41,7 +45,9 @@ public class ZoneGeometry {
     /** Geometry associated to the selected zone*/
     private final ROI roi;
 
-    ZoneGeometry(ROI roi, int[] bands, StatsType[] stats, boolean classification, double[] minBounds,
+    private List<Range> ranges;
+
+    ZoneGeometry(ROI roi, List<Range> ranges, int[] bands, StatsType[] stats, boolean classification, double[] minBounds,
             double[] maxBounds, int[] numbins) {
 
         // Setting of the parameters
@@ -51,41 +57,51 @@ public class ZoneGeometry {
         this.maxBounds = maxBounds;
         this.numbins = numbins;
         this.roi = roi;
+        this.ranges = ranges;
+        
         // creation of the new map associated with this ZoneGeometry instance
-        statsContainer = new TreeMap<Integer, Map<Integer, Statistics[]>>();
+        statsContainer = new TreeMap<Integer, Map<Integer, Map<Range, Statistics[]>>>();
         // Cicle on all the selected bands for creating the band inner map elements
         for (int i : bands) {
-            Map<Integer, Statistics[]> mapClass = new TreeMap<Integer, Statistics[]>();
+            Map<Integer, Map<Range, Statistics[]>> mapClass = new TreeMap<Integer, Map<Range, Statistics[]>>();
             // If the classifier is not present, the statistics objects are created at the ZoneGeometry
             // instantiation
             if (!classification) {
-                Statistics[] statistics = new Statistics[stats.length];
-                for (int st = 0; st < stats.length; st++) {
-                    int statId = stats[st].getStatsId();
-                    if (statId <= 6) {
-                        statistics[st] = StatsFactory.createSimpleStatisticsObjectFromInt(statId);
-                    } else {
-                        statistics[st] = StatsFactory.createComplexStatisticsObjectFromInt(statId,
-                                minBounds[i], maxBounds[i], numbins[i]);
-                    }
-                }
-                mapClass.put(0, statistics);
+                Map<Range, Statistics[]> mapRange = new HashMap<Range, Statistics[]>();
+                
+                for(Range inputRange : ranges){
+                    
+                    
+                    Statistics[] statistics = new Statistics[stats.length];
+                    for (int st = 0; st < stats.length; st++) {
+                        int statId = stats[st].getStatsId();
+                        if (statId <= 6) {
+                            statistics[st] = StatsFactory.createSimpleStatisticsObjectFromInt(statId);
+                        } else {
+                            statistics[st] = StatsFactory.createComplexStatisticsObjectFromInt(statId,
+                                    minBounds[i], maxBounds[i], numbins[i]);
+                        }
+                    }                    
+                    mapRange.put(inputRange, statistics);
+                }                
+                mapClass.put(0, mapRange);
             }
             statsContainer.put(i, mapClass);
         }
     }
 
-    public synchronized void  add(double sample, int band, int classId) {
+    public synchronized void  add(double sample, int band, int classId, Range dataRange) {
         // Selection of the map associated with the band indicated by the index
-        Map<Integer, Statistics[]> mapClass = statsContainer.get(band);
-        // Selection of the Statistics array associated with the zone indicated by the index
+        Map<Integer, Map<Range, Statistics[]>> mapClass = statsContainer.get(band);
+        // Selection of the Map associated with the zone indicated by the index
         // (always 0 if the classifier is not present)
-        Statistics[] statistics = mapClass.get(classId);
+        Map<Range, Statistics[]> mapRange = mapClass.get(classId);
+
         // if the classifier is present and a new Class is founded, then a new statistics object is created
-        if (classification && statistics == null) {
-            statistics = new Statistics[stats.length];
-            // The updated statistics are inserted in the related containers
-            mapClass.put(classId, statistics);
+        if (classification && mapRange == null) {
+            mapRange = new HashMap<Range, Statistics[]>();
+            Statistics[] statistics = new Statistics[stats.length];
+
             for (int st = 0; st < stats.length; st++) {
                 int statId = stats[st].getStatsId();
                 if (statId <= 6) {
@@ -95,45 +111,95 @@ public class ZoneGeometry {
                             minBounds[band], maxBounds[band], numbins[band]);
                 }
             }
-        }
 
-        // Update of the statistics
-        for (int st = 0; st < stats.length; st++) {
-            statistics[st].addSample(sample);
+            // The updated statistics are inserted in the related containers
+            mapRange.put(dataRange, statistics);
+            // Insertion of the MapRange if not present
+            mapClass.put(classId, mapRange);
+            
+        }else{
+            // Selection of the 
+            Statistics[] statistics = mapRange.get(dataRange);
+            
+            // Update of the statistics
+            for (int st = 0; st < stats.length; st++) {
+                statistics[st].addSample(sample);
+            }
+            
         }
     }
 
     /**
-     * Utility method for having the Statistics of a specific band inside a specific zone class
+     * Utility method for having the Statistics of a specific band inside a specific zone class and a specific Range
      */
-    public Statistics[] getStatsPerBandPerClass(int band, int classId) {
-        Map<Integer, Statistics[]> resultAllClass = statsContainer.get(band);
-        Statistics[] statistics = resultAllClass.get(classId);
+    public Statistics[] getStatsPerBandPerClassPerRange(int band, int classId, Range range) {
+        Statistics[] statistics = statsContainer.get(band).get(classId).get(range);
         return statistics;
     }
 
     /**
-     * Utility method for having the Statistics of a specific band if no classifier is used
+     * Utility method for having the Statistics of a specific band if no classifier is used 
      */
-    public Statistics[] getStatsPerBandNoClassifier(int band) {
-        Map<Integer, Statistics[]> resultAllClass = statsContainer.get(band);
-        Statistics[] statistics = resultAllClass.get(0);
+    public Statistics[] getStatsPerBandNoClassifier(int band, Range range) {
+        Statistics[] statistics = statsContainer.get(band).get(0).get(range);                
         return statistics;
     }
+   
+    
+    /**
+     * Utility method for having the Statistics of a specific band if no classifier and no Range are used 
+     */
+    public Statistics[] getStatsPerBandNoClassifierNoRange(int band) {
+        
+       Range fullRange = statsContainer.get(band).get(0).keySet().iterator().next();
+        
+        Statistics[] statistics = statsContainer.get(band).get(0).get(fullRange);                
+        return statistics;
+    }
+    
+    /**
+     * Utility method for having the Statistics of a specific band if classifier is used but no range is present 
+     */
+    public Statistics[] getStatsPerBandNoRange(int band, int classId) {
+        Statistics[] statistics = statsContainer.get(band).get(classId).get(ranges.get(0));             
+        return statistics;
+    }
+    
+    /**
+     * Utility method for having all the zone-class statistics for a selected band.
+     */
+    public Map<Integer, Map<Range, Statistics[]>> getStatsPerBand(int band) {
+        Map<Integer, Map<Range, Statistics[]>> resultAllClass = statsContainer.get(band);
+        return resultAllClass;
+    }
+    
+    /**
+     * Utility method for having all the zone-class statistics for a selected band.
+     */
+    public Map<Range, Statistics[]> getStatsPerBandPerClass(int band, int classId) {
+        Map<Range, Statistics[]> resultPerClass = statsContainer.get(band).get(classId);
+        return resultPerClass;
+    }
+    
 
     /**
      * Utility method indicating the number of classes
      */
     public int getNumClass() {
-        Map<Integer, Statistics[]> resultAllClass = statsContainer.get(0);
+        Map<Integer, Map<Range, Statistics[]>> resultAllClass = statsContainer.get(0);
         return resultAllClass.size();
+    }
+    
+    
+    public List<Range> getRanges(){
+        return ranges;
     }
     
     /**
      * Utility method indicating the index of all the classes
      */
     public Set<Integer> getClasses() {
-        Map<Integer, Statistics[]> resultAllClass = statsContainer.get(0);
+        Map<Integer, Map<Range, Statistics[]>> resultAllClass = statsContainer.get(0);
         Set<Integer> classes = resultAllClass.keySet();
         
         TreeSet<Integer> orderedSet = new TreeSet<Integer>(classes);
@@ -142,18 +208,10 @@ public class ZoneGeometry {
     }
 
     /**
-     * Utility method for having all the zone-class statistics for a selected band.
-     */
-    public Map<Integer, Statistics[]> getStatsPerBand(int band) {
-        Map<Integer, Statistics[]> resultAllClass = statsContainer.get(band);
-        return resultAllClass;
-    }
-
-    /**
      * Utility method for having all ZoneGeometry statistics.
      */
-    public Map<Integer, Map<Integer, Statistics[]>> getTotalStats() {
-        return new TreeMap<Integer, Map<Integer, Statistics[]>>(statsContainer);
+    public Map<Integer, Map<Integer, Map<Range, Statistics[]>>> getTotalStats() {
+        return new TreeMap<Integer, Map<Integer, Map<Range, Statistics[]>>>(statsContainer);
     }
     
     /**
@@ -167,5 +225,36 @@ public class ZoneGeometry {
     /** Simple method for clearing all the image statistics */
     public void clear() {
         statsContainer.clear();
+    }
+    
+    
+    static class StatsPerRange{
+        private Statistics[] stats;
+        
+        private List<Range> rangeList;
+                
+        StatsPerRange() {
+            rangeList = new ArrayList<Range>();
+        }
+        
+        public Statistics[] getStats() {
+            return stats;
+        }
+
+        public void setStats(Statistics[] stats) {
+            this.stats = stats;
+        }
+
+        public List<Range> getRangeList() {
+            return rangeList;
+        }
+        
+        public void addRange(Range r){
+            rangeList.add(r);
+        }
+        
+        public void addRanges(List<Range> list){
+            rangeList=list;
+        }       
     }
 }

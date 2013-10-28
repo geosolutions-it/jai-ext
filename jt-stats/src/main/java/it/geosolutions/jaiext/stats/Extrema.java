@@ -35,6 +35,9 @@ public class Extrema extends Statistics {
         if (sample < min) {
             min = sample;
         }
+
+        samples++;
+
     }
 
     @Override
@@ -49,12 +52,19 @@ public class Extrema extends Statistics {
         if (minNew < min) {
             min = minNew;
         }
+
+        samples += stats.getNumSamples();
     }
 
     @Override
     public Object getResult() {
         double[] extrema = { min, max };
         return extrema;
+    }
+
+    @Override
+    protected long getNumSamples() {
+        return samples;
     }
 
     @Override

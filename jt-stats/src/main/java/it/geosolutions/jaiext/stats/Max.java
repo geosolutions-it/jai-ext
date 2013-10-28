@@ -20,9 +20,11 @@ public class Max extends Statistics {
 
     @Override
     public void addSample(double sample) {
-            if (sample > max) {
-                max = sample;
-            }
+        samples++;
+        if (sample > max) {
+            max = sample;
+        }
+
     }
 
     @Override
@@ -33,11 +35,18 @@ public class Max extends Statistics {
         if (maxNew > max) {
             max = maxNew;
         }
+        samples += stats.getNumSamples();
+
     }
 
     @Override
     public Object getResult() {
         return max;
+    }
+
+    @Override
+    protected long getNumSamples() {
+        return samples;
     }
 
     @Override

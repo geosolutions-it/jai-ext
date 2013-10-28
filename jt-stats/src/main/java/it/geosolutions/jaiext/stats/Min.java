@@ -20,6 +20,7 @@ public class Min extends Statistics {
 
     @Override
     public void addSample(double sample) {
+            samples++;
             if (sample < min) {
                 min = sample;
             }
@@ -33,6 +34,7 @@ public class Min extends Statistics {
         if (minNew < min) {
             min = minNew;
         }
+        samples += stats.getNumSamples();
     }
 
     @Override
@@ -43,6 +45,11 @@ public class Min extends Statistics {
     @Override
     protected void clearStats() {
         this.min = Double.POSITIVE_INFINITY;
+    }
+    
+    @Override
+    protected long getNumSamples() {
+        return samples;
     }
 
 }
