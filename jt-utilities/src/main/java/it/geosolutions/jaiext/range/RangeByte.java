@@ -83,4 +83,13 @@ public class RangeByte extends Range {
         return isPoint;
     }
 
+    @Override
+    public Number getMax() {
+        return maxValue;
+    }
+
+    @Override
+    public Number getMin() {
+        return minValue;
+    }
 }

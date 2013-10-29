@@ -71,8 +71,8 @@ public class Median extends Statistics {
     }
 
     @Override
-    protected long getNumSamples() {
-        return samples;
+    public Long getNumSamples() {
+        return Long.valueOf(samples);
     }
     
     @Override

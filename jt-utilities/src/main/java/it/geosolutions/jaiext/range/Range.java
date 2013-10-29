@@ -113,5 +113,11 @@ public abstract class Range {
 
     /** Indicates if the Range is a degenerated single point Range or not */
     public abstract boolean isPoint();
+    
+    /** Returns the maximum bound of the Range*/
+    public abstract Number getMax();
+    
+    /** Returns the minimum bound of the Range*/
+    public abstract Number getMin();
 
 }

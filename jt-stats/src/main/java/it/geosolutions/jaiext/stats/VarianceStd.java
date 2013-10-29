@@ -72,7 +72,7 @@ public class VarianceStd extends Statistics {
     }
 
     @Override
-    protected long getNumSamples() {
-        return samples;
+    public Long getNumSamples() {
+        return Long.valueOf(samples);
     }
 }

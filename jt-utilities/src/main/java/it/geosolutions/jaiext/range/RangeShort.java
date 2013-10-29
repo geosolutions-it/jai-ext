@@ -81,5 +81,15 @@ public class RangeShort extends Range {
     public boolean isPoint() {
         return isPoint;
     }
+    
+    @Override
+    public Number getMax() {
+        return maxValue;
+    }
+
+    @Override
+    public Number getMin() {
+        return minValue;
+    }
 
 }

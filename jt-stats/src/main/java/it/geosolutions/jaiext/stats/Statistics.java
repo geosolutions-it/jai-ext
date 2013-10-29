@@ -79,5 +79,5 @@ public abstract class Statistics {
     protected abstract void clearStats();
     
     /** This method returns the number of samples calculated */
-    protected abstract long getNumSamples();
+    public abstract Long getNumSamples();
 }
