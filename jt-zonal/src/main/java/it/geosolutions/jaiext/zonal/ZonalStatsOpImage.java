@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.OpImage;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RasterAccessor;
@@ -30,9 +31,6 @@ import javax.media.jai.RasterFormatTag;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RectIter;
 import javax.media.jai.iterator.RectIterFactory;
-
-import org.jaitools.numeric.Range.Type;
-
 import com.sun.media.jai.util.PropertyUtil;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -118,10 +116,27 @@ public class ZonalStatsOpImage extends OpImage {
 
     private final boolean rangesNoClass;
 
+    private boolean hasROI;
+
+    private RandomIter roiIter;
+
+    private Rectangle roiBounds;
+
+    private boolean useROIAccessor;
+
+    private boolean caseA;
+
+    private boolean caseB;
+
+    private boolean caseC;
+
+    private PlanarImage srcROIImage;
+
     public ZonalStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             RenderedImage classifier, AffineTransform transform, List<ROI> rois, Range noData,
-            int[] bands, StatsType[] statsTypes, double[] minBound, double[] maxBound,
-            int[] numBins, List<Range> rangeData, boolean localStats) {
+            ROI mask, boolean useROIAccessor, int[] bands, StatsType[] statsTypes,
+            double[] minBound, double[] maxBound, int[] numBins, List<Range> rangeData,
+            boolean localStats) {
         super(vectorize(source), layout, configuration, true);
 
         // Check if the classifier is present
@@ -260,14 +275,14 @@ public class ZonalStatsOpImage extends OpImage {
         simpleRange.add(fullRange);
 
         if (rangeData != null && !rangeData.isEmpty()) {
-            
-            for(Range r : rangeData){
+
+            for (Range r : rangeData) {
                 DataType type = r.getDataType();
-                if(type.getDataType() != dataType){
-                    throw new IllegalArgumentException("Wrong Range data type"); 
+                if (type.getDataType() != dataType) {
+                    throw new IllegalArgumentException("Wrong Range data type");
                 }
             }
-            
+
             this.rangeList = Collections.unmodifiableList(rangeData);
 
             this.ranges = true;
@@ -282,8 +297,8 @@ public class ZonalStatsOpImage extends OpImage {
             this.localStats = false;
         }
 
-        rangesNoClass = ranges && !classPresent; 
-        
+        rangesNoClass = ranges && !classPresent;
+
         // Creation of a ZoneGeometry list, for storing the results
         // zoneList = new ArrayList<ZoneGeometry>();
         // Check if the rois are present. Otherwise the entire image statistics
@@ -374,6 +389,40 @@ public class ZonalStatsOpImage extends OpImage {
         } else {
             booleanLookupTable = null;
         }
+
+        // Check if ROI control must be done
+        if (mask != null) {
+            hasROI = true;
+            // Roi object
+            ROI srcROI = mask;
+            // Creation of a PlanarImage containing the ROI data
+            srcROIImage = srcROI.getAsImage();
+            // ROI image bounds calculation
+            final Rectangle rect = new Rectangle(srcROIImage.getBounds());
+            // Roi image data store
+            Raster data = srcROIImage.getData(rect);
+            // Creation of a RandomIterator for selecting random pixel inside the ROI
+            roiIter = RandomIterFactory.create(data, data.getBounds(), false, true);
+            // ROI bounds are saved
+            roiBounds = srcROIImage.getBounds();
+            // The useRoiAccessor parameter is set
+            this.useROIAccessor = useROIAccessor;
+        } else {
+            hasROI = false;
+            this.useROIAccessor = false;
+            srcROIImage = null;
+            roiBounds = null;
+            roiIter = null;
+        }
+
+        // Definition of the possible cases that can be found
+        // caseA = no ROI nor No Data
+        // caseB = ROI present but No Data not present
+        // caseC = No Data present but ROI not present
+        // Last case not defined = both ROI and No Data are present
+        caseA = notHasNoData && !hasROI;
+        caseB = notHasNoData && hasROI;
+        caseC = !notHasNoData && !hasROI;
     }
 
     public Raster computeTile(int tileX, int tileY) {
@@ -381,8 +430,11 @@ public class ZonalStatsOpImage extends OpImage {
         Raster tile = getSourceImage(0).getTile(tileX, tileY);
         // Selection of the tile bounds
         Rectangle tileRect = tile.getBounds();
+        //Boolean indicating if the tile is inside the ROI
+        boolean insideROIifPresent = (hasROI && roiBounds.intersects(tileRect) || !hasROI);
+        
         // Check if the tile is inside the geometry bound-union
-        if (union.intersects(tileRect)) {
+        if (union.intersects(tileRect) && insideROIifPresent) {
             // STATISTICAL ELABORATIONS
             // selection of the format tags
             RasterFormatTag[] formatTags = getFormatTags();
@@ -392,27 +444,39 @@ public class ZonalStatsOpImage extends OpImage {
             // creation of the RasterAccessor
             RasterAccessor src = new RasterAccessor(tile, computableArea, formatTags[0],
                     getSourceImage(0).getColorModel());
+
+            // ROI calculations if roiAccessor is used
+            RasterAccessor roi = null;
+            if (useROIAccessor) {
+                Raster roiRaster = srcROIImage.getExtendedData(computableArea, ROI_EXTENDER);
+
+                // creation of the rasterAccessor
+                roi = new RasterAccessor(roiRaster, computableArea,
+                        RasterAccessor.findCompatibleTags(new RenderedImage[] { srcROIImage },
+                                srcROIImage)[0], srcROIImage.getColorModel());
+            }
+
             // Image dataType
             int dataType = tile.getSampleModel().getDataType();
             // From the data type is possible to choose the right calculation method
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
-                byteLoop(src, computableArea, tileX, tileY);
+                byteLoop(src, computableArea, tileX, tileY, roi);
                 break;
             case DataBuffer.TYPE_USHORT:
-                ushortLoop(src, computableArea, tileX, tileY);
+                ushortLoop(src, computableArea, tileX, tileY, roi);
                 break;
             case DataBuffer.TYPE_SHORT:
-                shortLoop(src, computableArea, tileX, tileY);
+                shortLoop(src, computableArea, tileX, tileY, roi);
                 break;
             case DataBuffer.TYPE_INT:
-                intLoop(src, computableArea, tileX, tileY);
+                intLoop(src, computableArea, tileX, tileY, roi);
                 break;
             case DataBuffer.TYPE_FLOAT:
-                floatLoop(src, computableArea, tileX, tileY);
+                floatLoop(src, computableArea, tileX, tileY, roi);
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                doubleLoop(src, computableArea, tileX, tileY);
+                doubleLoop(src, computableArea, tileX, tileY, roi);
                 break;
             default:
                 throw new IllegalArgumentException("Wrong data type");
@@ -423,7 +487,8 @@ public class ZonalStatsOpImage extends OpImage {
     }
 
     // NOTE: the statistic calculation is done in a synchronized block for avoiding race conditions
-    private void byteLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
+    private void byteLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY,
+            RasterAccessor roi) {
 
         // Source RasterAccessor initial parameters
         final int srcX = src.getX();
@@ -447,8 +512,22 @@ public class ZonalStatsOpImage extends OpImage {
             rectIterator.startLines();
         }
 
-        // NO DATA NOT PRESENT
-        if (notHasNoData) {
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        // NO DATA AND ROI NOT PRESENT
+        if (caseA) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -541,8 +620,235 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
-            // NO DATA PRESENT
-        } else {
+
+            // ONLY ROI PRESENT
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    byte sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    byte sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
+            // ONLY NO DATA PRESENT
+        } else if (caseC) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -641,10 +947,251 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
+            // ROI AND NO DATA ARE PRESENT
+        } else {
+            if (useROIAccessor) {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    byte sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // NoData check
+                                    if (booleanLookupTable[(int) sample]) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains(sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    byte sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // NoData check
+                                    if (booleanLookupTable[(int) sample]) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains(sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
         }
     }
 
-    private void ushortLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
+    private void ushortLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY,
+            RasterAccessor roi) {
 
         // Source RasterAccessor initial parameters
         final int srcX = src.getX();
@@ -668,8 +1215,22 @@ public class ZonalStatsOpImage extends OpImage {
             rectIterator.startLines();
         }
 
-        // NO DATA NOT PRESENT
-        if (notHasNoData) {
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        // NO DATA AND ROI NOT PRESENT
+        if (caseA) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -703,11 +1264,11 @@ public class ZonalStatsOpImage extends OpImage {
                     List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
-                    // If the classifier is present then the zone value is taken
+                    // If the classifier is present then the classId value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
-                        // Initialization of the zone point
+                        // Initialization of the classId point
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
@@ -729,10 +1290,8 @@ public class ZonalStatsOpImage extends OpImage {
                     for (ZoneGeometry zoneGeo : geomList) {
 
                         ROI geometry = zoneGeo.getROI();
-
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 int sample = srcData[bands[i]][posx + posy
@@ -764,8 +1323,235 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
-            // NO DATA PRESENT
-        } else {
+
+            // ONLY ROI PRESENT
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains((short) sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains((short) sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
+            // ONLY NO DATA PRESENT
+        } else if (caseC) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -856,6 +1642,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     }
                                 }
                             }
+
                         }
                     }
                 }
@@ -863,10 +1650,251 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
+            // ROI AND NO DATA ARE PRESENT
+        } else {
+            if (useROIAccessor) {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                    // NoData check
+                                    if (!noData.contains((short) sample)) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains((short) sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]] & 0xFFFF;
+                                    // NoData check
+                                    if (!noData.contains((short) sample)) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains((short) sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
         }
     }
 
-    private void shortLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
+    private void shortLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY,
+            RasterAccessor roi) {
 
         // Source RasterAccessor initial parameters
         final int srcX = src.getX();
@@ -890,8 +1918,22 @@ public class ZonalStatsOpImage extends OpImage {
             rectIterator.startLines();
         }
 
-        // NO DATA NOT PRESENT
-        if (notHasNoData) {
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        // NO DATA AND ROI NOT PRESENT
+        if (caseA) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -925,11 +1967,11 @@ public class ZonalStatsOpImage extends OpImage {
                     List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
-                    // If the classifier is present then the zone value is taken
+                    // If the classifier is present then the classId value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
-                        // Initialization of the zone point
+                        // Initialization of the classId point
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
@@ -951,10 +1993,8 @@ public class ZonalStatsOpImage extends OpImage {
                     for (ZoneGeometry zoneGeo : geomList) {
 
                         ROI geometry = zoneGeo.getROI();
-
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 short sample = srcData[bands[i]][posx + posy
@@ -979,7 +2019,6 @@ public class ZonalStatsOpImage extends OpImage {
                                     zoneGeo.add(sample, bands[i], classId, rangeHelper);
                                 }
                             }
-
                         }
                     }
                 }
@@ -987,8 +2026,235 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
-            // NO DATA PRESENT
-        } else {
+
+            // ONLY ROI PRESENT
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    short sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    short sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
+            // ONLY NO DATA PRESENT
+        } else if (caseC) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -1079,6 +2345,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     }
                                 }
                             }
+
                         }
                     }
                 }
@@ -1086,10 +2353,251 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
+            // ROI AND NO DATA ARE PRESENT
+        } else {
+            if (useROIAccessor) {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    short sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // NoData check
+                                    if (!noData.contains(sample)) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains(sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    short sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // NoData check
+                                    if (!noData.contains(sample)) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains(sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
         }
     }
 
-    private void intLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
+    private void intLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY,
+            RasterAccessor roi) {
 
         // Source and ROI RasterAccessor initial parameters
         final int srcX = src.getX();
@@ -1113,8 +2621,22 @@ public class ZonalStatsOpImage extends OpImage {
             rectIterator.startLines();
         }
 
-        // NO DATA NOT PRESENT
-        if (notHasNoData) {
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        // NO DATA AND ROI NOT PRESENT
+        if (caseA) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -1148,11 +2670,11 @@ public class ZonalStatsOpImage extends OpImage {
                     List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
-                    // If the classifier is present then the zone value is taken
+                    // If the classifier is present then the classId value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
-                        // Initialization of the zone point
+                        // Initialization of the classId point
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
@@ -1174,10 +2696,8 @@ public class ZonalStatsOpImage extends OpImage {
                     for (ZoneGeometry zoneGeo : geomList) {
 
                         ROI geometry = zoneGeo.getROI();
-
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 int sample = srcData[bands[i]][posx + posy
@@ -1209,8 +2729,235 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
-            // NO DATA PRESENT
-        } else {
+
+            // ONLY ROI PRESENT
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
+            // ONLY NO DATA PRESENT
+        } else if (caseC) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -1301,6 +3048,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     }
                                 }
                             }
+
                         }
                     }
                 }
@@ -1308,10 +3056,252 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
+            // ROI AND NO DATA ARE PRESENT
+        } else {
+            if (useROIAccessor) {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // NoData check
+                                    if (!noData.contains(sample)) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains(sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // NoData check
+                                    if (!noData.contains(sample)) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains(sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
         }
+
     }
 
-    private void floatLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
+    private void floatLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY,
+            RasterAccessor roi) {
 
         // Source RasterAccessor initial parameters
         final int srcX = src.getX();
@@ -1335,8 +3325,22 @@ public class ZonalStatsOpImage extends OpImage {
             rectIterator.startLines();
         }
 
-        // NO DATA NOT PRESENT
-        if (notHasNoData) {
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        // NO DATA AND ROI NOT PRESENT
+        if (caseA) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -1355,7 +3359,6 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
-
                         // Update of the RectIterator
                         if (updateIterator) {
                             rectIterator.nextPixel();
@@ -1368,15 +3371,14 @@ public class ZonalStatsOpImage extends OpImage {
                     // Envelope associated to the coordinate object
                     Envelope searchEnv = new Envelope(p1);
                     // Query on the geometry list
-                    @SuppressWarnings("unchecked")
                     List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
-                    // If the classifier is present then the zone value is taken
+                    // If the classifier is present then the classId value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
-                        // Initialization of the zone point
+                        // Initialization of the classId point
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
@@ -1398,10 +3400,8 @@ public class ZonalStatsOpImage extends OpImage {
                     for (ZoneGeometry zoneGeo : geomList) {
 
                         ROI geometry = zoneGeo.getROI();
-
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 float sample = srcData[bands[i]][posx + posy
@@ -1433,8 +3433,235 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
-            // NO DATA PRESENT
-        } else {
+
+            // ONLY ROI PRESENT
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    float sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    float sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
+            // ONLY NO DATA PRESENT
+        } else if (caseC) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -1452,12 +3679,10 @@ public class ZonalStatsOpImage extends OpImage {
 
                     // check on containment
                     if (!union.contains(x0, y0)) {
-
                         // Update of the RectIterator
                         if (updateIterator) {
                             rectIterator.nextPixel();
                         }
-
                         continue;
                     }
 
@@ -1527,6 +3752,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     }
                                 }
                             }
+
                         }
                     }
                 }
@@ -1534,10 +3760,252 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
+            // ROI AND NO DATA ARE PRESENT
+        } else {
+            if (useROIAccessor) {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    float sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // NoData check
+                                    if (!noData.contains(sample)) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains(sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    float sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // NoData check
+                                    if (!noData.contains(sample)) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains(sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
         }
+
     }
 
-    private void doubleLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY) {
+    private void doubleLoop(RasterAccessor src, Rectangle computableArea, int tileX, int tileY,
+            RasterAccessor roi) {
 
         // Source RasterAccessor initial parameters
         final int srcX = src.getX();
@@ -1561,8 +4029,22 @@ public class ZonalStatsOpImage extends OpImage {
             rectIterator.startLines();
         }
 
-        // NO DATA NOT PRESENT
-        if (notHasNoData) {
+        final byte[] roiDataArray;
+        final int roiScanLineStride;
+        final int roiDataLength;
+
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiScanLineStride = roi.getScanlineStride();
+            roiDataLength = roiDataArray.length;
+        } else {
+            roiDataArray = null;
+            roiScanLineStride = 0;
+            roiDataLength = 0;
+        }
+
+        // NO DATA AND ROI NOT PRESENT
+        if (caseA) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -1596,11 +4078,11 @@ public class ZonalStatsOpImage extends OpImage {
                     List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
                     // classId classifier initial value
                     int classId = 0;
-                    // If the classifier is present then the zone value is taken
+                    // If the classifier is present then the classId value is taken
                     if (classPresent) {
                         // Selection of the initial point
                         Point pointSrc = new Point(x0, y0);
-                        // Initialization of the zone point
+                        // Initialization of the classId point
                         Point pointClass = new Point();
                         // Source point inverse transformation for finding the related zone point
                         try {
@@ -1622,10 +4104,8 @@ public class ZonalStatsOpImage extends OpImage {
                     for (ZoneGeometry zoneGeo : geomList) {
 
                         ROI geometry = zoneGeo.getROI();
-
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
-
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 double sample = srcData[bands[i]][posx + posy
@@ -1657,8 +4137,235 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
-            // NO DATA PRESENT
-        } else {
+
+            // ONLY ROI PRESENT
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    double sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the classId value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the classId point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    double sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // Update of all the statistics
+                                    // If a range list is present then the sample is checked if it is inside the range
+                                    if (rangesNoClass) {
+                                        for (Range range : rangeList) {
+                                            if (range.contains(sample)) {
+                                                // For local statistics the pixel is checked for every range
+                                                if (localStats) {
+                                                    zoneGeo.add(sample, bands[i], classId, range);
+                                                } else {
+                                                    // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                    // it is added to the statistic container
+                                                    zoneGeo.add(sample, bands[i], classId,
+                                                            rangeHelper);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
+            // ONLY NO DATA PRESENT
+        } else if (caseC) {
             // Cycle on the y axis
             for (int y = 0; y < srcHeight; y++) {
                 if (updateIterator) {
@@ -1720,6 +4427,7 @@ public class ZonalStatsOpImage extends OpImage {
 
                         // if every geometry really contains the selected point
                         if (geometry.contains(x0, y0)) {
+
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 double sample = srcData[bands[i]][posx + posy
@@ -1748,6 +4456,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     }
                                 }
                             }
+
                         }
                     }
                 }
@@ -1755,7 +4464,248 @@ public class ZonalStatsOpImage extends OpImage {
                     rectIterator.nextLine();
                 }
             }
+            // ROI AND NO DATA ARE PRESENT
+        } else {
+            if (useROIAccessor) {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // roi y position
+                    int posYroi = y * roiScanLineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI index position
+                        int windex = x + posYroi;
+                        // ROI value
+                        int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                        if (w == 0) {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    double sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // NoData check
+                                    if (!noData.contains(sample)) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains(sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            } else {
+
+                // Cycle on the y axis
+                for (int y = 0; y < srcHeight; y++) {
+                    if (updateIterator) {
+                        rectIterator.startPixels();
+                    }
+                    // y position on the source data array
+                    int posy = y * srcScanlineStride;
+
+                    // Cycle on the x axis
+                    for (int x = 0; x < srcWidth; x++) {
+                        // x position on the source data array
+                        int posx = x * srcPixelStride;
+                        // PixelPositions
+                        int x0 = srcX + x;
+                        int y0 = srcY + y;
+
+                        // check on containment
+                        if (!union.contains(x0, y0)) {
+                            // Update of the RectIterator
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // ROI value
+                        if (roiBounds.contains(x0, y0)) {
+                            int w = roiIter.getSample(x0, y0, 0);
+                            if (w == 0) {
+                                if (updateIterator) {
+                                    rectIterator.nextPixel();
+                                }
+                                continue;
+                            }
+                        } else {
+                            if (updateIterator) {
+                                rectIterator.nextPixel();
+                            }
+                            continue;
+                        }
+
+                        // Coordinate object creation for the spatial indexing
+                        Coordinate p1 = new Coordinate(x0, y0);
+                        // Envelope associated to the coordinate object
+                        Envelope searchEnv = new Envelope(p1);
+                        // Query on the geometry list
+                        List<ZoneGeometry> geomList = spatialIndex.query(searchEnv);
+                        // classId classifier initial value
+                        int classId = 0;
+                        // If the classifier is present then the zone value is taken
+                        if (classPresent) {
+                            // Selection of the initial point
+                            Point pointSrc = new Point(x0, y0);
+                            // Initialization of the zone point
+                            Point pointClass = new Point();
+                            // Source point inverse transformation for finding the related zone point
+                            try {
+                                if (isNotIdentity) {
+                                    inverseTrans.inverseTransform(pointSrc, pointClass);
+                                    // Selection of the classId point
+                                    classId = randomIterator.getSample(pointClass.x, pointClass.y,
+                                            0);
+                                } else {
+                                    // Selection of the classId point
+                                    classId = rectIterator.getSample();
+                                    rectIterator.nextPixel();
+                                }
+
+                            } catch (NoninvertibleTransformException e) {
+                                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                            }
+                        }
+                        // Cycle on all the geometries found
+                        for (ZoneGeometry zoneGeo : geomList) {
+
+                            ROI geometry = zoneGeo.getROI();
+
+                            // if every geometry really contains the selected point
+                            if (geometry.contains(x0, y0)) {
+
+                                // Cycle on the selected Bands
+                                for (int i = 0; i < bandNum; i++) {
+                                    double sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]];
+                                    // NoData check
+                                    if (!noData.contains(sample)) {
+                                        // Update of all the statistics
+                                        // If a range list is present then the sample is checked if it is inside the range
+                                        if (rangesNoClass) {
+                                            for (Range range : rangeList) {
+                                                if (range.contains(sample)) {
+                                                    // For local statistics the pixel is checked for every range
+                                                    if (localStats) {
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                range);
+                                                    } else {
+                                                        // For non local statistics the pixel when the pixel is contained inside a singular range
+                                                        // it is added to the statistic container
+                                                        zoneGeo.add(sample, bands[i], classId,
+                                                                rangeHelper);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            zoneGeo.add(sample, bands[i], classId, rangeHelper);
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if (updateIterator) {
+                        rectIterator.nextLine();
+                    }
+                }
+            }
         }
+
     }
 
     /** {@link OpImage} method that returns the destination image bounds, because source and destination images are equals */

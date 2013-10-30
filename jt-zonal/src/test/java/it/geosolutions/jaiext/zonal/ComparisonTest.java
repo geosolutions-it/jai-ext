@@ -334,7 +334,7 @@ public class ComparisonTest extends TestBase {
             } else {
                 // New descriptor calculations
                 imageStats = ZonalStatsDescriptor.create(testImage, classifier, null, roilist,
-                        rangeND, bands, arrayStats, minBounds, maxBounds, numBins, null, false, null);
+                        rangeND,null, false, bands, arrayStats, minBounds, maxBounds, numBins, null, false, null);
             }
 
             // Total statistic calculation time
@@ -344,7 +344,6 @@ public class ComparisonTest extends TestBase {
                 start = System.nanoTime();
                 for (RenderedImage image : listIMG) {
                     ZonalStats zs = (ZonalStats) image.getProperty(propertyName);
-                    //listZs.add(zs);
                 }
                 end = System.nanoTime() - start;
 

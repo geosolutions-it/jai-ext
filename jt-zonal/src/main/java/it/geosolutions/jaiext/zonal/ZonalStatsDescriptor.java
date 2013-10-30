@@ -104,30 +104,38 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>arg4Desc</td>
- * <td>Array containing the indexes of the bands to calculate.</td>
+ * <td>ROI Object used.</td>
  * </tr>
  * <tr>
  * <td>arg5Desc</td>
- * <td>Array indicating which statistical operations must be performed on all the selected bands.</td>
+ * <td>Boolean indicatin if the ROI RasterAccessor should be used during computations.</td>
  * </tr>
  * <tr>
  * <td>arg6Desc</td>
- * <td>Array indicating the minimum bounds for complex statistics on all the selected bands.</td>
+ * <td>Array containing the indexes of the bands to calculate.</td>
  * </tr>
  * <tr>
  * <td>arg7Desc</td>
- * <td>Array indicating the maximum bounds for complex statistics on all the selected bands.</td>
+ * <td>Array indicating which statistical operations must be performed on all the selected bands.</td>
  * </tr>
  * <tr>
  * <td>arg8Desc</td>
- * <td>Array indicating the number of bins for complex statistics on all the selected bands.</td>
+ * <td>Array indicating the minimum bounds for complex statistics on all the selected bands.</td>
  * </tr>
  * <tr>
  * <td>arg9Desc</td>
- * <td>List of the possible ranges for dividing the statistics.</td>
+ * <td>Array indicating the maximum bounds for complex statistics on all the selected bands.</td>
  * </tr>
  * <tr>
  * <td>arg10Desc</td>
+ * <td>Array indicating the number of bins for complex statistics on all the selected bands.</td>
+ * </tr>
+ * <tr>
+ * <td>arg11Desc</td>
+ * <td>List of the possible ranges for dividing the statistics.</td>
+ * </tr>
+ * <tr>
+ * <td>arg12Desc</td>
  * <td>Boolean indicating if the results must be calculated for each range.</td>
  * </tr>
  * </table>
@@ -157,6 +165,14 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <td>noData</td>
  * <td>it.geosolutions.jaiext.range.Range</td>
  * <td>null</td>
+ * <tr>
+ * <td>mask</td>
+ * <td>javax.media.jai.ROI</td>
+ * <td>null</td>
+ * <tr>
+ * <td>useROIAccessor</td>
+ * <td>Boolean</td>
+ * <td>false</td>
  * <tr>
  * <td>bands</td>
  * <td>int[]</td>
@@ -210,35 +226,38 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
                     "Transformation object used for mapping the Source image to the classifier" },
             { "arg2Desc", "List of all the geometries to analyze" },
             { "arg3Desc", "No Data Range used" },
-            { "arg4Desc", "Array containing the indexes of the bands to calculate" },
+            { "arg4Desc", "ROI Object used" },
             { "arg5Desc",
-                    "Array indicating which statistical operations must be performed on all the selected bands" },
-            { "arg6Desc",
-                    "Array indicating the minimum bounds for complex statistics on all the selected bands" },
+                    "Boolean indicatin if the ROI RasterAccessor should be used during computations" },
+            { "arg6Desc", "Array containing the indexes of the bands to calculate" },
             { "arg7Desc",
-                    "Array indicating the maximum bounds for complex statistics on all the selected bands" },
+                    "Array indicating which statistical operations must be performed on all the selected bands" },
             { "arg8Desc",
-                    "Array indicating the number of bins for complex statistics on all the selected bands" },
+                    "Array indicating the minimum bounds for complex statistics on all the selected bands" },
             { "arg9Desc",
-                    "List of the possible ranges for dividing the statistics" },
+                    "Array indicating the maximum bounds for complex statistics on all the selected bands" },
             { "arg10Desc",
-                    "Boolean indicating if the results must be calculated for each range" }
+                    "Array indicating the number of bins for complex statistics on all the selected bands" },
+            { "arg11Desc", "List of the possible ranges for dividing the statistics" },
+            { "arg12Desc", "Boolean indicating if the results must be calculated for each range" }
 
     };
 
     /** The parameter class list for this operation. */
     private static final Class[] paramClasses = { RenderedImage.class, AffineTransform.class,
-            java.util.List.class, it.geosolutions.jaiext.range.Range.class, int[].class,
+            java.util.List.class, it.geosolutions.jaiext.range.Range.class,
+            javax.media.jai.ROI.class, Boolean.class, int[].class,
             it.geosolutions.jaiext.stats.Statistics.StatsType[].class, double[].class,
             double[].class, int[].class, java.util.List.class, Boolean.class };
 
     /** The parameter name list for this operation. */
     private static final String[] paramNames = { "classifier", "transform", "roilist", "noData",
-            "bands", "stats", "minbound", "maxbound", "numbin", "rangeData", "localStats"};
+            "mask", "useROIAccessor", "bands", "stats", "minbound", "maxbound", "numbin",
+            "rangeData", "localStats" };
 
     /** The parameter default value list for this operation. */
-    private static final Object[] paramDefaults = { null, null, null, null, new int[] { 0 }, null,
-            null, null, null, null, false };
+    private static final Object[] paramDefaults = { null, null, null, null, null, false,
+            new int[] { 0 }, null, null, null, null, null, false };
 
     public ZonalStatsDescriptor() {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
@@ -260,6 +279,8 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
      * @param transform affine transformation used for mapping source image on the classifier.
      * @param roilist list of all the geometries.
      * @param NoData No Data range used for calculation.
+     * @param mask optional mask for reducing the computations on a selected ROI.
+     * @param useROIAccessor boolean indicating if a ROI RasterAccessor should be used during computations with the mask.
      * @param bands Array indicating which band to consider.
      * @param stats Array indicating which statistics to consider.
      * @param minBound Array indicating minimum bounds for complex computations.
@@ -272,9 +293,10 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
      * @throws IllegalArgumentException if <code>source</code> is <code>null</code>.
      */
     public static RenderedOp create(RenderedImage source, RenderedImage classifier,
-            AffineTransform transform, List<ROI> roilist, Range noData, int[] bands,
-            StatsType[] stats, double[] minBound, double[] maxBound, int[] numBins,
-            List<Range> rangeData, boolean localStats, RenderingHints hints) {
+            AffineTransform transform, List<ROI> roilist, Range noData, ROI mask,
+            boolean useROIAccessor, int[] bands, StatsType[] stats, double[] minBound,
+            double[] maxBound, int[] numBins, List<Range> rangeData, boolean localStats,
+            RenderingHints hints) {
         // Creation of a parameterBlockJAI containing all the operation parameters
         ParameterBlockJAI pb = new ParameterBlockJAI("Zonal", RenderedRegistryMode.MODE_NAME);
         // Source image
@@ -284,6 +306,8 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
         pb.setParameter("transform", transform);
         pb.setParameter("roilist", roilist);
         pb.setParameter("NoData", noData);
+        pb.setParameter("mask", mask);
+        pb.setParameter("useROIAccessor", useROIAccessor);
         pb.setParameter("bands", bands);
         pb.setParameter("stats", stats);
         pb.setParameter("minbound", minBound);
@@ -312,6 +336,8 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
      * @param transform affine transformation used for mapping source image on the classifier.
      * @param roilist list of all the geometries.
      * @param NoData No Data range used for calculation.
+     * @param mask optional mask for reducing the computations on a selected ROI.
+     * @param useROIAccessor boolean indicating if a ROI RasterAccessor should be used during computations with the mask.
      * @param bands Array indicating which band to consider.
      * @param stats Array indicating which statistics to consider.
      * @param rangeData List of the possible range to calculate the statistics.
@@ -320,10 +346,11 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
      * @throws IllegalArgumentException if <code>source</code> is <code>null</code>.
      */
     public static RenderedOp create(RenderedImage source, RenderedImage classifier,
-            AffineTransform transform, List<ROI> roilist, Range noData, int[] bands,
-            StatsType[] stats, List<Range> rangeData, boolean localStats, RenderingHints hints) {
-        return create(source, classifier, transform, roilist, noData, bands, stats, null, null,
-                null, rangeData, localStats, hints);
+            AffineTransform transform, List<ROI> roilist, Range noData, ROI mask,
+            boolean useROIAccessor, int[] bands, StatsType[] stats, List<Range> rangeData,
+            boolean localStats, RenderingHints hints) {
+        return create(source, classifier, transform, roilist, noData, mask, useROIAccessor, bands,
+                stats, null, null, null, rangeData, localStats, hints);
     }
 
 }

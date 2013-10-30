@@ -38,17 +38,20 @@ public class ZonalStatsRIF implements RenderedImageFactory {
         }
         List<ROI> roilist = (List<ROI>) pb.getObjectParameter(2);
         Range noData = (Range) pb.getObjectParameter(3);
-        int[] bands = (int[]) pb.getObjectParameter(4);
-        StatsType[] statsTypes = (StatsType[]) pb.getObjectParameter(5);
-        double[] minBound = (double[]) pb.getObjectParameter(6);
-        double[] maxBound = (double[]) pb.getObjectParameter(7);
-        int[] numBins = (int[]) pb.getObjectParameter(8);
-        List<Range> rangeList = (List<Range>) pb.getObjectParameter(9);
-        boolean localStats = (Boolean) pb.getObjectParameter(10);
-        
+        ROI mask = (ROI) pb.getObjectParameter(4);
+        boolean useROIAccessor = (Boolean) pb.getObjectParameter(5);
+        int[] bands = (int[]) pb.getObjectParameter(6);
+        StatsType[] statsTypes = (StatsType[]) pb.getObjectParameter(7);
+        double[] minBound = (double[]) pb.getObjectParameter(8);
+        double[] maxBound = (double[]) pb.getObjectParameter(9);
+        int[] numBins = (int[]) pb.getObjectParameter(10);
+        List<Range> rangeList = (List<Range>) pb.getObjectParameter(11);
+        boolean localStats = (Boolean) pb.getObjectParameter(12);
+
         // Image creation
         return new ZonalStatsOpImage(source, layout, hints, classifier, transform, roilist, noData,
-                bands, statsTypes, minBound, maxBound, numBins, rangeList, localStats);
+                mask, useROIAccessor, bands, statsTypes, minBound, maxBound, numBins, rangeList,
+                localStats);
     }
 
 }
