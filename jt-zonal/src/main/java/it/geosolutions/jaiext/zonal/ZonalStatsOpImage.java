@@ -118,9 +118,9 @@ public class ZonalStatsOpImage extends OpImage {
 
     private boolean hasROI;
 
-    private RandomIter roiIter;
+    // private RandomIter roiIter;
 
-    private Rectangle roiBounds;
+    // private Rectangle roiBounds;
 
     private boolean useROIAccessor;
 
@@ -131,6 +131,8 @@ public class ZonalStatsOpImage extends OpImage {
     private boolean caseC;
 
     private PlanarImage srcROIImage;
+
+    private ROI srcROI;
 
     public ZonalStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             RenderedImage classifier, AffineTransform transform, List<ROI> rois, Range noData,
@@ -394,25 +396,17 @@ public class ZonalStatsOpImage extends OpImage {
         if (mask != null) {
             hasROI = true;
             // Roi object
-            ROI srcROI = mask;
-            // Creation of a PlanarImage containing the ROI data
-            srcROIImage = srcROI.getAsImage();
-            // ROI image bounds calculation
-            final Rectangle rect = new Rectangle(srcROIImage.getBounds());
-            // Roi image data store
-            Raster data = srcROIImage.getData(rect);
-            // Creation of a RandomIterator for selecting random pixel inside the ROI
-            roiIter = RandomIterFactory.create(data, data.getBounds(), false, true);
-            // ROI bounds are saved
-            roiBounds = srcROIImage.getBounds();
+            srcROI = mask;
             // The useRoiAccessor parameter is set
             this.useROIAccessor = useROIAccessor;
+            if (useROIAccessor) {
+                // Creation of a PlanarImage containing the ROI data
+                srcROIImage = srcROI.getAsImage();
+            }
         } else {
             hasROI = false;
             this.useROIAccessor = false;
             srcROIImage = null;
-            roiBounds = null;
-            roiIter = null;
         }
 
         // Definition of the possible cases that can be found
@@ -430,9 +424,9 @@ public class ZonalStatsOpImage extends OpImage {
         Raster tile = getSourceImage(0).getTile(tileX, tileY);
         // Selection of the tile bounds
         Rectangle tileRect = tile.getBounds();
-        //Boolean indicating if the tile is inside the ROI
-        boolean insideROIifPresent = (hasROI && roiBounds.intersects(tileRect) || !hasROI);
-        
+        // Boolean indicating if the tile is inside the ROI
+        boolean insideROIifPresent = (hasROI && srcROI.intersects(tileRect) || !hasROI);
+
         // Check if the tile is inside the geometry bound-union
         if (union.intersects(tileRect) && insideROIifPresent) {
             // STATISTICAL ELABORATIONS
@@ -761,16 +755,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -1095,15 +1080,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -1464,16 +1441,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -1798,15 +1766,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -2167,16 +2127,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -2501,15 +2452,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -2870,16 +2813,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -3204,15 +3138,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -3574,16 +3500,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -3908,15 +3825,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -4278,16 +4187,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -4612,15 +4512,7 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (roiBounds.contains(x0, y0)) {
-                            int w = roiIter.getSample(x0, y0, 0);
-                            if (w == 0) {
-                                if (updateIterator) {
-                                    rectIterator.nextPixel();
-                                }
-                                continue;
-                            }
-                        } else {
+                        if (!srcROI.contains(x0, y0)) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }

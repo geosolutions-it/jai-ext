@@ -322,14 +322,14 @@ public class ZonalStatsTest extends TestBase {
                                                 }
                                                 break;
                                             case 2:
-                                                if (roiBounds.contains(x, y)) {
+                                                if (roiObject.contains(x, y)) {
                                                     zoneGeo.add(value, 0, classId,
                                                             rangeList[v].get(0));
                                                 }
                                                 break;
                                             case 3:
                                                 if (!noDataByte.contains(value)
-                                                        && roiBounds.contains(x, y)) {
+                                                        && roiObject.contains(x, y)) {
                                                     zoneGeo.add(value, 0, classId,
                                                             rangeList[v].get(0));
                                                 }
@@ -644,6 +644,8 @@ public class ZonalStatsTest extends TestBase {
                     case 3:
                     case 5:
                     case 6:
+                    case 8:
+                    case 9:
                         double valueR = (Double) statR.getResult();
                         double valueC = (Double) statC.getResult();
                         assertEquals(valueR, valueC, TOLERANCE);
@@ -658,6 +660,17 @@ public class ZonalStatsTest extends TestBase {
                         assertEquals(minR, minC, TOLERANCE);
                         assertEquals(maxR, maxC, TOLERANCE);
                         break;
+                    case 7:
+                        double[] histR = (double[]) statR.getResult();
+                        double[] histC = (double[]) statC.getResult();
+
+                        assertEquals(histR.length, histC.length);
+
+                        for (int bin = 0; bin < histR.length; bin++) {
+                            double binR = histR[bin];
+                            double binC = histC[bin];
+                            assertEquals(binR, binC, TOLERANCE);
+                        }
                     }
                 }
             }
