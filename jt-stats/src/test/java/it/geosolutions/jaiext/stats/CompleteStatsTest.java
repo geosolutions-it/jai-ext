@@ -337,7 +337,11 @@ public class CompleteStatsTest extends TestBase {
         for (int h = 0; h < 6; h++) {
             for (int z = 0; z < 4; z++) {
                 // calculation of the mean
-                calculations[0][z] = calculations[1][z] / (numSamples[z] - 1);
+                if(numSamples[z]==1){
+                    calculations[0][z] = calculations[1][z] / (numSamples[z]);
+                }else{
+                    calculations[0][z] = calculations[1][z] / (numSamples[z] - 1); 
+                }                
                 // Calculation of the variance
                 calculations[5][z] = (calculations[4][z] - (calculations[1][z] * calculations[1][z])
                         / (numSamples[z]))
