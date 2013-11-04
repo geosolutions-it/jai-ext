@@ -582,7 +582,12 @@ public class ZonalStatsOpImage extends OpImage {
 
                         ROI geometry = zoneGeo.getROI();
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        
+                        if (contains) {
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 byte sample = srcData[bands[i]][posx + posy
@@ -694,7 +699,12 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     byte sample = srcData[bands[i]][posx + posy
@@ -798,7 +808,12 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     byte sample = srcData[bands[i]][posx + posy
@@ -894,7 +909,11 @@ public class ZonalStatsOpImage extends OpImage {
                         ROI geometry = zoneGeo.getROI();
 
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
 
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
@@ -1013,7 +1032,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -1124,7 +1147,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -1268,7 +1295,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                         ROI geometry = zoneGeo.getROI();
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 int sample = srcData[bands[i]][posx + posy
@@ -1380,7 +1411,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     int sample = srcData[bands[i]][posx + posy
@@ -1484,7 +1519,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     int sample = srcData[bands[i]][posx + posy
@@ -1580,7 +1619,11 @@ public class ZonalStatsOpImage extends OpImage {
                         ROI geometry = zoneGeo.getROI();
 
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
 
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
@@ -1699,7 +1742,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -1810,7 +1857,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -1954,7 +2005,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                         ROI geometry = zoneGeo.getROI();
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 short sample = srcData[bands[i]][posx + posy
@@ -2066,7 +2121,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     short sample = srcData[bands[i]][posx + posy
@@ -2170,7 +2229,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     short sample = srcData[bands[i]][posx + posy
@@ -2266,7 +2329,11 @@ public class ZonalStatsOpImage extends OpImage {
                         ROI geometry = zoneGeo.getROI();
 
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
 
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
@@ -2385,7 +2452,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -2496,7 +2567,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -2640,7 +2715,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                         ROI geometry = zoneGeo.getROI();
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 int sample = srcData[bands[i]][posx + posy
@@ -2752,7 +2831,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     int sample = srcData[bands[i]][posx + posy
@@ -2856,7 +2939,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     int sample = srcData[bands[i]][posx + posy
@@ -2952,7 +3039,11 @@ public class ZonalStatsOpImage extends OpImage {
                         ROI geometry = zoneGeo.getROI();
 
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
 
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
@@ -3071,7 +3162,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -3182,7 +3277,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -3327,7 +3426,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                         ROI geometry = zoneGeo.getROI();
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 float sample = srcData[bands[i]][posx + posy
@@ -3439,7 +3542,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     float sample = srcData[bands[i]][posx + posy
@@ -3543,7 +3650,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     float sample = srcData[bands[i]][posx + posy
@@ -3639,7 +3750,11 @@ public class ZonalStatsOpImage extends OpImage {
                         ROI geometry = zoneGeo.getROI();
 
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
 
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
@@ -3758,7 +3873,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -3869,7 +3988,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -4014,7 +4137,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                         ROI geometry = zoneGeo.getROI();
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
                                 double sample = srcData[bands[i]][posx + posy
@@ -4126,7 +4253,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     double sample = srcData[bands[i]][posx + posy
@@ -4230,7 +4361,11 @@ public class ZonalStatsOpImage extends OpImage {
 
                             ROI geometry = zoneGeo.getROI();
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
                                     double sample = srcData[bands[i]][posx + posy
@@ -4326,7 +4461,11 @@ public class ZonalStatsOpImage extends OpImage {
                         ROI geometry = zoneGeo.getROI();
 
                         // if every geometry really contains the selected point
-                        if (geometry.contains(x0, y0)) {
+                        boolean contains = false;
+                        synchronized (zoneGeo) { // HACK
+                            contains = geometry.contains(x0, y0);   
+                        }
+                        if (contains) {
 
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
@@ -4445,7 +4584,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -4556,7 +4699,11 @@ public class ZonalStatsOpImage extends OpImage {
                             ROI geometry = zoneGeo.getROI();
 
                             // if every geometry really contains the selected point
-                            if (geometry.contains(x0, y0)) {
+                            boolean contains = false;
+                            synchronized (zoneGeo) { // HACK
+                                contains = geometry.contains(x0, y0);   
+                            }
+                            if (contains) {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
