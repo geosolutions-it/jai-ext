@@ -425,8 +425,10 @@ public class ZonalStatsOpImage extends OpImage {
         // Selection of the tile bounds
         Rectangle tileRect = tile.getBounds();
         // Boolean indicating if the tile is inside the ROI
-        boolean insideROIifPresent = (hasROI && srcROI.intersects(tileRect) || !hasROI);
-
+        boolean insideROIifPresent = true;
+        synchronized (this) {
+            insideROIifPresent = (hasROI && srcROI.intersects(tileRect) || !hasROI);
+        }
         // Check if the tile is inside the geometry bound-union
         if (union.intersects(tileRect) && insideROIifPresent) {
             // STATISTICAL ELABORATIONS
