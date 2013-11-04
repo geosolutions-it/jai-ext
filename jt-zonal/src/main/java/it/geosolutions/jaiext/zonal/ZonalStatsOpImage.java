@@ -584,9 +584,9 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
-                        
+
                         if (contains) {
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
@@ -701,9 +701,9 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
-                            
+
                             if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -765,7 +765,12 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -810,9 +815,9 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
-                            
+
                             if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
@@ -911,7 +916,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
 
@@ -1034,7 +1039,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -1103,7 +1108,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -1149,7 +1158,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -1297,7 +1306,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
                             // Cycle on the selected Bands
@@ -1413,7 +1422,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
                                 // Cycle on the selected Bands
@@ -1476,7 +1485,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -1521,7 +1534,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
                                 // Cycle on the selected Bands
@@ -1621,7 +1634,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
 
@@ -1744,7 +1757,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -1813,7 +1826,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -1859,7 +1876,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -2007,7 +2024,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
                             // Cycle on the selected Bands
@@ -2123,7 +2140,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
                                 // Cycle on the selected Bands
@@ -2186,7 +2203,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -2231,7 +2252,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
                                 // Cycle on the selected Bands
@@ -2331,7 +2352,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
 
@@ -2454,7 +2475,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -2523,7 +2544,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -2569,7 +2594,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -2717,7 +2742,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
                             // Cycle on the selected Bands
@@ -2833,7 +2858,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
                                 // Cycle on the selected Bands
@@ -2896,7 +2921,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -2941,7 +2970,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
                                 // Cycle on the selected Bands
@@ -3041,7 +3070,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
 
@@ -3164,7 +3193,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -3233,7 +3262,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -3279,7 +3312,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -3428,7 +3461,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
                             // Cycle on the selected Bands
@@ -3544,7 +3577,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
                                 // Cycle on the selected Bands
@@ -3607,7 +3640,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -3652,7 +3689,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
                                 // Cycle on the selected Bands
@@ -3752,7 +3789,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
 
@@ -3875,7 +3912,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -3944,7 +3981,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -3990,7 +4031,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -4139,7 +4180,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
                             // Cycle on the selected Bands
@@ -4255,7 +4296,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
                                 // Cycle on the selected Bands
@@ -4318,7 +4359,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -4363,7 +4408,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
                                 // Cycle on the selected Bands
@@ -4463,7 +4508,7 @@ public class ZonalStatsOpImage extends OpImage {
                         // if every geometry really contains the selected point
                         boolean contains = false;
                         synchronized (zoneGeo) { // HACK
-                            contains = geometry.contains(x0, y0);   
+                            contains = geometry.contains(x0, y0);
                         }
                         if (contains) {
 
@@ -4586,7 +4631,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
@@ -4655,7 +4700,11 @@ public class ZonalStatsOpImage extends OpImage {
                         }
 
                         // ROI value
-                        if (!srcROI.contains(x0, y0)) {
+                        boolean insideROI = false;
+                        synchronized (this) { // HACK
+                            insideROI = srcROI.contains(x0, y0);
+                        }
+                        if (insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -4701,7 +4750,7 @@ public class ZonalStatsOpImage extends OpImage {
                             // if every geometry really contains the selected point
                             boolean contains = false;
                             synchronized (zoneGeo) { // HACK
-                                contains = geometry.contains(x0, y0);   
+                                contains = geometry.contains(x0, y0);
                             }
                             if (contains) {
 
