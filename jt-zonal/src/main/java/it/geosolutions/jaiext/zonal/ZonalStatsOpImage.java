@@ -1114,7 +1114,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -1491,7 +1491,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -1832,7 +1832,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -2209,7 +2209,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -2550,7 +2550,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -2927,7 +2927,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -3268,7 +3268,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -3646,7 +3646,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -3987,7 +3987,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -4365,7 +4365,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
@@ -4706,7 +4706,7 @@ public class ZonalStatsOpImage extends OpImage {
                         synchronized (this) { // HACK
                             insideROI = srcROI.contains(x0, y0);
                         }
-                        if (insideROI) {
+                        if (!insideROI) {
                             if (updateIterator) {
                                 rectIterator.nextPixel();
                             }
