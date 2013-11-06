@@ -4890,10 +4890,24 @@ public class ZonalStatsOpImage extends OpImage {
         // If the specified property is "JAI-EXT.stats", the calculations are performed.
         if (ZonalStatsDescriptor.ZS_PROPERTY.equalsIgnoreCase(name)) {
             getTiles();
-            List<ZoneGeometry> result = spatialIndex.itemsTree();
-            List<ZoneGeometry> copy = new ArrayList<ZoneGeometry>(result);
-            Collections.reverse(copy);
-            return Collections.unmodifiableList(copy);
+            List result = spatialIndex.itemsTree();
+            
+            int itemsNumber = spatialIndex.size();
+            
+            int listNumber = result.size();
+            
+            List<ZoneGeometry> copy;
+            
+            if(itemsNumber<=10){
+                copy = new ArrayList<ZoneGeometry>(result);
+                return Collections.unmodifiableList(copy); 
+            }else{                
+                copy = new ArrayList<ZoneGeometry>();
+                for(int i = 0; i < listNumber; i++){
+                    copy.addAll((List<ZoneGeometry>) result.get(i));
+                }
+                return Collections.unmodifiableList(copy); 
+            }
         } else {
             return super.getProperty(name);
         }

@@ -550,10 +550,25 @@ public class ZonalStatsTest extends TestBase {
         List<ZoneGeometry>[] zoneList = new ArrayList[4];
 
         int dataType = destination.getSampleModel().getDataType();
-
-        zoneList[statsIndex] = spatial[dataType][statsIndex].itemsTree();
-        Collections.reverse(zoneList[statsIndex]);
-
+        
+        List copy = spatial[dataType][statsIndex].itemsTree();
+        
+        int listNumber = copy.size();
+        
+        int itemsNumber = spatial[dataType][statsIndex].size();
+        
+        if(itemsNumber >10){
+            
+            List temp = new ArrayList<ZoneGeometry>();
+            
+            for(int i = 0; i < listNumber; i++){
+                temp.addAll((List<ZoneGeometry>) copy.get(i));
+            }
+            zoneList[statsIndex] = temp;
+        }else{            
+            zoneList[statsIndex] = copy;
+        }
+        
         // Test if the calculated values are equal with a tolerance value
         if (CLASSIFIER) {
             // Cycle on all the geometries
