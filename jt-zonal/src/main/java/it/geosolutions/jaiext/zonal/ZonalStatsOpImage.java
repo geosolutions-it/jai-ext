@@ -383,7 +383,7 @@ public class ZonalStatsOpImage extends OpImage {
         // Creation of a boolean lookuptable indicating if the selected pixel is a NoData
         // used only for byte images.
         if (!notHasNoData && source.getSampleModel().getDataType() == DataBuffer.TYPE_BYTE) {
-            booleanLookupTable = new boolean[255];
+            booleanLookupTable = new boolean[256];
             for (int i = 0; i < booleanLookupTable.length; i++) {
                 byte value = (byte) i;
                 booleanLookupTable[i] = !noData.contains(value);
