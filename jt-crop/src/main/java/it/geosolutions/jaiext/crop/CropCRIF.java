@@ -102,8 +102,20 @@ public class CropCRIF implements RenderedImageFactory {
             bean[0].setImage(image);
             bean[0].setImageRoi(roi);
             bean[0].setSourceNoData(noData);
+            
+            //layout settings
+            if(layout == null){
+                layout = new ImageLayout();
+            }
+            layout.setHeight(finalBounds.height);
+            layout.setWidth(finalBounds.width);
+            layout.setMinX(finalBounds.x);
+            layout.setMinY(finalBounds.y);
+            
+            
             // Mosaic operation
             image = new MosaicOpImage(listSrc, layout, local, bean, MosaicDescriptor.MOSAIC_TYPE_OVERLAY, destNoData);
+            return image;
         }
         
         // If noData are not present, then the crop operation is performed
