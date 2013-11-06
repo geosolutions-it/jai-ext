@@ -927,7 +927,7 @@ public class ZonalStatsOpImage extends OpImage {
                                 byte sample = srcData[bands[i]][posx + posy
                                         + srcBandOffsets[bands[i]]];
                                 // NoData check
-                                if (booleanLookupTable[(int) sample]) {
+                                if (booleanLookupTable[sample &0xFF]) {
                                     // Update of all the statistics
                                     // If a range list is present then the sample is checked if it is inside the range
                                     if (rangesNoClass) {
@@ -1050,7 +1050,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     byte sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
                                     // NoData check
-                                    if (booleanLookupTable[(int) sample]) {
+                                    if (booleanLookupTable[sample &0xFF]) {
                                         // Update of all the statistics
                                         // If a range list is present then the sample is checked if it is inside the range
                                         if (rangesNoClass) {
@@ -1169,7 +1169,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     byte sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
                                     // NoData check
-                                    if (booleanLookupTable[(int) sample]) {
+                                    if (booleanLookupTable[sample &0xFF]) {
                                         // Update of all the statistics
                                         // If a range list is present then the sample is checked if it is inside the range
                                         if (rangesNoClass) {
