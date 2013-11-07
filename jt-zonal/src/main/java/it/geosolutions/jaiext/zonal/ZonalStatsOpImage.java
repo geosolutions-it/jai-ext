@@ -134,6 +134,8 @@ public class ZonalStatsOpImage extends OpImage {
 
     private ROI srcROI;
 
+    private List<ZoneGeometry> zoneList;
+
     public ZonalStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             RenderedImage classifier, AffineTransform transform, List<ROI> rois, Range noData,
             ROI mask, boolean useROIAccessor, int[] bands, StatsType[] statsTypes,
@@ -302,10 +304,12 @@ public class ZonalStatsOpImage extends OpImage {
         rangesNoClass = ranges && !classPresent;
 
         // Creation of a ZoneGeometry list, for storing the results
-        // zoneList = new ArrayList<ZoneGeometry>();
         // Check if the rois are present. Otherwise the entire image statistics
         // are calculated
         if (rois == null) {
+
+            this.zoneList = new ArrayList<ZoneGeometry>(1);
+
             this.rois = new ArrayList<ROI>();
             ROI roi = new ROIShape(sourceBounds);
             this.rois.add(roi);
@@ -332,9 +336,13 @@ public class ZonalStatsOpImage extends OpImage {
             // Addition to the geometries list
             spatialIndex.insert(env, geom);
 
+            zoneList.add(geom);
+
         } else {
             // Bounds Union
             union = new Rectangle(rois.get(0).getBounds());
+
+            this.zoneList = new ArrayList<ZoneGeometry>(rois.size());
             // Insertion of the zones to the spatial index and union of the bounds for every ROI/Zone object
             for (ROI roi : rois) {
                 // Spatial index creation
@@ -358,6 +366,8 @@ public class ZonalStatsOpImage extends OpImage {
                 }
                 // Addition to the geometries list
                 spatialIndex.insert(env, geom);
+
+                zoneList.add(geom);
             }
             // Sets of the roi list
             this.rois = rois;
@@ -927,7 +937,7 @@ public class ZonalStatsOpImage extends OpImage {
                                 byte sample = srcData[bands[i]][posx + posy
                                         + srcBandOffsets[bands[i]]];
                                 // NoData check
-                                if (booleanLookupTable[sample &0xFF]) {
+                                if (booleanLookupTable[sample & 0xFF]) {
                                     // Update of all the statistics
                                     // If a range list is present then the sample is checked if it is inside the range
                                     if (rangesNoClass) {
@@ -1050,7 +1060,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     byte sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
                                     // NoData check
-                                    if (booleanLookupTable[sample &0xFF]) {
+                                    if (booleanLookupTable[sample & 0xFF]) {
                                         // Update of all the statistics
                                         // If a range list is present then the sample is checked if it is inside the range
                                         if (rangesNoClass) {
@@ -1169,7 +1179,7 @@ public class ZonalStatsOpImage extends OpImage {
                                     byte sample = srcData[bands[i]][posx + posy
                                             + srcBandOffsets[bands[i]]];
                                     // NoData check
-                                    if (booleanLookupTable[sample &0xFF]) {
+                                    if (booleanLookupTable[sample & 0xFF]) {
                                         // Update of all the statistics
                                         // If a range list is present then the sample is checked if it is inside the range
                                         if (rangesNoClass) {
@@ -4890,24 +4900,10 @@ public class ZonalStatsOpImage extends OpImage {
         // If the specified property is "JAI-EXT.stats", the calculations are performed.
         if (ZonalStatsDescriptor.ZS_PROPERTY.equalsIgnoreCase(name)) {
             getTiles();
-            List result = spatialIndex.itemsTree();
-            
-            int itemsNumber = spatialIndex.size();
-            
-            int listNumber = result.size();
-            
-            List<ZoneGeometry> copy;
-            
-            if(itemsNumber<=10){
-                copy = new ArrayList<ZoneGeometry>(result);
-                return Collections.unmodifiableList(copy); 
-            }else{                
-                copy = new ArrayList<ZoneGeometry>();
-                for(int i = 0; i < listNumber; i++){
-                    copy.addAll((List<ZoneGeometry>) result.get(i));
-                }
-                return Collections.unmodifiableList(copy); 
-            }
+
+            List<ZoneGeometry> copy = new ArrayList<ZoneGeometry>(zoneList);
+
+            return Collections.unmodifiableList(copy);
         } else {
             return super.getProperty(name);
         }

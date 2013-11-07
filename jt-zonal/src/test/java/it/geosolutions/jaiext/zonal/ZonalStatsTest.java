@@ -67,6 +67,9 @@ public class ZonalStatsTest extends TestBase {
 
     /** Spatial index for fast searching the geometries associated with a selected pixel */
     private static STRtree[][] spatial;
+    
+    /** Array containing the list of all the zones*/
+    private static List<ZoneGeometry>[][] zonesLists;
 
     /** Union of all the input geometries bounds */
     private static Rectangle union;
@@ -179,15 +182,23 @@ public class ZonalStatsTest extends TestBase {
         // Band array creation
         bands = new int[] { 0 };
 
-        // Spatial indexing
-        // Creation of the spatial indexes
+        // Spatial indexing 
+        // Creation of the spatial indexes and of the final List results
         spatial = new STRtree[6][4];
+        
+        zonesLists = new ArrayList[6][4];
 
         for (int i = 0; i < 6; i++) {
+            // Spatial Indexes
             spatial[i][0] = new STRtree();
             spatial[i][1] = new STRtree();
             spatial[i][2] = new STRtree();
             spatial[i][3] = new STRtree();
+            // Zones Lists
+            zonesLists[i][0] = new ArrayList<ZoneGeometry>();
+            zonesLists[i][1] = new ArrayList<ZoneGeometry>();
+            zonesLists[i][2] = new ArrayList<ZoneGeometry>();
+            zonesLists[i][3] = new ArrayList<ZoneGeometry>();
         }
 
         // Bounds Union
@@ -211,6 +222,9 @@ public class ZonalStatsTest extends TestBase {
                     ZoneGeometry geom = new ZoneGeometry(roi, rangeList[i], bands, stats,
                             CLASSIFIER, minBound, maxBound, numBins);
                     spatial[i][z].insert(env, geom);
+                    
+                    zonesLists[i][z].add(geom);
+                    
                 }
             }
         }
@@ -547,34 +561,17 @@ public class ZonalStatsTest extends TestBase {
                 .getProperty(ZonalStatsDescriptor.ZS_PROPERTY);
 
         // Calculated Results
-        List<ZoneGeometry>[] zoneList = new ArrayList[4];
 
         int dataType = destination.getSampleModel().getDataType();
         
-        List copy = spatial[dataType][statsIndex].itemsTree();
-        
-        int listNumber = copy.size();
-        
-        int itemsNumber = spatial[dataType][statsIndex].size();
-        
-        if(itemsNumber >10){
-            
-            List temp = new ArrayList<ZoneGeometry>();
-            
-            for(int i = 0; i < listNumber; i++){
-                temp.addAll((List<ZoneGeometry>) copy.get(i));
-            }
-            zoneList[statsIndex] = temp;
-        }else{            
-            zoneList[statsIndex] = copy;
-        }
+        List<ZoneGeometry> zoneList = zonesLists[dataType][statsIndex];
         
         // Test if the calculated values are equal with a tolerance value
         if (CLASSIFIER) {
             // Cycle on all the geometries
             for (int i = 0; i < result.size(); i++) {
                 ZoneGeometry zoneResult = result.get(i);
-                ZoneGeometry zoneCalculated = zoneList[statsIndex].get(i);
+                ZoneGeometry zoneCalculated = zoneList.get(i);
                 // Selection of the zone statistics for the selected band
                 Map<Integer, Map<Range, Statistics[]>> resultPerClass = (Map<Integer, Map<Range, Statistics[]>>) zoneResult
                         .getStatsPerBand(0);
@@ -638,7 +635,7 @@ public class ZonalStatsTest extends TestBase {
             // Cycle on all the geometries
             for (int i = 0; i < result.size(); i++) {
                 ZoneGeometry zoneResult = result.get(i);
-                ZoneGeometry zoneCalculated = zoneList[statsIndex].get(i);
+                ZoneGeometry zoneCalculated = zoneList.get(i);
                 // Selection of the statistics for the selected band
                 // Result from ZonalStats operation
                 Statistics[] statsResult = (Statistics[]) zoneResult
