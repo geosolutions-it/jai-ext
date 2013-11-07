@@ -178,12 +178,12 @@ public class NullDescriptor extends OperationDescriptorImpl {
     public static RenderedOp create(RenderedImage source0,
                                     RenderingHints hints)  {
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("Null",
+            new ParameterBlockJAI("NullOp",
                                   RenderedRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
 
-        return JAI.create("Null", pb, hints);
+        return JAI.create("NullOp", pb, hints);
     }
 
     /**
@@ -206,11 +206,11 @@ public class NullDescriptor extends OperationDescriptorImpl {
     public static RenderableOp createRenderable(RenderableImage source0,
                                                 RenderingHints hints)  {
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("Null",
+            new ParameterBlockJAI("NullOp",
                                   RenderableRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
 
-        return JAI.createRenderable("Null", pb, hints);
+        return JAI.createRenderable("NullOp", pb, hints);
     }
 }
