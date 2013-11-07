@@ -15,6 +15,7 @@ jt-stats/target/*
 jt-zonal/target/*
 jt-crop/target/*
 jt-rescale/target/*
+jt-nullop/target/*
 concurrent-tile-cache/src/test/resources/it/geosolutions/logfiles
 concurrent-tile-cache/target/*
 concurrent-tile-cache/bin/*

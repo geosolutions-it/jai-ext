@@ -536,5 +536,6 @@
     <module>jt-zonal</module>
     <module>jt-crop</module>
     <module>jt-rescale</module>
+    <module>jt-nullop</module>
   </modules>
 </project>
