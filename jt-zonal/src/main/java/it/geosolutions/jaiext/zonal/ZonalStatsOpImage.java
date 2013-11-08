@@ -4880,7 +4880,8 @@ public class ZonalStatsOpImage extends OpImage {
      */
     public Raster[] getTiles() {
         if (firstTime.getAndSet(false)) {
-            return getTiles(getTileIndices(getBounds()));
+            //return getTiles(getTileIndices(getBounds()));
+            return getTiles(getTileIndices(union));
         } else {
             return null;
         }
@@ -4901,9 +4902,9 @@ public class ZonalStatsOpImage extends OpImage {
         if (ZonalStatsDescriptor.ZS_PROPERTY.equalsIgnoreCase(name)) {
             getTiles();
 
-            List<ZoneGeometry> copy = new ArrayList<ZoneGeometry>(zoneList);
+            //List<ZoneGeometry> copy = new ArrayList<ZoneGeometry>(zoneList);
 
-            return Collections.unmodifiableList(copy);
+            return Collections.unmodifiableList(zoneList);
         } else {
             return super.getProperty(name);
         }

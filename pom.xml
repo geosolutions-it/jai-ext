@@ -537,5 +537,6 @@
     <module>jt-crop</module>
     <module>jt-rescale</module>
     <module>jt-nullop</module>
+    <module>jt-bandmerge</module>
   </modules>
 </project>

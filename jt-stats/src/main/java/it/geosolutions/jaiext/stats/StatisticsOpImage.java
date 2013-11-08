@@ -11,6 +11,7 @@ import java.awt.image.RenderedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
@@ -81,7 +82,7 @@ public abstract class StatisticsOpImage extends OpImage {
     protected int statNum;
 
     /** Boolean indicating if the statistics have been already calculated(if false) or not */
-    protected volatile boolean firstTime = true;
+    protected AtomicBoolean firstTime = new AtomicBoolean(true);
 
     /** Horizontal subsampling */
     protected final int xPeriod;
@@ -242,7 +243,7 @@ public abstract class StatisticsOpImage extends OpImage {
             }
         }
         // Setting the calculations to be performed
-        firstTime = true;
+        firstTime.getAndSet(true);
     }
 
     /**
@@ -259,8 +260,10 @@ public abstract class StatisticsOpImage extends OpImage {
      * computation. This method is overridden such that can be invoked only one time by using a flag for avoiding unnecessary computations.
      */
     public Raster[] getTiles() {
-        if (firstTime) {
-            firstTime = false;
+        if (firstTime.getAndSet(false)) {
+            if (hasROI) {
+                return getTiles(getTileIndices(roiBounds));
+            }
             return getTiles(getTileIndices(getBounds()));
         } else {
             return null;

@@ -59,7 +59,7 @@ public class NullDescriptor extends OperationDescriptorImpl {
         {"LocalName",   "NullOp"},
         {"Vendor",      "it.geosolutions.jaiext.roiaware"},
         {"Description", "Operation used for wrapping other images"},
-        {"DocURL",      "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/NullDescriptor.html"},
+        {"DocURL",      "Not Defined"},
         {"Version",     "1.0"},
     };
 

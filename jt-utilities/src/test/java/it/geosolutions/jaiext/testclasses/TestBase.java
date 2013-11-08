@@ -149,9 +149,17 @@ public abstract class TestBase {
         return roi;
     }
 
+    
     /** Simple method for image creation */
     public static RenderedImage createTestImage(int dataType, int width, int height, Number noDataValue,
             boolean isBinary) {
+        
+        return createTestImage(dataType, width,height, noDataValue, isBinary, 3);
+    }
+    
+    /** Simple method for image creation */
+    public static RenderedImage createTestImage(int dataType, int width, int height, Number noDataValue,
+            boolean isBinary, int bands) {
         // This values could be used for fill all the image
         byte valueB = 64;
         short valueUS = Short.MAX_VALUE / 4;
@@ -176,15 +184,22 @@ public abstract class TestBase {
         Float crossValueFloat = null;
         Double crossValueDouble = null;
 
-        int numBands = 3;
+        int numBands = bands;
 
         if (isBinary) {
             // Binary images Sample Model
             sm = new MultiPixelPackedSampleModel(dataType, width, height, 1);
             numBands = 1;
         } else {
+            
+            if(numBands == 3){
                 sm = new ComponentSampleModel(dataType, width, height, 3, width, new int[] { 0,
-                        imageDim, imageDim * 2 });            
+                        imageDim, imageDim * 2 }); 
+            }else{
+                sm = new ComponentSampleModel(dataType, width, height, 1, width, new int[] {0}); 
+            }
+            
+                           
         }
 
         switch (dataType) {
