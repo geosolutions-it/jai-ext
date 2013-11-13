@@ -10,24 +10,11 @@ import org.junit.Test;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 /**
- * This test class is used for compare the timing between the new ZonalStats operation and the its old JaiTools version. NoData range can be used by
- * setting to true the JAI.Ext.RangeUsed JVM boolean parameters. If the user wants to change the number of the benchmark cycles or of the not
- * benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles parameters.If the user want to use
- * the JaiTools ZonalStats operation must pass to the JVM the JAI.Ext.OldDescriptor parameter set to true. For selecting a specific data type the user
- * must set the JAI.Ext.TestSelector JVM integer parameter to a number between 0 and 5 (where 0 means byte, 1 Ushort, 2 Short, 3 Integer, 4 Float and
- * 5 Double). The test is made on a list of 10 geometries. The statistics calculated are:
- * <ul>
- * <li>Mean</li>
- * <li>Sum</li>
- * <li>Max</li>
- * <li>Min</li>
- * <li>Extrema</li>
- * <li>Variance</li>
- * <li>Standard Deviation</li>
- * <li>Median</li>
- * </ul>
- * The user can choose if the classifier must be used by setting to true the JVM parameter JAI.Ext.Classifier.
- * 
+ * This test class is used for compare the timing between the new Null operation and the old Jai version. If the user wants to change the number of
+ * the benchmark cycles or of the not benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles
+ * parameters.If the user wants to use the Jai Null operation must pass to the JVM the JAI.Ext.OldDescriptor parameter set to true. For selecting a
+ * specific data type the user must set the JAI.Ext.TestSelector JVM integer parameter to a number between 0 and 5 (where 0 means byte, 1 Ushort, 2
+ * Short, 3 Integer, 4 Float and 5 Double).
  */
 public class ComparisonTest extends TestBase {
 
@@ -44,7 +31,7 @@ public class ComparisonTest extends TestBase {
 
     /** Source test image */
     private static RenderedImage testImage;
-    
+
     // Initial static method for preparing all the test data
     @BeforeClass
     public static void initialSetup() {
@@ -61,28 +48,28 @@ public class ComparisonTest extends TestBase {
         // Image creations
         switch (TEST_SELECTOR) {
         case DataBuffer.TYPE_BYTE:
-            testImage = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataB,
-                    false, 1);
+            testImage = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                    noDataB, false, 1);
             break;
         case DataBuffer.TYPE_USHORT:
             testImage = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
                     noDataUS, false, 1);
             break;
         case DataBuffer.TYPE_SHORT:
-            testImage = createTestImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataS,
-                    false, 1);
+            testImage = createTestImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                    noDataS, false, 1);
             break;
         case DataBuffer.TYPE_INT:
-            testImage = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
-                    false, 1);
+            testImage = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                    noDataI, false, 1);
             break;
         case DataBuffer.TYPE_FLOAT:
-            testImage = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataF,
-                    false, 1);
+            testImage = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                    noDataF, false, 1);
             break;
         case DataBuffer.TYPE_DOUBLE:
-            testImage = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataD,
-                    false, 1);
+            testImage = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+                    noDataD, false, 1);
             break;
         default:
             throw new IllegalArgumentException("Wrong data type");
@@ -92,7 +79,7 @@ public class ComparisonTest extends TestBase {
 
     }
 
-    // General method for showing calculation time of the 2 ZonalStats operators
+    // General method for showing calculation time of the 2 Null operators
     @Test
     public void testNullDescriptor() {
         // Image data types
@@ -103,10 +90,9 @@ public class ComparisonTest extends TestBase {
         // String for final output
         String stat = "Null";
 
-        // Control if the acceleration should be used for the old descriptor
+        // Control on which descriptor is used
         if (OLD_DESCRIPTOR) {
             description = "Old " + stat;
-            // Control if the Range should be used for the new descriptor
         } else {
             description = "New " + stat;
         }
@@ -156,7 +142,7 @@ public class ComparisonTest extends TestBase {
                 imageNull = javax.media.jai.operator.NullDescriptor.create(testImage, null);
             } else {
                 // New descriptor calculations
-                imageNull = NullDescriptor.create(testImage,null);
+                imageNull = NullDescriptor.create(testImage, null);
             }
 
             // Total statistic calculation time

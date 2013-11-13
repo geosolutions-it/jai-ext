@@ -40,9 +40,9 @@ import com.vividsolutions.jts.index.strtree.STRtree;
  * <li>Median</li>
  * </ul>
  * An additional Classifier image can be used for dividing the statistics between the classes defined by it. The ZonalStatsOpImage is tested on 6
- * different images each one with a different data type (except Long data type). The operation is tested with and without the presence of NoData. The
- * classifier can be used by setting to true the JVM parameter JAI.Ext.Classifier. All the results are compared with the previously calculated
- * statistics for checking the correctness of the calculations.
+ * different images each one with a different data type (except Long data type). The operation is tested with and without the presence of NoData, with
+ * and without the presence of ROI. The classifier can be used by setting to true the JVM parameter JAI.Ext.Classifier. All the results are compared
+ * with the previously calculated statistics for checking the correctness of the calculations.
  */
 public class ZonalStatsTest extends TestBase {
 
@@ -66,8 +66,8 @@ public class ZonalStatsTest extends TestBase {
 
     /** Spatial index for fast searching the geometries associated with a selected pixel */
     private static STRtree[][] spatial;
-    
-    /** Array containing the list of all the zones*/
+
+    /** Array containing the list of all the zones */
     private static List<ZoneGeometry>[][] zonesLists;
 
     /** Union of all the input geometries bounds */
@@ -181,10 +181,10 @@ public class ZonalStatsTest extends TestBase {
         // Band array creation
         bands = new int[] { 0 };
 
-        // Spatial indexing 
+        // Spatial indexing
         // Creation of the spatial indexes and of the final List results
         spatial = new STRtree[6][4];
-        
+
         zonesLists = new ArrayList[6][4];
 
         for (int i = 0; i < 6; i++) {
@@ -221,9 +221,9 @@ public class ZonalStatsTest extends TestBase {
                     ZoneGeometry geom = new ZoneGeometry(roi, rangeList[i], bands, stats,
                             CLASSIFIER, minBound, maxBound, numBins);
                     spatial[i][z].insert(env, geom);
-                    
+
                     zonesLists[i][z].add(geom);
-                    
+
                 }
             }
         }
@@ -562,9 +562,9 @@ public class ZonalStatsTest extends TestBase {
         // Calculated Results
 
         int dataType = destination.getSampleModel().getDataType();
-        
+
         List<ZoneGeometry> zoneList = zonesLists[dataType][statsIndex];
-        
+
         // Test if the calculated values are equal with a tolerance value
         if (CLASSIFIER) {
             // Cycle on all the geometries

@@ -1,7 +1,6 @@
 package it.geosolutions.jaiext.nullop;
 
 import java.awt.Rectangle;
-import java.awt.image.ColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.util.Hashtable;
@@ -10,10 +9,9 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.OpImage;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.PointOpImage;
-import com.sun.media.jai.util.JDKWorkarounds;
 
 /**
- * A trivial <code>OpImage</code> subclass that simply transmits its
+ * An<code>OpImage</code> subclass that simply transmits its
  * source unchanged.  This may be useful when an interface requires an
  * <code>OpImage</code> but another sort of <code>RenderedImage</code>
  * (such as a <code>BufferedImage</code> or <code>TiledImage</code>)
@@ -28,37 +26,10 @@ import com.sun.media.jai.util.JDKWorkarounds;
  */
 public class NullOpImage extends OpImage {
 
-
-    /**
-     * Create a new ImageLayout from the source image optionally
-     * overriding a ColorModel supplied via the layout.
-     */
-    private static ImageLayout layoutHelper(RenderedImage source,
-                                            ImageLayout layout) {
-        // Create basic layout from the source.
-        ImageLayout il = new ImageLayout(source);
-
-        // If a layout containing a valid ColorModel field is supplied then
-        // reset the ColorModel if it is compatible with the SampleModel.
-        if(layout != null && layout.isValid(ImageLayout.COLOR_MODEL_MASK)) {
-            ColorModel colorModel = layout.getColorModel(null);
-            if(JDKWorkarounds.areCompatibleDataModels(source.getSampleModel(),
-                                                      colorModel)) {
-                il.setColorModel(colorModel);
-            }
-        }
-
-        return il;
-    }
-
     /**
      * Constructs a <code>NullOpImage</code>.  The superclass
      * constructor will be passed a new <code>ImageLayout</code>
-     * object with all of its fields filled in.  The <code>ColorModel</code>
-     * may be overridden via the supplied <code>ImageLayout</code>; all
-     * other layout fields are derived from the source image.  Any
-     * specified <code>ColorModel</code> will be used if and only if it
-     * is compatible with the source image <code>SampleModel</code>.
+     * object with all of its fields filled in.
      *
      * @param layout An <code>ImageLayout</code> optionally specifying
      *        the image <code>ColorModel</code>; all other fields are
@@ -81,7 +52,6 @@ public class NullOpImage extends OpImage {
     public NullOpImage(RenderedImage source,
                        ImageLayout layout,
                        Map configuration) {
-        // cobbleSources is irrelevant since we override getTile().
         super(vectorize(source),layout,configuration,true);
     }
 
@@ -108,19 +78,24 @@ public class NullOpImage extends OpImage {
      * Returns the properties from the source image.
      */
     protected synchronized Hashtable getProperties() {
-        
+        // Selection of all the image properties
         String[] propertyNames = getPropertyNames();
-        
+        // Selection of the source image
         RenderedImage sourceImage = getSourceImage(0);
-        
+        // Creation of a Map containing all the source image properties
         Hashtable<String, Object> properties = new Hashtable<String, Object>();
-        
-        for(String property : propertyNames){
-            
-            properties.put(property, sourceImage.getProperty(property));
-            
+        // Cycle on all the properties
+        if(propertyNames != null){
+            for(String property : propertyNames){
+                // Addition of the selected property
+                properties.put(property, sourceImage.getProperty(property));
+                
+            }
+            return properties;
+        }else{
+            return null;
         }
-        return properties;
+        
     }
 
     /**
@@ -128,15 +103,17 @@ public class NullOpImage extends OpImage {
      * to the supplied <code>Hashtable</code>.
      */
     protected synchronized void setProperties(Hashtable properties) {
-        
+        // Selection of the source image
         PlanarImage sourceImage = getSourceImage(0);
 
         Hashtable<String, Object> propertyTable = properties;
-        
-        for(String property : propertyTable.keySet()){
-            
-            sourceImage.setProperty(property, propertyTable.get(property));
-            
+        if(propertyTable != null){
+            // Cycle on all the properties
+            for(String property : propertyTable.keySet()){
+                // Setting of the selected property
+                sourceImage.setProperty(property, propertyTable.get(property));
+                
+            }
         }
     }
 
@@ -145,7 +122,7 @@ public class NullOpImage extends OpImage {
      * if no property names are recognized.
      */
     public String[] getPropertyNames() {
-        return getSource(0).getPropertyNames();
+        return getSourceImage(0).getPropertyNames();
     }
 
     /**
@@ -154,16 +131,14 @@ public class NullOpImage extends OpImage {
      * are recognized.
      */
     public String[] getPropertyNames(String prefix) {
-        return getSource(0).getPropertyNames(prefix);
+        return getSourceImage(0).getPropertyNames(prefix);
     }
 
     /**
      * Returns the class of the specified property from the source image.
-     *
-     * @since JAI 1.1
      */
     public Class getPropertyClass(String name) {
-        return getSource(0).getPropertyClass(name);
+        return getSourceImage(0).getPropertyClass(name);
     }
 
     /**
@@ -172,26 +147,22 @@ public class NullOpImage extends OpImage {
      * with the specified name is not defined.
      */
     public Object getProperty(String name) {
-        return getSource(0).getProperty(name);
+        return getSourceImage(0).getProperty(name);
     }
 
     /**
      * Sets a property on the source image by name.
      */
     public void setProperty(String name, Object value) {
-        getSource(0).setProperty(name, value);
+        getSourceImage(0).setProperty(name, value);
     }
 
     /**
      * Removes a property from the source image by name.
-     *
-     * @since JAI 1.1
      */
     public void removeProperty(String name) {
-        getSource(0).removeProperty(name);
+        getSourceImage(0).removeProperty(name);
     }
-
-
 
     @Override
     public Rectangle mapDestRect(Rectangle destRect, int sourceIndex) {

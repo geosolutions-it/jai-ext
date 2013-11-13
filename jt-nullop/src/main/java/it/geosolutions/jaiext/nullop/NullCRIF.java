@@ -12,14 +12,14 @@ import javax.media.jai.JAI;
  * 
  * <p>
  * The primary use of this image factory is as a utility class in implementing operations which generate only non-image data via the use of
- * <code>PropertyGenerator</code>s. Another use of this class is related to the fact that can be put at the sink of a RenderedOp chain and can cache
- * the tiles of the final resulted image without caching the tiles of the previous calculations.
+ * <code>PropertyGenerator</code>s. Another use of this class is the possibility to put this OpImage at the sink of a RenderedOp chain for caching the
+ * tiles of the last OpImage without caching the tiles of the previous calculations.
  * 
  */
 public class NullCRIF extends CRIFImpl {
 
     /**
-     * Image returned by <code>RenderedImageFactory.create()</code> when there are ono sources.
+     * Image returned by <code>RenderedImageFactory.create()</code> when there are no sources.
      */
     private static RenderedImage sourcelessImage = null;
 
@@ -51,20 +51,21 @@ public class NullCRIF extends CRIFImpl {
 
     /**
      * Returns the first source in the source list in the <code>ParameterBlock</code> or the value returned by <code>getSourcelessImage()</code> if
-     * there are no soures.
+     * there are no sources.
      * 
      * @throws ClassCastException if there are sources and the source at index zero is not a <code>RenderedImage</code>.
      */
     public RenderedImage create(ParameterBlock pb, RenderingHints renderHints) {
-
+        // Selection of the first source
         RenderedImage source = pb.getRenderedSource(0);
-
+        // Selection of the optional layout object
         ImageLayout layout = (ImageLayout) renderHints.get(JAI.KEY_IMAGE_LAYOUT);
-
+        // If no source is defined, then the "sourceless" image is taken, if present
         if (source == null) {
             return getSourcelessImage();
         }
 
+        // A new instance of the NullOpImage is created
         return new NullOpImage(source, layout, renderHints);
     }
 }
