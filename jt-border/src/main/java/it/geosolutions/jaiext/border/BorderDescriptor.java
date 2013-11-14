@@ -1,14 +1,3 @@
-/*
- * $RCSfile: BorderDescriptor.java,v $
- *
- * Copyright (c) 2005 Sun Microsystems, Inc. All rights reserved.
- *
- * Use is subject to license terms.
- *
- * $Revision: 1.1 $
- * $Date: 2005/02/11 04:57:30 $
- * $State: Exp $
- */
 package it.geosolutions.jaiext.border;
 
 import it.geosolutions.jaiext.range.Range;
@@ -46,6 +35,11 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </ul>
  * 
  * <p>
+ * If No Data are present the user can provide a Range of No Data for handling the No Data values and a Destination No Data value for setting the
+ * output No Data value.
+ * </p>
+ * 
+ * <p>
  * <table border=1>
  * <caption>Resource List</caption>
  * <tr>
@@ -54,23 +48,23 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>GlobalName</td>
- * <td>Border</td>
+ * <td>BorderOp</td>
  * </tr>
  * <tr>
  * <td>LocalName</td>
- * <td>Border</td>
+ * <td>BorderOp</td>
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>com.sun.media.jai</td>
+ * <td>it.geosolutions.jaiext.roiaware</td>
  * </tr>
  * <tr>
  * <td>Description</td>
- * <td>Adds a border around an image.</td>
+ * <td>Operation which adds borders to the input image.</td>
  * </tr>
  * <tr>
  * <td>DocURL</td>
- * <td>http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/BorderDescriptor.html</td>
+ * <td>Not Defined</td>
  * </tr>
  * <tr>
  * <td>Version</td>
@@ -78,23 +72,31 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>arg0Desc</td>
- * <td>The image's left padding.</td>
+ * <td>Image's left padding.</td>
  * </tr>
  * <tr>
  * <td>arg1Desc</td>
- * <td>The image's right padding.</td>
+ * <td>Image's right padding.</td>
  * </tr>
  * <tr>
  * <td>arg2Desc</td>
- * <td>The image's top padding.</td>
+ * <td>Image's top padding.</td>
  * </tr>
  * <tr>
  * <td>arg3Desc</td>
- * <td>The image's bottom padding.</td>
+ * <td>Image's bottom padding.</td>
  * </tr>
  * <tr>
  * <td>arg4Desc</td>
- * <td>The border extender.</td>
+ * <td>Border Extender used.</td>
+ * </tr>
+ * <tr>
+ * <td>arg5Desc</td>
+ * <td>No Data Range used.</td>
+ * </tr>
+ * <tr>
+ * <td>arg6Desc</td>
+ * <td>Destination No Data value.</td>
  * </tr>
  * </table>
  * </p>
@@ -127,10 +129,18 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <td>type</td>
  * <td>javax.media.jai.BorderExtender</td>
  * <td>javax.media.jai.BorderExtenderZero</td>
+ * <tr>
+ * <td>noData</td>
+ * <td>it.geosolutions.jaiext.range.Range</td>
+ * <td>null</td>
+ * <tr>
+ * <tr>
+ * <td>destNoData</td>
+ * <td>java.lang.Double</td>
+ * <td>0</td>
  * </table>
  * </p>
  * 
- * @see javax.media.jai.OperationDescriptor
  */
 public class BorderDescriptor extends OperationDescriptorImpl {
 
@@ -153,7 +163,7 @@ public class BorderDescriptor extends OperationDescriptorImpl {
     /** The parameter class list for this operation. */
     private static final Class[] paramClasses = { java.lang.Integer.class, java.lang.Integer.class,
             java.lang.Integer.class, java.lang.Integer.class, javax.media.jai.BorderExtender.class,
-            it.geosolutions.jaiext.range.Range.class, java.lang.Double.class};
+            it.geosolutions.jaiext.range.Range.class, java.lang.Double.class };
 
     /** The parameter default value list for this operation. */
     private static final Object[] paramDefaults = { 0, 0, 0, 0,
@@ -297,9 +307,6 @@ public class BorderDescriptor extends OperationDescriptorImpl {
      * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
      * {@link JAI#create(String,ParameterBlock,RenderingHints)}.
      * 
-     * @see JAI
-     * @see ParameterBlockJAI
-     * @see RenderedOp
      * 
      * @param source0 <code>RenderedImage</code> source 0.
      * @param leftPad The image's left padding. May be <code>null</code>.
@@ -307,6 +314,8 @@ public class BorderDescriptor extends OperationDescriptorImpl {
      * @param topPad The image's top padding. May be <code>null</code>.
      * @param bottomPad The image's bottom padding. May be <code>null</code>.
      * @param type The border type. May be <code>null</code>.
+     * @param noData No Data Range used. May be <code>null</code>.
+     * @param destinationNoData Value for the output No Data.
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @return The <code>RenderedOp</code> destination.
      * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.
@@ -315,9 +324,9 @@ public class BorderDescriptor extends OperationDescriptorImpl {
             int bottomPad, BorderExtender type, Range noData, double destinationNoData,
             RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI("BorderOp", RenderedRegistryMode.MODE_NAME);
-
+        // Setting of the source
         pb.setSource("source0", source0);
-
+        // Setting of the parameters
         pb.setParameter("leftPad", leftPad);
         pb.setParameter("rightPad", rightPad);
         pb.setParameter("topPad", topPad);

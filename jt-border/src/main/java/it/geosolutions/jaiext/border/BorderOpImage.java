@@ -1,14 +1,3 @@
-/*
- * $RCSfile: BorderOpImage.java,v $
- *
- * Copyright (c) 2005 Sun Microsystems, Inc. All rights reserved.
- *
- * Use is subject to license terms.
- *
- * $Revision: 1.1 $
- * $Date: 2005/02/11 04:56:16 $
- * $State: Exp $
- */
 package it.geosolutions.jaiext.border;
 
 import it.geosolutions.jaiext.range.Range;
@@ -36,7 +25,7 @@ import java.util.Map;
  * 
  * <p>
  * It adds a border around a source image. The size of the border is specified by the left, right, top, and bottom padding parameters. The border may
- * be filled in a variety of ways specified by the border type parameter, defined in <code>javax.media.jai.operator.BorderDescriptor</code>:
+ * be filled in a variety of ways specified by the border type parameter:
  * <ul>
  * <li>it may be extended with zeros (BORDER_ZERO_FILL);
  * <li>it may be extended with a constant set of values (BORDER_CONST_FILL);
@@ -46,18 +35,17 @@ import java.util.Map;
  * </ul>
  * 
  * <p>
- * When choosing the <code>BORDER_CONST_FILL</code> option, an array of constants must be supplied. The array must have at least one element, in which
- * case this same constant is applied to all image bands. Or, it may have a different constant entry for each cooresponding band. For all other border
- * types, this <code>constants</code> parameter may be <code>null</code>.
+ * When choosing the <code>BORDER_CONST_FILL</code> option, an array of constants must be supplied to the extender. The array must have at least one
+ * element, in which case this same constant is applied to all image bands. Or, it may have a different constant entry for each corresponding band.
+ * For all other border types, this <code>constants</code> parameter may be <code>null</code>.
  * 
  * <p>
  * The layout information for this image may be specified via the <code>layout</code> parameter. However, due to the nature of this operation, the
  * <code>minX</code>, <code>minY</code>, <code>width</code>, and <code>height</code>, if specified, will be ignored. They will be calculated based on
  * the source's dimensions and the padding values. Likewise, the <code>SampleModel</code> and </code>ColorModel</code> hints will be ignored.
  * 
- * @see javax.media.jai.OpImage
- * @see javax.media.jai.operator.BorderDescriptor
- * @see BorderRIF
+ * If No Data are present, an optional No Data Range and a double value for the output No Data can be provided for avoiding to fill the Borders with
+ * No Data.
  * 
  */
 final class BorderOpImage extends OpImage {
@@ -66,23 +54,32 @@ final class BorderOpImage extends OpImage {
      */
     protected BorderExtender extender;
 
+    /** No Data Range */
     private Range noData;
 
+    /** Boolean indicating if the No Data are present */
     private final boolean hasNoData;
 
+    /** Output No Data for Byte images */
     private byte destNoDataByte;
 
+    /** Output No Data for Short/UShort images */
     private short destNoDataShort;
 
+    /** Output No Data for Integer images */
     private int destNoDataInt;
 
+    /** Output No Data for Float images */
     private float destNoDataFloat;
 
+    /** Output No Data for Double images */
     private double destNoDataDouble;
 
+    /** LookupTable used for handling No Data in Byte images */
     private byte[] byteLookupTable;
 
-    private final boolean checkBorders; 
+    /** Boolean indicating if the Borders must be checked for No Data */
+    private final boolean checkBorders;
 
     /**
      * Constructor.
@@ -94,7 +91,8 @@ final class BorderOpImage extends OpImage {
      * @param topPad The amount of padding to the top of the source.
      * @param bottomPad The amount of padding to the bottom of the source.
      * @param type The border type.
-     * @param constants The constants used with border type <code>BorderDescriptor.BORDER_CONST_FILL</code>, stored as reference.
+     * @param noData optional NoData Range.
+     * @param destinationNoData value for replacing input No Data values
      */
     public BorderOpImage(RenderedImage source, Map config, ImageLayout layout, int leftPad,
             int rightPad, int topPad, int bottomPad, BorderExtender extender, Range noData,
@@ -107,15 +105,15 @@ final class BorderOpImage extends OpImage {
 
         // If No Data are present
         if (noData != null) {
-            // Else the whole array is used
             this.noData = noData;
-            // No Data are present, so associated flaw is set to true
+            // No Data are present, so associated flag is set to true
             this.hasNoData = true;
             // Destination No Data value is clamped to the image data type
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
+                // Destination NoData clamping
                 this.destNoDataByte = ImageUtil.clampRoundByte(destinationNoData);
-
+                // Creation of the Lookup Table for No Data
                 byteLookupTable = new byte[256];
 
                 int lookupTableLenght = byteLookupTable.length;
@@ -132,18 +130,23 @@ final class BorderOpImage extends OpImage {
                 }
                 break;
             case DataBuffer.TYPE_USHORT:
+                // Destination NoData clamping
                 this.destNoDataShort = ImageUtil.clampRoundUShort(destinationNoData);
                 break;
             case DataBuffer.TYPE_SHORT:
+                // Destination NoData clamping
                 this.destNoDataShort = ImageUtil.clampRoundShort(destinationNoData);
                 break;
             case DataBuffer.TYPE_INT:
+                // Destination NoData clamping
                 this.destNoDataInt = ImageUtil.clampRoundInt(destinationNoData);
                 break;
             case DataBuffer.TYPE_FLOAT:
+                // Destination NoData clamping
                 this.destNoDataFloat = ImageUtil.clampFloat(destinationNoData);
                 break;
             case DataBuffer.TYPE_DOUBLE:
+                // Destination NoData clamping
                 this.destNoDataDouble = destinationNoData;
                 break;
             default:
@@ -153,19 +156,19 @@ final class BorderOpImage extends OpImage {
             this.noData = null;
             this.hasNoData = false;
         }
-
+        // Border Extender used
         this.extender = extender;
-        
+
         boolean notZeroExtender = !(extender instanceof BorderExtenderZero);
-        
+        // Check if the No Data check on the borders must be done
         checkBorders = hasNoData && notZeroExtender;
-        
+
     }
 
     /**
-     * Sets up the image layout information for this Op. The minX, minY, width, and height are calculated based on the source's dimension and padding
-     * values. Any of these values specified in the layout parameter is ignored. All other variables are taken from the layout parameter or inherited
-     * from the source.
+     * Sets up the image layout information for this Operation. The minX, minY, width, and height are calculated based on the source's dimension and
+     * padding values. Any of these values specified in the layout parameter is ignored. All other variables are taken from the layout parameter or
+     * inherited from the source.
      */
     private static ImageLayout layoutHelper(ImageLayout layout, RenderedImage source, int leftPad,
             int rightPad, int topPad, int bottomPad) {
@@ -195,7 +198,7 @@ final class BorderOpImage extends OpImage {
     }
 
     /**
-     * Returns a conservative estimate of the destination region that can potentially be affected by the pixels of a rectangle of a given source.
+     * Returns an estimate of the destination region that can potentially be affected by the pixels of a rectangle of a given source.
      * 
      * @param sourceRect the Rectangle in source coordinates.
      * @param sourceIndex the index of the source image.
@@ -244,37 +247,30 @@ final class BorderOpImage extends OpImage {
     public Raster computeTile(int tileX, int tileY) {
         // Create a new Raster.
         WritableRaster dest = createTile(tileX, tileY);
-
-        // Extend the data.
-        // getSourceImage(0).copyExtendedData(dest, extender);
-        PlanarImage sourceImage = getSourceImage(0);
-
-        Raster sourceTile = getSourceImage(0).getTile(tileX, tileY);
-
-        Rectangle destRect = dest.getBounds();
-
-        Rectangle sourceRect = mapDestRect(destRect, 0);
-
-        SampleModel[] sampleModels = { sourceImage.getSampleModel() };
-
-        int tagID = RasterAccessor.findCompatibleTag(sampleModels, dest.getSampleModel());
-
-        RasterFormatTag srcTag = new RasterFormatTag(sampleModels[0], tagID);
-        RasterFormatTag dstTag = new RasterFormatTag(dest.getSampleModel(), tagID);
-
-        RasterAccessor src = new RasterAccessor(sourceTile, sourceRect, srcTag,
-                sourceImage.getColorModel());
-        RasterAccessor dst = new RasterAccessor(dest, sourceRect, dstTag, null);
-
+        // Destination Raster data type
         int dataType = dest.getSampleModel().getDataType();
 
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            byteLoop(src, dst);
+        // Source Image
+        PlanarImage sourceImage = getSourceImage(0);
 
-            if (dst.isDataCopy()) {
-                dst.clampDataArrays();
-                dst.copyDataToRaster();
+        // Source image bounds
+        Rectangle imageBounds = sourceImage.getBounds();
+
+        // Destination raster bounds
+        Rectangle destRect = dest.getBounds();
+
+        // If image bounds contains all the destination bounds
+        if (imageBounds.contains(destRect)) {
+            copyRasterData(dest, sourceImage);
+        } else {
+            // Get the intersection of the Raster and image bounds.
+            Rectangle isect = imageBounds.intersection(destRect);
+
+            if (!isect.isEmpty()) {
+                // Copy image data into the dest Raster.
+                WritableRaster isectRaster = dest.createWritableChild(isect.x, isect.y,
+                        isect.width, isect.height, isect.x, isect.y, null);
+                copyRasterData(isectRaster, sourceImage);
             }
 
             // Extend the Raster.
@@ -282,70 +278,109 @@ final class BorderOpImage extends OpImage {
 
             // Check if the borders contains noData
             if (checkBorders) {
-                fillNoDataByte(dest);
+                switch (dataType) {
+                case DataBuffer.TYPE_BYTE:
+                    fillNoDataByte(dest);
+                    break;
+                case DataBuffer.TYPE_USHORT:
+                    fillNoDataUshort(dest);
+                    break;
+                case DataBuffer.TYPE_SHORT:
+                    fillNoDataShort(dest);
+                    break;
+                case DataBuffer.TYPE_INT:
+                    fillNoDataInt(dest);
+                    break;
+                case DataBuffer.TYPE_FLOAT:
+                    fillNoDataFloat(dest);
+                    break;
+                case DataBuffer.TYPE_DOUBLE:
+                    fillNoDataDouble(dest);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Wrong data type");
+                }
             }
-            break;
-        case DataBuffer.TYPE_USHORT:
-            ushortLoop(src, dst);
-            
-         // Extend the Raster.
-            extender.extend(dest, sourceImage);
-
-            // Check if the borders contains noData
-            if (checkBorders) {
-                fillNoDataUshort(dest);
-            }
-            break;
-        case DataBuffer.TYPE_SHORT:
-            shortLoop(src, dst);
-         // Extend the Raster.
-            extender.extend(dest, sourceImage);
-
-            // Check if the borders contains noData
-            if (checkBorders) {
-                fillNoDataShort(dest);
-            }
-            break;
-        case DataBuffer.TYPE_INT:
-            intLoop(src, dst);
-         // Extend the Raster.
-            extender.extend(dest, sourceImage);
-
-            // Check if the borders contains noData
-            if (checkBorders) {
-                fillNoDataInt(dest);
-            }
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            floatLoop(src, dst);
-         // Extend the Raster.
-            extender.extend(dest, sourceImage);
-
-            // Check if the borders contains noData
-            if (checkBorders) {
-                fillNoDataFloat(dest);
-            }
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            doubleLoop(src, dst);
-         // Extend the Raster.
-            extender.extend(dest, sourceImage);
-
-            // Check if the borders contains noData
-            if (checkBorders) {
-                fillNoDataDouble(dest);
-            }
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data type");
-
         }
+        return dest;
+    }
 
+    /**
+     * Method used copying the source image data inside the destination Raster
+     * 
+     * @param dest
+     * @param sourceImage
+     * @return
+     */
+    private WritableRaster copyRasterData(WritableRaster dest, PlanarImage sourceImage) {
+        // Source and destination bounds
+        Rectangle destRect = dest.getBounds();
+
+        Rectangle imageBounds = sourceImage.getBounds();
+
+        Rectangle region = destRect.intersection(imageBounds);
+
+        if (region.isEmpty()) { // Raster is outside of image's boundary
+            return dest;
+        }
+        // Data Type
+        int dataType = dest.getSampleModel().getDataType();
+        // Cycle on all the source tiles that intersect with the destination raster
+        int startTileX = sourceImage.XToTileX(region.x);
+        int startTileY = sourceImage.YToTileY(region.y);
+        int endTileX = sourceImage.XToTileX(region.x + region.width - 1);
+        int endTileY = sourceImage.YToTileY(region.y + region.height - 1);
+
+        SampleModel[] sampleModels = { sourceImage.getSampleModel() };
+        int tagID = RasterAccessor.findCompatibleTag(sampleModels, dest.getSampleModel());
+
+        RasterFormatTag srcTag = new RasterFormatTag(sampleModels[0], tagID);
+        RasterFormatTag dstTag = new RasterFormatTag(dest.getSampleModel(), tagID);
+
+        for (int ty = startTileY; ty <= endTileY; ty++) {
+            for (int tx = startTileX; tx <= endTileX; tx++) {
+                Raster tile = sourceImage.getTile(tx, ty);
+
+                Rectangle subRegion = region.intersection(tile.getBounds());
+                // RasterAccessor associated with the input and output tiles
+                RasterAccessor src = new RasterAccessor(tile, subRegion, srcTag,
+                        sourceImage.getColorModel());
+                RasterAccessor dst = new RasterAccessor(dest, subRegion, dstTag, null);
+                // Elaboration of the RasterAccessors
+                switch (dataType) {
+                case DataBuffer.TYPE_BYTE:
+                    byteLoop(src, dst);
+                    break;
+                case DataBuffer.TYPE_USHORT:
+                    ushortLoop(src, dst);
+                    break;
+                case DataBuffer.TYPE_SHORT:
+                    shortLoop(src, dst);
+                    break;
+                case DataBuffer.TYPE_INT:
+                    intLoop(src, dst);
+                    break;
+                case DataBuffer.TYPE_FLOAT:
+                    floatLoop(src, dst);
+                    break;
+                case DataBuffer.TYPE_DOUBLE:
+                    doubleLoop(src, dst);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Wrong data type");
+                }
+
+                if (dst.isDataCopy()) {
+                    dst.clampDataArrays();
+                    dst.copyDataToRaster();
+                }
+            }
+        }
         return dest;
     }
 
     private void byteLoop(RasterAccessor src, RasterAccessor dst) {
-
+        // RasterAccessor definitions
         int srcPixelStride = src.getPixelStride();
         int srcLineStride = src.getScanlineStride();
         int[] srcBandOffsets = src.getBandOffsets();
@@ -362,6 +397,7 @@ final class BorderOpImage extends OpImage {
         byte[][] bDstData = dst.getByteDataArrays();
 
         if (hasNoData) {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 byte[] s = bSrcData[b];
                 byte[] d = bDstData[b];
@@ -377,7 +413,7 @@ final class BorderOpImage extends OpImage {
                     for (int x = 0; x < width; x++) {
 
                         int value = s[srcPixelOffset] & 0xFF;
-
+                        // No Data check
                         d[dstPixelOffset] = byteLookupTable[value];
 
                         dstPixelOffset += dstPixelStride;
@@ -389,6 +425,7 @@ final class BorderOpImage extends OpImage {
                 }
             }
         } else {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 byte[] s = bSrcData[b];
                 byte[] d = bDstData[b];
@@ -417,7 +454,7 @@ final class BorderOpImage extends OpImage {
     }
 
     private void ushortLoop(RasterAccessor src, RasterAccessor dst) {
-
+        // RasterAccessor definitions
         int srcPixelStride = src.getPixelStride();
         int srcLineStride = src.getScanlineStride();
         int[] srcBandOffsets = src.getBandOffsets();
@@ -434,6 +471,7 @@ final class BorderOpImage extends OpImage {
         short[][] bDstData = dst.getShortDataArrays();
 
         if (hasNoData) {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 short[] s = bSrcData[b];
                 short[] d = bDstData[b];
@@ -449,9 +487,9 @@ final class BorderOpImage extends OpImage {
                     for (int x = 0; x < width; x++) {
 
                         int value = s[srcPixelOffset] & 0xFFFF;
-                        
-                        short valueShort = (short) value;
 
+                        short valueShort = (short) value;
+                        // No Data check
                         if (noData.contains(valueShort)) {
                             d[dstPixelOffset] = destNoDataShort;
                         } else {
@@ -467,6 +505,7 @@ final class BorderOpImage extends OpImage {
                 }
             }
         } else {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 short[] s = bSrcData[b];
                 short[] d = bDstData[b];
@@ -495,7 +534,7 @@ final class BorderOpImage extends OpImage {
     }
 
     private void shortLoop(RasterAccessor src, RasterAccessor dst) {
-
+        // RasterAccessor definitions
         int srcPixelStride = src.getPixelStride();
         int srcLineStride = src.getScanlineStride();
         int[] srcBandOffsets = src.getBandOffsets();
@@ -512,6 +551,7 @@ final class BorderOpImage extends OpImage {
         short[][] bDstData = dst.getShortDataArrays();
 
         if (hasNoData) {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 short[] s = bSrcData[b];
                 short[] d = bDstData[b];
@@ -527,7 +567,7 @@ final class BorderOpImage extends OpImage {
                     for (int x = 0; x < width; x++) {
 
                         short value = s[srcPixelOffset];
-
+                        // No Data check
                         if (noData.contains(value)) {
                             d[dstPixelOffset] = destNoDataShort;
                         } else {
@@ -543,6 +583,7 @@ final class BorderOpImage extends OpImage {
                 }
             }
         } else {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 short[] s = bSrcData[b];
                 short[] d = bDstData[b];
@@ -571,7 +612,7 @@ final class BorderOpImage extends OpImage {
     }
 
     private void intLoop(RasterAccessor src, RasterAccessor dst) {
-
+        // RasterAccessor definitions
         int srcPixelStride = src.getPixelStride();
         int srcLineStride = src.getScanlineStride();
         int[] srcBandOffsets = src.getBandOffsets();
@@ -588,6 +629,7 @@ final class BorderOpImage extends OpImage {
         int[][] bDstData = dst.getIntDataArrays();
 
         if (hasNoData) {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 int[] s = bSrcData[b];
                 int[] d = bDstData[b];
@@ -603,7 +645,7 @@ final class BorderOpImage extends OpImage {
                     for (int x = 0; x < width; x++) {
 
                         int value = s[srcPixelOffset];
-
+                        // No Data check
                         if (noData.contains(value)) {
                             d[dstPixelOffset] = destNoDataInt;
                         } else {
@@ -619,6 +661,7 @@ final class BorderOpImage extends OpImage {
                 }
             }
         } else {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 int[] s = bSrcData[b];
                 int[] d = bDstData[b];
@@ -647,7 +690,7 @@ final class BorderOpImage extends OpImage {
     }
 
     private void floatLoop(RasterAccessor src, RasterAccessor dst) {
-
+        // RasterAccessor definitions
         int srcPixelStride = src.getPixelStride();
         int srcLineStride = src.getScanlineStride();
         int[] srcBandOffsets = src.getBandOffsets();
@@ -664,6 +707,7 @@ final class BorderOpImage extends OpImage {
         float[][] bDstData = dst.getFloatDataArrays();
 
         if (hasNoData) {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 float[] s = bSrcData[b];
                 float[] d = bDstData[b];
@@ -679,7 +723,7 @@ final class BorderOpImage extends OpImage {
                     for (int x = 0; x < width; x++) {
 
                         float value = s[srcPixelOffset];
-
+                        // No Data check
                         if (noData.contains(value)) {
                             d[dstPixelOffset] = destNoDataFloat;
                         } else {
@@ -695,6 +739,7 @@ final class BorderOpImage extends OpImage {
                 }
             }
         } else {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 float[] s = bSrcData[b];
                 float[] d = bDstData[b];
@@ -723,7 +768,7 @@ final class BorderOpImage extends OpImage {
     }
 
     private void doubleLoop(RasterAccessor src, RasterAccessor dst) {
-
+        // RasterAccessor definitions
         int srcPixelStride = src.getPixelStride();
         int srcLineStride = src.getScanlineStride();
         int[] srcBandOffsets = src.getBandOffsets();
@@ -740,6 +785,7 @@ final class BorderOpImage extends OpImage {
         double[][] bDstData = dst.getDoubleDataArrays();
 
         if (hasNoData) {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 double[] s = bSrcData[b];
                 double[] d = bDstData[b];
@@ -755,7 +801,7 @@ final class BorderOpImage extends OpImage {
                     for (int x = 0; x < width; x++) {
 
                         double value = s[srcPixelOffset];
-
+                        // No Data check
                         if (noData.contains(value)) {
                             d[dstPixelOffset] = destNoDataDouble;
                         } else {
@@ -771,6 +817,7 @@ final class BorderOpImage extends OpImage {
                 }
             }
         } else {
+            // Cycle on the image bands
             for (int b = 0; b < bands; b++) {
                 double[] s = bSrcData[b];
                 double[] d = bDstData[b];
@@ -798,14 +845,19 @@ final class BorderOpImage extends OpImage {
         }
     }
 
+    /**
+     * Inner method used for checking if the Borders contains No Data and substituting them. (Byte images).
+     * 
+     * @param dest
+     */
     private void fillNoDataByte(WritableRaster dest) {
 
         Rectangle srcBounds = getSourceImage(0).getBounds();
 
         Rectangle destBounds = dest.getBounds();
-
+        // The operation is performed only on the image borders
         if (!srcBounds.contains(destBounds) && !(destBounds.intersection(srcBounds).isEmpty())) {
-            
+
             int minX = dest.getMinX();
             int minY = dest.getMinY();
 
@@ -813,14 +865,14 @@ final class BorderOpImage extends OpImage {
             int maxY = minY + dest.getHeight();
 
             int numBands = dest.getNumBands();
-            
+
             for (int i = minX; i < maxX; i++) {
                 for (int j = minY; j < maxY; j++) {
 
                     for (int b = 0; b < numBands; b++) {
 
                         int sample = dest.getSample(i, j, b) & 0xFF;
-
+                        // No Data check
                         dest.setSample(i, j, b, byteLookupTable[sample]);
                     }
                 }
@@ -828,12 +880,17 @@ final class BorderOpImage extends OpImage {
         }
     }
 
+    /**
+     * Inner method used for checking if the Borders contains No Data and substituting them. (UShort images).
+     * 
+     * @param dest
+     */
     private void fillNoDataUshort(WritableRaster dest) {
 
         Rectangle srcBounds = getSourceImage(0).getBounds();
 
         Rectangle destBounds = dest.getBounds();
-
+        // The operation is performed only on the image borders
         if (!srcBounds.contains(destBounds) && !(destBounds.intersection(srcBounds).isEmpty())) {
 
             int minX = dest.getMinX();
@@ -843,19 +900,19 @@ final class BorderOpImage extends OpImage {
             int maxY = minY + dest.getHeight();
 
             int numBands = dest.getNumBands();
-            
+
             for (int i = minX; i < maxX; i++) {
                 for (int j = minY; j < maxY; j++) {
 
                     for (int b = 0; b < numBands; b++) {
 
                         int sample = dest.getSample(i, j, b) & 0xFFFF;
-                        
+
                         short sampleShort = (short) sample;
-                        
-                        if(noData.contains(sampleShort)){ 
+                        // No Data check
+                        if (noData.contains(sampleShort)) {
                             dest.setSample(i, j, b, destNoDataShort);
-                        }else{
+                        } else {
                             dest.setSample(i, j, b, sampleShort);
                         }
                     }
@@ -864,12 +921,17 @@ final class BorderOpImage extends OpImage {
         }
     }
 
+    /**
+     * Inner method used for checking if the Borders contains No Data and substituting them. (Short images).
+     * 
+     * @param dest
+     */
     private void fillNoDataShort(WritableRaster dest) {
 
         Rectangle srcBounds = getSourceImage(0).getBounds();
 
         Rectangle destBounds = dest.getBounds();
-
+        // The operation is performed only on the image borders
         if (!srcBounds.contains(destBounds) && !(destBounds.intersection(srcBounds).isEmpty())) {
 
             int minX = dest.getMinX();
@@ -879,17 +941,17 @@ final class BorderOpImage extends OpImage {
             int maxY = minY + dest.getHeight();
 
             int numBands = dest.getNumBands();
-            
+
             for (int i = minX; i < maxX; i++) {
                 for (int j = minY; j < maxY; j++) {
 
                     for (int b = 0; b < numBands; b++) {
 
                         short sample = (short) dest.getSample(i, j, b);
-                        
-                        if(noData.contains(sample)){ 
+                        // No Data check
+                        if (noData.contains(sample)) {
                             dest.setSample(i, j, b, destNoDataShort);
-                        }else{
+                        } else {
                             dest.setSample(i, j, b, sample);
                         }
                     }
@@ -898,14 +960,19 @@ final class BorderOpImage extends OpImage {
         }
     }
 
+    /**
+     * Inner method used for checking if the Borders contains No Data and substituting them. (Integer images).
+     * 
+     * @param dest
+     */
     private void fillNoDataInt(WritableRaster dest) {
 
         Rectangle srcBounds = getSourceImage(0).getBounds();
 
         Rectangle destBounds = dest.getBounds();
-
+        // The operation is performed only on the image borders
         if (!srcBounds.contains(destBounds) && !(destBounds.intersection(srcBounds).isEmpty())) {
-            
+
             int minX = dest.getMinX();
             int minY = dest.getMinY();
 
@@ -913,17 +980,17 @@ final class BorderOpImage extends OpImage {
             int maxY = minY + dest.getHeight();
 
             int numBands = dest.getNumBands();
-            
+
             for (int i = minX; i < maxX; i++) {
                 for (int j = minY; j < maxY; j++) {
 
                     for (int b = 0; b < numBands; b++) {
 
                         int sample = dest.getSample(i, j, b);
-                        
-                        if(noData.contains(sample)){ 
+                        // No Data check
+                        if (noData.contains(sample)) {
                             dest.setSample(i, j, b, destNoDataInt);
-                        }else{
+                        } else {
                             dest.setSample(i, j, b, sample);
                         }
                     }
@@ -932,12 +999,17 @@ final class BorderOpImage extends OpImage {
         }
     }
 
+    /**
+     * Inner method used for checking if the Borders contains No Data and substituting them. (Float images).
+     * 
+     * @param dest
+     */
     private void fillNoDataFloat(WritableRaster dest) {
-        
+
         Rectangle srcBounds = getSourceImage(0).getBounds();
 
         Rectangle destBounds = dest.getBounds();
-
+        // The operation is performed only on the image borders
         if (!srcBounds.contains(destBounds) && !(destBounds.intersection(srcBounds).isEmpty())) {
 
             int minX = dest.getMinX();
@@ -946,18 +1018,18 @@ final class BorderOpImage extends OpImage {
             int maxX = minX + dest.getWidth();
             int maxY = minY + dest.getHeight();
 
-            int numBands = dest.getNumBands();            
-            
+            int numBands = dest.getNumBands();
+
             for (int i = minX; i < maxX; i++) {
                 for (int j = minY; j < maxY; j++) {
 
                     for (int b = 0; b < numBands; b++) {
 
                         float sample = dest.getSampleFloat(i, j, b);
-                        
-                        if(noData.contains(sample)){ 
+                        // No Data check
+                        if (noData.contains(sample)) {
                             dest.setSample(i, j, b, destNoDataFloat);
-                        }else{
+                        } else {
                             dest.setSample(i, j, b, sample);
                         }
                     }
@@ -966,14 +1038,17 @@ final class BorderOpImage extends OpImage {
         }
     }
 
+    /**
+     * Inner method used for checking if the Borders contains No Data and substituting them. (Double images).
+     * 
+     * @param dest
+     */
     private void fillNoDataDouble(WritableRaster dest) {
-
-
 
         Rectangle srcBounds = getSourceImage(0).getBounds();
 
         Rectangle destBounds = dest.getBounds();
-
+        // The operation is performed only on the image borders
         if (!srcBounds.contains(destBounds) && !(destBounds.intersection(srcBounds).isEmpty())) {
 
             int minX = dest.getMinX();
@@ -982,18 +1057,18 @@ final class BorderOpImage extends OpImage {
             int maxX = minX + dest.getWidth();
             int maxY = minY + dest.getHeight();
 
-            int numBands = dest.getNumBands();            
-            
+            int numBands = dest.getNumBands();
+
             for (int i = minX; i < maxX; i++) {
                 for (int j = minY; j < maxY; j++) {
 
                     for (int b = 0; b < numBands; b++) {
 
                         double sample = dest.getSampleDouble(i, j, b);
-                        
-                        if(noData.contains(sample)){ 
+                        // No Data check
+                        if (noData.contains(sample)) {
                             dest.setSample(i, j, b, destNoDataDouble);
-                        }else{
+                        } else {
                             dest.setSample(i, j, b, sample);
                         }
                     }
