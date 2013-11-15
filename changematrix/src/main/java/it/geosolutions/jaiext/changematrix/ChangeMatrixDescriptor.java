@@ -19,7 +19,6 @@ package it.geosolutions.jaiext.changematrix;
 
 import java.awt.image.renderable.ParameterBlock;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -149,8 +148,8 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
                 classesMappings.put(clazz, k++);
             }
 
-        }       
-        
+        }
+
         /**
          * Register the change, if the two classes are within those we were asked to compute changes for.
          * 
@@ -206,49 +205,54 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
         }
     }
 
-    /**
-	 * 
-	 */
-    private static final int DEFAULT_PIXEL_MULTIPLIER = 1; 
-    
+    /** Default value for the pixel Multiplier (Should be substituted by a value related to the input image classes ) */
+    private static final int DEFAULT_PIXEL_MULTIPLIER = 1;
+
+    /** Serial Version UID associated to the class */
     private static final long serialVersionUID = -6996896157854316840L;
 
+    /** Index associated to the ROI input parameter */
     public static final int ROI_ARG_INDEX = 0;
 
+    /** Index associated to the ChangeMatrix input parameter */
     public static final int RESULT_ARG_INDEX = 1;
-    
+
+    /** Index associated to the PixelMultiplier input parameter */
     public static final int PIXEL_MULTY_ARG_INDEX = 2;
 
+    /** Names of all the input parameters */
     public static final String[] PARAM_NAMES = { "roi", "result", "pixelMultiplier" };
 
-    private static final Class<?>[] PARAM_CLASSES = { javax.media.jai.ROI.class, ChangeMatrix.class,  java.lang.Integer.class};
+    /** Classes of all the input parameters */
+    private static final Class<?>[] PARAM_CLASSES = { javax.media.jai.ROI.class,
+            ChangeMatrix.class, java.lang.Integer.class };
 
-    private static final Object[] PARAM_DEFAULTS = { (ROI) null, NO_PARAMETER_DEFAULT, DEFAULT_PIXEL_MULTIPLIER };
+    /** Default valuescfor all the input parameters */
+    private static final Object[] PARAM_DEFAULTS = { (ROI) null, NO_PARAMETER_DEFAULT,
+            DEFAULT_PIXEL_MULTIPLIER };
 
     /** Constructor. */
     public ChangeMatrixDescriptor() {
-        super(
-                new String[][] {
-                        { "GlobalName", "ChangeMatrix" },
-                        { "LocalName", "ChangeMatrix" },
-                        { "Vendor", "org.jaitools.media.jai" },
-                        { "Description", "Calculate change matrix between two images" },
-                        { "DocURL", "http://www.geotools.org" },
-                        { "Version", "1.0.0" },
-                        {
-                                "arg0Desc",
-                                "roi (default null) - an optional ROI object for source and/or"
-                                        + "destination masking" },
-                        {
-                                "arg1Desc",
-                                "result (ChangeMatrix) -"
-                                        + "a sparse matrix as a Map holding the count of change pixels" },
-                        {       "arg2Desc",
-                                "integer value used for processing the image pixels"}
-                                        
-                },
+        super(new String[][] {
+                { "GlobalName", "ChangeMatrix" },
+                { "LocalName", "ChangeMatrix" },
+                { "Vendor", "org.jaitools.media.jai" },
+                { "Description", "Calculate change matrix between two images" },
+                { "DocURL", "http://www.geotools.org" },
+                { "Version", "1.0.0" },
+                {
+                        "arg0Desc",
+                        "roi (default null) - an optional ROI object for source and/or"
+                                + "destination masking" },
+                {
+                        "arg1Desc",
+                        "result (ChangeMatrix) -"
+                                + "a sparse matrix as a Map holding the count of change pixels" },
+                { "arg2Desc", "integer value used for processing the image pixels" }
 
-                new String[] { RenderedRegistryMode.MODE_NAME }, // supported modes
+        },
+
+        new String[] { RenderedRegistryMode.MODE_NAME }, // supported modes
 
                 1, // number of sources
 

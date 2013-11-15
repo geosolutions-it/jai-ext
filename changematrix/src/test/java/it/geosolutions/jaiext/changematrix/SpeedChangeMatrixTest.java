@@ -30,15 +30,14 @@ import com.carrotsearch.junitbenchmarks.AbstractBenchmark;
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 
 /**
- * This test-class is used for testing images in the directory src/test/resources/it/geosolutions/jaiext/changematrix/test-data-expanded. If the data
- * are not present, the test are not performed and a WARNING is shown, or the user can change the source image directory to test-data. After the
- * addition of the images, the user can change some parameters: DEFAULT_THREAD_NUMBER,which indicates the number of thread retrieving the result
- * image-tiles; DEFAULT_TILE_HEIGHT, the height of every tile of the 2 initial images; DEFAULT_TILE_WIDTH, the width of every tile of the 2 initial
- * images; NUM_CYCLES_BENCH, the number of the benchmark cycles for every test; NUM_CYCLES_WARM, the number of the initial cycles for every test that
- * are not considered inside the statistics. The initial method startUp is used for reading the 2 images, expanding the tileCache, fill the tile cache
- * with the tile of both images and calculation of the Histogram of the images for the changeMatrix. The first test calculates the changematrix from
- * the source and reference images and only the result image tiles are removed from the cache. The second test simply adds the tiles of the 2 images
- * to the cache and then remove them from it, continuously.
+ * This test-class is used for testing images in the directory defined by the variable "REFERENCE_PATH_FOR_TESTS" . If the data are not present, a
+ * WARNING is shown and the source image directory is set to src/test/resources/it/geosolutions/jaiext/changematrix/test-data. After the addition of
+ * the images, the user can change some parameters: DEFAULT_THREAD_NUMBER,which indicates the number of thread retrieving the result image-tiles;
+ * DEFAULT_TILE_HEIGHT, the height of every tile of the 2 initial images; DEFAULT_TILE_WIDTH, the width of every tile of the 2 initial images;
+ * NUM_CYCLES_BENCH, the number of the benchmark cycles for every test; NUM_CYCLES_WARM, the number of the initial cycles for every test that are not
+ * considered inside the statistics. The initial method startUp is used for reading the 2 images, expanding the tileCache, fill the tile cache with
+ * the tile of both images and calculation of the Histogram of the images for the changeMatrix. The test calculates the changematrix from the source
+ * and reference images and only the result image tiles are removed from the cache.
  */
 public class SpeedChangeMatrixTest extends AbstractBenchmark {
 
@@ -69,10 +68,11 @@ public class SpeedChangeMatrixTest extends AbstractBenchmark {
 
         File file0 = new File(REFERENCE_PATH_FOR_TESTS, "clc2000_L3_100m.tif");
         File file6 = new File(REFERENCE_PATH_FOR_TESTS, "clc2006_L3_100m.tif");
-        
+
         if (!file0.exists() || !file0.canRead() || !file6.exists() || !file6.canRead()) {
-            System.err.println("WARNING : Input files in ReferencedPath not present, test images are taken from TEST-DATA directory");
-                        
+            System.err
+                    .println("WARNING : Input files in ReferencedPath not present, test images are taken from TEST-DATA directory");
+
             try {
                 file0 = TestData.file(SpeedChangeMatrixTest.class, "clc2000_L3_100m_small.tif");
                 file6 = TestData.file(SpeedChangeMatrixTest.class, "clc2006_L3_100m_small.tif");
@@ -81,13 +81,12 @@ public class SpeedChangeMatrixTest extends AbstractBenchmark {
             } catch (IOException f) {
                 throw new IllegalArgumentException("Input files are not present!");
             }
-            
+
             if (!file0.exists() || !file0.canRead() || !file6.exists() || !file6.canRead()) {
                 throw new IllegalArgumentException("Input files are not present!");
             }
-            
-        }
 
+        }
 
         int tileH = DEFAULT_TILE_HEIGHT;
         int tileW = DEFAULT_TILE_WIDTH;

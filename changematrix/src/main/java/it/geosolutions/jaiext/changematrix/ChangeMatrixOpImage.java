@@ -20,6 +20,7 @@ package it.geosolutions.jaiext.changematrix;
 import it.geosolutions.jaiext.changematrix.ChangeMatrixDescriptor.ChangeMatrix;
 
 import java.awt.Rectangle;
+import java.awt.color.ColorSpace;
 import java.awt.image.ColorModel;
 import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
@@ -48,11 +49,16 @@ import com.sun.media.jai.util.ImageUtil;
  */
 @SuppressWarnings("unchecked")
 public class ChangeMatrixOpImage extends PointOpImage {
+    /** Maximum value for Unsigned Short images */
+    private static final int USHORT_MAX_VALUE = Short.MAX_VALUE - Short.MIN_VALUE;
 
+    /** Optional ROI used for reducing the computation area */
     private final ROI roi;
 
+    /** Object which stores the calculation results */
     private final ChangeMatrix result;
 
+    /** Integer value used for processing input pixels */
     private final int pixelMultiplier;
 
     /**
@@ -80,20 +86,23 @@ public class ChangeMatrixOpImage extends PointOpImage {
         // Setting of the ChangeMatrix
         this.result = result;
         // Destination Image DataType
-        int dataType = getSampleModel().getDataType();  
-        // Control on the pixelMultiplier
-        if(pixelMultiplier < 0){
-            throw new IllegalArgumentException("PixelMultiplier must be bigger than 0");
-        }
+        int dataType = getSampleModel().getDataType();
         // Control on the final value
         double maximumAllowedValue = pixelMultiplier * (1 + pixelMultiplier);
-        // Final data type
-        int finalDataType = 0;
-
+        // Final data type initialization
+        int finalDataType = DataBuffer.TYPE_BYTE;
+        // Check if the final image data type should be changed
         if (maximumAllowedValue > Byte.MAX_VALUE) {
-            finalDataType = 2;
-            if (maximumAllowedValue > Short.MAX_VALUE) {
-                finalDataType = 3;
+            if (dataType == DataBuffer.TYPE_USHORT) {
+                finalDataType = DataBuffer.TYPE_USHORT;
+                if (maximumAllowedValue > USHORT_MAX_VALUE) {
+                    finalDataType = DataBuffer.TYPE_INT;
+                }
+            } else {
+                finalDataType = DataBuffer.TYPE_SHORT;
+                if (maximumAllowedValue > Short.MAX_VALUE) {
+                    finalDataType = DataBuffer.TYPE_INT;
+                }
             }
         }
 
@@ -104,10 +113,10 @@ public class ChangeMatrixOpImage extends PointOpImage {
             int tw = getTileWidth();
             int th = getTileHeight();
             int bands = sampleModel.getNumBands();
-
+            // Creation of a new SampleModel
             sampleModel = RasterFactory.createPixelInterleavedSampleModel(finalDataType, tw, th,
                     bands);
-
+            // Creation of a new ColorModel if not compatible
             if (colorModel != null && !colorModel.isCompatibleSampleModel(sampleModel)) {
                 ColorModel newColorModel = ImageUtil.getCompatibleColorModel(sampleModel, config);
                 if (newColorModel == null) {
@@ -117,9 +126,20 @@ public class ChangeMatrixOpImage extends PointOpImage {
                 } else {
                     colorModel = newColorModel;
                 }
+                // Creation of a new ColorModel if not present
+            } else if (colorModel == null) {
+                ColorModel newColorModel = ImageUtil.getCompatibleColorModel(sampleModel, config);
+                if (newColorModel == null) {
+                    colorModel = new ComponentColorModel(
+                            ColorSpace.getInstance(ColorSpace.CS_GRAY), false, false,
+                            ColorModel.OPAQUE, finalDataType);
+                } else {
+                    colorModel = newColorModel;
+                }
             }
         }
 
+        // Setting of the pixelMultiplier
         this.pixelMultiplier = pixelMultiplier;
         // Setting of the roi
         this.roi = roi;
@@ -157,7 +177,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
         final RasterAccessor s2 = new RasterAccessor(sources[1], destRect, formatTags[1],
                 getSourceImage(1).getColorModel());
         final RasterAccessor d = new RasterAccessor(dest, destRect, formatTags[2], getColorModel());
-
+        // Source and Destination RasterAccessor parameters
         final int src1LineStride = s1.getScanlineStride();
         final int src1PixelStride = s1.getPixelStride();
         final int[] src1BandOffsets = s1.getBandOffsets();
@@ -172,18 +192,17 @@ public class ChangeMatrixOpImage extends PointOpImage {
         final int dstLineStride = d.getScanlineStride();
         final int dstPixelStride = d.getPixelStride();
         final int[] dstBandOffsets = d.getBandOffsets();
-
+        // Selection of the source and destination Data Types
         int sourceDataType = s1.getDataType();
-        int destinationDataType = getSampleModel().getDataType();
+        int destinationDataType = d.getDataType();
 
         switch (sourceDataType) {
 
         case DataBuffer.TYPE_BYTE:
-
+            // If the destination data type is not Byte then must be Short or Integer
             if (sourceDataType != destinationDataType) {
 
                 switch (destinationDataType) {
-                case DataBuffer.TYPE_USHORT:
                 case DataBuffer.TYPE_SHORT:
                     byteToShortLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
                             sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
@@ -207,10 +226,24 @@ public class ChangeMatrixOpImage extends PointOpImage {
                         d.getByteDataArrays());
             }
             break;
-
         case DataBuffer.TYPE_USHORT:
+            // If the destination data type is not Ushort then must be Integer
+            if (sourceDataType != destinationDataType) {
+                ushortToIntLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
+                        sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
+                        s1.getShortDataArrays(), src2LineStride, src2PixelStride, src2BandOffsets,
+                        s2.getShortDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
+                        d.getIntDataArrays());
+            } else {
+                ushortLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
+                        sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
+                        s1.getShortDataArrays(), src2LineStride, src2PixelStride, src2BandOffsets,
+                        s2.getShortDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
+                        d.getShortDataArrays());
+            }
+            break;
         case DataBuffer.TYPE_SHORT:
-
+            // If the destination data type is not Short then must be Integer
             if (sourceDataType != destinationDataType) {
                 shortToIntLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
                         sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
@@ -225,8 +258,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                         d.getShortDataArrays());
             }
             break;
-
         case DataBuffer.TYPE_INT:
+            // If the destination data type is Integer then it cannot change
             intLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(), sources[0].getMinY(),
                     src1LineStride, src1PixelStride, src1BandOffsets, s1.getIntDataArrays(),
                     src2LineStride, src2PixelStride, src2BandOffsets, s2.getIntDataArrays(),
@@ -236,6 +269,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
         d.copyDataToRaster();
     }
 
+    // Private method for calculating the ChangeMatrix operation on Integer images
     private void intLoop(final int dstNumBands, final int dstWidth, final int dstHeight,
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final int[][] src1Data,
@@ -262,19 +296,19 @@ public class ChangeMatrixOpImage extends PointOpImage {
                 for (int w = 0; w < dstWidth; w++) {
                     final int before = (s1[src1PixelOffset]);
                     final int after = (s2[src1PixelOffset]);
-
-                    if(before > pixelMultiplier || after > pixelMultiplier){
-                        throw new IllegalArgumentException("PixelMultiplier should be bigger than the maximum class");
+                    // Control on the input classes
+                    if (before > pixelMultiplier || after > pixelMultiplier) {
+                        throw new IllegalArgumentException(
+                                "PixelMultiplier should be bigger than the maximum class");
                     }
-                    
-                    d[dstPixelOffset] = before + pixelMultiplier * after;
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
 
                     if (roi == null || roi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
-
+                        // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
+                        d[dstPixelOffset] = before + pixelMultiplier * after;
                     } else {
                         // we of course use 0 as NoData
                         d[dstPixelOffset] = 0;
@@ -288,6 +322,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
         }
     }
 
+    // Private method for calculating the ChangeMatrix operation on Byte images
     private void byteLoop(final int dstNumBands, final int dstWidth, final int dstHeight,
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final byte[][] src1Data,
@@ -314,22 +349,25 @@ public class ChangeMatrixOpImage extends PointOpImage {
                 for (int w = 0; w < dstWidth; w++) {
                     final byte before = (byte) (s1[src1PixelOffset]);
                     final byte after = (byte) (s2[src1PixelOffset]);
-
-                    int processing = before + pixelMultiplier * after;
-                    
-                    if(before > pixelMultiplier || after > pixelMultiplier){
-                        throw new IllegalArgumentException("PixelMultiplier should be bigger than the maximum class");
-                    }else if(processing > Byte.MAX_VALUE){
-                        throw new RuntimeException("The processing result is bigger than the maximum allowed value");
+                    // Control on the input classes
+                    if (before > pixelMultiplier || after > pixelMultiplier) {
+                        throw new IllegalArgumentException(
+                                "PixelMultiplier should be bigger than the maximum class");
                     }
-                    
-                    d[dstPixelOffset] = (byte) processing;
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (roi == null || roi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
+                        int processing = before + pixelMultiplier * after;
+                        // Check if the processing is an allowed value
+                        if (processing > Byte.MAX_VALUE || processing < Byte.MIN_VALUE) {
+                            throw new RuntimeException(
+                                    "The processing result is not an allowed value for the final data type");
+                        }
 
+                        d[dstPixelOffset] = (byte) processing;
                     } else {
                         // we of course use 0 as NoData
                         d[dstPixelOffset] = (byte) 0;
@@ -342,6 +380,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
         }
     }
 
+    // Private method for calculating the ChangeMatrix operation on source Byte images but with the destination image data type equal to Short
     private void byteToShortLoop(final int dstNumBands, final int dstWidth, final int dstHeight,
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final byte[][] src1Data,
@@ -368,21 +407,25 @@ public class ChangeMatrixOpImage extends PointOpImage {
                 for (int w = 0; w < dstWidth; w++) {
                     final byte before = (byte) (s1[src1PixelOffset]);
                     final byte after = (byte) (s2[src1PixelOffset]);
-
-                    int processing = before + pixelMultiplier * after;
-                    
-                    if(before > pixelMultiplier || after > pixelMultiplier){
-                        throw new IllegalArgumentException("PixelMultiplier should be bigger than the maximum class");
-                    }else if(processing > Short.MAX_VALUE){
-                        throw new RuntimeException("The processing result is bigger than the maximum allowed value");
+                    // Control on the input classes
+                    if (before > pixelMultiplier || after > pixelMultiplier) {
+                        throw new IllegalArgumentException(
+                                "PixelMultiplier should be bigger than the maximum class");
                     }
-                    
-                    d[dstPixelOffset] = (short) (processing);
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (roi == null || roi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
+                        int processing = before + pixelMultiplier * after;
+                        // Check if the processing is an allowed value
+                        if (processing > Short.MAX_VALUE || processing < Short.MIN_VALUE) {
+                            throw new RuntimeException(
+                                    "The processing result is not an allowed value for the final data type");
+                        }
+
+                        d[dstPixelOffset] = (short) (processing);
 
                     } else {
                         // we of course use 0 as NoData
@@ -396,6 +439,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
         }
     }
 
+    // Private method for calculating the ChangeMatrix operation on source Byte images but with the destination image data type equal to Integer
     private void byteToIntLoop(final int dstNumBands, final int dstWidth, final int dstHeight,
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final byte[][] src1Data,
@@ -422,17 +466,76 @@ public class ChangeMatrixOpImage extends PointOpImage {
                 for (int w = 0; w < dstWidth; w++) {
                     final byte before = (byte) (s1[src1PixelOffset]);
                     final byte after = (byte) (s2[src1PixelOffset]);
-                    
-                    if(before > pixelMultiplier || after > pixelMultiplier){
-                        throw new IllegalArgumentException("PixelMultiplier should be bigger than the maximum class");
-                    }                    
-                    
-                    d[dstPixelOffset] = (before + pixelMultiplier * after);
+                    // Control on the input classes
+                    if (before > pixelMultiplier || after > pixelMultiplier) {
+                        throw new IllegalArgumentException(
+                                "PixelMultiplier should be bigger than the maximum class");
+                    }
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (roi == null || roi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
+                        d[dstPixelOffset] = (before + pixelMultiplier * after);
+                    } else {
+                        // we of course use 0 as NoData
+                        d[dstPixelOffset] = 0;
+                    }
+                    src1PixelOffset += src1PixelStride;
+                    src2PixelOffset += src2PixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+            }
+        }
+    }
+
+    // Private method for calculating the ChangeMatrix operation on Ushort images
+    private void ushortLoop(final int dstNumBands, final int dstWidth, final int dstHeight,
+            final int src1MinX, final int src1MinY, final int src1LineStride,
+            final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
+            final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
+            final short[][] src2Data, final int dstLineStride, final int dstPixelStride,
+            final int[] dstBandOffsets, final short[][] dstData) {
+
+        for (int b = 0; b < dstNumBands; b++) {
+            final short[] s1 = src1Data[b];
+            final short[] s2 = src2Data[b];
+            final short[] d = dstData[b];
+            int src1LineOffset = src1BandOffsets[b];
+            int src2LineOffset = src2BandOffsets[b];
+            int dstLineOffset = dstBandOffsets[b];
+
+            for (int h = 0; h < dstHeight; h++) {
+                int src1PixelOffset = src1LineOffset;
+                int src2PixelOffset = src2LineOffset;
+                int dstPixelOffset = dstLineOffset;
+                src1LineOffset += src1LineStride;
+                src2LineOffset += src2LineStride;
+                dstLineOffset += dstLineStride;
+
+                for (int w = 0; w < dstWidth; w++) {
+                    final int before = (s1[src1PixelOffset] & 0xFFFF);
+                    final int after = (s2[src1PixelOffset] & 0xFFFF);
+                    // Control on the input classes
+                    if (before > pixelMultiplier || after > pixelMultiplier) {
+                        throw new IllegalArgumentException(
+                                "PixelMultiplier should be bigger than the maximum class");
+                    }
+
+                    final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
+                    final int y = src1MinY + (src1PixelOffset / src1LineStride);
+                    if (roi == null || roi.contains(x, y)) {
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
+                        int processing = before + pixelMultiplier * after;
+                        // Check if the processing is an allowed value
+                        if (processing > USHORT_MAX_VALUE || processing < 0) {
+                            throw new RuntimeException(
+                                    "The processing result is not an allowed value for the final data type");
+                        }
+
+                        d[dstPixelOffset] = (short) (processing);
 
                     } else {
                         // we of course use 0 as NoData
@@ -446,6 +549,60 @@ public class ChangeMatrixOpImage extends PointOpImage {
         }
     }
 
+    // Private method for calculating the ChangeMatrix operation on source Ushort images but with the destination image data type equal to Integer
+    private void ushortToIntLoop(final int dstNumBands, final int dstWidth, final int dstHeight,
+            final int src1MinX, final int src1MinY, final int src1LineStride,
+            final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
+            final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
+            final short[][] src2Data, final int dstLineStride, final int dstPixelStride,
+            final int[] dstBandOffsets, final int[][] dstData) {
+
+        for (int b = 0; b < dstNumBands; b++) {
+            final short[] s1 = src1Data[b];
+            final short[] s2 = src2Data[b];
+            final int[] d = dstData[b];
+            int src1LineOffset = src1BandOffsets[b];
+            int src2LineOffset = src2BandOffsets[b];
+            int dstLineOffset = dstBandOffsets[b];
+
+            for (int h = 0; h < dstHeight; h++) {
+                int src1PixelOffset = src1LineOffset;
+                int src2PixelOffset = src2LineOffset;
+                int dstPixelOffset = dstLineOffset;
+                src1LineOffset += src1LineStride;
+                src2LineOffset += src2LineStride;
+                dstLineOffset += dstLineStride;
+
+                for (int w = 0; w < dstWidth; w++) {
+                    final int before = (s1[src1PixelOffset] & 0xFFFF);
+                    final int after = (s2[src1PixelOffset] & 0xFFFF);
+                    // Control on the input classes
+                    if (before > pixelMultiplier || after > pixelMultiplier) {
+                        throw new IllegalArgumentException(
+                                "PixelMultiplier should be bigger than the maximum class");
+                    }
+
+                    final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
+                    final int y = src1MinY + (src1PixelOffset / src1LineStride);
+                    if (roi == null || roi.contains(x, y)) {
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
+                        int processing = before + pixelMultiplier * after;
+
+                        d[dstPixelOffset] = processing;
+                    } else {
+                        // we of course use 0 as NoData
+                        d[dstPixelOffset] = 0;
+                    }
+                    src1PixelOffset += src1PixelStride;
+                    src2PixelOffset += src2PixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+            }
+        }
+    }
+
+    // Private method for calculating the ChangeMatrix operation on Short images
     private void shortLoop(final int dstNumBands, final int dstWidth, final int dstHeight,
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
@@ -472,22 +629,25 @@ public class ChangeMatrixOpImage extends PointOpImage {
                 for (int w = 0; w < dstWidth; w++) {
                     final short before = (short) (s1[src1PixelOffset]);
                     final short after = (short) (s2[src1PixelOffset]);
-
-                    int processing = before + pixelMultiplier * after;
-                    
-                    if(before > pixelMultiplier || after > pixelMultiplier){
-                        throw new IllegalArgumentException("PixelMultiplier should be bigger than the maximum class");
-                    }else if(processing > Short.MAX_VALUE){
-                        throw new RuntimeException("The processing result is bigger than the maximum allowed value");
+                    // Control on the input classes
+                    if (before > pixelMultiplier || after > pixelMultiplier) {
+                        throw new IllegalArgumentException(
+                                "PixelMultiplier should be bigger than the maximum class");
                     }
-                    
-                    d[dstPixelOffset] = (short) (processing);
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (roi == null || roi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
+                        int processing = before + pixelMultiplier * after;
+                        // Check if the processing is an allowed value
+                        if (processing > Short.MAX_VALUE || processing < Short.MIN_VALUE) {
+                            throw new RuntimeException(
+                                    "The processing result is not an allowed value for the final data type");
+                        }
 
+                        d[dstPixelOffset] = (short) (processing);
                     } else {
                         // we of course use 0 as NoData
                         d[dstPixelOffset] = (byte) 0;
@@ -500,6 +660,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
         }
     }
 
+    // Private method for calculating the ChangeMatrix operation on source Short images but with the destination image data type equal to Integer
     private void shortToIntLoop(final int dstNumBands, final int dstWidth, final int dstHeight,
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
@@ -526,20 +687,20 @@ public class ChangeMatrixOpImage extends PointOpImage {
                 for (int w = 0; w < dstWidth; w++) {
                     final short before = (short) (s1[src1PixelOffset]);
                     final short after = (short) (s2[src1PixelOffset]);
-                    
-                    if(before > pixelMultiplier || after > pixelMultiplier){
-                        throw new IllegalArgumentException("PixelMultiplier should be bigger than the maximum class");
-                    }                    
-
-                    int processing = before + pixelMultiplier * after;
-                    
-                    d[dstPixelOffset] = processing;
+                    // Control on the input classes
+                    if (before > pixelMultiplier || after > pixelMultiplier) {
+                        throw new IllegalArgumentException(
+                                "PixelMultiplier should be bigger than the maximum class");
+                    }
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (roi == null || roi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
+                        int processing = before + pixelMultiplier * after;
 
+                        d[dstPixelOffset] = processing;
                     } else {
                         // we of course use 0 as NoData
                         d[dstPixelOffset] = 0;
