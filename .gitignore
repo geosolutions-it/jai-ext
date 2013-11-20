@@ -4,6 +4,7 @@
 *.settings
 target/*
 jt-affine/target/*
+jt-algebra/target/*
 jt-scale/target/*
 jt-warp/target/*
 jt-iterators/target/*

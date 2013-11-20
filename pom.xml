@@ -556,5 +556,6 @@
     <module>jt-bandmerge</module>
     <module>jt-border</module>
     <module>changematrix</module>
+    <module>jt-algebra</module>
   </modules>
 </project>
