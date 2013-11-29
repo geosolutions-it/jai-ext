@@ -602,13 +602,15 @@ public class ZonalStatsOpImage extends OpImage {
                         if (contains) {
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
-                                byte sample = srcData[bands[i]][posx + posy
-                                        + srcBandOffsets[bands[i]]];
+                                byte value = srcData[bands[i]][posx + posy
+                                                               + srcBandOffsets[bands[i]]];
+                                
+                                int sample = value&0xFF;
                                 // Update of all the statistics
                                 // If a range list is present then the sample is checked if it is inside the range
                                 if (rangesNoClass) {
                                     for (Range range : rangeList) {
-                                        if (range.contains(sample)) {
+                                        if (range.contains(value)) {
                                             // For local statistics the pixel is checked for every range
                                             if (localStats) {
                                                 zoneGeo.add(sample, bands[i], classId, range);
@@ -719,13 +721,13 @@ public class ZonalStatsOpImage extends OpImage {
                             if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
-                                    byte sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]]&0xFF;
                                     // Update of all the statistics
                                     // If a range list is present then the sample is checked if it is inside the range
                                     if (rangesNoClass) {
                                         for (Range range : rangeList) {
-                                            if (range.contains(sample)) {
+                                            if (range.contains((byte)sample)) {
                                                 // For local statistics the pixel is checked for every range
                                                 if (localStats) {
                                                     zoneGeo.add(sample, bands[i], classId, range);
@@ -833,13 +835,13 @@ public class ZonalStatsOpImage extends OpImage {
                             if (contains) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
-                                    byte sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]]&0xFF;
                                     // Update of all the statistics
                                     // If a range list is present then the sample is checked if it is inside the range
                                     if (rangesNoClass) {
                                         for (Range range : rangeList) {
-                                            if (range.contains(sample)) {
+                                            if (range.contains((byte)sample)) {
                                                 // For local statistics the pixel is checked for every range
                                                 if (localStats) {
                                                     zoneGeo.add(sample, bands[i], classId, range);
@@ -934,15 +936,15 @@ public class ZonalStatsOpImage extends OpImage {
 
                             // Cycle on the selected Bands
                             for (int i = 0; i < bandNum; i++) {
-                                byte sample = srcData[bands[i]][posx + posy
-                                        + srcBandOffsets[bands[i]]];
+                                int sample = srcData[bands[i]][posx + posy
+                                        + srcBandOffsets[bands[i]]]&0xFF;
                                 // NoData check
-                                if (booleanLookupTable[sample & 0xFF]) {
+                                if (booleanLookupTable[sample]) {
                                     // Update of all the statistics
                                     // If a range list is present then the sample is checked if it is inside the range
                                     if (rangesNoClass) {
                                         for (Range range : rangeList) {
-                                            if (range.contains(sample)) {
+                                            if (range.contains((byte)sample)) {
                                                 // For local statistics the pixel is checked for every range
                                                 if (localStats) {
                                                     zoneGeo.add(sample, bands[i], classId, range);
@@ -1057,15 +1059,15 @@ public class ZonalStatsOpImage extends OpImage {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
-                                    byte sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]]& 0xFF;
                                     // NoData check
-                                    if (booleanLookupTable[sample & 0xFF]) {
+                                    if (booleanLookupTable[sample ]) {
                                         // Update of all the statistics
                                         // If a range list is present then the sample is checked if it is inside the range
                                         if (rangesNoClass) {
                                             for (Range range : rangeList) {
-                                                if (range.contains(sample)) {
+                                                if (range.contains((byte)sample)) {
                                                     // For local statistics the pixel is checked for every range
                                                     if (localStats) {
                                                         zoneGeo.add(sample, bands[i], classId,
@@ -1176,15 +1178,15 @@ public class ZonalStatsOpImage extends OpImage {
 
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < bandNum; i++) {
-                                    byte sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
+                                    int sample = srcData[bands[i]][posx + posy
+                                            + srcBandOffsets[bands[i]]]& 0xFF;
                                     // NoData check
-                                    if (booleanLookupTable[sample & 0xFF]) {
+                                    if (booleanLookupTable[sample ]) {
                                         // Update of all the statistics
                                         // If a range list is present then the sample is checked if it is inside the range
                                         if (rangesNoClass) {
                                             for (Range range : rangeList) {
-                                                if (range.contains(sample)) {
+                                                if (range.contains((byte)sample)) {
                                                     // For local statistics the pixel is checked for every range
                                                     if (localStats) {
                                                         zoneGeo.add(sample, bands[i], classId,
