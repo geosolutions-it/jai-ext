@@ -49,6 +49,8 @@ import com.sun.media.jai.util.ImageUtil;
  */
 @SuppressWarnings("unchecked")
 public class ChangeMatrixOpImage extends PointOpImage {
+    // private static final int BACKGROUND_VALUE = 0;
+
     /** Maximum value for Unsigned Short images */
     private static final int USHORT_MAX_VALUE = Short.MAX_VALUE - Short.MIN_VALUE;
 
@@ -60,6 +62,9 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
     /** Integer value used for processing input pixels */
     private final int pixelMultiplier;
+
+    /** Flag indicating the presence of ROI */
+    private final boolean noROI;
 
     /**
      * Creates a new instance.
@@ -144,6 +149,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
         // Setting of the roi
         this.roi = roi;
         if (roi != null) {
+            // Setting a roi flag to true
+            this.noROI = false;
             // check that the ROI contains the source image bounds
             final Rectangle sourceBounds = new Rectangle(now.getMinX(), now.getMinY(),
                     now.getWidth(), now.getHeight());
@@ -154,6 +161,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
             }
             // massage roi
             roi = roi.intersect(new ROIShape(sourceBounds));
+        } else {
+            this.noROI = true;
         }
 
         // where do we put the final elements?
@@ -171,102 +180,129 @@ public class ChangeMatrixOpImage extends PointOpImage {
         // Retrieve format tags.
         final RasterFormatTag[] formatTags = getFormatTags();
 
-        /* For PointOpImage, srcRect = destRect. */
-        final RasterAccessor s1 = new RasterAccessor(sources[0], destRect, formatTags[0],
-                getSourceImage(0).getColorModel());
-        final RasterAccessor s2 = new RasterAccessor(sources[1], destRect, formatTags[1],
-                getSourceImage(1).getColorModel());
-        final RasterAccessor d = new RasterAccessor(dest, destRect, formatTags[2], getColorModel());
-        // Source and Destination RasterAccessor parameters
-        final int src1LineStride = s1.getScanlineStride();
-        final int src1PixelStride = s1.getPixelStride();
-        final int[] src1BandOffsets = s1.getBandOffsets();
+        // massage roi
 
-        final int src2LineStride = s2.getScanlineStride();
-        final int src2PixelStride = s2.getPixelStride();
-        final int[] src2BandOffsets = s2.getBandOffsets();
-
-        final int dstNumBands = d.getNumBands();
-        final int dstWidth = d.getWidth();
-        final int dstHeight = d.getHeight();
-        final int dstLineStride = d.getScanlineStride();
-        final int dstPixelStride = d.getPixelStride();
-        final int[] dstBandOffsets = d.getBandOffsets();
-        // Selection of the source and destination Data Types
-        int sourceDataType = s1.getDataType();
-        int destinationDataType = d.getDataType();
-
-        switch (sourceDataType) {
-
-        case DataBuffer.TYPE_BYTE:
-            // If the destination data type is not Byte then must be Short or Integer
-            if (sourceDataType != destinationDataType) {
-
-                switch (destinationDataType) {
-                case DataBuffer.TYPE_SHORT:
-                    byteToShortLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
-                            sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
-                            s1.getByteDataArrays(), src2LineStride, src2PixelStride,
-                            src2BandOffsets, s2.getByteDataArrays(), dstLineStride, dstPixelStride,
-                            dstBandOffsets, d.getShortDataArrays());
-                    break;
-                case DataBuffer.TYPE_INT:
-                    byteToIntLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
-                            sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
-                            s1.getByteDataArrays(), src2LineStride, src2PixelStride,
-                            src2BandOffsets, s2.getByteDataArrays(), dstLineStride, dstPixelStride,
-                            dstBandOffsets, d.getIntDataArrays());
-                    break;
-                }
-            } else {
-                byteLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
-                        sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
-                        s1.getByteDataArrays(), src2LineStride, src2PixelStride, src2BandOffsets,
-                        s2.getByteDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
-                        d.getByteDataArrays());
-            }
-            break;
-        case DataBuffer.TYPE_USHORT:
-            // If the destination data type is not Ushort then must be Integer
-            if (sourceDataType != destinationDataType) {
-                ushortToIntLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
-                        sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
-                        s1.getShortDataArrays(), src2LineStride, src2PixelStride, src2BandOffsets,
-                        s2.getShortDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
-                        d.getIntDataArrays());
-            } else {
-                ushortLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
-                        sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
-                        s1.getShortDataArrays(), src2LineStride, src2PixelStride, src2BandOffsets,
-                        s2.getShortDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
-                        d.getShortDataArrays());
-            }
-            break;
-        case DataBuffer.TYPE_SHORT:
-            // If the destination data type is not Short then must be Integer
-            if (sourceDataType != destinationDataType) {
-                shortToIntLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
-                        sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
-                        s1.getShortDataArrays(), src2LineStride, src2PixelStride, src2BandOffsets,
-                        s2.getShortDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
-                        d.getIntDataArrays());
-            } else {
-                shortLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
-                        sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
-                        s1.getShortDataArrays(), src2LineStride, src2PixelStride, src2BandOffsets,
-                        s2.getShortDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
-                        d.getShortDataArrays());
-            }
-            break;
-        case DataBuffer.TYPE_INT:
-            // If the destination data type is Integer then it cannot change
-            intLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(), sources[0].getMinY(),
-                    src1LineStride, src1PixelStride, src1BandOffsets, s1.getIntDataArrays(),
-                    src2LineStride, src2PixelStride, src2BandOffsets, s2.getIntDataArrays(),
-                    dstLineStride, dstPixelStride, dstBandOffsets, d.getIntDataArrays());
-            break;
+        ROI tileRoi = null;
+        if (!noROI) {
+            tileRoi = roi.intersect(new ROIShape(destRect));
         }
-        d.copyDataToRaster();
+
+        if (noROI || !tileRoi.getBounds().isEmpty()) {
+            /* For PointOpImage, srcRect = destRect. */
+            final RasterAccessor s1 = new RasterAccessor(sources[0], destRect, formatTags[0],
+                    getSourceImage(0).getColorModel());
+            final RasterAccessor s2 = new RasterAccessor(sources[1], destRect, formatTags[1],
+                    getSourceImage(1).getColorModel());
+            final RasterAccessor d = new RasterAccessor(dest, destRect, formatTags[2],
+                    getColorModel());
+            // Source and Destination RasterAccessor parameters
+            final int src1LineStride = s1.getScanlineStride();
+            final int src1PixelStride = s1.getPixelStride();
+            final int[] src1BandOffsets = s1.getBandOffsets();
+
+            final int src2LineStride = s2.getScanlineStride();
+            final int src2PixelStride = s2.getPixelStride();
+            final int[] src2BandOffsets = s2.getBandOffsets();
+
+            final int dstNumBands = d.getNumBands();
+            final int dstWidth = d.getWidth();
+            final int dstHeight = d.getHeight();
+            final int dstLineStride = d.getScanlineStride();
+            final int dstPixelStride = d.getPixelStride();
+            final int[] dstBandOffsets = d.getBandOffsets();
+            // Selection of the source and destination Data Types
+            int sourceDataType = s1.getDataType();
+            int destinationDataType = d.getDataType();
+
+            switch (sourceDataType) {
+
+            case DataBuffer.TYPE_BYTE:
+                // If the destination data type is not Byte then must be Short or Integer
+                if (sourceDataType != destinationDataType) {
+
+                    switch (destinationDataType) {
+                    case DataBuffer.TYPE_SHORT:
+                        byteToShortLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
+                                sources[0].getMinY(), src1LineStride, src1PixelStride,
+                                src1BandOffsets, s1.getByteDataArrays(), src2LineStride,
+                                src2PixelStride, src2BandOffsets, s2.getByteDataArrays(),
+                                dstLineStride, dstPixelStride, dstBandOffsets,
+                                d.getShortDataArrays(), tileRoi);
+                        break;
+                    case DataBuffer.TYPE_INT:
+                        byteToIntLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
+                                sources[0].getMinY(), src1LineStride, src1PixelStride,
+                                src1BandOffsets, s1.getByteDataArrays(), src2LineStride,
+                                src2PixelStride, src2BandOffsets, s2.getByteDataArrays(),
+                                dstLineStride, dstPixelStride, dstBandOffsets,
+                                d.getIntDataArrays(), tileRoi);
+                        break;
+                    }
+                } else {
+                    byteLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
+                            sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
+                            s1.getByteDataArrays(), src2LineStride, src2PixelStride,
+                            src2BandOffsets, s2.getByteDataArrays(), dstLineStride, dstPixelStride,
+                            dstBandOffsets, d.getByteDataArrays(), tileRoi);
+                }
+                break;
+            case DataBuffer.TYPE_USHORT:
+                // If the destination data type is not Ushort then must be Integer
+                if (sourceDataType != destinationDataType) {
+                    ushortToIntLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
+                            sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
+                            s1.getShortDataArrays(), src2LineStride, src2PixelStride,
+                            src2BandOffsets, s2.getShortDataArrays(), dstLineStride,
+                            dstPixelStride, dstBandOffsets, d.getIntDataArrays(), tileRoi);
+                } else {
+                    ushortLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
+                            sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
+                            s1.getShortDataArrays(), src2LineStride, src2PixelStride,
+                            src2BandOffsets, s2.getShortDataArrays(), dstLineStride,
+                            dstPixelStride, dstBandOffsets, d.getShortDataArrays(), tileRoi);
+                }
+                break;
+            case DataBuffer.TYPE_SHORT:
+                // If the destination data type is not Short then must be Integer
+                if (sourceDataType != destinationDataType) {
+                    shortToIntLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
+                            sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
+                            s1.getShortDataArrays(), src2LineStride, src2PixelStride,
+                            src2BandOffsets, s2.getShortDataArrays(), dstLineStride,
+                            dstPixelStride, dstBandOffsets, d.getIntDataArrays(), tileRoi);
+                } else {
+                    shortLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
+                            sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
+                            s1.getShortDataArrays(), src2LineStride, src2PixelStride,
+                            src2BandOffsets, s2.getShortDataArrays(), dstLineStride,
+                            dstPixelStride, dstBandOffsets, d.getShortDataArrays(), tileRoi);
+                }
+                break;
+            case DataBuffer.TYPE_INT:
+                // If the destination data type is Integer then it cannot change
+                intLoop(dstNumBands, dstWidth, dstHeight, sources[0].getMinX(),
+                        sources[0].getMinY(), src1LineStride, src1PixelStride, src1BandOffsets,
+                        s1.getIntDataArrays(), src2LineStride, src2PixelStride, src2BandOffsets,
+                        s2.getIntDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
+                        d.getIntDataArrays(), tileRoi);
+                break;
+            }
+            d.copyDataToRaster();
+        }
+
+        // else{
+        //
+        // int numBands = dest.getNumBands();
+        //
+        // double[] background = new double[numBands];
+        //
+        // for(int i = 0; i < numBands; i++){
+        // background[i] = BACKGROUND_VALUE;
+        // }
+        //
+        // ImageUtil.fillBackground(dest, destRect, background);
+        // }
+
     }
 
     // Private method for calculating the ChangeMatrix operation on Integer images
@@ -275,7 +311,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1PixelStride, final int[] src1BandOffsets, final int[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
             final int[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final int[][] dstData) {
+            final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
 
         for (int b = 0; b < dstNumBands; b++) {
             final int[] s1 = src1Data[b];
@@ -305,7 +341,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
 
-                    if (roi == null || roi.contains(x, y)) {
+                    if (noROI || tileRoi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         d[dstPixelOffset] = before + pixelMultiplier * after;
@@ -328,7 +364,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1PixelStride, final int[] src1BandOffsets, final byte[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
             final byte[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final byte[][] dstData) {
+            final int[] dstBandOffsets, final byte[][] dstData, ROI tileRoi) {
 
         for (int b = 0; b < dstNumBands; b++) {
             final byte[] s1 = src1Data[b];
@@ -357,7 +393,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
-                    if (roi == null || roi.contains(x, y)) {
+                    if (noROI || tileRoi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
@@ -386,7 +422,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1PixelStride, final int[] src1BandOffsets, final byte[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
             final byte[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final short[][] dstData) {
+            final int[] dstBandOffsets, final short[][] dstData, ROI tileRoi) {
 
         for (int b = 0; b < dstNumBands; b++) {
             final byte[] s1 = src1Data[b];
@@ -415,7 +451,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
-                    if (roi == null || roi.contains(x, y)) {
+                    if (noROI || tileRoi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
@@ -445,7 +481,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1PixelStride, final int[] src1BandOffsets, final byte[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
             final byte[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final int[][] dstData) {
+            final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
 
         for (int b = 0; b < dstNumBands; b++) {
             final byte[] s1 = src1Data[b];
@@ -474,7 +510,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
-                    if (roi == null || roi.contains(x, y)) {
+                    if (noROI || tileRoi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         d[dstPixelOffset] = (before + pixelMultiplier * after);
@@ -496,7 +532,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
             final short[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final short[][] dstData) {
+            final int[] dstBandOffsets, final short[][] dstData, ROI tileRoi) {
 
         for (int b = 0; b < dstNumBands; b++) {
             final short[] s1 = src1Data[b];
@@ -525,7 +561,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
-                    if (roi == null || roi.contains(x, y)) {
+                    if (noROI || tileRoi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
@@ -555,7 +591,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
             final short[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final int[][] dstData) {
+            final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
 
         for (int b = 0; b < dstNumBands; b++) {
             final short[] s1 = src1Data[b];
@@ -584,7 +620,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
-                    if (roi == null || roi.contains(x, y)) {
+                    if (noROI || tileRoi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
@@ -608,7 +644,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
             final short[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final short[][] dstData) {
+            final int[] dstBandOffsets, final short[][] dstData, ROI tileRoi) {
 
         for (int b = 0; b < dstNumBands; b++) {
             final short[] s1 = src1Data[b];
@@ -637,7 +673,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
-                    if (roi == null || roi.contains(x, y)) {
+                    if (noROI || tileRoi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
@@ -666,7 +702,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
             final short[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final int[][] dstData) {
+            final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
 
         for (int b = 0; b < dstNumBands; b++) {
             final short[] s1 = src1Data[b];
@@ -695,7 +731,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
-                    if (roi == null || roi.contains(x, y)) {
+                    if (noROI || tileRoi.contains(x, y)) {
                         result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
