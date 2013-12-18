@@ -177,9 +177,6 @@ public class ChangeMatrixOpImage extends PointOpImage {
      */
     protected void computeRect(final Raster[] sources, final WritableRaster dest,
             final Rectangle destRect) {
-        // Retrieve format tags.
-        final RasterFormatTag[] formatTags = getFormatTags();
-
         // massage roi
 
         ROI tileRoi = null;
@@ -188,6 +185,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
         }
 
         if (noROI || !tileRoi.getBounds().isEmpty()) {
+            // Retrieve format tags.
+            final RasterFormatTag[] formatTags = getFormatTags();
             /* For PointOpImage, srcRect = destRect. */
             final RasterAccessor s1 = new RasterAccessor(sources[0], destRect, formatTags[0],
                     getSourceImage(0).getColorModel());
