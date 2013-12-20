@@ -181,7 +181,9 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
         ROI tileRoi = null;
         if (!noROI) {
-            tileRoi = roi.intersect(new ROIShape(destRect));
+            Rectangle roiRect = destRect.getBounds();
+            roiRect.grow(1, 1);
+            tileRoi = roi.intersect(new ROIShape(roiRect));
         }
 
         if (noROI || !tileRoi.getBounds().isEmpty()) {
