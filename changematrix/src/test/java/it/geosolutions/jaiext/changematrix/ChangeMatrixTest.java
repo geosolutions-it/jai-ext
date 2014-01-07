@@ -1,6 +1,7 @@
 package it.geosolutions.jaiext.changematrix;
 
 import it.geosolutions.jaiext.changematrix.ChangeMatrixDescriptor.ChangeMatrix;
+
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -17,6 +18,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 import javax.imageio.ImageIO;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
@@ -24,6 +26,8 @@ import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.ConstantDescriptor;
+import javax.media.jai.operator.CropDescriptor;
+
 import org.geotools.test.TestData;
 import org.junit.Test;
 
@@ -710,6 +714,164 @@ public class ChangeMatrixTest extends org.junit.Assert {
 
     }
 
+    /**
+     * Test on 2 images with a ROI object. Before of the operation, the 2 images are cropped.
+     */
+    @Test
+    public void testROI3() throws Exception {
+        final File file0;
+        final File file6;
+        try {
+            file0 = TestData.file(SpeedChangeMatrixTest.class, "clc2000_L3_100m_small.tif");
+            file6 = TestData.file(SpeedChangeMatrixTest.class, "clc2006_L3_100m_small.tif");
+        } catch (FileNotFoundException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        } catch (IOException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        }
+
+        final Set<Integer> classes = new HashSet<Integer>();
+        classes.add(FIRST_CLASS_VALUE);
+        classes.add(SECOND_CLASS_VALUE);
+        classes.add(THIRD_CLASS_VALUE);
+        classes.add(FOURTH_CLASS_VALUE);
+        classes.add(FIFTH_CLASS_VALUE);
+        final ChangeMatrix cm = new ChangeMatrix(classes);
+
+        final RenderedOp inputSource = JAI.create("ImageRead", file6);// new
+                                                                 // File("d:/data/unina/clc2006_L3_100m.tif"));
+        final RenderedOp inputReference = JAI.create("ImageRead", file0);// new
+                                                                    // File("d:/data/unina/clc2000_L3_100m.tif"));
+
+        // create roi
+        final Rectangle roi = new Rectangle(inputReference.getBounds());
+        int xRoi = roi.width / 2 - roi.width / 4;
+        int yRoi = roi.height / 2 - roi.height / 4;
+        int widthRoi = roi.width / 4;
+        int heightRoi = roi.height / 4;
+        roi.setBounds(xRoi, yRoi, widthRoi, heightRoi);
+        
+        final ImageLayout layout = new ImageLayout();
+        layout.setTileHeight(512).setTileWidth(512);
+        final RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+        
+        final RenderedOp reference = CropDescriptor.create(inputReference, xRoi*1.0f, yRoi*1.0f, widthRoi*1.0f, heightRoi*1.0f, hints);
+        final RenderedOp source = CropDescriptor.create(inputSource, xRoi*1.0f, yRoi*1.0f, widthRoi*1.0f, heightRoi*1.0f, hints);
+
+        final ParameterBlockJAI pbj = new ParameterBlockJAI("ChangeMatrix");
+        pbj.addSource(reference);
+        pbj.addSource(source);
+        pbj.setParameter("result", cm);
+        pbj.setParameter("roi", new ROIShape(roi));
+        pbj.setParameter("pixelMultiplier", PIXEL_MULTIPLIER);
+        final RenderedOp result = JAI.create("ChangeMatrix", pbj, hints);
+        result.getWidth();
+
+        // force computation
+        final Queue<Point> tiles = new ArrayBlockingQueue<Point>(result.getNumXTiles()
+                * result.getNumYTiles());
+        for (int i = 0; i < result.getNumXTiles(); i++) {
+            for (int j = 0; j < result.getNumYTiles(); j++) {
+                tiles.add(new Point(i, j));
+            }
+        }
+        final CountDownLatch sem = new CountDownLatch(result.getNumXTiles() * result.getNumYTiles());
+        ExecutorService ex = Executors.newFixedThreadPool(10);
+        for (final Point tile : tiles) {
+            ex.execute(new Runnable() {
+
+                public void run() {
+                    result.getTile(tile.x, tile.y);
+                    sem.countDown();
+                }
+            });
+        }
+        sem.await();
+        cm.freeze(); // stop changing the computations! If we did not do this new
+                     // values would be accumulated as the file was written
+
+        // CONTROL ON THE IMAGE PIXEL VALUES
+
+        int minX = result.getMinX();
+        int minY = result.getMinY();
+
+        int maxX = result.getMaxX();
+        int maxY = result.getMaxY();
+
+        int resultValue = 0;
+        int resultExpected = 0;
+        int referenceValue = 0;
+        int sourceValue = 0;
+
+        Raster referenceTile;
+        Raster sourceTile;
+        Raster resultTile;
+
+        for (int x = minX; x < maxX; x++) {
+            for (int y = minY; y < maxY; y++) {
+
+                if (roi.contains(x, y)) {
+                    // Selection of the tiles associated with this position
+                    referenceTile = reference.getTile(reference.XToTileX(x), reference.YToTileY(y));
+                    sourceTile = source.getTile(source.XToTileX(x), source.YToTileY(y));
+                    resultTile = result.getTile(result.XToTileX(x), result.YToTileY(y));
+                    // Selection of the value associated with this position
+                    resultValue = resultTile.getSample(x, y, 0);
+                    referenceValue = referenceTile.getSample(x, y, 0);
+                    sourceValue = sourceTile.getSample(x, y, 0);
+                    // Calculation
+                    resultExpected = referenceValue + (PIXEL_MULTIPLIER * sourceValue);
+                    // Test
+                    assertEquals(resultExpected, resultValue);
+                } else {
+                    // Selection of the tiles associated with this position
+                    resultTile = result.getTile(result.XToTileX(x), result.YToTileY(y));
+                    // Selection of the value associated with this position
+                    resultValue = resultTile.getSample(x, y, 0);
+                    // Test
+                    assertEquals(resultExpected, resultValue);
+                }
+            }
+        }
+
+        // try to write the resulting image before disposing the sources
+        final File out = File.createTempFile("chm", "result.tif");
+        out.deleteOnExit();
+        ImageIO.write(result, "tiff", out);
+
+        result.dispose();
+        source.dispose();
+        reference.dispose();
+
+        // check values of the change matrix
+        assertEquals(3180, cm.retrievePairOccurrences(0, 0));
+        assertEquals(0, cm.retrievePairOccurrences(0, 35));
+        assertEquals(0, cm.retrievePairOccurrences(0, 1));
+        assertEquals(0, cm.retrievePairOccurrences(0, 36));
+        assertEquals(0, cm.retrievePairOccurrences(0, 37));
+        assertEquals(0, cm.retrievePairOccurrences(35, 0));
+        assertEquals(0, cm.retrievePairOccurrences(35, 35));
+        assertEquals(0, cm.retrievePairOccurrences(35, 1));
+        assertEquals(0, cm.retrievePairOccurrences(35, 36));
+        assertEquals(0, cm.retrievePairOccurrences(35, 37));
+        assertEquals(0, cm.retrievePairOccurrences(1, 0));
+        assertEquals(0, cm.retrievePairOccurrences(1, 35));
+        assertEquals(2, cm.retrievePairOccurrences(1, 1));
+        assertEquals(1, cm.retrievePairOccurrences(1, 36));
+        assertEquals(0, cm.retrievePairOccurrences(1, 37));
+        assertEquals(0, cm.retrievePairOccurrences(36, 0));
+        assertEquals(0, cm.retrievePairOccurrences(36, 35));
+        assertEquals(0, cm.retrievePairOccurrences(36, 1));
+        assertEquals(1059, cm.retrievePairOccurrences(36, 36));
+        assertEquals(6, cm.retrievePairOccurrences(36, 37));
+        assertEquals(0, cm.retrievePairOccurrences(37, 0));
+        assertEquals(0, cm.retrievePairOccurrences(37, 35));
+        assertEquals(0, cm.retrievePairOccurrences(37, 1));
+        assertEquals(36, cm.retrievePairOccurrences(37, 36));
+        assertEquals(325, cm.retrievePairOccurrences(37, 37));
+
+    }
+    
     /**
      * Test on Short images.
      */
