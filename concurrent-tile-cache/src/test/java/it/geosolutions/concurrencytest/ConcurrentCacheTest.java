@@ -352,7 +352,7 @@ public class ConcurrentCacheTest {
         // array for storing the different throughput
         double[][] dataTest = new double[numTest][EXPONENT + 1];
         for (int f = 0; f < numTest; f++) {
-            LOGGER.log(Level.INFO, "Test N°." + (f + 1));
+            LOGGER.log(Level.INFO, "Test Nï¿½." + (f + 1));
             dataTest[f] = new ConcurrentCacheTest().testwriteImageAndWatchFlag(cacheUsed,
                     concurrencyLevel, memoryCacheCapacity, imageSynth, path, diagnosticEnabled,
                     multipleOp);
@@ -461,8 +461,8 @@ public class ConcurrentCacheTest {
 
     // simple method for creating a synthetic grayscale image
     public static RenderedImage getSynthetic(final double maximum) {
-        final float width = 10000;
-        final float height = 10000;
+        final float width = 1000;
+        final float height = 1000;
         ParameterBlock pb = new ParameterBlock();
         pb.add(width);
         pb.add(height);
