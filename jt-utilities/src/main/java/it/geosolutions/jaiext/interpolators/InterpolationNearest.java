@@ -9,7 +9,7 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.iterator.RandomIter;
 
-public class InterpolationNearest extends Interpolation {
+public class InterpolationNearest extends Interpolation implements InterpolationNoData {
 
     /** serialVersionUID */
     private static final long serialVersionUID = -6994369085300227735L;
