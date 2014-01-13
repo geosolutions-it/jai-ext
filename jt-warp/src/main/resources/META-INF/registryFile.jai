@@ -2,10 +2,10 @@
 # Image descriptors
 #
 
-descriptor  it.geosolutions.jaiext.scale.ScaleDescriptor
+descriptor  it.geosolutions.jaiext.warp.WarpDescriptor
 
 #
 # RenderedImageFactories
 #
 
-rendered  it.geosolutions.jaiext.scale.ScaleCRIF  it.geosolutions.jaiext.roiaware  ScaleNoData ScaleNoData 
+rendered  it.geosolutions.jaiext.warp.WarpCRIF  it.geosolutions.jaiext.roiaware  WarpNoData WarpNoData 

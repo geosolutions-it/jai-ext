@@ -34,7 +34,7 @@ import javax.media.jai.iterator.RandomIter;
 
 /**
  * An <code>OpImage</code> implementing the general "Warp" operation as described in <code>javax.media.jai.operator.WarpDescriptor</code>. It supports
- * the bilinear interpolation.
+ * the bicubic interpolation.
  * 
  * @since EA2
  * @see javax.media.jai.Warp
@@ -44,7 +44,7 @@ import javax.media.jai.iterator.RandomIter;
  * 
  */
 @SuppressWarnings("unchecked")
-final class WarpBilinearOpImage extends WarpOpImage {
+final class WarpBicubicOpImage extends WarpOpImage {
 
     /** Color table representing source's IndexColorModel. */
     private byte[][] ctable = null;
@@ -60,7 +60,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
      * @param warp An object defining the warp algorithm.
      * @param interp An object describing the interpolation method.
      */
-    public WarpBilinearOpImage(final RenderedImage source, final BorderExtender extender,
+    public WarpBicubicOpImage(final RenderedImage source, final BorderExtender extender,
             final Map<?, ?> config, final ImageLayout layout, final Warp warp,
             final Interpolation interp, final ROI sourceROI) {
         super(source, layout, config, false, extender, interp, warp, null, sourceROI);
@@ -120,19 +120,34 @@ final class WarpBilinearOpImage extends WarpOpImage {
             final ROI roiTile) {
 
         RandomIter iterSource;
+        final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
+            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
+                    src.getWidth() + 2, src.getHeight() + 2);
             iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
                     TILE_CACHED, ARRAY_CALC);
+            
+            minX = src.getMinX() - 1; // Left padding
+            maxX = src.getMaxX() + 2; // Right padding
+            minY = src.getMinY() - 1; // Top padding
+            maxY = src.getMaxY() + 2; // Bottom padding
         } else {
             iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+        
+            minX = src.getMinX();
+            maxX = src.getMaxX();
+            minY = src.getMinY();
+            maxY = src.getMaxY();
         }
-        final int minX = src.getMinX();
-        final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
-        final int minY = src.getMinY();
-        final int maxY = src.getMaxY() - (extended ? 0 : 1); // Bottom padding
 
+        
+        
+        
+        //TODO CONTINUE FROM HERE TO DEVELOP A WARP WITH BICUBIC INTERPOLATION
+        //TODO 
+        //TODO
+        //TODO
+        
         final int dstWidth = dst.getWidth();
         final int dstHeight = dst.getHeight();
         final int dstBands = dst.getNumBands();

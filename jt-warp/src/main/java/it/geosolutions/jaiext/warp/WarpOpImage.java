@@ -50,24 +50,23 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
     protected final static BorderExtender ZERO_EXTENDER = BorderExtender
             .createInstance(BorderExtender.BORDER_ZERO);
     /** Quantity used for extending the input tile dimensions*/
-    private static final int TILE_EXTENDER = 1;
+    protected static final int TILE_EXTENDER = 1;
+    
+    protected static final boolean ARRAY_CALC = true;
 
-    // @Override
-    // public synchronized void dispose() {
-    //
-    // // dispose roiImage if present
-    // if(roiImage!=null){
-    // roiImage.dispose();
-    // iterRoi.done();
-    // }
-    // super.dispose();
-    // }
+    protected static final boolean TILE_CACHED = true;
+    
+    protected byte destinationNoDataByte;
 
+    protected short destinationNoDataShort;
+
+    protected int destinationNoDataInt;
+
+    protected float destinationNoDataFloat;
+    
+    protected double destinationNoDataDouble;
+    
     protected final ROI roi;
-
-    // protected final PlanarImage roiImage;
-
-    // protected final RandomIter iterRoi;
 
     protected final boolean hasROI;
 
@@ -79,7 +78,9 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
 
     protected final boolean caseC;
 
-    protected final Range noDataRange; 
+    protected final Range noDataRange;
+    
+    protected boolean extended; 
 
     public WarpOpImage(final RenderedImage source, final ImageLayout layout,
             final Map<?, ?> configuration, final boolean cobbleSources,
@@ -108,6 +109,10 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
         caseA = !hasROI && !hasNoData;
         caseB = hasROI && !hasNoData;
         caseC = !hasROI && hasNoData;
+        
+        
+        //Extender check
+        extended = extender != null;
     }
 
     /**
@@ -188,10 +193,10 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
 
         // If a ROI is present, then only the part contained inside the current tile bounds is taken.
         if (hasROI) {
-            Rectangle rectExpanded = destRect.getBounds();
+            Rectangle srcRectExpanded = mapDestRect(destRect, 0); 
             // The tile dimension is extended for avoiding border errors
-            rectExpanded.grow(TILE_EXTENDER, TILE_EXTENDER);
-            roiTile = roi.intersect(new ROIShape(destRect));
+            srcRectExpanded.grow(TILE_EXTENDER, TILE_EXTENDER);
+            roiTile = roi.intersect(new ROIShape(srcRectExpanded));
         }
 
         if (!hasROI || !roiTile.getBounds().isEmpty()) {

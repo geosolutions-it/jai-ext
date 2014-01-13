@@ -48,24 +48,10 @@ import javax.media.jai.iterator.RandomIter;
 @SuppressWarnings("unchecked")
 final class WarpNearestOpImage extends WarpOpImage {
 
-    private static final boolean ARRAY_CALC = true;
-
-    private static final boolean TILE_CACHED = true;
-
-    private byte destinationNoDataByte;
-
-    private short destinationNoDataShort;
-
-    private int destinationNoDataInt;
-
-    private float destinationNoDataFloat;
-
     private byte[] byteLookupTable;
 
-    private double destinationNoDataDouble;
-
     /**
-     * Constructs a ROIAwareWarpNearestOpImage.
+     * Constructs a WarpNearestOpImage.
      * 
      * @param source The source image.
      * @param layout The destination image layout.
@@ -135,7 +121,8 @@ final class WarpNearestOpImage extends WarpOpImage {
         }
     }
 
-    protected void computeRectByte(final PlanarImage src, final RasterAccessor dst, final ROI roiTile) {
+    protected void computeRectByte(final PlanarImage src, final RasterAccessor dst,
+            final ROI roiTile) {
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
 
@@ -502,7 +489,8 @@ final class WarpNearestOpImage extends WarpOpImage {
         iter.done();
     }
 
-    protected void computeRectShort(final PlanarImage src, final RasterAccessor dst, final ROI roiTile) {
+    protected void computeRectShort(final PlanarImage src, final RasterAccessor dst,
+            final ROI roiTile) {
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
 
@@ -878,7 +866,8 @@ final class WarpNearestOpImage extends WarpOpImage {
         iter.done();
     }
 
-    protected void computeRectFloat(final PlanarImage src, final RasterAccessor dst, final ROI roiTile) {
+    protected void computeRectFloat(final PlanarImage src, final RasterAccessor dst,
+            final ROI roiTile) {
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
 
