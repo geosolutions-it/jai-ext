@@ -26,6 +26,7 @@ import java.util.Map;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
+import javax.media.jai.InterpolationTable;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.RasterAccessor;
@@ -46,10 +47,32 @@ import javax.media.jai.iterator.RandomIter;
 @SuppressWarnings("unchecked")
 final class WarpBicubicOpImage extends WarpOpImage {
 
+    private final static int KERNEL_DIM = 3;
+    
+    private static final int KERNEL_LINE_DIM = 4;
+    
     /** Color table representing source's IndexColorModel. */
     private byte[][] ctable = null;
 
     private boolean[] booleanLookupTable;
+
+    private int[] dataHi;
+
+    private int[] dataVi;
+
+    private float[] dataHf;
+
+    private float[] dataVf;
+
+    private double[] dataHd;
+
+    private double[] dataVd;
+
+    private int shift;
+    
+    private int round;
+
+    private int precisionBits;
 
     /**
      * Constructs a WarpBilinearOpImage.
@@ -114,6 +137,37 @@ final class WarpBicubicOpImage extends WarpOpImage {
         default:
             throw new IllegalArgumentException("Wrong data Type");
         }
+        
+        InterpolationTable interpCubic = (InterpolationTable) interp;
+        
+        switch (srcDataType) {
+        case DataBuffer.TYPE_BYTE:
+        case DataBuffer.TYPE_USHORT:
+        case DataBuffer.TYPE_SHORT:
+        case DataBuffer.TYPE_INT:
+            dataHi = interpCubic.getHorizontalTableData();
+            dataVi = interpCubic.getVerticalTableData();
+            break;
+        case DataBuffer.TYPE_FLOAT:
+            dataHf = interpCubic.getHorizontalTableDataFloat();
+            dataVf = interpCubic.getVerticalTableDataFloat();
+            break;
+        case DataBuffer.TYPE_DOUBLE:
+            dataHd = interpCubic.getHorizontalTableDataDouble();
+            dataVd = interpCubic.getVerticalTableDataDouble(); 
+            break;
+        default:
+            throw new IllegalArgumentException("Wrong data Type");
+        }
+        
+        // Subsample bits used
+        shift = 1 << interp.getSubsampleBitsH(); 
+        
+        precisionBits = interpCubic.getPrecisionBits();
+
+        if (precisionBits > 0) {
+            round = 1 << (precisionBits - 1);
+        }
     }
 
     protected void computeRectByte(final PlanarImage src, final RasterAccessor dst,
@@ -141,13 +195,6 @@ final class WarpBicubicOpImage extends WarpOpImage {
         }
 
         
-        
-        
-        //TODO CONTINUE FROM HERE TO DEVELOP A WARP WITH BICUBIC INTERPOLATION
-        //TODO 
-        //TODO
-        //TODO
-        
         final int dstWidth = dst.getWidth();
         final int dstHeight = dst.getHeight();
         final int dstBands = dst.getNumBands();
@@ -160,6 +207,9 @@ final class WarpBicubicOpImage extends WarpOpImage {
         final float[] warpData = new float[2 * dstWidth];
 
         int lineOffset = 0;
+        
+        // Bicubic interpolation kernel
+        int[][] kernelData = new int[KERNEL_DIM][KERNEL_DIM];
 
         if (ctable == null) { // source does not have IndexColorModel
             // ONLY VALID DATA
@@ -187,20 +237,35 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
+                            // X and Y offset initialization
+                            final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                            final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                             //
                             // NO ROI
                             //
-                            for (int b = 0; b < dstBands; b++) {
-                                int s00 = iterSource.getSample(xint, yint, b) & 0xFF;
-                                int s01 = iterSource.getSample(xint + 1, yint, b) & 0xFF;
-                                int s10 = iterSource.getSample(xint, yint + 1, b) & 0xFF;
-                                int s11 = iterSource.getSample(xint + 1, yint + 1, b) & 0xFF;
-
-                                float s0 = (s01 - s00) * xfrac + s00;
-                                float s1 = (s11 - s10) * xfrac + s10;
-                                float s = (s1 - s0) * yfrac + s0;
-
-                                data[b][pixelOffset + bandOffsets[b]] = (byte) s;
+                            long sum = 0; 
+                            for (int b = 0; b < dstBands; b++) {                                
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                    // Row temporary sum initialization
+                                    long temp = 0;
+                                    for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                        // Selection of one pixel
+                                        int pixelValue = iterSource.getSample(xint + (i - 1), yint + (j - 1), b) & 0xff;
+                                        // Update of the temporary sum
+                                        temp += (pixelValue * dataHi[offsetX + i]);
+                                    }
+                                    // Vertical sum update
+                                    sum += ((temp + round) >> precisionBits) * dataVi[offsetY + j];
+                                }
+                                // Interpolation
+                                int result = (int) ((sum + round) >> precisionBits);
+ 
+                                data[b][pixelOffset + bandOffsets[b]] = (byte) result;
+                                
+                                //TODO CONTINUE FROM HERE
+                                //TODO
+                                //TODO
                             }
                         }
                         // next desination pixel
