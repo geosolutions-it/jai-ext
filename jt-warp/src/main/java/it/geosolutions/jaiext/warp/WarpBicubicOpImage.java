@@ -47,10 +47,13 @@ import javax.media.jai.iterator.RandomIter;
 @SuppressWarnings("unchecked")
 final class WarpBicubicOpImage extends WarpOpImage {
 
-    private final static int KERNEL_DIM = 3;
-    
     private static final int KERNEL_LINE_DIM = 4;
-    
+
+    /**
+     * Unsigned short Max Value
+     */
+    protected static final int USHORT_MAX_VALUE = Short.MAX_VALUE - Short.MIN_VALUE;
+
     /** Color table representing source's IndexColorModel. */
     private byte[][] ctable = null;
 
@@ -69,7 +72,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
     private double[] dataVd;
 
     private int shift;
-    
+
     private int round;
 
     private int precisionBits;
@@ -137,9 +140,9 @@ final class WarpBicubicOpImage extends WarpOpImage {
         default:
             throw new IllegalArgumentException("Wrong data Type");
         }
-        
+
         InterpolationTable interpCubic = (InterpolationTable) interp;
-        
+
         switch (srcDataType) {
         case DataBuffer.TYPE_BYTE:
         case DataBuffer.TYPE_USHORT:
@@ -154,15 +157,15 @@ final class WarpBicubicOpImage extends WarpOpImage {
             break;
         case DataBuffer.TYPE_DOUBLE:
             dataHd = interpCubic.getHorizontalTableDataDouble();
-            dataVd = interpCubic.getVerticalTableDataDouble(); 
+            dataVd = interpCubic.getVerticalTableDataDouble();
             break;
         default:
             throw new IllegalArgumentException("Wrong data Type");
         }
-        
+
         // Subsample bits used
-        shift = 1 << interp.getSubsampleBitsH(); 
-        
+        shift = 1 << interp.getSubsampleBitsH();
+
         precisionBits = interpCubic.getPrecisionBits();
 
         if (precisionBits > 0) {
@@ -180,21 +183,20 @@ final class WarpBicubicOpImage extends WarpOpImage {
                     src.getWidth() + 2, src.getHeight() + 2);
             iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
                     TILE_CACHED, ARRAY_CALC);
-            
+
             minX = src.getMinX() - 1; // Left padding
             maxX = src.getMaxX() + 2; // Right padding
             minY = src.getMinY() - 1; // Top padding
             maxY = src.getMaxY() + 2; // Bottom padding
         } else {
             iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-        
+
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
         }
 
-        
         final int dstWidth = dst.getWidth();
         final int dstHeight = dst.getHeight();
         final int dstBands = dst.getNumBands();
@@ -207,9 +209,6 @@ final class WarpBicubicOpImage extends WarpOpImage {
         final float[] warpData = new float[2 * dstWidth];
 
         int lineOffset = 0;
-        
-        // Bicubic interpolation kernel
-        int[][] kernelData = new int[KERNEL_DIM][KERNEL_DIM];
 
         if (ctable == null) { // source does not have IndexColorModel
             // ONLY VALID DATA
@@ -243,29 +242,10 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             //
                             // NO ROI
                             //
-                            long sum = 0; 
-                            for (int b = 0; b < dstBands; b++) {                                
-                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                                    // Row temporary sum initialization
-                                    long temp = 0;
-                                    for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                        // Selection of one pixel
-                                        int pixelValue = iterSource.getSample(xint + (i - 1), yint + (j - 1), b) & 0xff;
-                                        // Update of the temporary sum
-                                        temp += (pixelValue * dataHi[offsetX + i]);
-                                    }
-                                    // Vertical sum update
-                                    sum += ((temp + round) >> precisionBits) * dataVi[offsetY + j];
-                                }
+                            for (int b = 0; b < dstBands; b++) {
                                 // Interpolation
-                                int result = (int) ((sum + round) >> precisionBits);
- 
-                                data[b][pixelOffset + bandOffsets[b]] = (byte) result;
-                                
-                                //TODO CONTINUE FROM HERE
-                                //TODO
-                                //TODO
+                                data[b][pixelOffset + bandOffsets[b]] = (byte) (bicubicCalculationInt(
+                                        b, iterSource, xint, yint, offsetX, offsetY, null) & 0xFF);
                             }
                         }
                         // next desination pixel
@@ -297,31 +277,31 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
+                            // X and Y offset initialization
+                            final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                            final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                             //
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00 = !roiTile.contains(xint, yint);
-                            final boolean w01 = !roiTile.contains(xint + 1, yint);
-                            final boolean w10 = !roiTile.contains(xint, yint + 1);
-                            final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
-                            if (w00 && w01 && w10 && w11) { // SG should not happen
+                            // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                            boolean inRoi = false;
+
+                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                    inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                                }
+                            }
+                            if (inRoi) {
+
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    // Interpolation
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) (bicubicCalculationInt(
+                                            b, iterSource, xint, yint, offsetX, offsetY, null) & 0xFF);
                                 }
                             } else {
-
                                 for (int b = 0; b < dstBands; b++) {
-                                    int s00 = iterSource.getSample(xint, yint, b) & 0xFF;
-                                    int s01 = iterSource.getSample(xint + 1, yint, b) & 0xFF;
-                                    int s10 = iterSource.getSample(xint, yint + 1, b) & 0xFF;
-                                    int s11 = iterSource.getSample(xint + 1, yint + 1, b) & 0xFF;
-
-                                    float s0 = (s01 - s00) * xfrac + s00;
-                                    float s1 = (s11 - s10) * xfrac + s10;
-                                    float s = (s1 - s0) * yfrac + s0;
-
-                                    data[b][pixelOffset + bandOffsets[b]] = (byte) s;
+                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
                                 }
                             }
                         }
@@ -332,6 +312,23 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // ROWS LOOP
                   // ONLY NODATA
             } else if (caseC) {
+                // Array used during calculations
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
+                long[] tempData;
+
+                // Value used in calculations
+                short weight = 0;
+                byte weightVert = 0;
+                byte temp = 0;
+
+                // Row temporary sum initialization
+                long tempSum = 0;
+                long sum = 0;
+                // final result initialization
+                long result = 0;
+
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -355,28 +352,75 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
+                            // X and Y offset initialization
+                            final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                            final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                             //
                             // NODATA
                             //
                             // checks with nodata
-
                             for (int b = 0; b < dstBands; b++) {
 
-                                int s00 = iterSource.getSample(xint, yint, b) & 0xFF;
-                                int s01 = iterSource.getSample(xint + 1, yint, b) & 0xFF;
-                                int s10 = iterSource.getSample(xint, yint + 1, b) & 0xFF;
-                                int s11 = iterSource.getSample(xint + 1, yint + 1, b) & 0xFF;
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and check if every kernel pixel is a No Data
+                                for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                    for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                        // Selection of one pixel
+                                        int sample = iterSource.getSample(xint + (i - 1), yint
+                                                + (j - 1), b) & 0xFF;
+                                        pixelKernel[j][i] = sample;
+                                        if (booleanLookupTable[sample]) {
+                                            weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                            // weigjtArray[j][z] = 0;
+                                        } else {
+                                            // weigjtArray[j][z] = 1;
+                                            weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                        }
+                                    }
+                                    // Data elaboration for each line
+                                    temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                    tempData = bicubicInpainting(pixelKernel[j], temp, emptyArray);
 
-                                final boolean w00 = booleanLookupTable[s00];
-                                final boolean w01 = booleanLookupTable[s01];
-                                final boolean w10 = booleanLookupTable[s10];
-                                final boolean w11 = booleanLookupTable[s11];
+                                    tempSum = tempData[0] * dataHi[offsetX] + tempData[1]
+                                            * dataHi[offsetX + 1] + tempData[2]
+                                            * dataHi[offsetX + 2] + tempData[3]
+                                            * dataHi[offsetX + 3];
 
-                                if (w00 && w01 && w10 && w11) {
+                                    if (temp > 0) {
+                                        weightVert |= (1 << j);
+                                        // weigjtArrayVertical[j] = 1;
+                                    } else {
+                                        weightVert &= (0x0F - (1 << j));
+                                        // weigjtArrayVertical[j] = 0;
+                                    }
+                                    sumArray[j] = ((tempSum + round) >> precisionBits);
+                                }
+
+                                // Control if the 16 pixel are all No Data
+                                if (weight == 0) {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
                                 } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFF);
+
+                                    tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
+
+                                    // Vertical sum update
+                                    sum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                            * dataVi[offsetY + 1] + tempData[2]
+                                            * dataVi[offsetY + 2] + tempData[3]
+                                            * dataVi[offsetY + 3];
+
+                                    // Interpolation
+                                    result = ((sum + round) >> precisionBits);
+                                    weight = 0;
+                                    weightVert = 0;
+                                    sum = 0;
+                                    // Clamp
+                                    if (result > 255) {
+                                        result = 255;
+                                    } else if (result < 0) {
+                                        result = 0;
+                                    }
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                                 }
                             }
                         }
@@ -387,6 +431,22 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // ROWS LOOP
                   // BOTH ROI AND NODATA
             } else {
+                // Array used during calculations
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
+                long[] tempData;
+
+                // Value used in calculations
+                short weight = 0;
+                byte weightVert = 0;
+                byte temp = 0;
+
+                // Row temporary sum initialization
+                long tempSum = 0;
+                long sum = 0;
+                // final result initialization
+                long result = 0;
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -410,41 +470,95 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
+                            // X and Y offset initialization
+                            final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                            final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                             //
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00Roi = !roiTile.contains(xint, yint);
-                            final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                            final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                            final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
-                            if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
+                            // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                            boolean inRoi = false;
+
+                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                    inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                                }
+                            }
+                            if (inRoi) {
+                                //
+                                // NODATA
+                                //
+                                // checks with nodata
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+
+                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                    // and check if every kernel pixel is a No Data
+                                    for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                        for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                            // Selection of one pixel
+                                            int sample = iterSource.getSample(xint + (i - 1), yint
+                                                    + (j - 1), b) & 0xFF;
+                                            pixelKernel[j][i] = sample;
+                                            if (booleanLookupTable[sample]) {
+                                                weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                                // weigjtArray[j][z] = 0;
+                                            } else {
+                                                // weigjtArray[j][z] = 1;
+                                                weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                            }
+                                        }
+                                        // Data elaboration for each line
+                                        temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                        tempData = bicubicInpainting(pixelKernel[j], temp,
+                                                emptyArray);
+
+                                        tempSum = tempData[0] * dataHi[offsetX] + tempData[1]
+                                                * dataHi[offsetX + 1] + tempData[2]
+                                                * dataHi[offsetX + 2] + tempData[3]
+                                                * dataHi[offsetX + 3];
+
+                                        if (temp > 0) {
+                                            weightVert |= (1 << j);
+                                            // weigjtArrayVertical[j] = 1;
+                                        } else {
+                                            weightVert &= (0x0F - (1 << j));
+                                            // weigjtArrayVertical[j] = 0;
+                                        }
+                                        sumArray[j] = ((tempSum + round) >> precisionBits);
+                                    }
+
+                                    // Control if the 16 pixel are all No Data
+                                    if (weight == 0) {
+                                        data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    } else {
+
+                                        tempData = bicubicInpainting(sumArray, weightVert,
+                                                emptyArray);
+
+                                        // Vertical sum update
+                                        sum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                                * dataVi[offsetY + 1] + tempData[2]
+                                                * dataVi[offsetY + 2] + tempData[3]
+                                                * dataVi[offsetY + 3];
+
+                                        // Interpolation
+                                        result = ((sum + round) >> precisionBits);
+                                        weight = 0;
+                                        weightVert = 0;
+                                        sum = 0;
+                                        // Clamp
+                                        if (result > 255) {
+                                            result = 255;
+                                        } else if (result < 0) {
+                                            result = 0;
+                                        }
+                                        data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
+                                    }
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
-                                    //
-                                    // NODATA
-                                    //
-                                    // checks with nodata
-                                    int s00 = iterSource.getSample(xint, yint, b) & 0xFF;
-                                    int s01 = iterSource.getSample(xint + 1, yint, b) & 0xFF;
-                                    int s10 = iterSource.getSample(xint, yint + 1, b) & 0xFF;
-                                    int s11 = iterSource.getSample(xint + 1, yint + 1, b) & 0xFF;
-
-                                    final boolean w00 = booleanLookupTable[s00];
-                                    final boolean w01 = booleanLookupTable[s01];
-                                    final boolean w10 = booleanLookupTable[s10];
-                                    final boolean w11 = booleanLookupTable[s11];
-
-                                    if (w00 && w01 && w10 && w11) {
-                                        data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
-                                    } else {
-                                        data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
-                                                s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10,
-                                                w11) & 0xFF);
-                                    }
+                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
                                 }
                             }
                         }
@@ -479,22 +593,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
+                            // X and Y offset initialization
+                            final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                            final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                             //
                             // NO ROI
                             //
                             for (int b = 0; b < dstBands; b++) {
                                 final byte[] t = ctable[b];
-
-                                int s00 = t[iterSource.getSample(xint, yint, 0) & 0xFF] & 0xFF;
-                                int s01 = t[iterSource.getSample(xint + 1, yint, 0) & 0xFF] & 0xFF;
-                                int s10 = t[iterSource.getSample(xint, yint + 1, 0) & 0xFF] & 0xFF;
-                                int s11 = t[iterSource.getSample(xint + 1, yint + 1, 0) & 0xFF] & 0xFF;
-
-                                float s0 = (s01 - s00) * xfrac + s00;
-                                float s1 = (s11 - s10) * xfrac + s10;
-                                float s = (s1 - s0) * yfrac + s0;
-
-                                data[b][pixelOffset + bandOffsets[b]] = (byte) s;
+                                // Interpolation
+                                data[b][pixelOffset + bandOffsets[b]] = (byte) (bicubicCalculationInt(
+                                        b, iterSource, xint, yint, offsetX, offsetY, t) & 0xFF);
                             }
                         }
                         // next desination pixel
@@ -526,33 +635,32 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
+                            // X and Y offset initialization
+                            final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                            final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                             //
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00 = !roiTile.contains(xint, yint);
-                            final boolean w01 = !roiTile.contains(xint + 1, yint);
-                            final boolean w10 = !roiTile.contains(xint, yint + 1);
-                            final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
-                            if (w00 && w01 && w10 && w11) { // SG should not happen
-                                for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                            // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                            boolean inRoi = false;
+
+                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                    inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
                                 }
-                            } else {
+                            }
+                            if (inRoi) {
 
                                 for (int b = 0; b < dstBands; b++) {
                                     final byte[] t = ctable[b];
-
-                                    int s00 = t[iterSource.getSample(xint, yint, 0) & 0xFF] & 0xFF;
-                                    int s01 = t[iterSource.getSample(xint + 1, yint, 0) & 0xFF] & 0xFF;
-                                    int s10 = t[iterSource.getSample(xint, yint + 1, 0) & 0xFF] & 0xFF;
-                                    int s11 = t[iterSource.getSample(xint + 1, yint + 1, 0) & 0xFF] & 0xFF;
-
-                                    float s0 = (s01 - s00) * xfrac + s00;
-                                    float s1 = (s11 - s10) * xfrac + s10;
-                                    float s = (s1 - s0) * yfrac + s0;
-
-                                    data[b][pixelOffset + bandOffsets[b]] = (byte) s;
+                                    // Interpolation
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) (bicubicCalculationInt(
+                                            b, iterSource, xint, yint, offsetX, offsetY, t) & 0xFF);
+                                }
+                            } else {
+                                for (int b = 0; b < dstBands; b++) {
+                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
                                 }
                             }
                         }
@@ -563,6 +671,23 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // ROWS LOOP
                   // ONLY NODATA
             } else if (caseC) {
+                // Array used during calculations
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
+                long[] tempData;
+
+                // Value used in calculations
+                short weight = 0;
+                byte weightVert = 0;
+                byte temp = 0;
+
+                // Row temporary sum initialization
+                long tempSum = 0;
+                long sum = 0;
+                // final result initialization
+                long result = 0;
+
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -586,30 +711,70 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
+                            // X and Y offset initialization
+                            final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                            final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                             //
                             // NODATA
                             //
                             // checks with nodata
-
                             for (int b = 0; b < dstBands; b++) {
-
                                 final byte[] t = ctable[b];
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and check if every kernel pixel is a No Data
+                                for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                    for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                        // Selection of one pixel
+                                        int sample = t[iterSource
+                                                .getSample(xint + (i - 1), yint, 0) & 0xFF] & 0xFF;
+                                        pixelKernel[j][i] = sample;
+                                        if (booleanLookupTable[sample]) {
+                                            weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                            // weigjtArray[j][z] = 0;
+                                        } else {
+                                            // weigjtArray[j][z] = 1;
+                                            weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                        }
+                                    }
+                                    // Data elaboration for each line
+                                    temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                    tempData = bicubicInpainting(pixelKernel[j], temp, emptyArray);
 
-                                int s00 = t[iterSource.getSample(xint, yint, 0) & 0xFF] & 0xFF;
-                                int s01 = t[iterSource.getSample(xint + 1, yint, 0) & 0xFF] & 0xFF;
-                                int s10 = t[iterSource.getSample(xint, yint + 1, 0) & 0xFF] & 0xFF;
-                                int s11 = t[iterSource.getSample(xint + 1, yint + 1, 0) & 0xFF] & 0xFF;
+                                    tempSum = tempData[0] * dataHi[offsetX] + tempData[1]
+                                            * dataHi[offsetX + 1] + tempData[2]
+                                            * dataHi[offsetX + 2] + tempData[3]
+                                            * dataHi[offsetX + 3];
 
-                                final boolean w00 = booleanLookupTable[s00];
-                                final boolean w01 = booleanLookupTable[s01];
-                                final boolean w10 = booleanLookupTable[s10];
-                                final boolean w11 = booleanLookupTable[s11];
+                                    if (temp > 0) {
+                                        weightVert |= (1 << j);
+                                        // weigjtArrayVertical[j] = 1;
+                                    } else {
+                                        weightVert &= (0x0F - (1 << j));
+                                        // weigjtArrayVertical[j] = 0;
+                                    }
+                                    sumArray[j] = ((tempSum + round) >> precisionBits);
+                                }
 
-                                if (w00 && w01 && w10 && w11) {
+                                // Control if the 16 pixel are all No Data
+                                if (weight == 0) {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
                                 } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFF);
+
+                                    tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
+
+                                    // Vertical sum update
+                                    sum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                            * dataVi[offsetY + 1] + tempData[2]
+                                            * dataVi[offsetY + 2] + tempData[3]
+                                            * dataVi[offsetY + 3];
+
+                                    // Interpolation
+                                    result = ((sum + round) >> precisionBits);
+                                    weight = 0;
+                                    weightVert = 0;
+                                    sum = 0;
+
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                                 }
                             }
                         }
@@ -620,6 +785,22 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // ROWS LOOP
                   // BOTH ROI AND NODATA
             } else {
+                // Array used during calculations
+                final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+                long[] sumArray = new long[KERNEL_LINE_DIM];
+                long[] emptyArray = new long[KERNEL_LINE_DIM];
+                long[] tempData;
+
+                // Value used in calculations
+                short weight = 0;
+                byte weightVert = 0;
+                byte temp = 0;
+
+                // Row temporary sum initialization
+                long tempSum = 0;
+                long sum = 0;
+                // final result initialization
+                long result = 0;
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -643,43 +824,90 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
+                            // X and Y offset initialization
+                            final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                            final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                             //
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00Roi = !roiTile.contains(xint, yint);
-                            final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                            final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                            final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
-                            if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
+                            // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                            boolean inRoi = false;
+
+                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                    inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                                }
+                            }
+                            if (inRoi) {
+                                //
+                                // NODATA
+                                //
+                                // checks with nodata
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    final byte[] t = ctable[b];
+                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                    // and check if every kernel pixel is a No Data
+                                    for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                        for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                            // Selection of one pixel
+                                            int sample = t[iterSource.getSample(xint + (i - 1),
+                                                    yint, 0) & 0xFF] & 0xFF;
+                                            pixelKernel[j][i] = sample;
+                                            if (booleanLookupTable[sample]) {
+                                                weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                                // weigjtArray[j][z] = 0;
+                                            } else {
+                                                // weigjtArray[j][z] = 1;
+                                                weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                            }
+                                        }
+                                        // Data elaboration for each line
+                                        temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                        tempData = bicubicInpainting(pixelKernel[j], temp,
+                                                emptyArray);
+
+                                        tempSum = tempData[0] * dataHi[offsetX] + tempData[1]
+                                                * dataHi[offsetX + 1] + tempData[2]
+                                                * dataHi[offsetX + 2] + tempData[3]
+                                                * dataHi[offsetX + 3];
+
+                                        if (temp > 0) {
+                                            weightVert |= (1 << j);
+                                            // weigjtArrayVertical[j] = 1;
+                                        } else {
+                                            weightVert &= (0x0F - (1 << j));
+                                            // weigjtArrayVertical[j] = 0;
+                                        }
+                                        sumArray[j] = ((tempSum + round) >> precisionBits);
+                                    }
+
+                                    // Control if the 16 pixel are all No Data
+                                    if (weight == 0) {
+                                        data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    } else {
+
+                                        tempData = bicubicInpainting(sumArray, weightVert,
+                                                emptyArray);
+
+                                        // Vertical sum update
+                                        sum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                                * dataVi[offsetY + 1] + tempData[2]
+                                                * dataVi[offsetY + 2] + tempData[3]
+                                                * dataVi[offsetY + 3];
+
+                                        // Interpolation
+                                        result = ((sum + round) >> precisionBits);
+                                        weight = 0;
+                                        weightVert = 0;
+                                        sum = 0;
+
+                                        data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
+                                    }
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
-                                    //
-                                    // NODATA
-                                    //
-                                    // checks with nodata
-                                    final byte[] t = ctable[b];
-
-                                    int s00 = t[iterSource.getSample(xint, yint, 0) & 0xFF] & 0xFF;
-                                    int s01 = t[iterSource.getSample(xint + 1, yint, 0) & 0xFF] & 0xFF;
-                                    int s10 = t[iterSource.getSample(xint, yint + 1, 0) & 0xFF] & 0xFF;
-                                    int s11 = t[iterSource.getSample(xint + 1, yint + 1, 0) & 0xFF] & 0xFF;
-
-                                    final boolean w00 = booleanLookupTable[s00];
-                                    final boolean w01 = booleanLookupTable[s01];
-                                    final boolean w10 = booleanLookupTable[s10];
-                                    final boolean w11 = booleanLookupTable[s11];
-
-                                    if (w00 && w01 && w10 && w11) {
-                                        data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
-                                    } else {
-                                        data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
-                                                s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10,
-                                                w11) & 0xFF);
-                                    }
+                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
                                 }
                             }
                         }
@@ -723,6 +951,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
         int lineOffset = 0;
 
+        // source does not have IndexColorModel
         // ONLY VALID DATA
         if (caseA) {
             for (int h = 0; h < dstHeight; h++) {
@@ -748,20 +977,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // NO ROI
                         //
                         for (int b = 0; b < dstBands; b++) {
-                            int s00 = iterSource.getSample(xint, yint, b) & 0xFFFF;
-                            int s01 = iterSource.getSample(xint + 1, yint, b) & 0xFFFF;
-                            int s10 = iterSource.getSample(xint, yint + 1, b) & 0xFFFF;
-                            int s11 = iterSource.getSample(xint + 1, yint + 1, b) & 0xFFFF;
-
-                            float s0 = (s01 - s00) * xfrac + s00;
-                            float s1 = (s11 - s10) * xfrac + s10;
-                            float s = (s1 - s0) * yfrac + s0;
-
-                            data[b][pixelOffset + bandOffsets[b]] = (short) s;
+                            // Interpolation
+                            data[b][pixelOffset + bandOffsets[b]] = (short) (bicubicCalculationInt(
+                                    b, iterSource, xint, yint, offsetX, offsetY, null) & 0xFFFF);
                         }
                     }
                     // next desination pixel
@@ -793,31 +1018,31 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !roiTile.contains(xint, yint);
-                        final boolean w01 = !roiTile.contains(xint + 1, yint);
-                        final boolean w10 = !roiTile.contains(xint, yint + 1);
-                        final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
-                        if (w00 && w01 && w10 && w11) { // SG should not happen
+                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        boolean inRoi = false;
+
+                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            }
+                        }
+                        if (inRoi) {
+
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                // Interpolation
+                                data[b][pixelOffset + bandOffsets[b]] = (short) (bicubicCalculationInt(
+                                        b, iterSource, xint, yint, offsetX, offsetY, null) & 0xFFFF);
                             }
                         } else {
-
                             for (int b = 0; b < dstBands; b++) {
-                                int s00 = iterSource.getSample(xint, yint, b) & 0xFFFF;
-                                int s01 = iterSource.getSample(xint + 1, yint, b) & 0xFFFF;
-                                int s10 = iterSource.getSample(xint, yint + 1, b) & 0xFFFF;
-                                int s11 = iterSource.getSample(xint + 1, yint + 1, b) & 0xFFFF;
-
-                                float s0 = (s01 - s00) * xfrac + s00;
-                                float s1 = (s11 - s10) * xfrac + s10;
-                                float s = (s1 - s0) * yfrac + s0;
-
-                                data[b][pixelOffset + bandOffsets[b]] = (short) s;
+                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
                             }
                         }
                     }
@@ -828,6 +1053,23 @@ final class WarpBicubicOpImage extends WarpOpImage {
             } // ROWS LOOP
               // ONLY NODATA
         } else if (caseC) {
+            // Array used during calculations
+            final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            long[] sumArray = new long[KERNEL_LINE_DIM];
+            long[] emptyArray = new long[KERNEL_LINE_DIM];
+            long[] tempData;
+
+            // Value used in calculations
+            short weight = 0;
+            byte weightVert = 0;
+            byte temp = 0;
+
+            // Row temporary sum initialization
+            long tempSum = 0;
+            long sum = 0;
+            // final result initialization
+            long result = 0;
+
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -851,28 +1093,67 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // NODATA
                         //
                         // checks with nodata
-
                         for (int b = 0; b < dstBands; b++) {
 
-                            int s00 = iterSource.getSample(xint, yint, b) & 0xFFFF;
-                            int s01 = iterSource.getSample(xint + 1, yint, b) & 0xFFFF;
-                            int s10 = iterSource.getSample(xint, yint + 1, b) & 0xFFFF;
-                            int s11 = iterSource.getSample(xint + 1, yint + 1, b) & 0xFFFF;
+                            // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                            // and check if every kernel pixel is a No Data
+                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                    // Selection of one pixel
+                                    int sample = iterSource.getSample(xint + (i - 1), yint
+                                            + (j - 1), b) & 0xFFFF;
+                                    pixelKernel[j][i] = sample;
+                                    if (noDataRange.contains((short) sample)) {
+                                        weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                        // weigjtArray[j][z] = 0;
+                                    } else {
+                                        // weigjtArray[j][z] = 1;
+                                        weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                    }
+                                }
+                                // Data elaboration for each line
+                                temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                tempData = bicubicInpainting(pixelKernel[j], temp, emptyArray);
 
-                            final boolean w00 = noDataRange.contains((short) s00);
-                            final boolean w01 = noDataRange.contains((short) s01);
-                            final boolean w10 = noDataRange.contains((short) s10);
-                            final boolean w11 = noDataRange.contains((short) s11);
+                                tempSum = tempData[0] * dataHi[offsetX] + tempData[1]
+                                        * dataHi[offsetX + 1] + tempData[2] * dataHi[offsetX + 2]
+                                        + tempData[3] * dataHi[offsetX + 3];
 
-                            if (w00 && w01 && w10 && w11) {
+                                if (temp > 0) {
+                                    weightVert |= (1 << j);
+                                    // weigjtArrayVertical[j] = 1;
+                                } else {
+                                    weightVert &= (0x0F - (1 << j));
+                                    // weigjtArrayVertical[j] = 0;
+                                }
+                                sumArray[j] = ((tempSum + round) >> precisionBits);
+                            }
+
+                            // Control if the 16 pixel are all No Data
+                            if (weight == 0) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
                             } else {
-                                data[b][pixelOffset + bandOffsets[b]] = (short) ((int) computePoint(
-                                        s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFFFF);
+
+                                tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
+
+                                // Vertical sum update
+                                sum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                        * dataVi[offsetY + 1] + tempData[2] * dataVi[offsetY + 2]
+                                        + tempData[3] * dataVi[offsetY + 3];
+
+                                // Interpolation
+                                result = ((sum + round) >> precisionBits);
+                                weight = 0;
+                                weightVert = 0;
+                                sum = 0;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) (result & 0xFFFF);
                             }
                         }
                     }
@@ -883,6 +1164,22 @@ final class WarpBicubicOpImage extends WarpOpImage {
             } // ROWS LOOP
               // BOTH ROI AND NODATA
         } else {
+            // Array used during calculations
+            final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            long[] sumArray = new long[KERNEL_LINE_DIM];
+            long[] emptyArray = new long[KERNEL_LINE_DIM];
+            long[] tempData;
+
+            // Value used in calculations
+            short weight = 0;
+            byte weightVert = 0;
+            byte temp = 0;
+
+            // Row temporary sum initialization
+            long tempSum = 0;
+            long sum = 0;
+            // final result initialization
+            long result = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -906,40 +1203,87 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !roiTile.contains(xint, yint);
-                        final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                        final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                        final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
-                        if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
+                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        boolean inRoi = false;
+
+                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            }
+                        }
+                        if (inRoi) {
+                            //
+                            // NODATA
+                            //
+                            // checks with nodata
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and check if every kernel pixel is a No Data
+                                for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                    for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                        // Selection of one pixel
+                                        int sample = iterSource.getSample(xint + (i - 1), yint
+                                                + (j - 1), b) & 0xFFFF;
+                                        pixelKernel[j][i] = sample;
+                                        if (noDataRange.contains((short) sample)) {
+                                            weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                            // weigjtArray[j][z] = 0;
+                                        } else {
+                                            // weigjtArray[j][z] = 1;
+                                            weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                        }
+                                    }
+                                    // Data elaboration for each line
+                                    temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                    tempData = bicubicInpainting(pixelKernel[j], temp, emptyArray);
+
+                                    tempSum = tempData[0] * dataHi[offsetX] + tempData[1]
+                                            * dataHi[offsetX + 1] + tempData[2]
+                                            * dataHi[offsetX + 2] + tempData[3]
+                                            * dataHi[offsetX + 3];
+
+                                    if (temp > 0) {
+                                        weightVert |= (1 << j);
+                                        // weigjtArrayVertical[j] = 1;
+                                    } else {
+                                        weightVert &= (0x0F - (1 << j));
+                                        // weigjtArrayVertical[j] = 0;
+                                    }
+                                    sumArray[j] = ((tempSum + round) >> precisionBits);
+                                }
+
+                                // Control if the 16 pixel are all No Data
+                                if (weight == 0) {
+                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                } else {
+
+                                    tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
+
+                                    // Vertical sum update
+                                    sum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                            * dataVi[offsetY + 1] + tempData[2]
+                                            * dataVi[offsetY + 2] + tempData[3]
+                                            * dataVi[offsetY + 3];
+
+                                    // Interpolation
+                                    result = ((sum + round) >> precisionBits);
+                                    weight = 0;
+                                    weightVert = 0;
+                                    sum = 0;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short) (result & 0xFFFF);
+                                }
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                //
-                                // NODATA
-                                //
-                                // checks with nodata
-                                int s00 = iterSource.getSample(xint, yint, b) & 0xFFFF;
-                                int s01 = iterSource.getSample(xint + 1, yint, b) & 0xFFFF;
-                                int s10 = iterSource.getSample(xint, yint + 1, b) & 0xFFFF;
-                                int s11 = iterSource.getSample(xint + 1, yint + 1, b) & 0xFFFF;
-
-                                final boolean w00 = noDataRange.contains((short) s00);
-                                final boolean w01 = noDataRange.contains((short) s01);
-                                final boolean w10 = noDataRange.contains((short) s10);
-                                final boolean w11 = noDataRange.contains((short) s11);
-
-                                if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
-                                } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (short) ((int) computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFFFF);
-                                }
+                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
                             }
                         }
                     }
@@ -948,7 +1292,6 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
         }
-
         iterSource.done();
     }
 
@@ -982,6 +1325,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
         int lineOffset = 0;
 
+        // source does not have IndexColorModel
         // ONLY VALID DATA
         if (caseA) {
             for (int h = 0; h < dstHeight; h++) {
@@ -1007,20 +1351,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // NO ROI
                         //
                         for (int b = 0; b < dstBands; b++) {
-                            int s00 = iterSource.getSample(xint, yint, b);
-                            int s01 = iterSource.getSample(xint + 1, yint, b);
-                            int s10 = iterSource.getSample(xint, yint + 1, b);
-                            int s11 = iterSource.getSample(xint + 1, yint + 1, b);
-
-                            float s0 = (s01 - s00) * xfrac + s00;
-                            float s1 = (s11 - s10) * xfrac + s10;
-                            float s = (s1 - s0) * yfrac + s0;
-
-                            data[b][pixelOffset + bandOffsets[b]] = (short) s;
+                            // Interpolation
+                            data[b][pixelOffset + bandOffsets[b]] = (short) (bicubicCalculationInt(
+                                    b, iterSource, xint, yint, offsetX, offsetY, null));
                         }
                     }
                     // next desination pixel
@@ -1052,31 +1392,31 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !roiTile.contains(xint, yint);
-                        final boolean w01 = !roiTile.contains(xint + 1, yint);
-                        final boolean w10 = !roiTile.contains(xint, yint + 1);
-                        final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
-                        if (w00 && w01 && w10 && w11) { // SG should not happen
+                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        boolean inRoi = false;
+
+                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            }
+                        }
+                        if (inRoi) {
+
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                // Interpolation
+                                data[b][pixelOffset + bandOffsets[b]] = (short) (bicubicCalculationInt(
+                                        b, iterSource, xint, yint, offsetX, offsetY, null));
                             }
                         } else {
-
                             for (int b = 0; b < dstBands; b++) {
-                                int s00 = iterSource.getSample(xint, yint, b);
-                                int s01 = iterSource.getSample(xint + 1, yint, b);
-                                int s10 = iterSource.getSample(xint, yint + 1, b);
-                                int s11 = iterSource.getSample(xint + 1, yint + 1, b);
-
-                                float s0 = (s01 - s00) * xfrac + s00;
-                                float s1 = (s11 - s10) * xfrac + s10;
-                                float s = (s1 - s0) * yfrac + s0;
-
-                                data[b][pixelOffset + bandOffsets[b]] = (short) s;
+                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
                             }
                         }
                     }
@@ -1087,6 +1427,23 @@ final class WarpBicubicOpImage extends WarpOpImage {
             } // ROWS LOOP
               // ONLY NODATA
         } else if (caseC) {
+            // Array used during calculations
+            final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            long[] sumArray = new long[KERNEL_LINE_DIM];
+            long[] emptyArray = new long[KERNEL_LINE_DIM];
+            long[] tempData;
+
+            // Value used in calculations
+            short weight = 0;
+            byte weightVert = 0;
+            byte temp = 0;
+
+            // Row temporary sum initialization
+            long tempSum = 0;
+            long sum = 0;
+            // final result initialization
+            long result = 0;
+
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1110,28 +1467,67 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // NODATA
                         //
                         // checks with nodata
-
                         for (int b = 0; b < dstBands; b++) {
 
-                            int s00 = iterSource.getSample(xint, yint, b);
-                            int s01 = iterSource.getSample(xint + 1, yint, b);
-                            int s10 = iterSource.getSample(xint, yint + 1, b);
-                            int s11 = iterSource.getSample(xint + 1, yint + 1, b);
+                            // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                            // and check if every kernel pixel is a No Data
+                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                    // Selection of one pixel
+                                    int sample = iterSource.getSample(xint + (i - 1), yint
+                                            + (j - 1), b);
+                                    pixelKernel[j][i] = sample;
+                                    if (noDataRange.contains((short) sample)) {
+                                        weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                        // weigjtArray[j][z] = 0;
+                                    } else {
+                                        // weigjtArray[j][z] = 1;
+                                        weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                    }
+                                }
+                                // Data elaboration for each line
+                                temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                tempData = bicubicInpainting(pixelKernel[j], temp, emptyArray);
 
-                            final boolean w00 = noDataRange.contains((short) s00);
-                            final boolean w01 = noDataRange.contains((short) s01);
-                            final boolean w10 = noDataRange.contains((short) s10);
-                            final boolean w11 = noDataRange.contains((short) s11);
+                                tempSum = tempData[0] * dataHi[offsetX] + tempData[1]
+                                        * dataHi[offsetX + 1] + tempData[2] * dataHi[offsetX + 2]
+                                        + tempData[3] * dataHi[offsetX + 3];
 
-                            if (w00 && w01 && w10 && w11) {
+                                if (temp > 0) {
+                                    weightVert |= (1 << j);
+                                    // weigjtArrayVertical[j] = 1;
+                                } else {
+                                    weightVert &= (0x0F - (1 << j));
+                                    // weigjtArrayVertical[j] = 0;
+                                }
+                                sumArray[j] = ((tempSum + round) >> precisionBits);
+                            }
+
+                            // Control if the 16 pixel are all No Data
+                            if (weight == 0) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
                             } else {
-                                data[b][pixelOffset + bandOffsets[b]] = (short) (computePoint(s00,
-                                        s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+
+                                tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
+
+                                // Vertical sum update
+                                sum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                        * dataVi[offsetY + 1] + tempData[2] * dataVi[offsetY + 2]
+                                        + tempData[3] * dataVi[offsetY + 3];
+
+                                // Interpolation
+                                result = ((sum + round) >> precisionBits);
+                                weight = 0;
+                                weightVert = 0;
+                                sum = 0;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) (result);
                             }
                         }
                     }
@@ -1142,6 +1538,22 @@ final class WarpBicubicOpImage extends WarpOpImage {
             } // ROWS LOOP
               // BOTH ROI AND NODATA
         } else {
+            // Array used during calculations
+            final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            long[] sumArray = new long[KERNEL_LINE_DIM];
+            long[] emptyArray = new long[KERNEL_LINE_DIM];
+            long[] tempData;
+
+            // Value used in calculations
+            short weight = 0;
+            byte weightVert = 0;
+            byte temp = 0;
+
+            // Row temporary sum initialization
+            long tempSum = 0;
+            long sum = 0;
+            // final result initialization
+            long result = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1165,40 +1577,87 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !roiTile.contains(xint, yint);
-                        final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                        final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                        final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
-                        if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
+                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        boolean inRoi = false;
+
+                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            }
+                        }
+                        if (inRoi) {
+                            //
+                            // NODATA
+                            //
+                            // checks with nodata
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and check if every kernel pixel is a No Data
+                                for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                    for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                        // Selection of one pixel
+                                        int sample = iterSource.getSample(xint + (i - 1), yint
+                                                + (j - 1), b);
+                                        pixelKernel[j][i] = sample;
+                                        if (noDataRange.contains((short) sample)) {
+                                            weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                            // weigjtArray[j][z] = 0;
+                                        } else {
+                                            // weigjtArray[j][z] = 1;
+                                            weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                        }
+                                    }
+                                    // Data elaboration for each line
+                                    temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                    tempData = bicubicInpainting(pixelKernel[j], temp, emptyArray);
+
+                                    tempSum = tempData[0] * dataHi[offsetX] + tempData[1]
+                                            * dataHi[offsetX + 1] + tempData[2]
+                                            * dataHi[offsetX + 2] + tempData[3]
+                                            * dataHi[offsetX + 3];
+
+                                    if (temp > 0) {
+                                        weightVert |= (1 << j);
+                                        // weigjtArrayVertical[j] = 1;
+                                    } else {
+                                        weightVert &= (0x0F - (1 << j));
+                                        // weigjtArrayVertical[j] = 0;
+                                    }
+                                    sumArray[j] = ((tempSum + round) >> precisionBits);
+                                }
+
+                                // Control if the 16 pixel are all No Data
+                                if (weight == 0) {
+                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                } else {
+
+                                    tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
+
+                                    // Vertical sum update
+                                    sum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                            * dataVi[offsetY + 1] + tempData[2]
+                                            * dataVi[offsetY + 2] + tempData[3]
+                                            * dataVi[offsetY + 3];
+
+                                    // Interpolation
+                                    result = ((sum + round) >> precisionBits);
+                                    weight = 0;
+                                    weightVert = 0;
+                                    sum = 0;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short) (result);
+                                }
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                //
-                                // NODATA
-                                //
-                                // checks with nodata
-                                int s00 = iterSource.getSample(xint, yint, b);
-                                int s01 = iterSource.getSample(xint + 1, yint, b);
-                                int s10 = iterSource.getSample(xint, yint + 1, b);
-                                int s11 = iterSource.getSample(xint + 1, yint + 1, b);
-
-                                final boolean w00 = noDataRange.contains((short) s00);
-                                final boolean w01 = noDataRange.contains((short) s01);
-                                final boolean w10 = noDataRange.contains((short) s10);
-                                final boolean w11 = noDataRange.contains((short) s11);
-
-                                if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
-                                } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (short) (computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
-                                }
+                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
                             }
                         }
                     }
@@ -1207,7 +1666,6 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
         }
-
         iterSource.done();
     }
 
@@ -1240,6 +1698,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
         int lineOffset = 0;
 
+        // source does not have IndexColorModel
         // ONLY VALID DATA
         if (caseA) {
             for (int h = 0; h < dstHeight; h++) {
@@ -1265,20 +1724,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // NO ROI
                         //
                         for (int b = 0; b < dstBands; b++) {
-                            int s00 = iterSource.getSample(xint, yint, b);
-                            int s01 = iterSource.getSample(xint + 1, yint, b);
-                            int s10 = iterSource.getSample(xint, yint + 1, b);
-                            int s11 = iterSource.getSample(xint + 1, yint + 1, b);
-
-                            float s0 = (s01 - s00) * xfrac + s00;
-                            float s1 = (s11 - s10) * xfrac + s10;
-                            float s = (s1 - s0) * yfrac + s0;
-
-                            data[b][pixelOffset + bandOffsets[b]] = (int) s;
+                            // Interpolation
+                            data[b][pixelOffset + bandOffsets[b]] = (int) (bicubicCalculationInt(b,
+                                    iterSource, xint, yint, offsetX, offsetY, null));
                         }
                     }
                     // next desination pixel
@@ -1310,31 +1765,31 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !roiTile.contains(xint, yint);
-                        final boolean w01 = !roiTile.contains(xint + 1, yint);
-                        final boolean w10 = !roiTile.contains(xint, yint + 1);
-                        final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
-                        if (w00 && w01 && w10 && w11) { // SG should not happen
+                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        boolean inRoi = false;
+
+                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            }
+                        }
+                        if (inRoi) {
+
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                // Interpolation
+                                data[b][pixelOffset + bandOffsets[b]] = (int) (bicubicCalculationInt(
+                                        b, iterSource, xint, yint, offsetX, offsetY, null));
                             }
                         } else {
-
                             for (int b = 0; b < dstBands; b++) {
-                                int s00 = iterSource.getSample(xint, yint, b);
-                                int s01 = iterSource.getSample(xint + 1, yint, b);
-                                int s10 = iterSource.getSample(xint, yint + 1, b);
-                                int s11 = iterSource.getSample(xint + 1, yint + 1, b);
-
-                                float s0 = (s01 - s00) * xfrac + s00;
-                                float s1 = (s11 - s10) * xfrac + s10;
-                                float s = (s1 - s0) * yfrac + s0;
-
-                                data[b][pixelOffset + bandOffsets[b]] = (int) s;
+                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
                             }
                         }
                     }
@@ -1345,6 +1800,23 @@ final class WarpBicubicOpImage extends WarpOpImage {
             } // ROWS LOOP
               // ONLY NODATA
         } else if (caseC) {
+            // Array used during calculations
+            final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            long[] sumArray = new long[KERNEL_LINE_DIM];
+            long[] emptyArray = new long[KERNEL_LINE_DIM];
+            long[] tempData;
+
+            // Value used in calculations
+            short weight = 0;
+            byte weightVert = 0;
+            byte temp = 0;
+
+            // Row temporary sum initialization
+            long tempSum = 0;
+            long sum = 0;
+            // final result initialization
+            long result = 0;
+
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1368,28 +1840,67 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // NODATA
                         //
                         // checks with nodata
-
                         for (int b = 0; b < dstBands; b++) {
 
-                            int s00 = iterSource.getSample(xint, yint, b);
-                            int s01 = iterSource.getSample(xint + 1, yint, b);
-                            int s10 = iterSource.getSample(xint, yint + 1, b);
-                            int s11 = iterSource.getSample(xint + 1, yint + 1, b);
+                            // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                            // and check if every kernel pixel is a No Data
+                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                    // Selection of one pixel
+                                    int sample = iterSource.getSample(xint + (i - 1), yint
+                                            + (j - 1), b);
+                                    pixelKernel[j][i] = sample;
+                                    if (noDataRange.contains(sample)) {
+                                        weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                        // weigjtArray[j][z] = 0;
+                                    } else {
+                                        // weigjtArray[j][z] = 1;
+                                        weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                    }
+                                }
+                                // Data elaboration for each line
+                                temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                tempData = bicubicInpainting(pixelKernel[j], temp, emptyArray);
 
-                            final boolean w00 = noDataRange.contains(s00);
-                            final boolean w01 = noDataRange.contains(s01);
-                            final boolean w10 = noDataRange.contains(s10);
-                            final boolean w11 = noDataRange.contains(s11);
+                                tempSum = tempData[0] * dataHi[offsetX] + tempData[1]
+                                        * dataHi[offsetX + 1] + tempData[2] * dataHi[offsetX + 2]
+                                        + tempData[3] * dataHi[offsetX + 3];
 
-                            if (w00 && w01 && w10 && w11) {
+                                if (temp > 0) {
+                                    weightVert |= (1 << j);
+                                    // weigjtArrayVertical[j] = 1;
+                                } else {
+                                    weightVert &= (0x0F - (1 << j));
+                                    // weigjtArrayVertical[j] = 0;
+                                }
+                                sumArray[j] = ((tempSum + round) >> precisionBits);
+                            }
+
+                            // Control if the 16 pixel are all No Data
+                            if (weight == 0) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
                             } else {
-                                data[b][pixelOffset + bandOffsets[b]] = ((int) computePoint(s00,
-                                        s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+
+                                tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
+
+                                // Vertical sum update
+                                sum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                        * dataVi[offsetY + 1] + tempData[2] * dataVi[offsetY + 2]
+                                        + tempData[3] * dataVi[offsetY + 3];
+
+                                // Interpolation
+                                result = ((sum + round) >> precisionBits);
+                                weight = 0;
+                                weightVert = 0;
+                                sum = 0;
+                                data[b][pixelOffset + bandOffsets[b]] = (int) (result);
                             }
                         }
                     }
@@ -1400,6 +1911,22 @@ final class WarpBicubicOpImage extends WarpOpImage {
             } // ROWS LOOP
               // BOTH ROI AND NODATA
         } else {
+            // Array used during calculations
+            final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            long[] sumArray = new long[KERNEL_LINE_DIM];
+            long[] emptyArray = new long[KERNEL_LINE_DIM];
+            long[] tempData;
+
+            // Value used in calculations
+            short weight = 0;
+            byte weightVert = 0;
+            byte temp = 0;
+
+            // Row temporary sum initialization
+            long tempSum = 0;
+            long sum = 0;
+            // final result initialization
+            long result = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1423,40 +1950,87 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !roiTile.contains(xint, yint);
-                        final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                        final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                        final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
-                        if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
+                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        boolean inRoi = false;
+
+                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            }
+                        }
+                        if (inRoi) {
+                            //
+                            // NODATA
+                            //
+                            // checks with nodata
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and check if every kernel pixel is a No Data
+                                for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                    for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                        // Selection of one pixel
+                                        int sample = iterSource.getSample(xint + (i - 1), yint
+                                                + (j - 1), b);
+                                        pixelKernel[j][i] = sample;
+                                        if (noDataRange.contains(sample)) {
+                                            weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                            // weigjtArray[j][z] = 0;
+                                        } else {
+                                            // weigjtArray[j][z] = 1;
+                                            weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                        }
+                                    }
+                                    // Data elaboration for each line
+                                    temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                    tempData = bicubicInpainting(pixelKernel[j], temp, emptyArray);
+
+                                    tempSum = tempData[0] * dataHi[offsetX] + tempData[1]
+                                            * dataHi[offsetX + 1] + tempData[2]
+                                            * dataHi[offsetX + 2] + tempData[3]
+                                            * dataHi[offsetX + 3];
+
+                                    if (temp > 0) {
+                                        weightVert |= (1 << j);
+                                        // weigjtArrayVertical[j] = 1;
+                                    } else {
+                                        weightVert &= (0x0F - (1 << j));
+                                        // weigjtArrayVertical[j] = 0;
+                                    }
+                                    sumArray[j] = ((tempSum + round) >> precisionBits);
+                                }
+
+                                // Control if the 16 pixel are all No Data
+                                if (weight == 0) {
+                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                } else {
+
+                                    tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
+
+                                    // Vertical sum update
+                                    sum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                            * dataVi[offsetY + 1] + tempData[2]
+                                            * dataVi[offsetY + 2] + tempData[3]
+                                            * dataVi[offsetY + 3];
+
+                                    // Interpolation
+                                    result = ((sum + round) >> precisionBits);
+                                    weight = 0;
+                                    weightVert = 0;
+                                    sum = 0;
+                                    data[b][pixelOffset + bandOffsets[b]] = (int) (result);
+                                }
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                //
-                                // NODATA
-                                //
-                                // checks with nodata
-                                int s00 = iterSource.getSample(xint, yint, b);
-                                int s01 = iterSource.getSample(xint + 1, yint, b);
-                                int s10 = iterSource.getSample(xint, yint + 1, b);
-                                int s11 = iterSource.getSample(xint + 1, yint + 1, b);
-
-                                final boolean w00 = noDataRange.contains(s00);
-                                final boolean w01 = noDataRange.contains(s01);
-                                final boolean w10 = noDataRange.contains(s10);
-                                final boolean w11 = noDataRange.contains(s11);
-
-                                if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
-                                } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = ((int) computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
-                                }
+                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
                             }
                         }
                     }
@@ -1465,12 +2039,12 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
         }
-
         iterSource.done();
     }
 
     protected void computeRectFloat(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
+
         RandomIter iterSource;
         if (extended) {
             final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
@@ -1498,6 +2072,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
         int lineOffset = 0;
 
+        // source does not have IndexColorModel
         // ONLY VALID DATA
         if (caseA) {
             for (int h = 0; h < dstHeight; h++) {
@@ -1523,20 +2098,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // NO ROI
                         //
                         for (int b = 0; b < dstBands; b++) {
-                            float s00 = iterSource.getSampleFloat(xint, yint, b);
-                            float s01 = iterSource.getSampleFloat(xint + 1, yint, b);
-                            float s10 = iterSource.getSampleFloat(xint, yint + 1, b);
-                            float s11 = iterSource.getSampleFloat(xint + 1, yint + 1, b);
-
-                            float s0 = (s01 - s00) * xfrac + s00;
-                            float s1 = (s11 - s10) * xfrac + s10;
-                            float s = (s1 - s0) * yfrac + s0;
-
-                            data[b][pixelOffset + bandOffsets[b]] = s;
+                            // Interpolation
+                            data[b][pixelOffset + bandOffsets[b]] = bicubicCalculationFloat(
+                                    b, iterSource, xint, yint, offsetX, offsetY);
                         }
                     }
                     // next desination pixel
@@ -1568,31 +2139,31 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !roiTile.contains(xint, yint);
-                        final boolean w01 = !roiTile.contains(xint + 1, yint);
-                        final boolean w10 = !roiTile.contains(xint, yint + 1);
-                        final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
-                        if (w00 && w01 && w10 && w11) { // SG should not happen
+                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        boolean inRoi = false;
+
+                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            }
+                        }
+                        if (inRoi) {
+
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                // Interpolation
+                                data[b][pixelOffset + bandOffsets[b]] = bicubicCalculationFloat(
+                                        b, iterSource, xint, yint, offsetX, offsetY);
                             }
                         } else {
-
                             for (int b = 0; b < dstBands; b++) {
-                                float s00 = iterSource.getSampleFloat(xint, yint, b);
-                                float s01 = iterSource.getSampleFloat(xint + 1, yint, b);
-                                float s10 = iterSource.getSampleFloat(xint, yint + 1, b);
-                                float s11 = iterSource.getSampleFloat(xint + 1, yint + 1, b);
-
-                                float s0 = (s01 - s00) * xfrac + s00;
-                                float s1 = (s11 - s10) * xfrac + s10;
-                                float s = (s1 - s0) * yfrac + s0;
-
-                                data[b][pixelOffset + bandOffsets[b]] = s;
+                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
                             }
                         }
                     }
@@ -1603,6 +2174,21 @@ final class WarpBicubicOpImage extends WarpOpImage {
             } // ROWS LOOP
               // ONLY NODATA
         } else if (caseC) {
+            // Array used during calculations
+            final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            double[] sumArray = new double[KERNEL_LINE_DIM];
+            double[] emptyArray = new double[KERNEL_LINE_DIM];
+            double[] tempData;
+
+            // Value used in calculations
+            short weight = 0;
+            byte weightVert = 0;
+            byte temp = 0;
+
+            // Row temporary sum initialization
+            double tempSum = 0;
+            double sum = 0;
+
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1626,28 +2212,65 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // NODATA
                         //
                         // checks with nodata
-
                         for (int b = 0; b < dstBands; b++) {
 
-                            float s00 = iterSource.getSampleFloat(xint, yint, b);
-                            float s01 = iterSource.getSampleFloat(xint + 1, yint, b);
-                            float s10 = iterSource.getSampleFloat(xint, yint + 1, b);
-                            float s11 = iterSource.getSampleFloat(xint + 1, yint + 1, b);
+                            // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                            // and check if every kernel pixel is a No Data
+                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                    // Selection of one pixel
+                                    float sample = iterSource.getSampleFloat(xint + (i - 1), yint
+                                            + (j - 1), b);
+                                    pixelKernel[j][i] = sample;
+                                    if (noDataRange.contains(sample)) {
+                                        weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                        // weigjtArray[j][z] = 0;
+                                    } else {
+                                        // weigjtArray[j][z] = 1;
+                                        weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                    }
+                                }
+                                // Data elaboration for each line
+                                temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                tempData = bicubicInpaintingDouble(pixelKernel[j], temp, emptyArray);
 
-                            final boolean w00 = noDataRange.contains(s00);
-                            final boolean w01 = noDataRange.contains(s01);
-                            final boolean w10 = noDataRange.contains(s10);
-                            final boolean w11 = noDataRange.contains(s11);
+                                tempSum = tempData[0] * dataHf[offsetX] + tempData[1]
+                                        * dataHf[offsetX + 1] + tempData[2] * dataHf[offsetX + 2]
+                                        + tempData[3] * dataHf[offsetX + 3];
 
-                            if (w00 && w01 && w10 && w11) {
+                                if (temp > 0) {
+                                    weightVert |= (1 << j);
+                                    // weigjtArrayVertical[j] = 1;
+                                } else {
+                                    weightVert &= (0x0F - (1 << j));
+                                    // weigjtArrayVertical[j] = 0;
+                                }
+                                sumArray[j] = tempSum;
+                            }
+
+                            // Control if the 16 pixel are all No Data
+                            if (weight == 0) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
                             } else {
-                                data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(s00,
-                                        s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+
+                                tempData = bicubicInpaintingDouble(sumArray, weightVert, emptyArray);
+
+                                // Vertical sum update
+                                sum = tempData[0] * dataVf[offsetY] + tempData[1]
+                                        * dataVf[offsetY + 1] + tempData[2] * dataVf[offsetY + 2]
+                                        + tempData[3] * dataVf[offsetY + 3];
+
+                                // Interpolation
+                                weight = 0;
+                                weightVert = 0;
+                                data[b][pixelOffset + bandOffsets[b]] = (float) sum;
                             }
                         }
                     }
@@ -1658,6 +2281,20 @@ final class WarpBicubicOpImage extends WarpOpImage {
             } // ROWS LOOP
               // BOTH ROI AND NODATA
         } else {
+            // Array used during calculations
+            final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            double[] sumArray = new double[KERNEL_LINE_DIM];
+            double[] emptyArray = new double[KERNEL_LINE_DIM];
+            double[] tempData;
+
+            // Value used in calculations
+            short weight = 0;
+            byte weightVert = 0;
+            byte temp = 0;
+
+            // Row temporary sum initialization
+            double tempSum = 0;
+            double sum = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1681,40 +2318,85 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !roiTile.contains(xint, yint);
-                        final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                        final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                        final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
-                        if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
+                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        boolean inRoi = false;
+
+                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            }
+                        }
+                        if (inRoi) {
+                            //
+                            // NODATA
+                            //
+                            // checks with nodata
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and check if every kernel pixel is a No Data
+                                for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                    for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                        // Selection of one pixel
+                                        float sample = iterSource.getSampleFloat(xint + (i - 1), yint
+                                                + (j - 1), b);
+                                        pixelKernel[j][i] = sample;
+                                        if (noDataRange.contains(sample)) {
+                                            weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                            // weigjtArray[j][z] = 0;
+                                        } else {
+                                            // weigjtArray[j][z] = 1;
+                                            weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                        }
+                                    }
+                                    // Data elaboration for each line
+                                    temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                    tempData = bicubicInpaintingDouble(pixelKernel[j], temp, emptyArray);
+
+                                    tempSum = tempData[0] * dataHf[offsetX] + tempData[1]
+                                            * dataHf[offsetX + 1] + tempData[2]
+                                            * dataHf[offsetX + 2] + tempData[3]
+                                            * dataHf[offsetX + 3];
+
+                                    if (temp > 0) {
+                                        weightVert |= (1 << j);
+                                        // weigjtArrayVertical[j] = 1;
+                                    } else {
+                                        weightVert &= (0x0F - (1 << j));
+                                        // weigjtArrayVertical[j] = 0;
+                                    }
+                                    sumArray[j] = tempSum;
+                                }
+
+                                // Control if the 16 pixel are all No Data
+                                if (weight == 0) {
+                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                } else {
+
+                                    tempData = bicubicInpaintingDouble(sumArray, weightVert, emptyArray);
+
+                                    // Vertical sum update
+                                    sum = tempData[0] * dataVf[offsetY] + tempData[1]
+                                            * dataVf[offsetY + 1] + tempData[2]
+                                            * dataVf[offsetY + 2] + tempData[3]
+                                            * dataVf[offsetY + 3];
+
+                                    // Interpolation
+                                    weight = 0;
+                                    weightVert = 0;
+                                    data[b][pixelOffset + bandOffsets[b]] = (float) sum;
+                                }
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                //
-                                // NODATA
-                                //
-                                // checks with nodata
-                                float s00 = iterSource.getSampleFloat(xint, yint, b);
-                                float s01 = iterSource.getSampleFloat(xint + 1, yint, b);
-                                float s10 = iterSource.getSampleFloat(xint, yint + 1, b);
-                                float s11 = iterSource.getSampleFloat(xint + 1, yint + 1, b);
-
-                                final boolean w00 = noDataRange.contains(s00);
-                                final boolean w01 = noDataRange.contains(s01);
-                                final boolean w10 = noDataRange.contains(s10);
-                                final boolean w11 = noDataRange.contains(s11);
-
-                                if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
-                                } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
-                                }
+                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
                             }
                         }
                     }
@@ -1756,6 +2438,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
         int lineOffset = 0;
 
+        // source does not have IndexColorModel
         // ONLY VALID DATA
         if (caseA) {
             for (int h = 0; h < dstHeight; h++) {
@@ -1781,20 +2464,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // NO ROI
                         //
                         for (int b = 0; b < dstBands; b++) {
-                            double s00 = iterSource.getSampleDouble(xint, yint, b);
-                            double s01 = iterSource.getSampleDouble(xint + 1, yint, b);
-                            double s10 = iterSource.getSampleDouble(xint, yint + 1, b);
-                            double s11 = iterSource.getSampleDouble(xint + 1, yint + 1, b);
-
-                            double s0 = (s01 - s00) * xfrac + s00;
-                            double s1 = (s11 - s10) * xfrac + s10;
-                            double s = (s1 - s0) * yfrac + s0;
-
-                            data[b][pixelOffset + bandOffsets[b]] = s;
+                            // Interpolation
+                            data[b][pixelOffset + bandOffsets[b]] = bicubicCalculationDouble(
+                                    b, iterSource, xint, yint, offsetX, offsetY);
                         }
                     }
                     // next desination pixel
@@ -1826,31 +2505,31 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !roiTile.contains(xint, yint);
-                        final boolean w01 = !roiTile.contains(xint + 1, yint);
-                        final boolean w10 = !roiTile.contains(xint, yint + 1);
-                        final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
-                        if (w00 && w01 && w10 && w11) { // SG should not happen
+                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        boolean inRoi = false;
+
+                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            }
+                        }
+                        if (inRoi) {
+
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                // Interpolation
+                                data[b][pixelOffset + bandOffsets[b]] = bicubicCalculationDouble(
+                                        b, iterSource, xint, yint, offsetX, offsetY);
                             }
                         } else {
-
                             for (int b = 0; b < dstBands; b++) {
-                                double s00 = iterSource.getSampleDouble(xint, yint, b);
-                                double s01 = iterSource.getSampleDouble(xint + 1, yint, b);
-                                double s10 = iterSource.getSampleDouble(xint, yint + 1, b);
-                                double s11 = iterSource.getSampleDouble(xint + 1, yint + 1, b);
-
-                                double s0 = (s01 - s00) * xfrac + s00;
-                                double s1 = (s11 - s10) * xfrac + s10;
-                                double s = (s1 - s0) * yfrac + s0;
-
-                                data[b][pixelOffset + bandOffsets[b]] = s;
+                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
                             }
                         }
                     }
@@ -1861,6 +2540,21 @@ final class WarpBicubicOpImage extends WarpOpImage {
             } // ROWS LOOP
               // ONLY NODATA
         } else if (caseC) {
+            // Array used during calculations
+            final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            double[] sumArray = new double[KERNEL_LINE_DIM];
+            double[] emptyArray = new double[KERNEL_LINE_DIM];
+            double[] tempData;
+
+            // Value used in calculations
+            short weight = 0;
+            byte weightVert = 0;
+            byte temp = 0;
+
+            // Row temporary sum initialization
+            double tempSum = 0;
+            double sum = 0;
+
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1884,28 +2578,65 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // NODATA
                         //
                         // checks with nodata
-
                         for (int b = 0; b < dstBands; b++) {
 
-                            double s00 = iterSource.getSampleDouble(xint, yint, b);
-                            double s01 = iterSource.getSampleDouble(xint + 1, yint, b);
-                            double s10 = iterSource.getSampleDouble(xint, yint + 1, b);
-                            double s11 = iterSource.getSampleDouble(xint + 1, yint + 1, b);
+                            // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                            // and check if every kernel pixel is a No Data
+                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                    // Selection of one pixel
+                                    double sample = iterSource.getSampleDouble(xint + (i - 1), yint
+                                            + (j - 1), b);
+                                    pixelKernel[j][i] = sample;
+                                    if (noDataRange.contains(sample)) {
+                                        weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                        // weigjtArray[j][z] = 0;
+                                    } else {
+                                        // weigjtArray[j][z] = 1;
+                                        weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                    }
+                                }
+                                // Data elaboration for each line
+                                temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                tempData = bicubicInpaintingDouble(pixelKernel[j], temp, emptyArray);
 
-                            final boolean w00 = noDataRange.contains(s00);
-                            final boolean w01 = noDataRange.contains(s01);
-                            final boolean w10 = noDataRange.contains(s10);
-                            final boolean w11 = noDataRange.contains(s11);
+                                tempSum = tempData[0] * dataHd[offsetX] + tempData[1]
+                                        * dataHd[offsetX + 1] + tempData[2] * dataHd[offsetX + 2]
+                                        + tempData[3] * dataHd[offsetX + 3];
 
-                            if (w00 && w01 && w10 && w11) {
+                                if (temp > 0) {
+                                    weightVert |= (1 << j);
+                                    // weigjtArrayVertical[j] = 1;
+                                } else {
+                                    weightVert &= (0x0F - (1 << j));
+                                    // weigjtArrayVertical[j] = 0;
+                                }
+                                sumArray[j] = tempSum;
+                            }
+
+                            // Control if the 16 pixel are all No Data
+                            if (weight == 0) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
                             } else {
-                                data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(s00,
-                                        s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+
+                                tempData = bicubicInpaintingDouble(sumArray, weightVert, emptyArray);
+
+                                // Vertical sum update
+                                sum = tempData[0] * dataVd[offsetY] + tempData[1]
+                                        * dataVd[offsetY + 1] + tempData[2] * dataVd[offsetY + 2]
+                                        + tempData[3] * dataVd[offsetY + 3];
+
+                                // Interpolation
+                                weight = 0;
+                                weightVert = 0;
+                                data[b][pixelOffset + bandOffsets[b]] = (float) sum;
                             }
                         }
                     }
@@ -1916,6 +2647,20 @@ final class WarpBicubicOpImage extends WarpOpImage {
             } // ROWS LOOP
               // BOTH ROI AND NODATA
         } else {
+            // Array used during calculations
+            final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
+            double[] sumArray = new double[KERNEL_LINE_DIM];
+            double[] emptyArray = new double[KERNEL_LINE_DIM];
+            double[] tempData;
+
+            // Value used in calculations
+            short weight = 0;
+            byte weightVert = 0;
+            byte temp = 0;
+
+            // Row temporary sum initialization
+            double tempSum = 0;
+            double sum = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1939,40 +2684,85 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // X and Y offset initialization
+                        final int offsetX = KERNEL_LINE_DIM * (int) (shift * xfrac);
+                        final int offsetY = KERNEL_LINE_DIM * (int) (shift * yfrac);
                         //
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !roiTile.contains(xint, yint);
-                        final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                        final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                        final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
-                        if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
+                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        boolean inRoi = false;
+
+                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            }
+                        }
+                        if (inRoi) {
+                            //
+                            // NODATA
+                            //
+                            // checks with nodata
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and check if every kernel pixel is a No Data
+                                for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                                    for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                                        // Selection of one pixel
+                                        double sample = iterSource.getSampleDouble(xint + (i - 1), yint
+                                                + (j - 1), b);
+                                        pixelKernel[j][i] = sample;
+                                        if (noDataRange.contains(sample)) {
+                                            weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
+                                            // weigjtArray[j][z] = 0;
+                                        } else {
+                                            // weigjtArray[j][z] = 1;
+                                            weight |= (1 << (KERNEL_LINE_DIM * j + i));
+                                        }
+                                    }
+                                    // Data elaboration for each line
+                                    temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
+                                    tempData = bicubicInpaintingDouble(pixelKernel[j], temp, emptyArray);
+
+                                    tempSum = tempData[0] * dataHd[offsetX] + tempData[1]
+                                            * dataHd[offsetX + 1] + tempData[2]
+                                            * dataHd[offsetX + 2] + tempData[3]
+                                            * dataHd[offsetX + 3];
+
+                                    if (temp > 0) {
+                                        weightVert |= (1 << j);
+                                        // weigjtArrayVertical[j] = 1;
+                                    } else {
+                                        weightVert &= (0x0F - (1 << j));
+                                        // weigjtArrayVertical[j] = 0;
+                                    }
+                                    sumArray[j] = tempSum;
+                                }
+
+                                // Control if the 16 pixel are all No Data
+                                if (weight == 0) {
+                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                } else {
+
+                                    tempData = bicubicInpaintingDouble(sumArray, weightVert, emptyArray);
+
+                                    // Vertical sum update
+                                    sum = tempData[0] * dataVd[offsetY] + tempData[1]
+                                            * dataVd[offsetY + 1] + tempData[2]
+                                            * dataVd[offsetY + 2] + tempData[3]
+                                            * dataVd[offsetY + 3];
+
+                                    // Interpolation
+                                    weight = 0;
+                                    weightVert = 0;
+                                    data[b][pixelOffset + bandOffsets[b]] = sum;
+                                }
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                //
-                                // NODATA
-                                //
-                                // checks with nodata
-                                double s00 = iterSource.getSampleDouble(xint, yint, b);
-                                double s01 = iterSource.getSampleDouble(xint + 1, yint, b);
-                                double s10 = iterSource.getSampleDouble(xint, yint + 1, b);
-                                double s11 = iterSource.getSampleDouble(xint + 1, yint + 1, b);
-
-                                final boolean w00 = noDataRange.contains(s00);
-                                final boolean w01 = noDataRange.contains(s01);
-                                final boolean w10 = noDataRange.contains(s10);
-                                final boolean w11 = noDataRange.contains(s11);
-
-                                if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
-                                } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
-                                }
+                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
                             }
                         }
                     }
@@ -1984,77 +2774,345 @@ final class WarpBicubicOpImage extends WarpOpImage {
         iterSource.done();
     }
 
-    /**
-     * Computes the bilinear interpolation when No Data are present
-     * 
-     * @param s00
-     * @param s01
-     * @param s10
-     * @param s11
-     * @param w00
-     * @param w01
-     * @param w10
-     * @param w11
-     * @param dataType
-     * @return
-     */
-    private double computePoint(double s00, double s01, double s10, double s11, double xfrac,
-            double yfrac, boolean w00, boolean w01, boolean w10, boolean w11) {
+    private long bicubicCalculationInt(int b, RandomIter iterSource, int xint, int yint,
+            int offsetX, int offsetY, byte[] t) {
 
-        // Initialization
-        double s0 = 0;
-        double s1 = 0;
-        double s = 0;
-
-        // Complementary values of the fractional part
-        double xfracCompl = 1 - xfrac;
-        double yfracCompl = 1 - yfrac;
-
-        if (!w00 && !w01 && !w10 && !w11) {
-            // Perform the bilinear interpolation because all the weight are not 0.
-            s0 = (s01 - s00) * xfrac + s00;
-            s1 = (s11 - s10) * xfrac + s10;
-            s = (s1 - s0) * yfrac + s0;
-        } else {
-            // upper value
-
-            if (w00 && w01) {
-                s0 = 0;
-            } else if (w00) { // w01 = false
-                s0 = s01 * xfrac;
-            } else if (w01) {// w00 = false
-                s0 = s00 * xfracCompl;// s00;
-            } else {// w00 = false & W01 = false
-                s0 = (s01 - s00) * xfrac + s00;
-            }
-
-            // lower value
-
-            if (w10 && w11) {
-                s1 = 0;
-            } else if (w10) { // w11 = false
-                s1 = s11 * xfrac;
-            } else if (w11) { // w10 = false
-                s1 = s10 * xfracCompl;// - (s10 * xfrac); //s10;
-            } else {
-                s1 = (s11 - s10) * xfrac + s10;
-            }
-
-            if (w00 && w01) {
-                s = s1 * yfrac;
-            } else {
-                if (w10 && w11) {
-                    s = s0 * yfracCompl;
-                } else {
-                    s = (s1 - s0) * yfrac + s0;
+        // Temporary sum initialization
+        long sum = 0;
+        if (t == null) {
+            // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                // Row temporary sum initialization
+                long temp = 0;
+                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                    // Selection of one pixel
+                    int pixelValue = iterSource.getSample(xint + (i - 1), yint + (j - 1), b) & 0xff;
+                    // Update of the temporary sum
+                    temp += (pixelValue * dataHi[offsetX + i]);
                 }
+                // Vertical sum update
+                sum += ((temp + round) >> precisionBits) * dataVi[offsetY + j];
+            }
+        } else {
+            // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+                // Row temporary sum initialization
+                long temp = 0;
+                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                    // Selection of one pixel
+                    int pixelValue = t[iterSource.getSample(xint + (i - 1), yint, 0) & 0xFF] & 0xFF;
+                    // Update of the temporary sum
+                    temp += (pixelValue * dataHi[offsetX + i]);
+                }
+                // Vertical sum update
+                sum += ((temp + round) >> precisionBits) * dataVi[offsetY + j];
             }
         }
-        return s;
+        // Interpolation
+        return ((sum + round) >> precisionBits);
+    }
+
+    private float bicubicCalculationFloat(int b, RandomIter iterSource, int xint, int yint,
+            int offsetX, int offsetY) {
+
+        // Temporary sum initialization
+        float sum = 0;
+        // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+            // Row temporary sum initialization
+            float temp = 0;
+            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                // Selection of one pixel
+                float pixelValue = iterSource.getSampleFloat(xint + (i - 1), yint + (j - 1), b);
+                // Update of the temporary sum
+                temp += (pixelValue * dataHf[offsetX + i]);
+            }
+            // Vertical sum update
+            sum += temp * dataVf[offsetY + j];
+        }
+        // Interpolation
+        return sum;
+    }
+    
+    private double bicubicCalculationDouble(int b, RandomIter iterSource, int xint, int yint,
+            int offsetX, int offsetY) {
+
+        // Temporary sum initialization
+        double sum = 0;
+        // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
+            // Row temporary sum initialization
+            double temp = 0;
+            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
+                // Selection of one pixel
+                double pixelValue = iterSource.getSampleDouble(xint + (i - 1), yint + (j - 1), b);
+                // Update of the temporary sum
+                temp += (pixelValue * dataHd[offsetX + i]);
+            }
+            // Vertical sum update
+            sum += temp * dataVd[offsetY + j];
+        }
+        // Interpolation
+        return sum;
     }
 
     /** Returns the "floor" value of a float. */
     private static final int floor(final float f) {
         return f >= 0 ? (int) f : (int) f - 1;
+    }
+
+    private static long[] bicubicInpainting(long[] array, short weightSum, long[] emptyArray) {
+        // Absence of No Data, the pixels are returned.
+        if (weightSum == 15) {
+            return array;
+        }
+
+        long s_ = array[0];
+        long s0 = array[1];
+        long s1 = array[2];
+        long s2 = array[3];
+
+        emptyArray[0] = 0;
+        emptyArray[1] = 0;
+        emptyArray[2] = 0;
+        emptyArray[3] = 0;
+
+        // s2 s1 s0 s_
+        // 0/x 0/x 0/x 0/x
+
+        switch (weightSum) {
+        case 0:
+            // 0 0 0 0
+            break;
+        case 1:
+            // 0 0 0 x
+            emptyArray[0] = s_;
+            emptyArray[1] = s_;
+            emptyArray[2] = s_;
+            emptyArray[3] = s_;
+            break;
+        case 2:
+            // 0 0 x 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = s0;
+            emptyArray[3] = s0;
+            break;
+        case 3:
+            // 0 0 x x
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = s0;
+            emptyArray[3] = s0;
+            break;
+        case 4:
+            // 0 x 0 0
+            emptyArray[0] = s1;
+            emptyArray[1] = s1;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 5:
+            // 0 x 0 x
+            emptyArray[0] = s_;
+            emptyArray[1] = (s_ + s1) / 2;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 6:
+            // 0 x x 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 7:
+            // 0 x x x
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 8:
+            // x 0 0 0
+            emptyArray[0] = s2;
+            emptyArray[1] = s2;
+            emptyArray[2] = s2;
+            emptyArray[3] = s2;
+            break;
+        case 9:
+            // x 0 0 x
+            emptyArray[0] = s_;
+            emptyArray[1] = (s_ + s2) / 2;
+            emptyArray[2] = (s_ + s2) / 2;
+            emptyArray[3] = s2;
+            break;
+        case 10:
+            // x 0 x 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = (s0 + s2) / 2;
+            emptyArray[3] = s2;
+            break;
+        case 11:
+            // x 0 x x
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = (s0 + s2) / 2;
+            emptyArray[3] = s2;
+            break;
+        case 12:
+            // x x 0 0
+            emptyArray[0] = s1;
+            emptyArray[1] = s1;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
+            break;
+        case 13:
+            // x x 0 x
+            emptyArray[0] = s_;
+            emptyArray[1] = (s_ + s1) / 2;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
+            break;
+        case 14:
+            // x x x 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
+            break;
+        default:
+            throw new IllegalArgumentException("Array cannot be composed from more than 4 elements");
+        }
+
+        return emptyArray;
+    }
+
+    // This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
+    private static double[] bicubicInpaintingDouble(double[] array, short weightSum,
+            double[] emptyArray) {
+        // Absence of No Data, the pixels are returned.
+        if (weightSum == 15) {
+            return array;
+        }
+
+        double s_ = array[0];
+        double s0 = array[1];
+        double s1 = array[2];
+        double s2 = array[3];
+
+        emptyArray[0] = 0;
+        emptyArray[1] = 0;
+        emptyArray[2] = 0;
+        emptyArray[3] = 0;
+
+        switch (weightSum) {
+        case 0:
+            // 0 0 0 0
+            break;
+        case 1:
+            // 0 0 0 x
+            emptyArray[0] = s_;
+            emptyArray[1] = s_;
+            emptyArray[2] = s_;
+            emptyArray[3] = s_;
+            break;
+        case 2:
+            // 0 0 x 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = s0;
+            emptyArray[3] = s0;
+            break;
+        case 3:
+            // 0 0 x x
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = s0;
+            emptyArray[3] = s0;
+            break;
+        case 4:
+            // 0 x 0 0
+            emptyArray[0] = s1;
+            emptyArray[1] = s1;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 5:
+            // 0 x 0 x
+            emptyArray[0] = s_;
+            emptyArray[1] = (s_ + s1) / 2;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 6:
+            // 0 x x 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 7:
+            // 0 x x x
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s1;
+            break;
+        case 8:
+            // x 0 0 0
+            emptyArray[0] = s2;
+            emptyArray[1] = s2;
+            emptyArray[2] = s2;
+            emptyArray[3] = s2;
+            break;
+        case 9:
+            // x 0 0 x
+            emptyArray[0] = s_;
+            emptyArray[1] = (s_ + s2) / 2;
+            emptyArray[2] = (s_ + s2) / 2;
+            emptyArray[3] = s2;
+            break;
+        case 10:
+            // x 0 x 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = (s0 + s2) / 2;
+            emptyArray[3] = s2;
+            break;
+        case 11:
+            // x 0 x x
+            emptyArray[0] = s_;
+            emptyArray[1] = s0;
+            emptyArray[2] = (s0 + s2) / 2;
+            emptyArray[3] = s2;
+            break;
+        case 12:
+            // x x 0 0
+            emptyArray[0] = s1;
+            emptyArray[1] = s1;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
+            break;
+        case 13:
+            // x x 0 x
+            emptyArray[0] = s_;
+            emptyArray[1] = (s_ + s1) / 2;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
+            break;
+        case 14:
+            // x x x 0
+            emptyArray[0] = s0;
+            emptyArray[1] = s0;
+            emptyArray[2] = s1;
+            emptyArray[3] = s2;
+            break;
+        default:
+            throw new IllegalArgumentException("Array cannot be composed from more than 4 elements");
+        }
+
+        return emptyArray;
     }
 }

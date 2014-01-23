@@ -2,7 +2,6 @@ package it.geosolutions.jaiext.border;
 
 import static org.junit.Assert.*;
 
-import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
@@ -467,38 +466,5 @@ public class BorderTest extends TestBase {
                 }
             }
         }
-    }
-
-    // UNSUPPORTED OPERATIONS
-    @Override
-    protected void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
-            TestSelection testSelect, ScaleType scaleValue) {
-        throw new UnsupportedOperationException("Operation not supported in this test class");
-    }
-
-    @Override
-    protected <T extends Number & Comparable<? super T>> void testImage(int dataType,
-            T noDataValue, boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
-            TestSelection testSelect, ScaleType scaleValue) {
-        throw new UnsupportedOperationException("Operation not supported in this test class");
-    }
-
-    @Override
-    protected <T extends Number & Comparable<? super T>> void testImageAffine(
-            RenderedImage sourceImage, int dataType, T noDataValue, boolean useROIAccessor,
-            boolean isBinary, boolean bicubic2Disabled, boolean noDataRangeUsed,
-            boolean roiPresent, boolean setDestinationNoData, TransformationType transformType,
-            InterpolationType interpType, TestSelection testSelect, ScaleType scaleValue) {
-        throw new UnsupportedOperationException("Operation not supported in this test class");
-    }
-
-    @Override
-    protected void testGlobalAffine(boolean useROIAccessor, boolean isBinary,
-            boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
-            boolean setDestinationNoData, InterpolationType interpType, TestSelection testSelect,
-            ScaleType scaleValue) {
-        throw new UnsupportedOperationException("Operation not supported in this test class");
     }
 }

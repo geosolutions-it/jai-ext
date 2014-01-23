@@ -121,45 +121,4 @@ public class TranslateTest extends TestBase {
         }
 
     }
-
-    @Override
-    protected void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
-            TestSelection testSelect, ScaleType scaleValue) {
-        throw new UnsupportedOperationException(
-                "This operation must be used only inside the jt-scale project");
-
-    }
-
-    @Override
-    protected <T extends Number & Comparable<? super T>> void testImage(int dataType,
-            T noDataValue, boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
-            TestSelection testSelect, ScaleType scaleValue) {
-        throw new UnsupportedOperationException(
-                "This operation must be used only inside the jt-scale project");
-
-    }
-
-    @Override
-    protected <T extends Number & Comparable<? super T>> void testImageAffine(
-            RenderedImage sourceImage, int dataType, T noDataValue, boolean useROIAccessor,
-            boolean isBinary, boolean bicubic2Disabled, boolean noDataRangeUsed,
-            boolean roiPresent, boolean setDestinationNoData, TransformationType transformType,
-            InterpolationType interpType, TestSelection testSelect, ScaleType scaleValue) {
-        throw new UnsupportedOperationException(
-                "This operation must be used only inside the jt-affine project");
-
-    }
-
-    @Override
-    protected void testGlobalAffine(boolean useROIAccessor, boolean isBinary,
-            boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
-            boolean setDestinationNoData, InterpolationType interpType, TestSelection testSelect,
-            ScaleType scaleValue) {
-        throw new UnsupportedOperationException(
-                "This operation must be used only inside the jt-affine project");
-
-    }
-
 }

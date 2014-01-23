@@ -61,7 +61,6 @@ public class TestAffine extends TestBase {
 
     protected float transY = -DEFAULT_HEIGHT;
 
-    @Override
     protected <T extends Number & Comparable<? super T>> void testImageAffine(
             RenderedImage sourceImage, int dataType, T noDataValue, boolean useROIAccessor,
             boolean isBinary, boolean bicubic2Disabled, boolean noDataRangeUsed,
@@ -554,27 +553,4 @@ public class TestAffine extends TestBase {
                 TransformationType.ALL, interpType, testSelect, scaleValue);
 
     }
-
-    @Override
-    protected void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent,
-            it.geosolutions.jaiext.testclasses.TestBase.InterpolationType interpType,
-            it.geosolutions.jaiext.testclasses.TestBase.TestSelection testSelect,
-            ScaleType scaleValue) {
-
-        throw new UnsupportedOperationException(
-                "This operation is not supported, use testGlobalAffine instead");
-
-    }
-
-    @Override
-    protected <T extends Number & Comparable<? super T>> void testImage(int dataType,
-            T noDataValue, boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
-            TestSelection testSelect, ScaleType scaleValue) {
-        throw new UnsupportedOperationException(
-                "This operation is not supported, use testImageAffine instead");
-
-    }
-
 }

@@ -37,7 +37,7 @@ import it.geosolutions.jaiext.testclasses.TestBase;
  */
 public class TestScale extends TestBase {
 
-    @Override
+
     protected void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
             boolean noDataRangeUsed, boolean roiPresent,
             it.geosolutions.jaiext.testclasses.TestBase.InterpolationType interpType,
@@ -87,33 +87,7 @@ public class TestScale extends TestBase {
 
     }
 
-    @Override
-    protected <T extends Number & Comparable<? super T>> void testImageAffine(
-            RenderedImage sourceImage, int dataType, T noDataValue, boolean useROIAccessor,
-            boolean isBinary, boolean bicubic2Disabled, boolean noDataRangeUsed,
-            boolean roiPresent, boolean setDestinationNoData,
-            it.geosolutions.jaiext.testclasses.TestBase.TransformationType transformType,
-            it.geosolutions.jaiext.testclasses.TestBase.InterpolationType interpType,
-            it.geosolutions.jaiext.testclasses.TestBase.TestSelection testSelect,
-            ScaleType scaleValue) {
-        throw new UnsupportedOperationException(
-                "This operation is not supported, use testImage instead");
 
-    }
-
-    @Override
-    protected void testGlobalAffine(boolean useROIAccessor, boolean isBinary,
-            boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
-            boolean setDestinationNoData,
-            it.geosolutions.jaiext.testclasses.TestBase.InterpolationType interpType,
-            it.geosolutions.jaiext.testclasses.TestBase.TestSelection testSelect,
-            ScaleType scaleValue) {
-        throw new UnsupportedOperationException(
-                "This operation is not supported, use testGlobal instead");
-
-    }
-
-    @Override
     protected <T extends Number & Comparable<? super T>> void testImage(int dataType,
             T noDataValue, boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
             boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,

@@ -59,7 +59,7 @@ public abstract class TestBase {
     protected float scaleY = 0.5f;
 
     public enum InterpolationType {
-        NEAREST_INTERP(0), BILINEAR_INTERP(1), BICUBIC_INTERP(2);
+        NEAREST_INTERP(0), BILINEAR_INTERP(1), BICUBIC_INTERP(2),GENERAL_INTERP(4);
         
         private int type;
         
@@ -119,25 +119,7 @@ public abstract class TestBase {
         public int getValue() {
             return value;
         }
-    }
-    
-    protected abstract void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
-            TestSelection testSelect,ScaleType scaleValue);
-
-    protected abstract <T extends Number & Comparable<? super T>> void testImage(int dataType, T noDataValue, boolean useROIAccessor, boolean isBinary,
-            boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
-            InterpolationType interpType, TestSelection testSelect,ScaleType scaleValue);
-
-    protected abstract <T extends Number & Comparable<? super T>> void testImageAffine(RenderedImage sourceImage, int dataType, T noDataValue,
-            boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, boolean setDestinationNoData,
-            TransformationType transformType, InterpolationType interpType, TestSelection testSelect,ScaleType scaleValue);
-    
-    protected abstract void testGlobalAffine(boolean useROIAccessor, boolean isBinary,
-            boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
-            boolean setDestinationNoData, InterpolationType interpType, TestSelection testSelect,ScaleType scaleValue);
-    
+    }  
     
     protected ROIShape roiCreation() {
         int roiHeight = DEFAULT_HEIGHT *3/ 4;

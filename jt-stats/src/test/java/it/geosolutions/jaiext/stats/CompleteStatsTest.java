@@ -12,7 +12,6 @@ import java.util.List;
 
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
-import javax.swing.event.ListDataEvent;
 
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
@@ -712,38 +711,5 @@ public class CompleteStatsTest extends TestBase {
     private static int getIndex(double sample) {
         int index = (int) ((sample - minBound[0]) / binInterval[0]);
         return index;
-    }
-
-    // UNSUPPORTED OPERATIONS
-    @Override
-    protected void testGlobal(boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
-            TestSelection testSelect, ScaleType scaleValue) {
-        throw new UnsupportedOperationException("Operation not supported in this test class");
-    }
-
-    @Override
-    protected <T extends Number & Comparable<? super T>> void testImage(int dataType,
-            T noDataValue, boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
-            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
-            TestSelection testSelect, ScaleType scaleValue) {
-        throw new UnsupportedOperationException("Operation not supported in this test class");
-    }
-
-    @Override
-    protected <T extends Number & Comparable<? super T>> void testImageAffine(
-            RenderedImage sourceImage, int dataType, T noDataValue, boolean useROIAccessor,
-            boolean isBinary, boolean bicubic2Disabled, boolean noDataRangeUsed,
-            boolean roiPresent, boolean setDestinationNoData, TransformationType transformType,
-            InterpolationType interpType, TestSelection testSelect, ScaleType scaleValue) {
-        throw new UnsupportedOperationException("Operation not supported in this test class");
-    }
-
-    @Override
-    protected void testGlobalAffine(boolean useROIAccessor, boolean isBinary,
-            boolean bicubic2Disabled, boolean noDataRangeUsed, boolean roiPresent,
-            boolean setDestinationNoData, InterpolationType interpType, TestSelection testSelect,
-            ScaleType scaleValue) {
-        throw new UnsupportedOperationException("Operation not supported in this test class");
     }
 }
