@@ -16,6 +16,7 @@
 package it.geosolutions.jaiext.warp;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -142,10 +143,10 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
             // input image.
             if (interp instanceof InterpolationBilinear) {
                 roiImage = new WarpBilinearOpImage(constantImage, extender, warpingHints,
-                        null, warp, interp, srcROI);
+                        null, warp, interp, srcROI,null);
             } else {
                 roiImage = new WarpNearestOpImage(constantImage, warpingHints, null, warp,
-                        interp, srcROI);
+                        interp, srcROI,null);
             }
 
             ROI dstROI = new ROI(roiImage, 1);
@@ -311,17 +312,20 @@ public class WarpDescriptor extends OperationDescriptorImpl {
             { "Version", JaiI18N.getString("DescriptorVersion") },
             { "arg0Desc", JaiI18N.getString("WarpDescriptor1") },
             { "arg1Desc", JaiI18N.getString("WarpDescriptor2") },
-            { "arg2Desc", JaiI18N.getString("WarpDescriptor3") } };
+            { "arg2Desc", JaiI18N.getString("WarpDescriptor3") },
+            { "arg3Desc", JaiI18N.getString("WarpDescriptor4") },
+            { "arg3Desc", JaiI18N.getString("WarpDescriptor5") }
+            };
 
     /** The parameter names for the "Warp" operation. */
-    private static final String[] paramNames = { "warp", "interpolation", "roi" };
+    private static final String[] paramNames = { "warp", "interpolation", "roi", "background", "nodata" };
 
     /** The parameter class types for the "Warp" operation. */
     private static final Class[] paramClasses = { javax.media.jai.Warp.class,
-            javax.media.jai.Interpolation.class, javax.media.jai.ROI.class };
+            javax.media.jai.Interpolation.class, javax.media.jai.ROI.class, double[].class, it.geosolutions.jaiext.range.Range.class };
 
     /** The parameter default values for the "Warp" operation. */
-    private static final Object[] paramDefaults = { NO_PARAMETER_DEFAULT, null, null };
+    private static final Object[] paramDefaults = { NO_PARAMETER_DEFAULT, null, null, null, null };
 
     /** Constructor. */
     public WarpDescriptor() {
@@ -369,6 +373,50 @@ public class WarpDescriptor extends OperationDescriptorImpl {
         }
         pb.setParameter("warp", warp);
         pb.setParameter("interpolation", interpolation);
+        if(backgroundValues!=null){
+            pb.setParameter("background", backgroundValues);
+        }
+
+        return JAI.create("WarpNoData", pb, hints);
+    }
+    
+    /**
+     * Warps an image according to a specified Warp object.
+     * 
+     * <p>
+     * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
+     * {@link JAI#create(String,ParameterBlock,RenderingHints)}.
+     * 
+     * @see JAI
+     * @see ParameterBlockJAI
+     * @see RenderedOp
+     * 
+     * @param source0 <code>RenderedImage</code> source 0.
+     * @param warp The warp object.
+     * @param interpolation The interpolation method. May be <code>null</code>.
+     * @param backgroundValues The user-specified background values. May be <code>null</code>.
+     * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
+     * @return The <code>RenderedOp</code> destination.
+     * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.
+     * @throws IllegalArgumentException if <code>warp</code> is <code>null</code>.
+     */
+    public static RenderedOp create(RenderedImage source0, Warp warp, Interpolation interpolation,
+            double[] backgroundValues, ROI sourceROI, Range noData, RenderingHints hints) {
+        ParameterBlockJAI pb = new ParameterBlockJAI("WarpNoData", RenderedRegistryMode.MODE_NAME);
+
+        pb.setSource("source0", source0);
+        if (sourceROI != null) {
+            pb.setParameter("roi", sourceROI);
+        }
+        pb.setParameter("warp", warp);
+        pb.setParameter("interpolation", interpolation);
+        if(backgroundValues!=null){
+            pb.setParameter("background", backgroundValues);
+        }
+        
+        if(noData!=null){
+            pb.setParameter("nodata", noData);
+        }
 
         return JAI.create("WarpNoData", pb, hints);
     }

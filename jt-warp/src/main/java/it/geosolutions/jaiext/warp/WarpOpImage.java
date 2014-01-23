@@ -78,14 +78,14 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
 
     protected final boolean caseC;
 
-    protected final Range noDataRange;
+    protected Range noDataRange;
     
     protected boolean extended; 
 
     public WarpOpImage(final RenderedImage source, final ImageLayout layout,
             final Map<?, ?> configuration, final boolean cobbleSources,
             final BorderExtender extender, final Interpolation interp, final Warp warp,
-            final double[] backgroundValues, final ROI roi) {
+            final double[] backgroundValues, final ROI roi, final Range noData) {
         super(source, layout, configuration, cobbleSources, extender, interp, warp,
                 prepareBackground(source, layout, interp, backgroundValues));
 
@@ -93,10 +93,13 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
         this.roi = roi;
         hasROI = roi != null;
         hasNoData = (interp instanceof InterpolationNoData)
-                && (((InterpolationNoData) interp).getNoDataRange() != null);
+                && (((InterpolationNoData) interp).getNoDataRange() != null) || noData!=null;
         
         if(hasNoData){
             noDataRange = ((InterpolationNoData) interp).getNoDataRange();
+            if(noDataRange == null){
+                noDataRange = noData;
+            }
         }else{
             noDataRange = null;
         }

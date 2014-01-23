@@ -16,6 +16,7 @@
 package it.geosolutions.jaiext.warp;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
@@ -67,9 +68,9 @@ final class WarpGeneralOpImage extends WarpOpImage {
      * @param interp An object describing the interpolation method.
      */
     public WarpGeneralOpImage(RenderedImage source, BorderExtender extender, Map<?, ?> config,
-            ImageLayout layout, Warp warp, Interpolation interp, double[] backgroundValues,
-            ROI sourceROI) {
-        super(source, layout, config, false, extender, interp, warp, backgroundValues, sourceROI);
+            ImageLayout layout, Warp warp, Interpolation interp, double[] background,
+            ROI sourceROI, Range noData) {
+        super(source, layout, config, false, extender, interp, warp, background, sourceROI, noData);
 
         /*
          * If the source has IndexColorModel, get the RGB color table. Note, in this case, the source should have an integral data type. And dest
@@ -97,6 +98,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
             destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
             // Creation of a lookuptable containing the values to use for no data
             if (hasNoData) {
+                byteLookupTable = new byte[256];
                 for (int i = 0; i < byteLookupTable.length; i++) {
                     byte value = (byte) i;
                     if (noDataRange.contains(value)) {

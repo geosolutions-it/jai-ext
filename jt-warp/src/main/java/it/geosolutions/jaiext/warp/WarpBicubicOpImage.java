@@ -16,6 +16,8 @@
 package it.geosolutions.jaiext.warp;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -23,6 +25,7 @@ import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.util.Map;
+
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
@@ -88,8 +91,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
      */
     public WarpBicubicOpImage(final RenderedImage source, final BorderExtender extender,
             final Map<?, ?> config, final ImageLayout layout, final Warp warp,
-            final Interpolation interp, final ROI sourceROI) {
-        super(source, layout, config, false, extender, interp, warp, null, sourceROI);
+            final Interpolation interp, final ROI sourceROI, Range noData) {
+        super(source, layout, config, false, extender, interp, warp, null, sourceROI, noData);
 
         /*
          * If the source has IndexColorModel, get the RGB color table. Note, in this case, the source should have an integral data type. And dest
@@ -117,6 +120,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
             destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
             // Creation of a lookuptable containing the values to use for no data
             if (hasNoData) {
+                booleanLookupTable = new boolean[256];
                 for (int i = 0; i < booleanLookupTable.length; i++) {
                     byte value = (byte) i;
                     booleanLookupTable[i] = noDataRange.contains(value);
@@ -180,21 +184,22 @@ final class WarpBicubicOpImage extends WarpOpImage {
         final int minX, maxX, minY, maxY;
         if (extended) {
             final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
-                    src.getWidth() + 2, src.getHeight() + 2);
+                    src.getWidth() + 3, src.getHeight() + 3);
             iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
                     TILE_CACHED, ARRAY_CALC);
-
-            minX = src.getMinX() - 1; // Left padding
-            maxX = src.getMaxX() + 2; // Right padding
-            minY = src.getMinY() - 1; // Top padding
-            maxY = src.getMaxY() + 2; // Bottom padding
-        } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
 
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
+
+        } else {
+            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX() + 1; // Left padding
+            maxX = src.getMaxX() - 2; // Right padding
+            minY = src.getMinY() + 1; // Top padding
+            maxY = src.getMaxY() - 2; // Bottom padding
         }
 
         final int dstWidth = dst.getWidth();
@@ -244,8 +249,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             //
                             for (int b = 0; b < dstBands; b++) {
                                 // Interpolation
-                                data[b][pixelOffset + bandOffsets[b]] = (byte) (bicubicCalculationInt(
-                                        b, iterSource, xint, yint, offsetX, offsetY, null) & 0xFF);
+                                long result = (bicubicCalculationInt(b, iterSource, xint, yint,
+                                        offsetX, offsetY, null));
+                                // Clamp
+                                if (result > 255) {
+                                    result = 255;
+                                } else if (result < 0) {
+                                    result = 0;
+                                }
+
+                                data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                             }
                         }
                         // next desination pixel
@@ -296,8 +309,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                                 for (int b = 0; b < dstBands; b++) {
                                     // Interpolation
-                                    data[b][pixelOffset + bandOffsets[b]] = (byte) (bicubicCalculationInt(
-                                            b, iterSource, xint, yint, offsetX, offsetY, null) & 0xFF);
+                                    long result = (bicubicCalculationInt(b, iterSource, xint, yint,
+                                            offsetX, offsetY, null));
+                                    // Clamp
+                                    if (result > 255) {
+                                        result = 255;
+                                    } else if (result < 0) {
+                                        result = 0;
+                                    }
+
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
@@ -602,8 +623,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             for (int b = 0; b < dstBands; b++) {
                                 final byte[] t = ctable[b];
                                 // Interpolation
-                                data[b][pixelOffset + bandOffsets[b]] = (byte) (bicubicCalculationInt(
-                                        b, iterSource, xint, yint, offsetX, offsetY, t) & 0xFF);
+                                long result = (bicubicCalculationInt(b, iterSource, xint, yint,
+                                        offsetX, offsetY, t));
+                                // Clamp
+                                if (result > 255) {
+                                    result = 255;
+                                } else if (result < 0) {
+                                    result = 0;
+                                }
+
+                                data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                             }
                         }
                         // next desination pixel
@@ -655,8 +684,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 for (int b = 0; b < dstBands; b++) {
                                     final byte[] t = ctable[b];
                                     // Interpolation
-                                    data[b][pixelOffset + bandOffsets[b]] = (byte) (bicubicCalculationInt(
-                                            b, iterSource, xint, yint, offsetX, offsetY, t) & 0xFF);
+                                    long result = (bicubicCalculationInt(b, iterSource, xint, yint,
+                                            offsetX, offsetY, t));
+                                    // Clamp
+                                    if (result > 255) {
+                                        result = 255;
+                                    } else if (result < 0) {
+                                        result = 0;
+                                    }
+
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
@@ -725,8 +762,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 for (int j = 0; j < KERNEL_LINE_DIM; j++) {
                                     for (int i = 0; i < KERNEL_LINE_DIM; i++) {
                                         // Selection of one pixel
-                                        int sample = t[iterSource
-                                                .getSample(xint + (i - 1), yint, 0) & 0xFF] & 0xFF;
+                                        int sample = t[iterSource.getSample(xint + (i - 1), yint
+                                                + (j - 1), 0) & 0xFF] & 0xFF;
                                         pixelKernel[j][i] = sample;
                                         if (booleanLookupTable[sample]) {
                                             weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
@@ -773,6 +810,13 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     weight = 0;
                                     weightVert = 0;
                                     sum = 0;
+
+                                    // Clamp
+                                    if (result > 255) {
+                                        result = 255;
+                                    } else if (result < 0) {
+                                        result = 0;
+                                    }
 
                                     data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                                 }
@@ -852,7 +896,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                         for (int i = 0; i < KERNEL_LINE_DIM; i++) {
                                             // Selection of one pixel
                                             int sample = t[iterSource.getSample(xint + (i - 1),
-                                                    yint, 0) & 0xFF] & 0xFF;
+                                                    yint + (j - 1), 0) & 0xFF] & 0xFF;
                                             pixelKernel[j][i] = sample;
                                             if (booleanLookupTable[sample]) {
                                                 weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
@@ -902,6 +946,13 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                         weightVert = 0;
                                         sum = 0;
 
+                                        // Clamp
+                                        if (result > 255) {
+                                            result = 255;
+                                        } else if (result < 0) {
+                                            result = 0;
+                                        }
+
                                         data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                                     }
                                 }
@@ -925,18 +976,26 @@ final class WarpBicubicOpImage extends WarpOpImage {
             final ROI roiTile) {
 
         RandomIter iterSource;
+        final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
+            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
+                    src.getWidth() + 3, src.getHeight() + 3);
             iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
                     TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX();
+            maxX = src.getMaxX();
+            minY = src.getMinY();
+            maxY = src.getMaxY();
+
         } else {
             iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX() + 1; // Left padding
+            maxX = src.getMaxX() - 2; // Right padding
+            minY = src.getMinY() + 1; // Top padding
+            maxY = src.getMaxY() - 2; // Bottom padding
         }
-        final int minX = src.getMinX();
-        final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
-        final int minY = src.getMinY();
-        final int maxY = src.getMaxY() - (extended ? 0 : 1); // Bottom padding
 
         final int dstWidth = dst.getWidth();
         final int dstHeight = dst.getHeight();
@@ -985,8 +1044,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         //
                         for (int b = 0; b < dstBands; b++) {
                             // Interpolation
-                            data[b][pixelOffset + bandOffsets[b]] = (short) (bicubicCalculationInt(
-                                    b, iterSource, xint, yint, offsetX, offsetY, null) & 0xFFFF);
+                            long result = (bicubicCalculationInt(b, iterSource, xint, yint,
+                                    offsetX, offsetY, null));
+
+                            // Clamp
+                            if (result > USHORT_MAX_VALUE) {
+                                result = USHORT_MAX_VALUE;
+                            } else if (result < 0) {
+                                result = 0;
+                            }
+
+                            data[b][pixelOffset + bandOffsets[b]] = (short) (result & 0xFFFF);
                         }
                     }
                     // next desination pixel
@@ -1037,8 +1105,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                             for (int b = 0; b < dstBands; b++) {
                                 // Interpolation
-                                data[b][pixelOffset + bandOffsets[b]] = (short) (bicubicCalculationInt(
-                                        b, iterSource, xint, yint, offsetX, offsetY, null) & 0xFFFF);
+                                long result = (bicubicCalculationInt(b, iterSource, xint, yint,
+                                        offsetX, offsetY, null));
+
+                                // Clamp
+                                if (result > USHORT_MAX_VALUE) {
+                                    result = USHORT_MAX_VALUE;
+                                } else if (result < 0) {
+                                    result = 0;
+                                }
+
+                                data[b][pixelOffset + bandOffsets[b]] = (short) (result & 0xFFFF);
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
@@ -1153,6 +1230,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 weight = 0;
                                 weightVert = 0;
                                 sum = 0;
+
+                                // Clamp
+                                if (result > USHORT_MAX_VALUE) {
+                                    result = USHORT_MAX_VALUE;
+                                } else if (result < 0) {
+                                    result = 0;
+                                }
+
                                 data[b][pixelOffset + bandOffsets[b]] = (short) (result & 0xFFFF);
                             }
                         }
@@ -1278,6 +1363,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     weight = 0;
                                     weightVert = 0;
                                     sum = 0;
+
+                                    // Clamp
+                                    if (result > USHORT_MAX_VALUE) {
+                                        result = USHORT_MAX_VALUE;
+                                    } else if (result < 0) {
+                                        result = 0;
+                                    }
+
                                     data[b][pixelOffset + bandOffsets[b]] = (short) (result & 0xFFFF);
                                 }
                             }
@@ -1299,18 +1392,26 @@ final class WarpBicubicOpImage extends WarpOpImage {
             final ROI roiTile) {
 
         RandomIter iterSource;
+        final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
+            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
+                    src.getWidth() + 3, src.getHeight() + 3);
             iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
                     TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX();
+            maxX = src.getMaxX();
+            minY = src.getMinY();
+            maxY = src.getMaxY();
+
         } else {
             iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX() + 1; // Left padding
+            maxX = src.getMaxX() - 2; // Right padding
+            minY = src.getMinY() + 1; // Top padding
+            maxY = src.getMaxY() - 2; // Bottom padding
         }
-        final int minX = src.getMinX();
-        final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
-        final int minY = src.getMinY();
-        final int maxY = src.getMaxY() - (extended ? 0 : 1); // Bottom padding
 
         final int dstWidth = dst.getWidth();
         final int dstHeight = dst.getHeight();
@@ -1359,8 +1460,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         //
                         for (int b = 0; b < dstBands; b++) {
                             // Interpolation
-                            data[b][pixelOffset + bandOffsets[b]] = (short) (bicubicCalculationInt(
-                                    b, iterSource, xint, yint, offsetX, offsetY, null));
+                            long result = bicubicCalculationInt(b, iterSource, xint, yint, offsetX,
+                                    offsetY, null);
+
+                            // Clamp
+                            if (result > Short.MAX_VALUE) {
+                                result = Short.MAX_VALUE;
+                            } else if (result < Short.MIN_VALUE) {
+                                result = Short.MIN_VALUE;
+                            }
+
+                            data[b][pixelOffset + bandOffsets[b]] = (short) (result);
                         }
                     }
                     // next desination pixel
@@ -1411,8 +1521,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                             for (int b = 0; b < dstBands; b++) {
                                 // Interpolation
-                                data[b][pixelOffset + bandOffsets[b]] = (short) (bicubicCalculationInt(
-                                        b, iterSource, xint, yint, offsetX, offsetY, null));
+                                long result = bicubicCalculationInt(b, iterSource, xint, yint,
+                                        offsetX, offsetY, null);
+
+                                // Clamp
+                                if (result > Short.MAX_VALUE) {
+                                    result = Short.MAX_VALUE;
+                                } else if (result < Short.MIN_VALUE) {
+                                    result = Short.MIN_VALUE;
+                                }
+
+                                data[b][pixelOffset + bandOffsets[b]] = (short) (result);
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
@@ -1527,6 +1646,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 weight = 0;
                                 weightVert = 0;
                                 sum = 0;
+
+                                // Clamp
+                                if (result > Short.MAX_VALUE) {
+                                    result = Short.MAX_VALUE;
+                                } else if (result < Short.MIN_VALUE) {
+                                    result = Short.MIN_VALUE;
+                                }
+
                                 data[b][pixelOffset + bandOffsets[b]] = (short) (result);
                             }
                         }
@@ -1652,6 +1779,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     weight = 0;
                                     weightVert = 0;
                                     sum = 0;
+
+                                    // Clamp
+                                    if (result > Short.MAX_VALUE) {
+                                        result = Short.MAX_VALUE;
+                                    } else if (result < Short.MIN_VALUE) {
+                                        result = Short.MIN_VALUE;
+                                    }
+
                                     data[b][pixelOffset + bandOffsets[b]] = (short) (result);
                                 }
                             }
@@ -1672,18 +1807,26 @@ final class WarpBicubicOpImage extends WarpOpImage {
     protected void computeRectInt(final PlanarImage src, final RasterAccessor dst, final ROI roiTile) {
 
         RandomIter iterSource;
+        final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
+            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
+                    src.getWidth() + 3, src.getHeight() + 3);
             iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
                     TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX();
+            maxX = src.getMaxX();
+            minY = src.getMinY();
+            maxY = src.getMaxY();
+
         } else {
             iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX() + 1; // Left padding
+            maxX = src.getMaxX() - 2; // Right padding
+            minY = src.getMinY() + 1; // Top padding
+            maxY = src.getMaxY() - 2; // Bottom padding
         }
-        final int minX = src.getMinX();
-        final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
-        final int minY = src.getMinY();
-        final int maxY = src.getMaxY() - (extended ? 0 : 1); // Bottom padding
 
         final int dstWidth = dst.getWidth();
         final int dstHeight = dst.getHeight();
@@ -1732,8 +1875,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         //
                         for (int b = 0; b < dstBands; b++) {
                             // Interpolation
-                            data[b][pixelOffset + bandOffsets[b]] = (int) (bicubicCalculationInt(b,
-                                    iterSource, xint, yint, offsetX, offsetY, null));
+                            long result = bicubicCalculationInt(b, iterSource, xint, yint, offsetX,
+                                    offsetY, null);
+
+                            // Clamp
+                            if (result > Integer.MAX_VALUE) {
+                                result = Integer.MAX_VALUE;
+                            } else if (result < Integer.MIN_VALUE) {
+                                result = Integer.MIN_VALUE;
+                            }
+
+                            data[b][pixelOffset + bandOffsets[b]] = (int) (result);
                         }
                     }
                     // next desination pixel
@@ -1784,8 +1936,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                             for (int b = 0; b < dstBands; b++) {
                                 // Interpolation
-                                data[b][pixelOffset + bandOffsets[b]] = (int) (bicubicCalculationInt(
-                                        b, iterSource, xint, yint, offsetX, offsetY, null));
+                                long result = bicubicCalculationInt(b, iterSource, xint, yint,
+                                        offsetX, offsetY, null);
+
+                                // Clamp
+                                if (result > Integer.MAX_VALUE) {
+                                    result = Integer.MAX_VALUE;
+                                } else if (result < Integer.MIN_VALUE) {
+                                    result = Integer.MIN_VALUE;
+                                }
+
+                                data[b][pixelOffset + bandOffsets[b]] = (int) (result);
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
@@ -1900,6 +2061,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 weight = 0;
                                 weightVert = 0;
                                 sum = 0;
+
+                                // Clamp
+                                if (result > Integer.MAX_VALUE) {
+                                    result = Integer.MAX_VALUE;
+                                } else if (result < Integer.MIN_VALUE) {
+                                    result = Integer.MIN_VALUE;
+                                }
+
                                 data[b][pixelOffset + bandOffsets[b]] = (int) (result);
                             }
                         }
@@ -2025,6 +2194,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     weight = 0;
                                     weightVert = 0;
                                     sum = 0;
+
+                                    // Clamp
+                                    if (result > Integer.MAX_VALUE) {
+                                        result = Integer.MAX_VALUE;
+                                    } else if (result < Integer.MIN_VALUE) {
+                                        result = Integer.MIN_VALUE;
+                                    }
+
                                     data[b][pixelOffset + bandOffsets[b]] = (int) (result);
                                 }
                             }
@@ -2046,18 +2223,26 @@ final class WarpBicubicOpImage extends WarpOpImage {
             final ROI roiTile) {
 
         RandomIter iterSource;
+        final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
+            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
+                    src.getWidth() + 3, src.getHeight() + 3);
             iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
                     TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX();
+            maxX = src.getMaxX();
+            minY = src.getMinY();
+            maxY = src.getMaxY();
+
         } else {
             iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX() + 1; // Left padding
+            maxX = src.getMaxX() - 2; // Right padding
+            minY = src.getMinY() + 1; // Top padding
+            maxY = src.getMaxY() - 2; // Bottom padding
         }
-        final int minX = src.getMinX();
-        final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
-        final int minY = src.getMinY();
-        final int maxY = src.getMaxY() - (extended ? 0 : 1); // Bottom padding
 
         final int dstWidth = dst.getWidth();
         final int dstHeight = dst.getHeight();
@@ -2106,8 +2291,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         //
                         for (int b = 0; b < dstBands; b++) {
                             // Interpolation
-                            data[b][pixelOffset + bandOffsets[b]] = bicubicCalculationFloat(
-                                    b, iterSource, xint, yint, offsetX, offsetY);
+                            double result = bicubicCalculationFloat(b, iterSource, xint, yint,
+                                    offsetX, offsetY);
+
+                            // Clamp
+                            if (result > Float.MAX_VALUE) {
+                                result = Float.MAX_VALUE;
+                            } else if (result < -Float.MAX_VALUE) {
+                                result = -Float.MAX_VALUE;
+                            }
+
+                            data[b][pixelOffset + bandOffsets[b]] = (float) (result);
                         }
                     }
                     // next desination pixel
@@ -2158,8 +2352,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                             for (int b = 0; b < dstBands; b++) {
                                 // Interpolation
-                                data[b][pixelOffset + bandOffsets[b]] = bicubicCalculationFloat(
-                                        b, iterSource, xint, yint, offsetX, offsetY);
+                                double result = bicubicCalculationFloat(b, iterSource, xint, yint,
+                                        offsetX, offsetY);
+
+                                // Clamp
+                                if (result > Float.MAX_VALUE) {
+                                    result = Float.MAX_VALUE;
+                                } else if (result < -Float.MAX_VALUE) {
+                                    result = -Float.MAX_VALUE;
+                                }
+
+                                data[b][pixelOffset + bandOffsets[b]] = (float) (result);
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
@@ -2270,6 +2473,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 // Interpolation
                                 weight = 0;
                                 weightVert = 0;
+
+                                // Clamp
+                                if (sum > Float.MAX_VALUE) {
+                                    sum = Float.MAX_VALUE;
+                                } else if (sum < -Float.MAX_VALUE) {
+                                    sum = -Float.MAX_VALUE;
+                                }
+
                                 data[b][pixelOffset + bandOffsets[b]] = (float) sum;
                             }
                         }
@@ -2345,8 +2556,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 for (int j = 0; j < KERNEL_LINE_DIM; j++) {
                                     for (int i = 0; i < KERNEL_LINE_DIM; i++) {
                                         // Selection of one pixel
-                                        float sample = iterSource.getSampleFloat(xint + (i - 1), yint
-                                                + (j - 1), b);
+                                        float sample = iterSource.getSampleFloat(xint + (i - 1),
+                                                yint + (j - 1), b);
                                         pixelKernel[j][i] = sample;
                                         if (noDataRange.contains(sample)) {
                                             weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
@@ -2358,7 +2569,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     }
                                     // Data elaboration for each line
                                     temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
-                                    tempData = bicubicInpaintingDouble(pixelKernel[j], temp, emptyArray);
+                                    tempData = bicubicInpaintingDouble(pixelKernel[j], temp,
+                                            emptyArray);
 
                                     tempSum = tempData[0] * dataHf[offsetX] + tempData[1]
                                             * dataHf[offsetX + 1] + tempData[2]
@@ -2380,7 +2592,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
                                 } else {
 
-                                    tempData = bicubicInpaintingDouble(sumArray, weightVert, emptyArray);
+                                    tempData = bicubicInpaintingDouble(sumArray, weightVert,
+                                            emptyArray);
 
                                     // Vertical sum update
                                     sum = tempData[0] * dataVf[offsetY] + tempData[1]
@@ -2391,6 +2604,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     // Interpolation
                                     weight = 0;
                                     weightVert = 0;
+
+                                    // Clamp
+                                    if (sum > Float.MAX_VALUE) {
+                                        sum = Float.MAX_VALUE;
+                                    } else if (sum < -Float.MAX_VALUE) {
+                                        sum = -Float.MAX_VALUE;
+                                    }
+
                                     data[b][pixelOffset + bandOffsets[b]] = (float) sum;
                                 }
                             }
@@ -2412,18 +2633,26 @@ final class WarpBicubicOpImage extends WarpOpImage {
             final ROI roiTile) {
 
         RandomIter iterSource;
+        final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
+            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
+                    src.getWidth() + 3, src.getHeight() + 3);
             iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
                     TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX();
+            maxX = src.getMaxX();
+            minY = src.getMinY();
+            maxY = src.getMaxY();
+
         } else {
             iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+
+            minX = src.getMinX() + 1; // Left padding
+            maxX = src.getMaxX() - 2; // Right padding
+            minY = src.getMinY() + 1; // Top padding
+            maxY = src.getMaxY() - 2; // Bottom padding
         }
-        final int minX = src.getMinX();
-        final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
-        final int minY = src.getMinY();
-        final int maxY = src.getMaxY() - (extended ? 0 : 1); // Bottom padding
 
         final int dstWidth = dst.getWidth();
         final int dstHeight = dst.getHeight();
@@ -2472,8 +2701,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         //
                         for (int b = 0; b < dstBands; b++) {
                             // Interpolation
-                            data[b][pixelOffset + bandOffsets[b]] = bicubicCalculationDouble(
-                                    b, iterSource, xint, yint, offsetX, offsetY);
+                            data[b][pixelOffset + bandOffsets[b]] = bicubicCalculationDouble(b,
+                                    iterSource, xint, yint, offsetX, offsetY);
                         }
                     }
                     // next desination pixel
@@ -2524,8 +2753,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                             for (int b = 0; b < dstBands; b++) {
                                 // Interpolation
-                                data[b][pixelOffset + bandOffsets[b]] = bicubicCalculationDouble(
-                                        b, iterSource, xint, yint, offsetX, offsetY);
+                                data[b][pixelOffset + bandOffsets[b]] = bicubicCalculationDouble(b,
+                                        iterSource, xint, yint, offsetX, offsetY);
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
@@ -2711,8 +2940,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 for (int j = 0; j < KERNEL_LINE_DIM; j++) {
                                     for (int i = 0; i < KERNEL_LINE_DIM; i++) {
                                         // Selection of one pixel
-                                        double sample = iterSource.getSampleDouble(xint + (i - 1), yint
-                                                + (j - 1), b);
+                                        double sample = iterSource.getSampleDouble(xint + (i - 1),
+                                                yint + (j - 1), b);
                                         pixelKernel[j][i] = sample;
                                         if (noDataRange.contains(sample)) {
                                             weight &= (0xffff - (1 << KERNEL_LINE_DIM * j + i));
@@ -2724,7 +2953,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     }
                                     // Data elaboration for each line
                                     temp = (byte) ((weight >> KERNEL_LINE_DIM * j) & 0x0F);
-                                    tempData = bicubicInpaintingDouble(pixelKernel[j], temp, emptyArray);
+                                    tempData = bicubicInpaintingDouble(pixelKernel[j], temp,
+                                            emptyArray);
 
                                     tempSum = tempData[0] * dataHd[offsetX] + tempData[1]
                                             * dataHd[offsetX + 1] + tempData[2]
@@ -2746,7 +2976,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
                                 } else {
 
-                                    tempData = bicubicInpaintingDouble(sumArray, weightVert, emptyArray);
+                                    tempData = bicubicInpaintingDouble(sumArray, weightVert,
+                                            emptyArray);
 
                                     // Vertical sum update
                                     sum = tempData[0] * dataVd[offsetY] + tempData[1]
@@ -2786,7 +3017,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 long temp = 0;
                 for (int i = 0; i < KERNEL_LINE_DIM; i++) {
                     // Selection of one pixel
-                    int pixelValue = iterSource.getSample(xint + (i - 1), yint + (j - 1), b) & 0xff;
+                    int pixelValue = iterSource.getSample(xint + (i - 1), yint + (j - 1), b);
                     // Update of the temporary sum
                     temp += (pixelValue * dataHi[offsetX + i]);
                 }
@@ -2800,7 +3031,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 long temp = 0;
                 for (int i = 0; i < KERNEL_LINE_DIM; i++) {
                     // Selection of one pixel
-                    int pixelValue = t[iterSource.getSample(xint + (i - 1), yint, 0) & 0xFF] & 0xFF;
+                    int pixelValue = t[iterSource.getSample(xint + (i - 1), yint + (j - 1), 0) & 0xFF] & 0xFF;
                     // Update of the temporary sum
                     temp += (pixelValue * dataHi[offsetX + i]);
                 }
@@ -2812,15 +3043,15 @@ final class WarpBicubicOpImage extends WarpOpImage {
         return ((sum + round) >> precisionBits);
     }
 
-    private float bicubicCalculationFloat(int b, RandomIter iterSource, int xint, int yint,
+    private double bicubicCalculationFloat(int b, RandomIter iterSource, int xint, int yint,
             int offsetX, int offsetY) {
 
         // Temporary sum initialization
-        float sum = 0;
+        double sum = 0;
         // Cycle through all the 16 kernel pixel and calculation of the interpolated value
         for (int j = 0; j < KERNEL_LINE_DIM; j++) {
             // Row temporary sum initialization
-            float temp = 0;
+            double temp = 0;
             for (int i = 0; i < KERNEL_LINE_DIM; i++) {
                 // Selection of one pixel
                 float pixelValue = iterSource.getSampleFloat(xint + (i - 1), yint + (j - 1), b);
@@ -2833,7 +3064,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
         // Interpolation
         return sum;
     }
-    
+
     private double bicubicCalculationDouble(int b, RandomIter iterSource, int xint, int yint,
             int offsetX, int offsetY) {
 

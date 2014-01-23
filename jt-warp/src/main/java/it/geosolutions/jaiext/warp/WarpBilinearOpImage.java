@@ -16,6 +16,8 @@
 package it.geosolutions.jaiext.warp;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -23,6 +25,7 @@ import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.util.Map;
+
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
@@ -62,8 +65,8 @@ final class WarpBilinearOpImage extends WarpOpImage {
      */
     public WarpBilinearOpImage(final RenderedImage source, final BorderExtender extender,
             final Map<?, ?> config, final ImageLayout layout, final Warp warp,
-            final Interpolation interp, final ROI sourceROI) {
-        super(source, layout, config, false, extender, interp, warp, null, sourceROI);
+            final Interpolation interp, final ROI sourceROI, Range noData) {
+        super(source, layout, config, false, extender, interp, warp, null, sourceROI, noData);
 
         /*
          * If the source has IndexColorModel, get the RGB color table. Note, in this case, the source should have an integral data type. And dest
@@ -91,6 +94,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
             destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
             // Creation of a lookuptable containing the values to use for no data
             if (hasNoData) {
+                booleanLookupTable = new boolean[256];
                 for (int i = 0; i < booleanLookupTable.length; i++) {
                     byte value = (byte) i;
                     booleanLookupTable[i] = noDataRange.contains(value);

@@ -16,12 +16,15 @@
 package it.geosolutions.jaiext.warp;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.util.Map;
+
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.PlanarImage;
@@ -60,9 +63,9 @@ final class WarpNearestOpImage extends WarpOpImage {
      */
     public WarpNearestOpImage(final RenderedImage source, final Map<?, ?> config,
             final ImageLayout layout, final Warp warp, final Interpolation interp,
-            final ROI sourceROI) {
+            final ROI sourceROI, Range noData) {
         super(source, layout, config, false, null, // extender
-                interp, warp, null, sourceROI);
+                interp, warp, null, sourceROI, noData);
 
         /*
          * If the source has IndexColorModel, override the default setting in OpImage. The dest shall have exactly the same SampleModel and ColorModel
@@ -88,6 +91,7 @@ final class WarpNearestOpImage extends WarpOpImage {
             destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
             // Creation of a lookuptable containing the values to use for no data
             if (hasNoData) {
+                byteLookupTable = new byte[256];
                 for (int i = 0; i < byteLookupTable.length; i++) {
                     byte value = (byte) i;
                     if (noDataRange.contains(value)) {
