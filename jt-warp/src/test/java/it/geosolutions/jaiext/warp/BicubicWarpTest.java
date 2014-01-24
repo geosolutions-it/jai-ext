@@ -6,7 +6,9 @@ import java.awt.image.RenderedImage;
 
 import javax.media.jai.WarpAffine;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class BicubicWarpTest extends TestWarp{
 
@@ -50,5 +52,30 @@ public class BicubicWarpTest extends TestWarp{
         // Interpolation type
         interpType = InterpolationType.BICUBIC_INTERP;
 
+    }
+    
+    @Test
+    public void testImage() {
+        super.testImage();
+    }
+
+    @Test
+    public void testImageROI() {
+        super.testImageROI();
+    }
+
+    @Test
+    public void testImageNoData() {
+        super.testImageNoData();
+    }
+
+    @Test
+    public void testImageNoDataROI() {
+        super.testImageNoDataROI();
+    }
+
+    @AfterClass
+    public static void finalStuff() {
+        TestWarp.finalStuff();
     }
 }

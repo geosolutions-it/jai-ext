@@ -1,5 +1,7 @@
 package it.geosolutions.jaiext.warp;
 
+import it.geosolutions.jaiext.testclasses.TestBase.TestSelection;
+
 import java.awt.geom.AffineTransform;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
@@ -56,4 +58,31 @@ public class NearestWarpTest extends TestWarp {
         interpType = InterpolationType.NEAREST_INTERP;
 
     }
+    
+    @Test
+    public void testImage() {
+        super.testImage();
+    }
+
+    @Test
+    public void testImageROI() {
+        super.testImageROI();
+    }
+
+    @Test
+    public void testImageNoData() {
+        super.testImageNoData();
+    }
+
+    @Test
+    public void testImageNoDataROI() {
+        super.testImageNoDataROI();
+    }
+
+    @AfterClass
+    public static void finalStuff() {
+        TestWarp.finalStuff();
+    }
+    
+    
 }

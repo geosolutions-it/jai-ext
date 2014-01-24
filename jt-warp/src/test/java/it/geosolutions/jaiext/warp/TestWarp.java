@@ -213,7 +213,7 @@ public class TestWarp extends TestBase {
         statistics.dispose();
     }
 
-    @Test
+    
     public void testImage() {
         boolean roiUsed = false;
         boolean noDataUsed = false;
@@ -227,7 +227,7 @@ public class TestWarp extends TestBase {
         testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
     }
 
-    @Test
+    
     public void testImageROI() {
         boolean roiUsed = true;
         boolean noDataUsed = false;
@@ -241,7 +241,7 @@ public class TestWarp extends TestBase {
         testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
     }
 
-    @Test
+    
     public void testImageNoData() {
         boolean roiUsed = false;
         boolean noDataUsed = true;
@@ -255,7 +255,7 @@ public class TestWarp extends TestBase {
         testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
     }
 
-    @Test
+    
     public void testImageNoDataROI() {
         boolean roiUsed = true;
         boolean noDataUsed = true;
@@ -269,7 +269,7 @@ public class TestWarp extends TestBase {
         testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
     }
 
-    @AfterClass
+    
     public static void finalStuff() {
         // Creation of the images
         if (images != null) {
