@@ -4883,7 +4883,13 @@ public class ZonalStatsOpImage extends OpImage {
     public Raster[] getTiles() {
         if (firstTime.getAndSet(false)) {
             //return getTiles(getTileIndices(getBounds()));
-            return getTiles(getTileIndices(union));
+            Point[] points = getTileIndices(union);
+            
+            if(points!=null){
+                return getTiles(points);
+            }else{
+                return null;
+            }
         } else {
             return null;
         }
