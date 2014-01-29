@@ -184,9 +184,8 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
  * <p>
  * The parameter, "backgroundValues", is defined to fill the background with the user-specified background values. These background values will be
  * translated into background colors by the <code>ColorModel</code> when the image is displayed. With the default value, <code>{0.0}</code>, of this
- * parameter, the background pixels are filled with 0s. If the provided array length is smaller than the number of bands, the first element of the
- * provided array is used for all the bands. If the provided values are out of the data range of the destination image, they will be clamped into the
- * proper range.
+ * parameter, the background pixels are filled with 0s. If the provided values are out of the data range of the destination image, they will be clamped into the
+ * proper range. If the interpolation object implements "InterpolationNoData", then backgroundValues can be taken from the interpolation object.
  * 
  * <p>
  * It should be noted that this operation automatically adds a value of <code>Boolean.TRUE</code> for the
@@ -196,6 +195,11 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
  * <code>configuration</code> Map is cloned before the new hint is added to it. The operation can be smart about the value of the
  * <code>JAI.KEY_REPLACE_INDEX_COLOR_MODEL</code> <code>RenderingHints</code>, i.e. while the default value for the
  * <code>JAI.KEY_REPLACE_INDEX_COLOR_MODEL</code> is <code>Boolean.TRUE</code>, in some cases the operator could set the default.
+ * 
+ * <p>
+ * An optional ROI object can be passed to the descriptor. Also NoData can be defined with a Range object; NoData Range is taken from the interpolation object
+ * if it implements the "InterpolationNoData" interface, else it is taken from the input parameter.
+ * 
  * 
  * <p>
  * <table border=1>
@@ -214,15 +218,15 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>com.sun.media.jai</td>
+ * <td>it.geosolutions.jaiext.roiaware</td>
  * </tr>
  * <tr>
  * <td>Description</td>
- * <td>Warps an image according to a specified Warp object.</td>
+ * <td>Warps an image according to a specified Warp object, handling NoData and ROI.</td>
  * </tr>
  * <tr>
  * <td>DocURL</td>
- * <td>http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ROIAwareWarpDescriptor.html</td>
+ * <td>Not defined</td>
  * </tr>
  * <tr>
  * <td>Version</td>
@@ -235,6 +239,18 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
  * <tr>
  * <td>arg1Desc</td>
  * <td>The interpolation method.</td>
+ * </tr>
+ * <tr>
+ * <td>arg2Desc</td>
+ * <td>ROI object used.</td>
+ * </tr>
+ * <tr>
+ * <td>arg3Desc</td>
+ * <td>Background Values.</td>
+ * </tr>
+ * <tr>
+ * <td>arg4Desc</td>
+ * <td>NoData Range used.</td>
  * </tr>
  * </table>
  * </p>
@@ -254,11 +270,19 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
  * <tr>
  * <td>interpolation</td>
  * <td>javax.media.jai.Interpolation</td>
- * <td>InterpolationNearest</td>
+ * <td>null</td>
  * <tr>
- * <td>backgroundValues</td>
+ * <td>roi</td>
+ * <td>javax.media.jai.ROI</td>
+ * <td>null</td>
+ * <tr>
+ * <td>background</td>
  * <td>double[]</td>
  * <td>{0.0}</td>
+ * <tr>
+ * <td>nodata</td>
+ * <td>it.geosolutions.jaiext.range.Range</td>
+ * <td>null</td>
  * </table>
  * </p>
  * 
@@ -314,7 +338,7 @@ public class WarpDescriptor extends OperationDescriptorImpl {
             { "arg1Desc", JaiI18N.getString("WarpDescriptor2") },
             { "arg2Desc", JaiI18N.getString("WarpDescriptor3") },
             { "arg3Desc", JaiI18N.getString("WarpDescriptor4") },
-            { "arg3Desc", JaiI18N.getString("WarpDescriptor5") }
+            { "arg4Desc", JaiI18N.getString("WarpDescriptor5") }
             };
 
     /** The parameter names for the "Warp" operation. */

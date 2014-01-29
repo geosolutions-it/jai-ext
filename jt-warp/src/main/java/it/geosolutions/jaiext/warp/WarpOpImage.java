@@ -49,38 +49,54 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
     /** {@link BorderExtender} instance for extending roi. */
     protected final static BorderExtender ZERO_EXTENDER = BorderExtender
             .createInstance(BorderExtender.BORDER_ZERO);
-    /** Quantity used for extending the input tile dimensions*/
+
+    /** Quantity used for extending the input tile dimensions */
     protected static final int TILE_EXTENDER = 1;
-    
+
+    /** Constant indicating that the inner random iterators must pre-calculate an array of the image positions */
     protected static final boolean ARRAY_CALC = true;
 
+    /** Constant indicating that the inner random iterators must cache the current tile position */
     protected static final boolean TILE_CACHED = true;
-    
+
+    /** Destination No Data value associated to Byte data type */
     protected byte destinationNoDataByte;
 
+    /** Destination No Data value associated to UShort/Short data type */
     protected short destinationNoDataShort;
 
+    /** Destination No Data value associated to Integer data type */
     protected int destinationNoDataInt;
 
+    /** Destination No Data value associated to Float data type */
     protected float destinationNoDataFloat;
-    
+
+    /** Destination No Data value associated to Double data type */
     protected double destinationNoDataDouble;
-    
+
+    /** Current ROI object */
     protected final ROI roi;
 
+    /** Boolean indicating if ROI is used */
     protected final boolean hasROI;
 
+    /** Boolean indicating if NoData values are present */
     protected final boolean hasNoData;
 
+    /** Boolean indicating absence of both NoData and ROI */
     protected final boolean caseA;
 
+    /** Boolean indicating absence of NoData and presence of ROI */
     protected final boolean caseB;
 
+    /** Boolean indicating absence of ROI and presence of NoData */
     protected final boolean caseC;
 
+    /** Current NoData Range object */
     protected Range noDataRange;
-    
-    protected boolean extended; 
+
+    /** Boolean indicating the presence of a border extender */
+    protected boolean extended;
 
     public WarpOpImage(final RenderedImage source, final ImageLayout layout,
             final Map<?, ?> configuration, final boolean cobbleSources,
@@ -93,28 +109,27 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
         this.roi = roi;
         hasROI = roi != null;
         hasNoData = (interp instanceof InterpolationNoData)
-                && (((InterpolationNoData) interp).getNoDataRange() != null) || noData!=null;
-        
-        if(hasNoData){
+                && (((InterpolationNoData) interp).getNoDataRange() != null) || noData != null;
+
+        if (hasNoData) {
             noDataRange = ((InterpolationNoData) interp).getNoDataRange();
-            if(noDataRange == null){
+            if (noDataRange == null) {
                 noDataRange = noData;
             }
-        }else{
+        } else {
             noDataRange = null;
         }
-        
-      //Definition of the possible cases that can be found
+
+        // Definition of the possible cases that can be found
         // caseA = no ROI nor No Data
         // caseB = ROI present but No Data not present
         // caseC = No Data present but ROI not present
-        // Last case not defined = both ROI and No Data are present        
+        // Last case not defined = both ROI and No Data are present
         caseA = !hasROI && !hasNoData;
         caseB = hasROI && !hasNoData;
         caseC = !hasROI && hasNoData;
-        
-        
-        //Extender check
+
+        // Extender check
         extended = extender != null;
     }
 
@@ -127,6 +142,9 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
      * <code>cobbleSources</code> is <code>true</code>, cobbling is performed on the source for areas that intersect multiple tiles, and
      * <code>computeRect(Raster[], WritableRaster, Rectangle)</code> is called to perform the actual computation. Otherwise,
      * <code>computeRect(PlanarImage[], WritableRaster, Rectangle)</code> is called to perform the actual computation.
+     * 
+     * If ROI is present, then the source mapped rectangle is checked if it intersects the input ROI; if this condition is not satisfied, then the
+     * tile is not elaborated.
      * 
      * @param tileX The X index of the tile.
      * @param tileY The Y index of the tile.
@@ -184,7 +202,10 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
         return dest;
     }
 
-    /** Warps a rectangle. */
+    /**
+     * Warps a rectangle. If ROI is present, the intersection between ROI and tile bounds is calculated; The result ROI will be used for calculations
+     * inside the computeRect() method.
+     */
     protected void computeRect(final PlanarImage[] sources, final WritableRaster dest,
             final Rectangle destRect) {
         // Retrieve format tags.
@@ -196,7 +217,7 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
 
         // If a ROI is present, then only the part contained inside the current tile bounds is taken.
         if (hasROI) {
-            Rectangle srcRectExpanded = mapDestRect(destRect, 0); 
+            Rectangle srcRectExpanded = mapDestRect(destRect, 0);
             // The tile dimension is extended for avoiding border errors
             srcRectExpanded.grow(TILE_EXTENDER, TILE_EXTENDER);
             roiTile = roi.intersect(new ROIShape(srcRectExpanded));
@@ -235,21 +256,25 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
             }
         }
     }
-    
-    
-    protected abstract void computeRectByte(final PlanarImage src, final RasterAccessor dst, final ROI roiTile);
-    
-    protected abstract void computeRectUShort(final PlanarImage src, final RasterAccessor dst, final ROI roiTile);
-    
-    protected abstract void computeRectShort(final PlanarImage src, final RasterAccessor dst, final ROI roiTile);
-    
-    protected abstract void computeRectInt(final PlanarImage src, final RasterAccessor dst, final ROI roiTile);
-    
-    protected abstract void computeRectFloat(final PlanarImage src, final RasterAccessor dst, final ROI roiTile);
-    
-    protected abstract void computeRectDouble(final PlanarImage src, final RasterAccessor dst, final ROI roiTile);
-    
-    
+
+    protected abstract void computeRectByte(final PlanarImage src, final RasterAccessor dst,
+            final ROI roiTile);
+
+    protected abstract void computeRectUShort(final PlanarImage src, final RasterAccessor dst,
+            final ROI roiTile);
+
+    protected abstract void computeRectShort(final PlanarImage src, final RasterAccessor dst,
+            final ROI roiTile);
+
+    protected abstract void computeRectInt(final PlanarImage src, final RasterAccessor dst,
+            final ROI roiTile);
+
+    protected abstract void computeRectFloat(final PlanarImage src, final RasterAccessor dst,
+            final ROI roiTile);
+
+    protected abstract void computeRectDouble(final PlanarImage src, final RasterAccessor dst,
+            final ROI roiTile);
+
     /**
      * Utility method used for creating an array of background values from a single value, taken from the interpolator. If the interpolation object is
      * not an instance of InterpolationNoData, then the optional background values array is taken. If the array is null, then an array with 0 value is
@@ -266,9 +291,9 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
         // If the interpolator is an instance of InterpolationNoData, the background value is taken from the interpolator
         if (interp instanceof InterpolationNoData) {
             SampleModel sm;
-            if(layout!=null){
+            if (layout != null) {
                 sm = layout.getSampleModel(source);
-            }else{
+            } else {
                 sm = source.getSampleModel();
             }
             int numBands = sm.getNumBands();
