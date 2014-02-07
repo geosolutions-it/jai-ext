@@ -29,7 +29,7 @@ import org.junit.Test;
  * or of the not benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles parameters.If the user
  * want to use the old version must pass to the JVM the JAI.Ext.OldDescriptor parameter set to true. For selecting a specific data type the user must
  * set the JAI.Ext.TestSelector JVM integer parameter to a number between 0 and 5 (where 0 means byte, 1 Ushort, 2 Short, 3 Integer, 4 Float and 5
- * Double). Interpolation type can be set with the JVM parameter JAI.Ext.InterpSelector set to 0(nearest), 1(bilinear), 2(bicubic).
+ * Double). Interpolation type can be set with the JVM parameter JAI.Ext.InterpSelector set to 0(nearest), 1(bilinear), 2(bicubic), 3(general).
  */
 public class ComparisonTest extends TestWarp {
 
@@ -241,6 +241,9 @@ public class ComparisonTest extends TestWarp {
                         DEFAULT_SUBSAMPLE_BITS, range, false, destNoData, dataType, true,
                         DEFAULT_PRECISION_BITS);
             }
+            break;
+        case 3:
+            interpolation = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
             break;
         default:
             throw new IllegalArgumentException("Wrong interpolation type");
