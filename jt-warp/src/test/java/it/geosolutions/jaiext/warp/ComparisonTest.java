@@ -1,5 +1,8 @@
 package it.geosolutions.jaiext.warp;
 
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.image.DataBuffer;
@@ -20,27 +23,16 @@ import javax.media.jai.WarpAffine;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-import it.geosolutions.jaiext.testclasses.TestBase;
-
 /**
- * This test class is used for compare the timing between the new StatisticalDescriptor operation and the old JAI version. Roi or NoData range can be
- * used by setting to true JAI.Ext.ROIUsed or JAI.Ext.RangeUsed JVM boolean parameters are set to true. If the user wants to change the number of the
- * benchmark cycles or of the not benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles
- * parameters.If the user want to use the old descriptor must pass to the JVM the JAI.Ext.OldDescriptor parameter set to true. For selecting a
- * specific data type the user must set the JAI.Ext.TestSelector JVM integer parameter to a number between 0 and 5 (where 0 means byte, 1 Ushort, 2
- * Short, 3 Integer, 4 Float and 5 Double). The possible statistics to calculate can be chosen by setting the JVM Integer parameter JAI.Ext.Statistic
- * to the associated value:
- * <ul>
- * <li>Mean 0</li>
- * <li>Extrema 1</li>
- * <li>Histogram 2</li>
- * </ul>
+ * This test class is used for compare the timing between the new Warp operation and the old JAI version. Roi or NoData range can be used by setting
+ * to true JAI.Ext.ROIUsed or JAI.Ext.RangeUsed JVM boolean parameters are set to true. If the user wants to change the number of the benchmark cycles
+ * or of the not benchmark cycles, should only pass the new values to the JAI.Ext.BenchmarkCycles or JAI.Ext.NotBenchmarkCycles parameters.If the user
+ * want to use the old version must pass to the JVM the JAI.Ext.OldDescriptor parameter set to true. For selecting a specific data type the user must
+ * set the JAI.Ext.TestSelector JVM integer parameter to a number between 0 and 5 (where 0 means byte, 1 Ushort, 2 Short, 3 Integer, 4 Float and 5
+ * Double). Interpolation type can be set with the JVM parameter JAI.Ext.InterpSelector set to 0(nearest), 1(bilinear), 2(bicubic).
  */
-
 public class ComparisonTest extends TestWarp {
-    
+
     /** Number of benchmark iterations (Default 1) */
     private final static Integer BENCHMARK_ITERATION = Integer.getInteger(
             "JAI.Ext.BenchmarkCycles", 1);
@@ -51,7 +43,7 @@ public class ComparisonTest extends TestWarp {
 
     /** Index for selecting one of the 3 interpolators(Default Nearest) */
     private final static int INTERP_SELECTOR = Integer.getInteger("JAI.Ext.InterpSelector", 0);
-    
+
     /** Boolean indicating if the old descriptor must be used */
     private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
 
@@ -76,9 +68,11 @@ public class ComparisonTest extends TestWarp {
     /** Destination No Data value used when an input data is a No Data value */
     private static double destNoData;
 
+    /** Warp Object */
     private static Warp warpObj;
 
-    private static double[] backgroundValues; 
+    /** Background values to use */
+    private static double[] backgroundValues;
 
     @BeforeClass
     public static void initialSetup() {
@@ -162,11 +156,11 @@ public class ComparisonTest extends TestWarp {
                 .toRadians(ANGLE_ROTATION));
         transform.concatenate(AffineTransform.getTranslateInstance(0, -DEFAULT_HEIGHT));
         warpObj = new WarpAffine(transform);
-        
+
         // Destination No Data
         destNoData = 0.0d;
         // Background Values
-        backgroundValues = new double[]{0};
+        backgroundValues = new double[] { 0 };
     }
 
     @Test
@@ -221,33 +215,37 @@ public class ComparisonTest extends TestWarp {
 
         // Definition of the interpolation
         Interpolation interpolation;
-        
-        switch(INTERP_SELECTOR){
+
+        switch (INTERP_SELECTOR) {
         case 0:
-            if(OLD_DESCRIPTOR){
+            if (OLD_DESCRIPTOR) {
                 interpolation = new InterpolationNearest();
-            }else{
-                interpolation = new it.geosolutions.jaiext.interpolators.InterpolationNearest(range, false, destNoData, dataType);
+            } else {
+                interpolation = new it.geosolutions.jaiext.interpolators.InterpolationNearest(
+                        range, false, destNoData, dataType);
             }
             break;
         case 1:
-            if(OLD_DESCRIPTOR){
+            if (OLD_DESCRIPTOR) {
                 interpolation = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS);
-            }else{
-                interpolation = new it.geosolutions.jaiext.interpolators.InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, range, false, destNoData, dataType);
+            } else {
+                interpolation = new it.geosolutions.jaiext.interpolators.InterpolationBilinear(
+                        DEFAULT_SUBSAMPLE_BITS, range, false, destNoData, dataType);
             }
             break;
         case 2:
-            if(OLD_DESCRIPTOR){
+            if (OLD_DESCRIPTOR) {
                 interpolation = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
-            }else{
-                interpolation = new it.geosolutions.jaiext.interpolators.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, range, false, destNoData, dataType, true, DEFAULT_PRECISION_BITS);
+            } else {
+                interpolation = new it.geosolutions.jaiext.interpolators.InterpolationBicubic(
+                        DEFAULT_SUBSAMPLE_BITS, range, false, destNoData, dataType, true,
+                        DEFAULT_PRECISION_BITS);
             }
             break;
         default:
-            throw new IllegalArgumentException("Wrong interpolation type");        
+            throw new IllegalArgumentException("Wrong interpolation type");
         }
-        
+
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image
@@ -262,9 +260,11 @@ public class ComparisonTest extends TestWarp {
 
             // creation of the image
             if (OLD_DESCRIPTOR) {
-                imageWarp = javax.media.jai.operator.WarpDescriptor.create(image, warpObj, interpolation, backgroundValues, null);
+                imageWarp = javax.media.jai.operator.WarpDescriptor.create(image, warpObj,
+                        interpolation, backgroundValues, null);
             } else {
-                imageWarp = WarpDescriptor.create(image, warpObj, interpolation, backgroundValues, roi, null);
+                imageWarp = WarpDescriptor.create(image, warpObj, interpolation, backgroundValues,
+                        roi, null);
             }
 
             // Total calculation time
@@ -312,4 +312,3 @@ public class ComparisonTest extends TestWarp {
 
     }
 }
-

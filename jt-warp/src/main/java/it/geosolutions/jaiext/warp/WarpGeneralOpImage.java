@@ -41,6 +41,13 @@ import com.sun.media.jai.util.ImageUtil;
  * An <code>OpImage</code> implementing the general "Warp" operation as described in <code>javax.media.jai.operator.WarpDescriptor</code>. It supports
  * all interpolation cases.
  * 
+ * <p>
+ * The layout for the destination image may be specified via the <code>ImageLayout</code> parameter. However, only those settings suitable for this
+ * operation will be used. The unsuitable settings will be replaced by default suitable values. An optional ROI object and a NoData Range can be used.
+ * If a backward mapped pixel lies outside ROI or it is a NoData, then the destination pixel value is a background value.
+ * 
+ * If the input image contains an IndexColorModel, then pixel values are taken directly from the input color table.
+ * 
  * @since EA2
  * @see javax.media.jai.Warp
  * @see javax.media.jai.WarpOpImage
@@ -56,6 +63,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
     /** Color table representing source's IndexColorModel. */
     private byte[][] ctable = null;
 
+    /** LookupTable used for a faster NoData check */
     private byte[] byteLookupTable;
 
     /**
@@ -63,9 +71,13 @@ final class WarpGeneralOpImage extends WarpOpImage {
      * 
      * @param source The source image.
      * @param extender A BorderExtender, or null.
+     * @param extender A BorderExtender, or null.
      * @param layout The destination image layout.
      * @param warp An object defining the warp algorithm.
      * @param interp An object describing the interpolation method.
+     * @param background background values to set.
+     * @param roi input ROI object used.
+     * @param noData NoData Range object used for checking if NoData are present.
      */
     public WarpGeneralOpImage(RenderedImage source, BorderExtender extender, Map<?, ?> config,
             ImageLayout layout, Warp warp, Interpolation interp, double[] background,
@@ -130,6 +142,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
 
     protected void computeRectByte(PlanarImage src, RasterAccessor dst, final ROI roiTile) {
         int lpad, rpad, tpad, bpad;
+
         if (interp != null) {
             lpad = interp.getLeftPadding();
             rpad = interp.getRightPadding();
@@ -138,7 +151,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         } else {
             lpad = rpad = tpad = bpad = 0;
         }
-
+        // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
@@ -180,7 +193,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
 
         int[][] samples = new int[kheight][kwidth];
 
-        boolean[][] roiWeight = new boolean[kheight][kwidth];
+        boolean roiWeight;
 
         if (ctable == null) { // source does not have IndexColorModel
 
@@ -210,6 +223,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
+                            // Interpolation
                             xint -= lpad;
                             yint -= tpad;
 
@@ -257,16 +271,18 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             xint -= lpad;
                             yint -= tpad;
 
+                            roiWeight = false;
+
                             for (int j = 0; j < kheight; j++) {
                                 for (int i = 0; i < kwidth; i++) {
-                                    roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                    roiWeight |= roiTile.contains(xint + i, yint + j);
                                 }
                             }
                             //
                             // ROI check
                             //
                             //
-                            if (checkROI(roiWeight)) {
+                            if (roiWeight) {
                                 for (int b = 0; b < dstBands; b++) {
                                     for (int j = 0; j < kheight; j++) {
                                         for (int i = 0; i < kwidth; i++) {
@@ -316,9 +332,10 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             xint -= lpad;
                             yint -= tpad;
 
+                            roiWeight = false;
                             for (int j = 0; j < kheight; j++) {
                                 for (int i = 0; i < kwidth; i++) {
-                                    roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                    roiWeight |= roiTile.contains(xint + i, yint + j);
                                 }
                             }
                             //
@@ -370,16 +387,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             xint -= lpad;
                             yint -= tpad;
 
+                            roiWeight = false;
                             for (int j = 0; j < kheight; j++) {
                                 for (int i = 0; i < kwidth; i++) {
-                                    roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                    roiWeight |= roiTile.contains(xint + i, yint + j);
                                 }
                             }
                             //
                             // ROI check
                             //
                             //
-                            if (checkROI(roiWeight)) {
+                            if (roiWeight) {
                                 for (int b = 0; b < dstBands; b++) {
                                     for (int j = 0; j < kheight; j++) {
                                         //
@@ -483,16 +501,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             xint -= lpad;
                             yint -= tpad;
 
+                            roiWeight = false;
                             for (int j = 0; j < kheight; j++) {
                                 for (int i = 0; i < kwidth; i++) {
-                                    roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                    roiWeight |= roiTile.contains(xint + i, yint + j);
                                 }
                             }
                             //
                             // ROI check
                             //
                             //
-                            if (checkROI(roiWeight)) {
+                            if (roiWeight) {
                                 for (int b = 0; b < dstBands; b++) {
                                     byte[] t = ctable[b];
                                     for (int j = 0; j < kheight; j++) {
@@ -593,16 +612,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             xint -= lpad;
                             yint -= tpad;
 
+                            roiWeight = false;
                             for (int j = 0; j < kheight; j++) {
                                 for (int i = 0; i < kwidth; i++) {
-                                    roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                    roiWeight |= roiTile.contains(xint + i, yint + j);
                                 }
                             }
                             //
                             // ROI check
                             //
                             //
-                            if (checkROI(roiWeight)) {
+                            if (roiWeight) {
                                 for (int b = 0; b < dstBands; b++) {
                                     byte[] t = ctable[b];
                                     //
@@ -645,7 +665,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         } else {
             lpad = rpad = tpad = bpad = 0;
         }
-
+        // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
@@ -684,7 +704,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
 
         int[][] samples = new int[kheight][kwidth];
 
-        boolean[][] roiWeight = new boolean[kheight][kwidth];
+        boolean roiWeight;
 
         int lineOffset = 0;
 
@@ -761,16 +781,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         xint -= lpad;
                         yint -= tpad;
 
+                        roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                roiWeight |= roiTile.contains(xint + i, yint + j);
                             }
                         }
                         //
                         // ROI check
                         //
                         //
-                        if (checkROI(roiWeight)) {
+                        if (roiWeight) {
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
                                     for (int i = 0; i < kwidth; i++) {
@@ -875,16 +896,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         xint -= lpad;
                         yint -= tpad;
 
+                        roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                roiWeight |= roiTile.contains(xint + i, yint + j);
                             }
                         }
                         //
                         // ROI check
                         //
                         //
-                        if (checkROI(roiWeight)) {
+                        if (roiWeight) {
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
                                     //
@@ -929,7 +951,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         } else {
             lpad = rpad = tpad = bpad = 0;
         }
-
+        // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
@@ -968,7 +990,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
 
         int[][] samples = new int[kheight][kwidth];
 
-        boolean[][] roiWeight = new boolean[kheight][kwidth];
+        boolean roiWeight;
 
         int lineOffset = 0;
 
@@ -1045,16 +1067,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         xint -= lpad;
                         yint -= tpad;
 
+                        roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                roiWeight |= roiTile.contains(xint + i, yint + j);
                             }
                         }
                         //
                         // ROI check
                         //
                         //
-                        if (checkROI(roiWeight)) {
+                        if (roiWeight) {
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
                                     for (int i = 0; i < kwidth; i++) {
@@ -1159,16 +1182,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         xint -= lpad;
                         yint -= tpad;
 
+                        roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                roiWeight |= roiTile.contains(xint + i, yint + j);
                             }
                         }
                         //
                         // ROI check
                         //
                         //
-                        if (checkROI(roiWeight)) {
+                        if (roiWeight) {
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
                                     //
@@ -1213,7 +1237,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         } else {
             lpad = rpad = tpad = bpad = 0;
         }
-
+        // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
@@ -1252,7 +1276,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
 
         int[][] samples = new int[kheight][kwidth];
 
-        boolean[][] roiWeight = new boolean[kheight][kwidth];
+        boolean roiWeight;
 
         int lineOffset = 0;
 
@@ -1329,16 +1353,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         xint -= lpad;
                         yint -= tpad;
 
+                        roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                roiWeight |= roiTile.contains(xint + i, yint + j);
                             }
                         }
                         //
                         // ROI check
                         //
                         //
-                        if (checkROI(roiWeight)) {
+                        if (roiWeight) {
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
                                     for (int i = 0; i < kwidth; i++) {
@@ -1443,16 +1468,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         xint -= lpad;
                         yint -= tpad;
 
+                        roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                roiWeight |= roiTile.contains(xint + i, yint + j);
                             }
                         }
                         //
                         // ROI check
                         //
                         //
-                        if (checkROI(roiWeight)) {
+                        if (roiWeight) {
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
                                     //
@@ -1497,7 +1523,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         } else {
             lpad = rpad = tpad = bpad = 0;
         }
-
+        // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
@@ -1533,7 +1559,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
 
         float[][] samples = new float[kheight][kwidth];
 
-        boolean[][] roiWeight = new boolean[kheight][kwidth];
+        boolean roiWeight;
 
         int lineOffset = 0;
 
@@ -1610,16 +1636,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         xint -= lpad;
                         yint -= tpad;
 
+                        roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                roiWeight |= roiTile.contains(xint + i, yint + j);
                             }
                         }
                         //
                         // ROI check
                         //
                         //
-                        if (checkROI(roiWeight)) {
+                        if (roiWeight) {
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
                                     for (int i = 0; i < kwidth; i++) {
@@ -1724,16 +1751,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         xint -= lpad;
                         yint -= tpad;
 
+                        roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                roiWeight |= roiTile.contains(xint + i, yint + j);
                             }
                         }
                         //
                         // ROI check
                         //
                         //
-                        if (checkROI(roiWeight)) {
+                        if (roiWeight) {
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
                                     //
@@ -1778,7 +1806,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         } else {
             lpad = rpad = tpad = bpad = 0;
         }
-
+        // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
@@ -1814,7 +1842,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
 
         double[][] samples = new double[kheight][kwidth];
 
-        boolean[][] roiWeight = new boolean[kheight][kwidth];
+        boolean roiWeight;
 
         int lineOffset = 0;
 
@@ -1891,16 +1919,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         xint -= lpad;
                         yint -= tpad;
 
+                        roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                roiWeight |= roiTile.contains(xint + i, yint + j);
                             }
                         }
                         //
                         // ROI check
                         //
                         //
-                        if (checkROI(roiWeight)) {
+                        if (roiWeight) {
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
                                     for (int i = 0; i < kwidth; i++) {
@@ -2005,16 +2034,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         xint -= lpad;
                         yint -= tpad;
 
+                        roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight[i][j] = roiTile.contains(xint + i, yint + j);
+                                roiWeight |= roiTile.contains(xint + i, yint + j);
                             }
                         }
                         //
                         // ROI check
                         //
                         //
-                        if (checkROI(roiWeight)) {
+                        if (roiWeight) {
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
                                     //
@@ -2047,33 +2077,5 @@ final class WarpGeneralOpImage extends WarpOpImage {
             }
         }
         iter.done();
-    }
-
-    /**
-     * Check if all kernel pixels are outside the ROI.
-     * 
-     * @param roiWeight
-     * @return
-     */
-    private boolean checkROI(boolean[][] roiWeight) {
-        // Kernel dimensions
-        int roiH = roiWeight.length;
-        int roiW = roiWeight[0].length;
-        // Check if at least if one pixel is inside the ROI
-        for (int j = 0; j < roiH; j++) {
-            for (int i = 0; i < roiW; i++) {
-                if (roiWeight[j][i]) {
-                    return true;
-                }
-            }
-        }
-        // If no pixel is inside the ROI, then false is returned
-        return false;
-
-    }
-
-    /** Returns the "floor" value of a float. */
-    private static final int floor(float f) {
-        return f >= 0 ? (int) f : (int) f - 1;
     }
 }

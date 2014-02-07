@@ -27,33 +27,56 @@ import javax.media.jai.TiledImage;
 import javax.media.jai.Warp;
 
 import org.geotools.renderedimage.viewer.RenderedImageBrowser;
-import org.junit.AfterClass;
-import org.junit.Test;
 
+/**
+ * Test class which extends the jt-utilities TestBase class and provide utility methods for testing the various classes. The tests can be made with
+ * nearest-neighbor, bilinear, bicubic and a general type of interpolation. All the tests can be executed with and without ROI and No Data.
+ * 
+ * It is possible to see the result of each operation by adding the following parameters: 
+ * <ul>
+ * <li>-DJAI.Ext.Interactive=true(false default)</li>
+ * <li>-DJAI.Ext.TestSelection=0(No ROI No NODATA,default), 2(ROI No NODATA), 4(NODATA No ROI), 5(NODATA ROI)</li>
+ * <li>-DJAI.Ext.InterpolationType=0(Nearest,default), 1(Bilinear), 2(Bicubic), 3(General interpolation, in this case Bicubic)</li>
+ * </ul>
+ * 
+ */
 public class TestWarp extends TestBase {
-
+    /** Angle rotation for the warp transformation */
     protected final static double ANGLE_ROTATION = 45d;
 
+    /** Warp object used in tests */
     protected static Warp warpObj;
 
+    /** Default number of images to test */
     protected static final int NUM_IMAGES = 6;
 
+    /** Images to test */
     protected static RenderedImage[] images;
 
+    /** No data value for Byte images */
     protected static byte noDataValueB;
 
+    /** Interpolation to test */
     protected static InterpolationType interpType;
 
+    /** No data value for UShort images */
     protected static short noDataValueU;
 
+    /** No data value for Short images */
     protected static short noDataValueS;
 
+    /** No data value for Integer images */
     protected static int noDataValueI;
 
+    /** No data value for Float images */
     protected static float noDataValueF;
 
+    /** No data value for Double images */
     protected static double noDataValueD;
 
+    /**
+     * General method for testing a RenderedImage with the selected interpolation, warp object and with or without ROI and No Data.
+     */
     public void testWarp(RenderedImage source, boolean noDataUsed, boolean roiUsed, Warp warpObj,
             Number noDataValue, InterpolationType interpType, TestSelection testSelect) {
 
@@ -107,9 +130,9 @@ public class TestWarp extends TestBase {
 
         RenderedOp destinationIMG = null;
 
-        //Interpolator variable
+        // Interpolator variable
         Interpolation interp;
-        
+
         // Interpolators
         switch (interpType) {
         case NEAREST_INTERP:
@@ -213,8 +236,10 @@ public class TestWarp extends TestBase {
         statistics.dispose();
     }
 
-    
-    public void testImage() {
+    /**
+     * Test without ROI and without NoData
+     */
+    public void testImage(InterpolationType interpType) {
         boolean roiUsed = false;
         boolean noDataUsed = false;
         TestSelection testSelect = TestSelection.NO_ROI_ONLY_DATA;
@@ -227,8 +252,10 @@ public class TestWarp extends TestBase {
         testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
     }
 
-    
-    public void testImageROI() {
+    /**
+     * Test with ROI and without NoData
+     */
+    public void testImageROI(InterpolationType interpType) {
         boolean roiUsed = true;
         boolean noDataUsed = false;
         TestSelection testSelect = TestSelection.ROI_ONLY_DATA;
@@ -241,8 +268,10 @@ public class TestWarp extends TestBase {
         testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
     }
 
-    
-    public void testImageNoData() {
+    /**
+     * Test without ROI and with NoData
+     */
+    public void testImageNoData(InterpolationType interpType) {
         boolean roiUsed = false;
         boolean noDataUsed = true;
         TestSelection testSelect = TestSelection.NO_ROI_NO_DATA;
@@ -255,8 +284,10 @@ public class TestWarp extends TestBase {
         testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
     }
 
-    
-    public void testImageNoDataROI() {
+    /**
+     * Test with ROI and with NoData
+     */
+    public void testImageNoDataROI(InterpolationType interpType) {
         boolean roiUsed = true;
         boolean noDataUsed = true;
         TestSelection testSelect = TestSelection.ROI_NO_DATA;
@@ -269,7 +300,9 @@ public class TestWarp extends TestBase {
         testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
     }
 
-    
+    /**
+     * Final method for closing the input images
+     */
     public static void finalStuff() {
         // Creation of the images
         if (images != null) {

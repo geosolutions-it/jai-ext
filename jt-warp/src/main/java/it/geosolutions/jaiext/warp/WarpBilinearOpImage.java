@@ -39,6 +39,14 @@ import javax.media.jai.iterator.RandomIter;
  * An <code>OpImage</code> implementing the general "Warp" operation as described in <code>javax.media.jai.operator.WarpDescriptor</code>. It supports
  * the bilinear interpolation.
  * 
+ * <p>
+ * The layout for the destination image may be specified via the <code>ImageLayout</code> parameter. However, only those settings suitable for this
+ * operation will be used. The unsuitable settings will be replaced by default suitable values. An optional ROI object and a NoData Range can be used.
+ * If a backward mapped pixel lies outside ROI or it is a NoData, then the destination pixel value is a background value.
+ * 
+ * If the input image contains an IndexColorModel, then pixel values are taken directly from the input color table.
+ * 
+ * 
  * @since EA2
  * @see javax.media.jai.Warp
  * @see javax.media.jai.WarpOpImage
@@ -52,6 +60,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
     /** Color table representing source's IndexColorModel. */
     private byte[][] ctable = null;
 
+    /** LookupTable used for a faster NoData check */
     private boolean[] booleanLookupTable;
 
     /**
@@ -59,9 +68,12 @@ final class WarpBilinearOpImage extends WarpOpImage {
      * 
      * @param source The source image.
      * @param extender A BorderExtender, or null.
+     * @param config RenderingHints used in calculations.
      * @param layout The destination image layout.
      * @param warp An object defining the warp algorithm.
      * @param interp An object describing the interpolation method.
+     * @param roi input ROI object used.
+     * @param noData NoData Range object used for checking if NoData are present.
      */
     public WarpBilinearOpImage(final RenderedImage source, final BorderExtender extender,
             final Map<?, ?> config, final ImageLayout layout, final Warp warp,
@@ -122,7 +134,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
 
     protected void computeRectByte(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
-
+        // Random iterator initialization. If an extender is used, then an extended image is taken.
         RandomIter iterSource;
         if (extended) {
             final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
@@ -619,7 +631,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
 
     protected void computeRectUShort(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
-
+        // Random iterator initialization. If an extender is used, then an extended image is taken.
         RandomIter iterSource;
         if (extended) {
             final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
@@ -878,7 +890,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
 
     protected void computeRectShort(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
-
+        // Random iterator initialization. If an extender is used, then an extended image is taken.
         RandomIter iterSource;
         if (extended) {
             final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
@@ -1136,7 +1148,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
     }
 
     protected void computeRectInt(final PlanarImage src, final RasterAccessor dst, final ROI roiTile) {
-
+        // Random iterator initialization. If an extender is used, then an extended image is taken.
         RandomIter iterSource;
         if (extended) {
             final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
@@ -1395,6 +1407,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
 
     protected void computeRectFloat(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
+        // Random iterator initialization. If an extender is used, then an extended image is taken.
         RandomIter iterSource;
         if (extended) {
             final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
@@ -1652,7 +1665,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
 
     protected void computeRectDouble(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
-
+        // Random iterator initialization. If an extender is used, then an extended image is taken.
         RandomIter iterSource;
         if (extended) {
             final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
@@ -1911,16 +1924,16 @@ final class WarpBilinearOpImage extends WarpOpImage {
     /**
      * Computes the bilinear interpolation when No Data are present
      * 
-     * @param s00
-     * @param s01
-     * @param s10
-     * @param s11
-     * @param w00
-     * @param w01
-     * @param w10
-     * @param w11
+     * @param s00 upper-left pixel
+     * @param s01 upper-right pixel
+     * @param s10 lower-left pixel
+     * @param s11 lower-right pixel
+     * @param w00 upper-left pixel nodata flag
+     * @param w01 upper-right pixel nodata flag
+     * @param w10 lower-left pixel nodata flag
+     * @param w11 lower-right pixel nodata flag
      * @param dataType
-     * @return
+     * @return bilinear interpolation
      */
     private double computePoint(double s00, double s01, double s10, double s11, double xfrac,
             double yfrac, boolean w00, boolean w01, boolean w10, boolean w11) {
@@ -1975,10 +1988,5 @@ final class WarpBilinearOpImage extends WarpOpImage {
             }
         }
         return s;
-    }
-
-    /** Returns the "floor" value of a float. */
-    private static final int floor(final float f) {
-        return f >= 0 ? (int) f : (int) f - 1;
     }
 }

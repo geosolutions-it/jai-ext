@@ -10,8 +10,14 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/**
+ * Test class which extends the TestWarp class and executes all the tests with the bicubic interpolation.
+ */
 public class BicubicWarpTest extends TestWarp{
 
+    /**
+     * Static method for preparing the test environment.
+     */
     @BeforeClass
     public static void setup() {
         // Definition of the Warp Object
@@ -56,24 +62,27 @@ public class BicubicWarpTest extends TestWarp{
     
     @Test
     public void testImage() {
-        super.testImage();
+        super.testImage(interpType);
     }
 
     @Test
     public void testImageROI() {
-        super.testImageROI();
+        super.testImageROI(interpType);
     }
 
     @Test
     public void testImageNoData() {
-        super.testImageNoData();
+        super.testImageNoData(interpType);
     }
 
     @Test
     public void testImageNoDataROI() {
-        super.testImageNoDataROI();
+        super.testImageNoDataROI(interpType);
     }
 
+    /**
+     * Static method for disposing the test environment.
+     */
     @AfterClass
     public static void finalStuff() {
         TestWarp.finalStuff();

@@ -40,6 +40,12 @@ import javax.media.jai.iterator.RandomIter;
  * An <code>OpImage</code> implementing the general "Warp" operation as described in <code>javax.media.jai.operator.WarpDescriptor</code>. It supports
  * the bicubic interpolation.
  * 
+ * <p>
+ * The layout for the destination image may be specified via the <code>ImageLayout</code> parameter. However, only those settings suitable for this
+ * operation will be used. The unsuitable settings will be replaced by default suitable values. An optional ROI object and a NoData Range can be used.
+ * If a backward mapped pixel lies outside ROI or it is a NoData, then the destination pixel value is a background value.
+ * 
+ * 
  * @since EA2
  * @see javax.media.jai.Warp
  * @see javax.media.jai.WarpOpImage
@@ -49,7 +55,7 @@ import javax.media.jai.iterator.RandomIter;
  */
 @SuppressWarnings("unchecked")
 final class WarpBicubicOpImage extends WarpOpImage {
-
+    /** Constant holding the bicubic kernel value */
     private static final int KERNEL_LINE_DIM = 4;
 
     /**
@@ -60,24 +66,34 @@ final class WarpBicubicOpImage extends WarpOpImage {
     /** Color table representing source's IndexColorModel. */
     private byte[][] ctable = null;
 
+    /** LookupTable used for a faster NoData check */
     private boolean[] booleanLookupTable;
 
+    /** Integer coeffs for horizontal interpolation */
     private int[] dataHi;
 
+    /** Integer coeffs for vertical interpolation */
     private int[] dataVi;
 
+    /** Float coeffs for horizontal interpolation */
     private float[] dataHf;
 
+    /** Float coeffs for vertical interpolation */
     private float[] dataVf;
 
+    /** Double coeffs for horizontal interpolation */
     private double[] dataHd;
 
+    /** Double coeffs for vertical interpolation */
     private double[] dataVd;
 
+    /** Shift used in integer computations */
     private int shift;
 
+    /** Integer value used for rounding integer computations */
     private int round;
 
+    /** Precision bits used for expanding the integer interpolation */
     private int precisionBits;
 
     /**
@@ -85,9 +101,12 @@ final class WarpBicubicOpImage extends WarpOpImage {
      * 
      * @param source The source image.
      * @param extender A BorderExtender, or null.
+     * @param config RenderingHints used in calculations.
      * @param layout The destination image layout.
      * @param warp An object defining the warp algorithm.
      * @param interp An object describing the interpolation method.
+     * @param roi input ROI object used.
+     * @param noData NoData Range object used for checking if NoData are present.
      */
     public WarpBicubicOpImage(final RenderedImage source, final BorderExtender extender,
             final Map<?, ?> config, final ImageLayout layout, final Warp warp,
@@ -144,7 +163,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
         default:
             throw new IllegalArgumentException("Wrong data Type");
         }
-
+        // Selection of the interpolation coefficients
         InterpolationTable interpCubic = (InterpolationTable) interp;
 
         switch (srcDataType) {
@@ -180,6 +199,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
     protected void computeRectByte(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
 
+        // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
@@ -974,7 +994,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
     protected void computeRectUShort(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
-
+        // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
@@ -1390,7 +1410,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
     protected void computeRectShort(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
-
+        // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
@@ -1805,7 +1825,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
     }
 
     protected void computeRectInt(final PlanarImage src, final RasterAccessor dst, final ROI roiTile) {
-
+        // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
@@ -2221,7 +2241,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
     protected void computeRectFloat(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
-
+        // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
@@ -2631,7 +2651,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
     protected void computeRectDouble(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
-
+        // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
@@ -3005,6 +3025,18 @@ final class WarpBicubicOpImage extends WarpOpImage {
         iterSource.done();
     }
 
+    /**
+     * Bicubic calculation for integer data
+     * 
+     * @param b band
+     * @param iterSource source image iterator
+     * @param xint source pixel X position
+     * @param yint source pixel Y position
+     * @param offsetX X fractional offset
+     * @param offsetY Y fractional offset
+     * @param t optional color table
+     * @return
+     */
     private long bicubicCalculationInt(int b, RandomIter iterSource, int xint, int yint,
             int offsetX, int offsetY, byte[] t) {
 
@@ -3043,6 +3075,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
         return ((sum + round) >> precisionBits);
     }
 
+    /**
+     * Bicubic calculation for Float data
+     * 
+     * @param b band
+     * @param iterSource source image iterator
+     * @param xint source pixel X position
+     * @param yint source pixel Y position
+     * @param offsetX X fractional offset
+     * @param offsetY Y fractional offset
+     * @return
+     */
     private double bicubicCalculationFloat(int b, RandomIter iterSource, int xint, int yint,
             int offsetX, int offsetY) {
 
@@ -3065,6 +3108,17 @@ final class WarpBicubicOpImage extends WarpOpImage {
         return sum;
     }
 
+    /**
+     * Bicubic calculation for Double data
+     * 
+     * @param b band
+     * @param iterSource source image iterator
+     * @param xint source pixel X position
+     * @param yint source pixel Y position
+     * @param offsetX X fractional offset
+     * @param offsetY Y fractional offset
+     * @return
+     */
     private double bicubicCalculationDouble(int b, RandomIter iterSource, int xint, int yint,
             int offsetX, int offsetY) {
 
@@ -3087,11 +3141,15 @@ final class WarpBicubicOpImage extends WarpOpImage {
         return sum;
     }
 
-    /** Returns the "floor" value of a float. */
-    private static final int floor(final float f) {
-        return f >= 0 ? (int) f : (int) f - 1;
-    }
-
+    /**
+     * Private method for extracting valid values from the input pixel no data values on a 4-pixel line This method is used for filling the no data
+     * values inside the interpolation kernel with the values of the adjacent pixels
+     * 
+     * @param array pixel array
+     * @param weightSum value indicating how and where no data pixels are
+     * @param emptyArray empty array to return in output
+     * @return
+     */
     private static long[] bicubicInpainting(long[] array, short weightSum, long[] emptyArray) {
         // Absence of No Data, the pixels are returned.
         if (weightSum == 15) {
@@ -3220,7 +3278,15 @@ final class WarpBicubicOpImage extends WarpOpImage {
         return emptyArray;
     }
 
-    // This method is used for filling the no data values inside the interpolation kernel with the values of the adjacent pixels
+    /**
+     * Private method for extracting valid values from the input pixel no data values on a 4-pixel line This method is used for filling the no data
+     * values inside the interpolation kernel with the values of the adjacent pixels
+     * 
+     * @param array pixel array
+     * @param weightSum value indicating how and where no data pixels are
+     * @param emptyArray empty array to return in output
+     * @return
+     */
     private static double[] bicubicInpaintingDouble(double[] array, short weightSum,
             double[] emptyArray) {
         // Absence of No Data, the pixels are returned.

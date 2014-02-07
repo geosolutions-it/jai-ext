@@ -112,7 +112,9 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
                 && (((InterpolationNoData) interp).getNoDataRange() != null) || noData != null;
 
         if (hasNoData) {
-            noDataRange = ((InterpolationNoData) interp).getNoDataRange();
+            if(interp instanceof InterpolationNoData){
+                noDataRange = ((InterpolationNoData) interp).getNoDataRange();
+            }            
             if (noDataRange == null) {
                 noDataRange = noData;
             }
@@ -244,7 +246,7 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
                 computeRectDouble(sources[0], d, roiTile);
                 break;
             }
-
+            // After the calculations, the output data are copied into the WritableRaster
             if (d.isDataCopy()) {
                 d.clampDataArrays();
                 d.copyDataToRaster();
@@ -257,21 +259,63 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
         }
     }
 
+    /**
+     * Computation of the Warp operation on Byte images
+     * 
+     * @param src
+     * @param dst
+     * @param roiTile
+     */
     protected abstract void computeRectByte(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile);
 
+    /**
+     * Computation of the Warp operation on UShort images
+     * 
+     * @param src
+     * @param dst
+     * @param roiTile
+     */
     protected abstract void computeRectUShort(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile);
 
+    /**
+     * Computation of the Warp operation on Short images
+     * 
+     * @param src
+     * @param dst
+     * @param roiTile
+     */
     protected abstract void computeRectShort(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile);
 
+    /**
+     * Computation of the Warp operation on Integer images
+     * 
+     * @param src
+     * @param dst
+     * @param roiTile
+     */
     protected abstract void computeRectInt(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile);
 
+    /**
+     * Computation of the Warp operation on Float images
+     * 
+     * @param src
+     * @param dst
+     * @param roiTile
+     */
     protected abstract void computeRectFloat(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile);
 
+    /**
+     * Computation of the Warp operation on Double images
+     * 
+     * @param src
+     * @param dst
+     * @param roiTile
+     */
     protected abstract void computeRectDouble(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile);
 
@@ -311,6 +355,17 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
             return new double[] { 0.0d };
         }
 
+    }
+    
+    /** Returns the "floor" value of a float. */
+    public static final int floor(final float f) {
+        return f >= 0 ? (int) f : (int) f - 1;
+    }
+    
+
+    /** Returns the "round" value of a float. */
+    public static final int round(final float f) {
+        return f >= 0 ? (int) (f + 0.5F) : (int) (f - 0.5F);
     }
 
 }

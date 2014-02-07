@@ -382,6 +382,7 @@ public class WarpDescriptor extends OperationDescriptorImpl {
      * @param warp The warp object.
      * @param interpolation The interpolation method. May be <code>null</code>.
      * @param backgroundValues The user-specified background values. May be <code>null</code>.
+     * @param sourceROI ROI object used in calculations. May be <code>null</code>.
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @return The <code>RenderedOp</code> destination.
      * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.
@@ -389,23 +390,12 @@ public class WarpDescriptor extends OperationDescriptorImpl {
      */
     public static RenderedOp create(RenderedImage source0, Warp warp, Interpolation interpolation,
             double[] backgroundValues, ROI sourceROI, RenderingHints hints) {
-        ParameterBlockJAI pb = new ParameterBlockJAI("WarpNoData", RenderedRegistryMode.MODE_NAME);
 
-        pb.setSource("source0", source0);
-        if (sourceROI != null) {
-            pb.setParameter("roi", sourceROI);
-        }
-        pb.setParameter("warp", warp);
-        pb.setParameter("interpolation", interpolation);
-        if(backgroundValues!=null){
-            pb.setParameter("background", backgroundValues);
-        }
-
-        return JAI.create("WarpNoData", pb, hints);
+        return create(source0, warp, interpolation, backgroundValues, sourceROI, null, hints);
     }
     
     /**
-     * Warps an image according to a specified Warp object.
+     * Warps an image according to a specified Warp object. NoData Range can be added
      * 
      * <p>
      * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
@@ -419,6 +409,8 @@ public class WarpDescriptor extends OperationDescriptorImpl {
      * @param warp The warp object.
      * @param interpolation The interpolation method. May be <code>null</code>.
      * @param backgroundValues The user-specified background values. May be <code>null</code>.
+     * @param sourceROI ROI object used in calculations. May be <code>null</code>.
+     * @param noData NoData Range used in calculations. May be <code>null</code>.
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @return The <code>RenderedOp</code> destination.
      * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.

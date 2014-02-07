@@ -39,7 +39,8 @@ import javax.media.jai.iterator.RandomIter;
  * 
  * <p>
  * The layout for the destination image may be specified via the <code>ImageLayout</code> parameter. However, only those settings suitable for this
- * operation will be used. The unsuitable settings will be replaced by default suitable values.
+ * operation will be used. The unsuitable settings will be replaced by default suitable values. An optional ROI object and a NoData Range can be used.
+ * If a backward mapped pixel lies outside ROI or it is a NoData, then the destination pixel value is a background value.
  * 
  * @since EA2
  * @see javax.media.jai.Warp
@@ -50,21 +51,25 @@ import javax.media.jai.iterator.RandomIter;
  */
 @SuppressWarnings("unchecked")
 final class WarpNearestOpImage extends WarpOpImage {
-
+    /** LookupTable used for a faster NoData check */
     private byte[] byteLookupTable;
 
     /**
      * Constructs a WarpNearestOpImage.
      * 
      * @param source The source image.
+     * @param config RenderingHints used in calculations.
      * @param layout The destination image layout.
      * @param warp An object defining the warp algorithm.
      * @param interp An object describing the interpolation method.
+     * @param roi input ROI object used.
+     * @param noData NoData Range object used for checking if NoData are present.
+     * 
      */
     public WarpNearestOpImage(final RenderedImage source, final Map<?, ?> config,
             final ImageLayout layout, final Warp warp, final Interpolation interp,
             final ROI sourceROI, Range noData) {
-        super(source, layout, config, false, null, // extender
+        super(source, layout, config, false, null, // extender not needed in nearest-neighbor interpolation
                 interp, warp, null, sourceROI, noData);
 
         /*
@@ -127,9 +132,10 @@ final class WarpNearestOpImage extends WarpOpImage {
 
     protected void computeRectByte(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
+        // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
-
+        // Initial settings
         final int minX = src.getMinX();
         final int maxX = src.getMaxX();
         final int minY = src.getMinY();
@@ -172,6 +178,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // Nearest interpolation
                         for (int b = 0; b < dstBands; b++) {
                             data[b][pixelOffset + bandOffsets[b]] = (byte) (iter.getSample(sx, sy,
                                     b) & 0xFF);
@@ -305,9 +312,10 @@ final class WarpNearestOpImage extends WarpOpImage {
 
     protected void computeRectUShort(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
+        // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
-
+        // Initial settings
         final int minX = src.getMinX();
         final int maxX = src.getMaxX();
         final int minY = src.getMinY();
@@ -350,6 +358,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // Nearest interpolation
                         for (int b = 0; b < dstBands; b++) {
                             data[b][pixelOffset + bandOffsets[b]] = (short) (iter.getSample(sx, sy,
                                     b) & 0xFFFF);
@@ -495,9 +504,10 @@ final class WarpNearestOpImage extends WarpOpImage {
 
     protected void computeRectShort(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
+        // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
-
+        // Initial settings
         final int minX = src.getMinX();
         final int maxX = src.getMaxX();
         final int minY = src.getMinY();
@@ -540,6 +550,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // Nearest interpolation
                         for (int b = 0; b < dstBands; b++) {
                             data[b][pixelOffset + bandOffsets[b]] = (short) iter.getSample(sx, sy,
                                     b);
@@ -684,9 +695,10 @@ final class WarpNearestOpImage extends WarpOpImage {
     }
 
     protected void computeRectInt(final PlanarImage src, final RasterAccessor dst, final ROI roiTile) {
+        // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
-
+        // Initial settings
         final int minX = src.getMinX();
         final int maxX = src.getMaxX();
         final int minY = src.getMinY();
@@ -729,6 +741,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // Nearest interpolation
                         for (int b = 0; b < dstBands; b++) {
                             data[b][pixelOffset + bandOffsets[b]] = iter.getSample(sx, sy, b);
                         }
@@ -872,9 +885,10 @@ final class WarpNearestOpImage extends WarpOpImage {
 
     protected void computeRectFloat(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
+        // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
-
+        // Initial settings
         final int minX = src.getMinX();
         final int maxX = src.getMaxX();
         final int minY = src.getMinY();
@@ -917,6 +931,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // Nearest interpolation
                         for (int b = 0; b < dstBands; b++) {
                             data[b][pixelOffset + bandOffsets[b]] = iter.getSampleFloat(sx, sy, b);
                         }
@@ -1061,9 +1076,10 @@ final class WarpNearestOpImage extends WarpOpImage {
 
     protected void computeRectDouble(final PlanarImage src, final RasterAccessor dst,
             final ROI roiTile) {
+        // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
-
+        // Initial settings
         final int minX = src.getMinX();
         final int maxX = src.getMaxX();
         final int minY = src.getMinY();
@@ -1106,6 +1122,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             }
                         }
                     } else {
+                        // Nearest interpolation
                         for (int b = 0; b < dstBands; b++) {
                             data[b][pixelOffset + bandOffsets[b]] = iter.getSampleDouble(sx, sy, b);
                         }
@@ -1246,10 +1263,5 @@ final class WarpNearestOpImage extends WarpOpImage {
             }
         }
         iter.done();
-    }
-
-    /** Returns the "round" value of a float. */
-    private static final int round(final float f) {
-        return f >= 0 ? (int) (f + 0.5F) : (int) (f - 0.5F);
     }
 }

@@ -59,7 +59,7 @@ public abstract class TestBase {
     protected float scaleY = 0.5f;
 
     public enum InterpolationType {
-        NEAREST_INTERP(0), BILINEAR_INTERP(1), BICUBIC_INTERP(2),GENERAL_INTERP(4);
+        NEAREST_INTERP(0), BILINEAR_INTERP(1), BICUBIC_INTERP(2),GENERAL_INTERP(3);
         
         private int type;
         

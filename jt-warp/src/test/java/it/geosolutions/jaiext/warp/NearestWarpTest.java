@@ -1,22 +1,24 @@
 package it.geosolutions.jaiext.warp;
 
-import it.geosolutions.jaiext.testclasses.TestBase.TestSelection;
-
 import java.awt.geom.AffineTransform;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 
-import javax.media.jai.TiledImage;
 import javax.media.jai.WarpAffine;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/**
+ * Test class which extends the TestWarp class and executes all the tests with the nearest-neighbor interpolation.
+ */
 public class NearestWarpTest extends TestWarp {
 
 
-
+    /**
+     * Static method for preparing the test environment.
+     */
     @BeforeClass
     public static void setup() {
         // Definition of the Warp Object
@@ -61,24 +63,27 @@ public class NearestWarpTest extends TestWarp {
     
     @Test
     public void testImage() {
-        super.testImage();
+        super.testImage(interpType);
     }
 
     @Test
     public void testImageROI() {
-        super.testImageROI();
+        super.testImageROI(interpType);
     }
 
     @Test
     public void testImageNoData() {
-        super.testImageNoData();
+        super.testImageNoData(interpType);
     }
 
     @Test
     public void testImageNoDataROI() {
-        super.testImageNoDataROI();
+        super.testImageNoDataROI(interpType);
     }
 
+    /**
+     * Static method for disposing the test environment.
+     */
     @AfterClass
     public static void finalStuff() {
         TestWarp.finalStuff();
