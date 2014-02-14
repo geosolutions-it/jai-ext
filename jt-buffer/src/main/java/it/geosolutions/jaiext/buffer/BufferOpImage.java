@@ -1,5 +1,6 @@
 package it.geosolutions.jaiext.buffer;
 
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
@@ -19,6 +20,7 @@ import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.ImageUtil;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -31,7 +33,13 @@ public class BufferOpImage extends AreaOpImage {
 
     public static final int USHORT_MAX_VALUE = Short.MAX_VALUE - Short.MIN_VALUE;
 
-    /** Spatial index for fast accessing the geometries that contain the selected pixel */
+    public static final boolean TILE_CACHED = true;
+
+    public static final boolean ARRAY_CALC = true;
+
+    /**
+     * Spatial index for fast accessing the geometries that contain the selected pixel
+     */
     private final STRtree spatialIndex = new STRtree();
 
     private boolean hasROI;
@@ -76,10 +84,12 @@ public class BufferOpImage extends AreaOpImage {
 
     private boolean skipCalculations;
 
+    private final double pixelArea;
+
     public BufferOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, int leftPadding, int rightPadding, int topPadding,
             int bottomPadding, List<ROI> rois, Range noData, double destinationNoDataDouble,
-            Double valueToCount) {
+            Double valueToCount, double pixelArea) {
         super(source, layout, configuration, true, extender, leftPadding, rightPadding, topPadding,
                 bottomPadding);
 
@@ -93,31 +103,45 @@ public class BufferOpImage extends AreaOpImage {
         this.noData = noData;
         hasROI = rois != null && !rois.isEmpty();
         hasNoData = noData != null;
+        // Get PixelArea
+        this.pixelArea = pixelArea;
 
-        this.valueToCountD = valueToCount;
         counter = valueToCount != null;
+        this.valueToCountD = counter ? valueToCount : 0;
 
-        SampleModel sm = source.getSampleModel();
+        SampleModel sm = getSampleModel();
         // Source image data Type
-        int srcDataType = sm.getDataType();
+        int dstDataType = sm.getDataType();
 
-        // Boolean indicating that no calcolations must be done if the value to count is equal to nodata
+        // Check if the input NoData Range is equal to that of the final image data type except for Double and Float Images
+        if (hasNoData) {
+            int rangeType = noData.getDataType().getDataType();
+            if (dstDataType != rangeType
+                    && !(rangeType == DataBuffer.TYPE_FLOAT || rangeType == DataBuffer.TYPE_DOUBLE)) {
+                throw new IllegalArgumentException(
+                        "Input Range must have the same data type of the final image");
+            }
+        }
+
+        // Boolean indicating that no calcolations must be done if the value to
+        // count is equal to nodata
         skipCalculations = false;
 
-        switch (srcDataType) {
+        switch (dstDataType) {
         case DataBuffer.TYPE_BYTE:
             destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
-            // Creation of a lookuptable containing the values to use for no data
+            // Creation of a lookuptable containing the values to use for no
+            // data
             if (hasNoData) {
                 booleanLookupTable = new boolean[256];
                 for (int i = 0; i < booleanLookupTable.length; i++) {
                     byte value = (byte) i;
-                    booleanLookupTable[i] = !noData.contains(value);
+                    booleanLookupTable[i] = !!noData.contains(value);
                 }
             }
             if (counter) {
                 valueToCountB = valueToCount.byteValue();
-                if (noData.contains(valueToCountB)) {
+                if (!noData.contains(valueToCountB)) {
                     skipCalculations = true;
                 }
             }
@@ -126,7 +150,7 @@ public class BufferOpImage extends AreaOpImage {
             destinationNoDataShort = (short) (((short) destinationNoDataDouble) & 0xffff);
             if (counter) {
                 valueToCountS = valueToCount.shortValue();
-                if (noData.contains(valueToCountS)) {
+                if (!noData.contains(valueToCountS)) {
                     skipCalculations = true;
                 }
             }
@@ -135,7 +159,7 @@ public class BufferOpImage extends AreaOpImage {
             destinationNoDataShort = (short) destinationNoDataDouble;
             if (counter) {
                 valueToCountS = valueToCount.shortValue();
-                if (noData.contains(valueToCountS)) {
+                if (!noData.contains(valueToCountS)) {
                     skipCalculations = true;
                 }
             }
@@ -144,7 +168,7 @@ public class BufferOpImage extends AreaOpImage {
             destinationNoDataInt = (int) destinationNoDataDouble;
             if (counter) {
                 valueToCountI = valueToCount.intValue();
-                if (noData.contains(valueToCountI)) {
+                if (!noData.contains(valueToCountI)) {
                     skipCalculations = true;
                 }
             }
@@ -153,7 +177,7 @@ public class BufferOpImage extends AreaOpImage {
             destinationNoDataFloat = (float) destinationNoDataDouble;
             if (counter) {
                 valueToCountF = valueToCount.floatValue();
-                if (noData.contains(valueToCountF)) {
+                if (!noData.contains(valueToCountF)) {
                     skipCalculations = true;
                 }
             }
@@ -161,7 +185,7 @@ public class BufferOpImage extends AreaOpImage {
         case DataBuffer.TYPE_DOUBLE:
             this.destinationNoDataDouble = destinationNoDataDouble;
             if (counter) {
-                if (noData.contains(valueToCountD)) {
+                if (!noData.contains(valueToCountD)) {
                     skipCalculations = true;
                 }
             }
@@ -191,7 +215,8 @@ public class BufferOpImage extends AreaOpImage {
             // Bounds Union
             union = new Rectangle(rois.get(0).getBounds());
 
-            // Insertion of the zones to the spatial index and union of the bounds for every ROI/Zone object
+            // Insertion of the zones to the spatial index and union of the
+            // bounds for every ROI/Zone object
             for (ROI roi : rois) {
                 // Spatial index creation
                 Rectangle rect = roi.getBounds();
@@ -242,22 +267,22 @@ public class BufferOpImage extends AreaOpImage {
 
             switch (dstAccessor.getDataType()) {
             case DataBuffer.TYPE_BYTE:
-                byteLoop(srcAccessor, dstAccessor);
+                byteLoop(source, srcRect, srcAccessor, dstAccessor);
                 break;
             case DataBuffer.TYPE_INT:
-                intLoop(srcAccessor, dstAccessor);
+                intLoop(source, srcRect, srcAccessor, dstAccessor);
                 break;
             case DataBuffer.TYPE_SHORT:
-                shortLoop(srcAccessor, dstAccessor);
+                shortLoop(source, srcRect, srcAccessor, dstAccessor);
                 break;
             case DataBuffer.TYPE_USHORT:
-                ushortLoop(srcAccessor, dstAccessor);
+                ushortLoop(source, srcRect, srcAccessor, dstAccessor);
                 break;
             case DataBuffer.TYPE_FLOAT:
-                floatLoop(srcAccessor, dstAccessor);
+                floatLoop(source, srcRect, srcAccessor, dstAccessor);
                 break;
             case DataBuffer.TYPE_DOUBLE:
-                doubleLoop(srcAccessor, dstAccessor);
+                doubleLoop(source, srcRect, srcAccessor, dstAccessor);
                 break;
 
             default:
@@ -273,7 +298,8 @@ public class BufferOpImage extends AreaOpImage {
             }
 
         } else {
-            // If the tile is outside the ROI, then the destination Raster is set to backgroundValues
+            // If the tile is outside the ROI, then the destination Raster is
+            // set to backgroundValues
             if (setBackground) {
                 int numBands = getNumBands();
                 double[] background = new double[numBands];
@@ -285,7 +311,10 @@ public class BufferOpImage extends AreaOpImage {
         }
     }
 
-    private void byteLoop(RasterAccessor src, RasterAccessor dst) {
+    private void byteLoop(Raster ras, Rectangle srcRect, RasterAccessor src, RasterAccessor dst) {
+
+        RandomIter iter = RandomIterFactory.create(ras, srcRect, TILE_CACHED, ARRAY_CALC);
+
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
         int dnumBands = dst.getNumBands();
@@ -298,19 +327,12 @@ public class BufferOpImage extends AreaOpImage {
         int dstPixelStride = dst.getPixelStride();
         int dstScanlineStride = dst.getScanlineStride();
 
-        byte srcDataArrays[][] = src.getByteDataArrays();
-        int srcBandOffsets[] = src.getBandOffsets();
-        int srcPixelStride = src.getPixelStride();
-        int srcScanlineStride = src.getScanlineStride();
-
-        int srcScanlineOffset = 0;
         int dstScanlineOffset = 0;
 
         // Both ROI and NoData
-        if (!hasNoData) {
+        if (hasNoData) {
 
             for (int j = 0; j < dheight; j++) {
-                int srcPixelOffset = srcScanlineOffset;
                 int dstPixelOffset = dstScanlineOffset;
 
                 int y0 = dstY + j;
@@ -324,7 +346,6 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             byte dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;
-                            srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
                         }
                         continue;
@@ -334,203 +355,154 @@ public class BufferOpImage extends AreaOpImage {
                     boolean contains = true;
 
                     if (hasROI) {
-                        // Coordinate object creation for the spatial indexing
-                        Coordinate p1 = new Coordinate(x0, y0);
-                        // Envelope associated to the coordinate object
-                        Envelope searchEnv = new Envelope(p1);
-                        // Query on the geometry list
-                        List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                        contains = false;
-                        // Cycle on all the geometries found
-                        for (ROI roi : roiList) {
-
-                            synchronized (this) { // HACK
-                                contains = roi.contains(x0, y0);
-                            }
-                            if (contains) {
-                                break;
-                            }
-                        }
+                        contains = checkInROI(y0, x0);
                     }
 
                     if (!contains) {
                         for (int k = 0; k < dnumBands; k++) {
                             byte dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;
-                            srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
                             continue;
                         }
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        byte dstData[] = dstDataArrays[k];
+                        int value = 0;
+                        boolean isValidData = false;
 
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
 
-                        for (int k = 0; k < dnumBands; k++) {
-                            byte srcData[] = dstDataArrays[k];
-                            byte dstData[] = dstDataArrays[k];
-
-                            int value = 0;
-                            boolean isValidData = false;
-                            
-                            if (counter) {
-                                int imageVerticalOffset = srcPixelOffset;
-                                for (int u = 0; u < kHeight; u++) {
-                                    int imageOffset = imageVerticalOffset;
-                                    for (int v = 0; v < kWidth; v++) {
-                                        byte data = srcData[imageOffset + srcBandOffsets[k]];
-
-                                        if (booleanLookupTable[data & 0xFF]) {
-                                            if (data == valueToCountB) {
-                                                value++;
-                                                isValidData |= booleanLookupTable[data & 0xFF];
-                                            }
+                        if (counter) {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    int data = iter.getSample(xStart + v, yStart + u, k) & 0xFF;
+                                    byte dataB = (byte) data;
+                                    if (booleanLookupTable[data]) {
+                                        if (dataB == valueToCountB) {
+                                            value++;
+                                            isValidData = booleanLookupTable[data];
                                         }
-
-                                        imageOffset += srcPixelStride;
                                     }
-                                    imageVerticalOffset += srcScanlineStride;
-                                }
-                            } else {
-                                int imageVerticalOffset = srcPixelOffset;
-                                for (int u = 0; u < kHeight; u++) {
-                                    int imageOffset = imageVerticalOffset;
-                                    for (int v = 0; v < kWidth; v++) {
-                                        byte data = srcData[imageOffset + srcBandOffsets[k]];
-
-                                        if (booleanLookupTable[data & 0xFF]) {
-                                            value += data;
-                                            isValidData |= booleanLookupTable[data & 0xFF];
-                                        }
-
-                                        imageOffset += srcPixelStride;
-                                    }
-                                    imageVerticalOffset += srcScanlineStride;
                                 }
                             }
+                        } else {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    int data = iter.getSample(xStart + v, yStart + u, k) & 0xFF;
 
-                            if (value < 0) {
-                                value = 0;
-                            } else if (value > 255) {
-                                value = 255;
-                            } else if (!isValidData) {
-                                value = destinationNoDataByte;
+                                    if (booleanLookupTable[data]) {
+                                        value += data;
+                                        isValidData = booleanLookupTable[data];
+                                    }
+                                }
                             }
-
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = (byte) value;
                         }
 
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
+                        value *= pixelArea;
+
+                        if (value < 0) {
+                            value = 0;
+                        } else if (value > 255) {
+                            value = 255;
+                        } else if (!isValidData) {
+                            value = destinationNoDataByte;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = (byte) value;
                     }
 
+                    dstPixelOffset += dstPixelStride;
+
                 }
-                srcScanlineOffset += srcScanlineStride;
                 dstScanlineOffset += dstScanlineStride;
             }
             // No NODATA
         } else {
 
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
 
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
+                int y0 = dstY + j;
 
-                    int y0 = dstY + j;
+                for (int i = 0; i < dwidth; i++) {
 
-                    for (int i = 0; i < dwidth; i++) {
+                    int x0 = dstX + i;
 
-                        int x0 = dstX + i;
-
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataByte;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataByte;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
                         for (int k = 0; k < dnumBands; k++) {
                             byte dstData[] = dstDataArrays[k];
-                            byte srcData[] = srcDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;
+                            dstPixelOffset += dstPixelStride;
                         }
-                        
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            byte dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;
+                            dstPixelOffset += dstPixelStride;
+                            continue;
+                        }
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        byte dstData[] = dstDataArrays[k];
                         int value = 0;
 
-                        if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
-                            for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
-                                for (int v = 0; v < kWidth; v++) {
-                                    byte data = srcData[imageOffset];
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
 
+                        if (counter) {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    byte data = (byte) (iter.getSample(xStart + v, yStart + u, k) & 0xFF);
                                     if (data == valueToCountB) {
                                         value++;
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
                             }
                         } else {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    value += (srcData[imageOffset]);
-                                    imageOffset += srcPixelStride;
+                                    int data = iter.getSample(xStart + v, yStart + u, k) & 0xFF;
+                                    value += data;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-
-                            if (value < 0) {
-                                value = 0;
-                            } else if (value > 255) {
-                                value = 255;
                             }
                         }
 
-                        dstData[dstPixelOffset] = (byte) value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
+                        value *= pixelArea;
+
+                        if (value < 0) {
+                            value = 0;
+                        } else if (value > 255) {
+                            value = 255;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = (byte) value;
                     }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
+
+                    dstPixelOffset += dstPixelStride;
+
                 }
+                dstScanlineOffset += dstScanlineStride;
             }
         }
-
     }
 
-    private void ushortLoop(RasterAccessor src, RasterAccessor dst) {
+    private void ushortLoop(Raster ras, Rectangle srcRect, RasterAccessor src, RasterAccessor dst) {
+
+        RandomIter iter = RandomIterFactory.create(ras, srcRect, TILE_CACHED, ARRAY_CALC);
+
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
         int dnumBands = dst.getNumBands();
@@ -543,462 +515,372 @@ public class BufferOpImage extends AreaOpImage {
         int dstPixelStride = dst.getPixelStride();
         int dstScanlineStride = dst.getScanlineStride();
 
-        short srcDataArrays[][] = src.getShortDataArrays();
-        int srcBandOffsets[] = src.getBandOffsets();
-        int srcPixelStride = src.getPixelStride();
-        int srcScanlineStride = src.getScanlineStride();
+        int dstScanlineOffset = 0;
 
         // Both ROI and NoData
-        if (!hasNoData) {
+        if (hasNoData) {
 
-            for (int k = 0; k < dnumBands; k++) {
-                short dstData[] = dstDataArrays[k];
-                short srcData[] = srcDataArrays[k];
-                int srcScanlineOffset = srcBandOffsets[k];
-                int dstScanlineOffset = dstBandOffsets[k];
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
 
-                    int y0 = dstY + j;
+                int y0 = dstY + j;
 
-                    for (int i = 0; i < dwidth; i++) {
+                for (int i = 0; i < dwidth; i++) {
 
-                        int x0 = dstX + i;
+                    int x0 = dstX + i;
 
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataShort;
-                            srcPixelOffset += srcPixelStride;
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            short dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            short dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
                             dstPixelOffset += dstPixelStride;
                             continue;
                         }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataShort;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        short dstData[] = dstDataArrays[k];
                         int value = 0;
                         boolean isValidData = false;
 
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
+
                         if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    short data = (short) (srcData[imageOffset] & 0xFFFF);
-                                    boolean valid = noData.contains(data);
+                                    int data = iter.getSample(xStart + v, yStart + u, k) & 0xFFFF;
+                                    short dataS = (short) data;
+                                    boolean valid = !noData.contains(dataS);
                                     if (valid) {
-                                        if (data == valueToCountS) {
+                                        if (dataS == valueToCountS) {
                                             value++;
-                                            isValidData |= valid;
+                                            isValidData = valid;
                                         }
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
                             }
                         } else {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    short data = srcData[imageOffset];
-                                    boolean valid = noData.contains(data);
-
-                                    if (valid) {
-                                        value += data & 0xFFFF;
-                                        isValidData |= valid;
-                                    }
-
-                                    imageOffset += srcPixelStride;
-                                }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-
-                            if (value < 0) {
-                                value = 0;
-                            } else if (value > USHORT_MAX_VALUE) {
-                                value = USHORT_MAX_VALUE;
-                            } else if (!isValidData) {
-                                value = destinationNoDataShort;
-                            }
-                        }
-
-                        dstData[dstPixelOffset] = (short) value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
-                }
-            }
-            // No NODATA
-        } else {
-
-            for (int k = 0; k < dnumBands; k++) {
-                short dstData[] = dstDataArrays[k];
-                short srcData[] = srcDataArrays[k];
-                int srcScanlineOffset = srcBandOffsets[k];
-                int dstScanlineOffset = dstBandOffsets[k];
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
-
-                    int y0 = dstY + j;
-
-                    for (int i = 0; i < dwidth; i++) {
-
-                        int x0 = dstX + i;
-
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataShort;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataShort;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
-                        int value = 0;
-
-                        if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
-                            for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
-                                for (int v = 0; v < kWidth; v++) {
-                                    short data = (short) (srcData[imageOffset] & 0xFFFF);
-
-                                    if (data == valueToCountS) {
-                                        value++;
-                                    }
-
-                                    imageOffset += srcPixelStride;
-                                }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-                        } else {
-                            int imageVerticalOffset = srcPixelOffset;
-                            for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
-                                for (int v = 0; v < kWidth; v++) {
-                                    value += (srcData[imageOffset] & 0xFFFF);
-                                    imageOffset += srcPixelStride;
-                                }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-
-                            if (value < 0) {
-                                value = 0;
-                            } else if (value > USHORT_MAX_VALUE) {
-                                value = USHORT_MAX_VALUE;
-                            }
-                        }
-
-                        dstData[dstPixelOffset] = (short) value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
-                    }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
-                }
-            }
-        }
-    }
-
-    private void shortLoop(RasterAccessor src, RasterAccessor dst) {
-        int dwidth = dst.getWidth();
-        int dheight = dst.getHeight();
-        int dnumBands = dst.getNumBands();
-
-        int dstX = dst.getX();
-        int dstY = dst.getY();
-
-        short dstDataArrays[][] = dst.getShortDataArrays();
-        int dstBandOffsets[] = dst.getBandOffsets();
-        int dstPixelStride = dst.getPixelStride();
-        int dstScanlineStride = dst.getScanlineStride();
-
-        short srcDataArrays[][] = src.getShortDataArrays();
-        int srcBandOffsets[] = src.getBandOffsets();
-        int srcPixelStride = src.getPixelStride();
-        int srcScanlineStride = src.getScanlineStride();
-
-        // Both ROI and NoData
-        if (!hasNoData) {
-
-            for (int k = 0; k < dnumBands; k++) {
-                short dstData[] = dstDataArrays[k];
-                short srcData[] = srcDataArrays[k];
-                int srcScanlineOffset = srcBandOffsets[k];
-                int dstScanlineOffset = dstBandOffsets[k];
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
-
-                    int y0 = dstY + j;
-
-                    for (int i = 0; i < dwidth; i++) {
-
-                        int x0 = dstX + i;
-
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataShort;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataShort;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
-                        int value = 0;
-                        boolean isValidData = false;
-
-                        if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
-                            for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
-                                for (int v = 0; v < kWidth; v++) {
-                                    short data = srcData[imageOffset];
-                                    boolean valid = noData.contains(data);
-                                    if (valid) {
-                                        if (data == valueToCountS) {
-                                            value++;
-                                            isValidData |= valid;
-                                        }
-                                    }
-
-                                    imageOffset += srcPixelStride;
-                                }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-                        } else {
-                            int imageVerticalOffset = srcPixelOffset;
-                            for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
-                                for (int v = 0; v < kWidth; v++) {
-                                    short data = srcData[imageOffset];
-                                    boolean valid = noData.contains(data);
-
+                                    int data = iter.getSample(xStart + v, yStart + u, k) & 0xFFFF;
+                                    short dataS = (short) data;
+                                    boolean valid = !noData.contains(dataS);
                                     if (valid) {
                                         value += data;
-                                        isValidData |= valid;
+                                        isValidData = valid;
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-
-                            if (value < Short.MIN_VALUE) {
-                                value = Short.MIN_VALUE;
-                            } else if (value > Short.MAX_VALUE) {
-                                value = Short.MAX_VALUE;
-                            } else if (!isValidData) {
-                                value = destinationNoDataShort;
                             }
                         }
 
-                        dstData[dstPixelOffset] = (short) value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
+                        value *= pixelArea;
+
+                        if (value < 0) {
+                            value = 0;
+                        } else if (value > USHORT_MAX_VALUE) {
+                            value = USHORT_MAX_VALUE;
+                        } else if (!isValidData) {
+                            value = destinationNoDataShort;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = (short) value;
                     }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
+
+                    dstPixelOffset += dstPixelStride;
+
                 }
+                dstScanlineOffset += dstScanlineStride;
             }
             // No NODATA
         } else {
 
-            for (int k = 0; k < dnumBands; k++) {
-                short dstData[] = dstDataArrays[k];
-                short srcData[] = srcDataArrays[k];
-                int srcScanlineOffset = srcBandOffsets[k];
-                int dstScanlineOffset = dstBandOffsets[k];
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
 
-                    int y0 = dstY + j;
+                int y0 = dstY + j;
 
-                    for (int i = 0; i < dwidth; i++) {
+                for (int i = 0; i < dwidth; i++) {
 
-                        int x0 = dstX + i;
+                    int x0 = dstX + i;
 
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataShort;
-                            srcPixelOffset += srcPixelStride;
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            short dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            short dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
                             dstPixelOffset += dstPixelStride;
                             continue;
                         }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataShort;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        short dstData[] = dstDataArrays[k];
                         int value = 0;
 
-                        if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
-                            for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
-                                for (int v = 0; v < kWidth; v++) {
-                                    short data = srcData[imageOffset];
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
 
+                        if (counter) {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    short data = (short) (iter.getSample(xStart + v, yStart + u, k) & 0xFFFF);
                                     if (data == valueToCountS) {
                                         value++;
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
                             }
                         } else {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    value += srcData[imageOffset];
-                                    imageOffset += srcPixelStride;
+                                    int data = iter.getSample(xStart + v, yStart + u, k) & 0xFFFF;
+                                    value += data;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-
-                            if (value < Short.MIN_VALUE) {
-                                value = Short.MIN_VALUE;
-                            } else if (value > Short.MAX_VALUE) {
-                                value = Short.MAX_VALUE;
                             }
                         }
 
-                        dstData[dstPixelOffset] = (short) value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
+                        value *= pixelArea;
+
+                        if (value < 0) {
+                            value = 0;
+                        } else if (value > USHORT_MAX_VALUE) {
+                            value = USHORT_MAX_VALUE;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = (short) value;
                     }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
+
+                    dstPixelOffset += dstPixelStride;
+
                 }
+                dstScanlineOffset += dstScanlineStride;
             }
         }
     }
 
-    private void intLoop(RasterAccessor src, RasterAccessor dst) {
+    private void shortLoop(Raster ras, Rectangle srcRect, RasterAccessor src, RasterAccessor dst) {
+
+        RandomIter iter = RandomIterFactory.create(ras, srcRect, TILE_CACHED, ARRAY_CALC);
+
+        int dwidth = dst.getWidth();
+        int dheight = dst.getHeight();
+        int dnumBands = dst.getNumBands();
+
+        int dstX = dst.getX();
+        int dstY = dst.getY();
+
+        short dstDataArrays[][] = dst.getShortDataArrays();
+        int dstBandOffsets[] = dst.getBandOffsets();
+        int dstPixelStride = dst.getPixelStride();
+        int dstScanlineStride = dst.getScanlineStride();
+
+        int dstScanlineOffset = 0;
+
+        // Both ROI and NoData
+        if (hasNoData) {
+
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
+
+                int y0 = dstY + j;
+
+                for (int i = 0; i < dwidth; i++) {
+
+                    int x0 = dstX + i;
+
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            short dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            short dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
+                            dstPixelOffset += dstPixelStride;
+                            continue;
+                        }
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        short dstData[] = dstDataArrays[k];
+                        int value = 0;
+                        boolean isValidData = false;
+
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
+
+                        if (counter) {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    short data = (short) iter.getSample(xStart + v, yStart + u, k);
+                                    boolean valid = !noData.contains(data);
+                                    if (valid) {
+                                        if (data == valueToCountS) {
+                                            value++;
+                                            isValidData = valid;
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    short data = (short) iter.getSample(xStart + v, yStart + u, k);
+                                    boolean valid = !noData.contains(data);
+                                    if (valid) {
+                                        value += data;
+                                        isValidData = valid;
+                                    }
+                                }
+                            }
+                        }
+
+                        value *= pixelArea;
+
+                        if (value < Short.MIN_VALUE) {
+                            value = Short.MIN_VALUE;
+                        } else if (value > Short.MAX_VALUE) {
+                            value = Short.MAX_VALUE;
+                        } else if (!isValidData) {
+                            value = destinationNoDataShort;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = (short) value;
+                    }
+
+                    dstPixelOffset += dstPixelStride;
+
+                }
+                dstScanlineOffset += dstScanlineStride;
+            }
+            // No NODATA
+        } else {
+
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
+
+                int y0 = dstY + j;
+
+                for (int i = 0; i < dwidth; i++) {
+
+                    int x0 = dstX + i;
+
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            short dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            short dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
+                            dstPixelOffset += dstPixelStride;
+                            continue;
+                        }
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        short dstData[] = dstDataArrays[k];
+                        int value = 0;
+
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
+
+                        if (counter) {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    short data = (short) (iter.getSample(xStart + v, yStart + u, k));
+                                    if (data == valueToCountS) {
+                                        value++;
+                                    }
+                                }
+                            }
+                        } else {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    int data = iter.getSample(xStart + v, yStart + u, k);
+                                    value += data;
+                                }
+                            }
+                        }
+
+                        value *= pixelArea;
+
+                        if (value < Short.MIN_VALUE) {
+                            value = Short.MIN_VALUE;
+                        } else if (value > Short.MAX_VALUE) {
+                            value = Short.MAX_VALUE;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = (short) value;
+                    }
+
+                    dstPixelOffset += dstPixelStride;
+
+                }
+                dstScanlineOffset += dstScanlineStride;
+            }
+        }
+    }
+
+    private void intLoop(Raster ras, Rectangle srcRect, RasterAccessor src, RasterAccessor dst) {
+
+        RandomIter iter = RandomIterFactory.create(ras, srcRect, TILE_CACHED, ARRAY_CALC);
+
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
         int dnumBands = dst.getNumBands();
@@ -1011,228 +893,182 @@ public class BufferOpImage extends AreaOpImage {
         int dstPixelStride = dst.getPixelStride();
         int dstScanlineStride = dst.getScanlineStride();
 
-        int srcDataArrays[][] = src.getIntDataArrays();
-        int srcBandOffsets[] = src.getBandOffsets();
-        int srcPixelStride = src.getPixelStride();
-        int srcScanlineStride = src.getScanlineStride();
+        int dstScanlineOffset = 0;
 
         // Both ROI and NoData
-        if (!hasNoData) {
+        if (hasNoData) {
 
-            for (int k = 0; k < dnumBands; k++) {
-                int dstData[] = dstDataArrays[k];
-                int srcData[] = srcDataArrays[k];
-                int srcScanlineOffset = srcBandOffsets[k];
-                int dstScanlineOffset = dstBandOffsets[k];
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
 
-                    int y0 = dstY + j;
+                int y0 = dstY + j;
 
-                    for (int i = 0; i < dwidth; i++) {
+                for (int i = 0; i < dwidth; i++) {
 
-                        int x0 = dstX + i;
+                    int x0 = dstX + i;
 
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataInt;
-                            srcPixelOffset += srcPixelStride;
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            int dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            int dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;
                             dstPixelOffset += dstPixelStride;
                             continue;
                         }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataInt;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        int dstData[] = dstDataArrays[k];
                         long value = 0;
                         boolean isValidData = false;
 
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
+
                         if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    int data = srcData[imageOffset];
-                                    boolean valid = noData.contains(data);
+                                    int data = iter.getSample(xStart + v, yStart + u, k);
+                                    boolean valid = !noData.contains(data);
                                     if (valid) {
                                         if (data == valueToCountI) {
                                             value++;
-                                            isValidData |= valid;
+                                            isValidData = valid;
                                         }
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
                             }
                         } else {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    int data = srcData[imageOffset];
-                                    boolean valid = noData.contains(data);
-
+                                    int data = iter.getSample(xStart + v, yStart + u, k);
+                                    boolean valid = !noData.contains(data);
                                     if (valid) {
                                         value += data;
-                                        isValidData |= valid;
+                                        isValidData = valid;
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-
-                            if (value < Integer.MIN_VALUE) {
-                                value = Integer.MIN_VALUE;
-                            } else if (value > Integer.MAX_VALUE) {
-                                value = Integer.MAX_VALUE;
-                            } else if (!isValidData) {
-                                value = destinationNoDataInt;
                             }
                         }
 
-                        dstData[dstPixelOffset] = (int) value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
+                        value *= pixelArea;
+
+                        if (value < Integer.MIN_VALUE) {
+                            value = Integer.MIN_VALUE;
+                        } else if (value > Integer.MAX_VALUE) {
+                            value = Integer.MAX_VALUE;
+                        } else if (!isValidData) {
+                            value = destinationNoDataInt;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = (int) value;
                     }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
+
+                    dstPixelOffset += dstPixelStride;
+
                 }
+                dstScanlineOffset += dstScanlineStride;
             }
             // No NODATA
         } else {
 
-            for (int k = 0; k < dnumBands; k++) {
-                int dstData[] = dstDataArrays[k];
-                int srcData[] = srcDataArrays[k];
-                int srcScanlineOffset = srcBandOffsets[k];
-                int dstScanlineOffset = dstBandOffsets[k];
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
 
-                    int y0 = dstY + j;
+                int y0 = dstY + j;
 
-                    for (int i = 0; i < dwidth; i++) {
+                for (int i = 0; i < dwidth; i++) {
 
-                        int x0 = dstX + i;
+                    int x0 = dstX + i;
 
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataInt;
-                            srcPixelOffset += srcPixelStride;
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            int dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            int dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;
                             dstPixelOffset += dstPixelStride;
                             continue;
                         }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataInt;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        int dstData[] = dstDataArrays[k];
                         long value = 0;
 
-                        if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
-                            for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
-                                for (int v = 0; v < kWidth; v++) {
-                                    int data = srcData[imageOffset];
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
 
+                        if (counter) {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    int data = iter.getSample(xStart + v, yStart + u, k);
                                     if (data == valueToCountI) {
                                         value++;
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
                             }
                         } else {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    value += srcData[imageOffset];
-                                    imageOffset += srcPixelStride;
+                                    int data = iter.getSample(xStart + v, yStart + u, k);
+                                    value += data;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-
-                            if (value < Integer.MIN_VALUE) {
-                                value = Integer.MIN_VALUE;
-                            } else if (value > Integer.MAX_VALUE) {
-                                value = Integer.MAX_VALUE;
                             }
                         }
 
-                        dstData[dstPixelOffset] = (int) value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
+                        value *= pixelArea;
+
+                        if (value < Integer.MIN_VALUE) {
+                            value = Integer.MIN_VALUE;
+                        } else if (value > Integer.MAX_VALUE) {
+                            value = Integer.MAX_VALUE;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = (int) value;
                     }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
+
+                    dstPixelOffset += dstPixelStride;
+
                 }
+                dstScanlineOffset += dstScanlineStride;
             }
         }
     }
 
-    private void floatLoop(RasterAccessor src, RasterAccessor dst) {
+    private void floatLoop(Raster ras, Rectangle srcRect, RasterAccessor src, RasterAccessor dst) {
+
+        RandomIter iter = RandomIterFactory.create(ras, srcRect, TILE_CACHED, ARRAY_CALC);
+
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
         int dnumBands = dst.getNumBands();
@@ -1245,228 +1081,182 @@ public class BufferOpImage extends AreaOpImage {
         int dstPixelStride = dst.getPixelStride();
         int dstScanlineStride = dst.getScanlineStride();
 
-        float srcDataArrays[][] = src.getFloatDataArrays();
-        int srcBandOffsets[] = src.getBandOffsets();
-        int srcPixelStride = src.getPixelStride();
-        int srcScanlineStride = src.getScanlineStride();
+        int dstScanlineOffset = 0;
 
         // Both ROI and NoData
-        if (!hasNoData) {
+        if (hasNoData) {
 
-            for (int k = 0; k < dnumBands; k++) {
-                float dstData[] = dstDataArrays[k];
-                float srcData[] = srcDataArrays[k];
-                int srcScanlineOffset = srcBandOffsets[k];
-                int dstScanlineOffset = dstBandOffsets[k];
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
 
-                    int y0 = dstY + j;
+                int y0 = dstY + j;
 
-                    for (int i = 0; i < dwidth; i++) {
+                for (int i = 0; i < dwidth; i++) {
 
-                        int x0 = dstX + i;
+                    int x0 = dstX + i;
 
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataFloat;
-                            srcPixelOffset += srcPixelStride;
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            float dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            float dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;
                             dstPixelOffset += dstPixelStride;
                             continue;
                         }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataFloat;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        float dstData[] = dstDataArrays[k];
                         double value = 0;
                         boolean isValidData = false;
 
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
+
                         if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    float data = srcData[imageOffset];
-                                    boolean valid = noData.contains(data);
+                                    float data = iter.getSampleFloat(xStart + v, yStart + u, k);
+                                    boolean valid = !noData.contains(data);
                                     if (valid) {
                                         if (data == valueToCountF) {
                                             value++;
-                                            isValidData |= valid;
+                                            isValidData = valid;
                                         }
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
                             }
                         } else {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    float data = srcData[imageOffset];
-                                    boolean valid = noData.contains(data);
-
+                                    float data = iter.getSampleFloat(xStart + v, yStart + u, k);
+                                    boolean valid = !noData.contains(data);
                                     if (valid) {
                                         value += data;
-                                        isValidData |= valid;
+                                        isValidData = valid;
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-
-                            if (value < -Float.MAX_VALUE) {
-                                value = -Float.MAX_VALUE;
-                            } else if (value > Float.MAX_VALUE) {
-                                value = Float.MAX_VALUE;
-                            } else if (!isValidData) {
-                                value = destinationNoDataFloat;
                             }
                         }
 
-                        dstData[dstPixelOffset] = (float) value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
+                        value *= pixelArea;
+
+                        if (value < -Float.MAX_VALUE) {
+                            value = -Float.MAX_VALUE;
+                        } else if (value > Float.MAX_VALUE) {
+                            value = Float.MAX_VALUE;
+                        } else if (!isValidData) {
+                            value = destinationNoDataFloat;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = (float) value;
                     }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
+
+                    dstPixelOffset += dstPixelStride;
+
                 }
+                dstScanlineOffset += dstScanlineStride;
             }
             // No NODATA
         } else {
 
-            for (int k = 0; k < dnumBands; k++) {
-                float dstData[] = dstDataArrays[k];
-                float srcData[] = srcDataArrays[k];
-                int srcScanlineOffset = srcBandOffsets[k];
-                int dstScanlineOffset = dstBandOffsets[k];
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
 
-                    int y0 = dstY + j;
+                int y0 = dstY + j;
 
-                    for (int i = 0; i < dwidth; i++) {
+                for (int i = 0; i < dwidth; i++) {
 
-                        int x0 = dstX + i;
+                    int x0 = dstX + i;
 
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataFloat;
-                            srcPixelOffset += srcPixelStride;
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            float dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            float dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;
                             dstPixelOffset += dstPixelStride;
                             continue;
                         }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataFloat;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        float dstData[] = dstDataArrays[k];
                         double value = 0;
 
-                        if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
-                            for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
-                                for (int v = 0; v < kWidth; v++) {
-                                    float data = srcData[imageOffset];
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
 
+                        if (counter) {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    float data = iter.getSampleFloat(xStart + v, yStart + u, k);
                                     if (data == valueToCountF) {
                                         value++;
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
                             }
                         } else {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    value += srcData[imageOffset];
-                                    imageOffset += srcPixelStride;
+                                    float data = iter.getSampleFloat(xStart + v, yStart + u, k);
+                                    value += data;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-
-                            if (value < -Float.MAX_VALUE) {
-                                value = -Float.MAX_VALUE;
-                            } else if (value > Float.MAX_VALUE) {
-                                value = Float.MAX_VALUE;
                             }
                         }
 
-                        dstData[dstPixelOffset] = (float) value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
+                        value *= pixelArea;
+
+                        if (value < -Float.MAX_VALUE) {
+                            value = -Float.MAX_VALUE;
+                        } else if (value > Float.MAX_VALUE) {
+                            value = Float.MAX_VALUE;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = (float) value;
                     }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
+
+                    dstPixelOffset += dstPixelStride;
+
                 }
+                dstScanlineOffset += dstScanlineStride;
             }
         }
     }
 
-    private void doubleLoop(RasterAccessor src, RasterAccessor dst) {
+    private void doubleLoop(Raster ras, Rectangle srcRect, RasterAccessor src, RasterAccessor dst) {
+
+        RandomIter iter = RandomIterFactory.create(ras, srcRect, TILE_CACHED, ARRAY_CALC);
+
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
         int dnumBands = dst.getNumBands();
@@ -1479,215 +1269,189 @@ public class BufferOpImage extends AreaOpImage {
         int dstPixelStride = dst.getPixelStride();
         int dstScanlineStride = dst.getScanlineStride();
 
-        double srcDataArrays[][] = src.getDoubleDataArrays();
-        int srcBandOffsets[] = src.getBandOffsets();
-        int srcPixelStride = src.getPixelStride();
-        int srcScanlineStride = src.getScanlineStride();
+        int dstScanlineOffset = 0;
 
         // Both ROI and NoData
-        if (!hasNoData) {
+        if (hasNoData) {
 
-            for (int k = 0; k < dnumBands; k++) {
-                double dstData[] = dstDataArrays[k];
-                double srcData[] = srcDataArrays[k];
-                int srcScanlineOffset = srcBandOffsets[k];
-                int dstScanlineOffset = dstBandOffsets[k];
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
 
-                    int y0 = dstY + j;
+                int y0 = dstY + j;
 
-                    for (int i = 0; i < dwidth; i++) {
+                for (int i = 0; i < dwidth; i++) {
 
-                        int x0 = dstX + i;
+                    int x0 = dstX + i;
 
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataDouble;
-                            srcPixelOffset += srcPixelStride;
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            double dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataDouble;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            double dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataDouble;
                             dstPixelOffset += dstPixelStride;
                             continue;
                         }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataDouble;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        double dstData[] = dstDataArrays[k];
                         double value = 0;
                         boolean isValidData = false;
 
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
+
                         if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    double data = srcData[imageOffset];
-                                    boolean valid = noData.contains(data);
+                                    double data = iter.getSampleDouble(xStart + v, yStart + u, k);
+                                    boolean valid = !noData.contains(data);
                                     if (valid) {
                                         if (data == valueToCountD) {
                                             value++;
-                                            isValidData |= valid;
+                                            isValidData = valid;
                                         }
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
                             }
                         } else {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    double data = srcData[imageOffset];
-                                    boolean valid = noData.contains(data);
-
+                                    double data = iter.getSampleDouble(xStart + v, yStart + u, k);
+                                    boolean valid = !noData.contains(data);
                                     if (valid) {
                                         value += data;
-                                        isValidData |= valid;
+                                        isValidData = valid;
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
-                            }
-
-                            if (!isValidData) {
-                                value = destinationNoDataDouble;
                             }
                         }
 
-                        dstData[dstPixelOffset] = value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
+                        value *= pixelArea;
+
+                        if (!isValidData) {
+                            value = destinationNoDataDouble;
+                        }
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = value;
                     }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
+
+                    dstPixelOffset += dstPixelStride;
+
                 }
+                dstScanlineOffset += dstScanlineStride;
             }
             // No NODATA
         } else {
 
-            for (int k = 0; k < dnumBands; k++) {
-                double dstData[] = dstDataArrays[k];
-                double srcData[] = srcDataArrays[k];
-                int srcScanlineOffset = srcBandOffsets[k];
-                int dstScanlineOffset = dstBandOffsets[k];
-                for (int j = 0; j < dheight; j++) {
-                    int srcPixelOffset = srcScanlineOffset;
-                    int dstPixelOffset = dstScanlineOffset;
+            for (int j = 0; j < dheight; j++) {
+                int dstPixelOffset = dstScanlineOffset;
 
-                    int y0 = dstY + j;
+                int y0 = dstY + j;
 
-                    for (int i = 0; i < dwidth; i++) {
+                for (int i = 0; i < dwidth; i++) {
 
-                        int x0 = dstX + i;
+                    int x0 = dstX + i;
 
-                        // check on containment
-                        if (hasROI && !union.contains(x0, y0)) {
-                            dstData[dstPixelOffset] = destinationNoDataDouble;
-                            srcPixelOffset += srcPixelStride;
+                    // check on containment
+                    if (hasROI && !union.contains(x0, y0)) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            double dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataDouble;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                        continue;
+                    }
+
+                    // if every geometry really contains the selected point
+                    boolean contains = true;
+
+                    if (hasROI) {
+                        contains = checkInROI(y0, x0);
+                    }
+
+                    if (!contains) {
+                        for (int k = 0; k < dnumBands; k++) {
+                            double dstData[] = dstDataArrays[k];
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataDouble;
                             dstPixelOffset += dstPixelStride;
                             continue;
                         }
-
-                        // if every geometry really contains the selected point
-                        boolean contains = true;
-
-                        if (hasROI) {
-                            // Coordinate object creation for the spatial indexing
-                            Coordinate p1 = new Coordinate(x0, y0);
-                            // Envelope associated to the coordinate object
-                            Envelope searchEnv = new Envelope(p1);
-                            // Query on the geometry list
-                            List<ROI> roiList = spatialIndex.query(searchEnv);
-
-                            contains = false;
-                            // Cycle on all the geometries found
-                            for (ROI roi : roiList) {
-
-                                synchronized (this) { // HACK
-                                    contains = roi.contains(x0, y0);
-                                }
-                                if (contains) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!contains) {
-                            dstData[dstPixelOffset] = destinationNoDataDouble;
-                            srcPixelOffset += srcPixelStride;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
-                        }
-
+                    }
+                    for (int k = 0; k < dnumBands; k++) {
+                        double dstData[] = dstDataArrays[k];
                         double value = 0;
 
-                        if (counter) {
-                            int imageVerticalOffset = srcPixelOffset;
-                            for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
-                                for (int v = 0; v < kWidth; v++) {
-                                    double data = srcData[imageOffset];
+                        int xStart = x0 - leftPadding;
+                        int yStart = y0 - topPadding;
 
+                        if (counter) {
+                            for (int u = 0; u < kHeight; u++) {
+                                for (int v = 0; v < kWidth; v++) {
+                                    double data = iter.getSampleDouble(xStart + v, yStart + u, k);
                                     if (data == valueToCountD) {
                                         value++;
                                     }
-
-                                    imageOffset += srcPixelStride;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
                             }
                         } else {
-                            int imageVerticalOffset = srcPixelOffset;
                             for (int u = 0; u < kHeight; u++) {
-                                int imageOffset = imageVerticalOffset;
                                 for (int v = 0; v < kWidth; v++) {
-                                    value += srcData[imageOffset];
-                                    imageOffset += srcPixelStride;
+                                    double data = iter.getSampleDouble(xStart + v, yStart + u, k);
+                                    value += data;
                                 }
-                                imageVerticalOffset += srcScanlineStride;
                             }
-
                         }
 
-                        dstData[dstPixelOffset] = value;
-                        srcPixelOffset += srcPixelStride;
-                        dstPixelOffset += dstPixelStride;
+                        value *= pixelArea;
+
+                        dstData[dstPixelOffset + dstBandOffsets[k]] = value;
                     }
-                    srcScanlineOffset += srcScanlineStride;
-                    dstScanlineOffset += dstScanlineStride;
+
+                    dstPixelOffset += dstPixelStride;
+
                 }
+                dstScanlineOffset += dstScanlineStride;
             }
         }
     }
+
+    private boolean checkInROI(int y0, int x0) {
+        boolean contains;
+        // Coordinate object creation for the spatial indexing
+        Coordinate p1 = new Coordinate(x0, y0);
+        // Envelope associated to the coordinate object
+        Envelope searchEnv = new Envelope(p1);
+        // Query on the geometry list
+        List<ROI> roiList = spatialIndex.query(searchEnv);
+
+        contains = false;
+        // Cycle on all the geometries found
+        for (ROI roi : roiList) {
+
+            synchronized (this) { // HACK
+                contains = roi.contains(x0, y0);
+            }
+            if (contains) {
+                break;
+            }
+        }
+        return contains;
+    }
+
 }

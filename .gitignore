@@ -19,6 +19,7 @@ jt-rescale/target/*
 jt-nullop/target/*
 jt-bandmerge/target/*
 jt-border/target/*
+jt-buffer/target/*
 changematrix/target/*
 concurrent-tile-cache/src/test/resources/it/geosolutions/logfiles
 concurrent-tile-cache/target/*
