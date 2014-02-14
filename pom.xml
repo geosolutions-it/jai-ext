@@ -557,5 +557,6 @@
     <module>jt-border</module>
     <module>changematrix</module>
     <module>jt-algebra</module>
+    <module>jt-buffer</module>
   </modules>
 </project>
