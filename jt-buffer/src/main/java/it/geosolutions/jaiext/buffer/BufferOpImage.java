@@ -345,9 +345,9 @@ public class BufferOpImage extends AreaOpImage {
                     if (hasROI && !union.contains(x0, y0)) {
                         for (int k = 0; k < dnumBands; k++) {
                             byte dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;
-                            dstPixelOffset += dstPixelStride;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;                            
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -361,10 +361,10 @@ public class BufferOpImage extends AreaOpImage {
                     if (!contains) {
                         for (int k = 0; k < dnumBands; k++) {
                             byte dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;                            
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         byte dstData[] = dstDataArrays[k];
@@ -434,9 +434,9 @@ public class BufferOpImage extends AreaOpImage {
                     if (hasROI && !union.contains(x0, y0)) {
                         for (int k = 0; k < dnumBands; k++) {
                             byte dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;
-                            dstPixelOffset += dstPixelStride;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;                            
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -451,9 +451,9 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             byte dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataByte;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         byte dstData[] = dstDataArrays[k];
@@ -534,8 +534,8 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             short dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
-                            dstPixelOffset += dstPixelStride;
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -550,9 +550,9 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             short dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         short dstData[] = dstDataArrays[k];
@@ -625,8 +625,8 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             short dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
-                            dstPixelOffset += dstPixelStride;
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -641,9 +641,9 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             short dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         short dstData[] = dstDataArrays[k];
@@ -724,8 +724,8 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             short dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
-                            dstPixelOffset += dstPixelStride;
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -740,9 +740,9 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             short dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         short dstData[] = dstDataArrays[k];
@@ -813,8 +813,8 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             short dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
-                            dstPixelOffset += dstPixelStride;
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -829,9 +829,9 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             short dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataShort;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         short dstData[] = dstDataArrays[k];
@@ -911,9 +911,9 @@ public class BufferOpImage extends AreaOpImage {
                     if (hasROI && !union.contains(x0, y0)) {
                         for (int k = 0; k < dnumBands; k++) {
                             int dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;
-                            dstPixelOffset += dstPixelStride;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;                            
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -927,10 +927,10 @@ public class BufferOpImage extends AreaOpImage {
                     if (!contains) {
                         for (int k = 0; k < dnumBands; k++) {
                             int dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;                            
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         int dstData[] = dstDataArrays[k];
@@ -1000,9 +1000,9 @@ public class BufferOpImage extends AreaOpImage {
                     if (hasROI && !union.contains(x0, y0)) {
                         for (int k = 0; k < dnumBands; k++) {
                             int dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;
-                            dstPixelOffset += dstPixelStride;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;                            
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -1016,10 +1016,10 @@ public class BufferOpImage extends AreaOpImage {
                     if (!contains) {
                         for (int k = 0; k < dnumBands; k++) {
                             int dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataInt;                            
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         int dstData[] = dstDataArrays[k];
@@ -1099,9 +1099,9 @@ public class BufferOpImage extends AreaOpImage {
                     if (hasROI && !union.contains(x0, y0)) {
                         for (int k = 0; k < dnumBands; k++) {
                             float dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;
-                            dstPixelOffset += dstPixelStride;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;                            
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -1116,9 +1116,9 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             float dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         float dstData[] = dstDataArrays[k];
@@ -1188,9 +1188,9 @@ public class BufferOpImage extends AreaOpImage {
                     if (hasROI && !union.contains(x0, y0)) {
                         for (int k = 0; k < dnumBands; k++) {
                             float dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;
-                            dstPixelOffset += dstPixelStride;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;                            
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -1204,10 +1204,10 @@ public class BufferOpImage extends AreaOpImage {
                     if (!contains) {
                         for (int k = 0; k < dnumBands; k++) {
                             float dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataFloat;                            
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         float dstData[] = dstDataArrays[k];
@@ -1287,9 +1287,9 @@ public class BufferOpImage extends AreaOpImage {
                     if (hasROI && !union.contains(x0, y0)) {
                         for (int k = 0; k < dnumBands; k++) {
                             double dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataDouble;
-                            dstPixelOffset += dstPixelStride;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataDouble;                            
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -1304,9 +1304,9 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             double dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataDouble;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         double dstData[] = dstDataArrays[k];
@@ -1372,9 +1372,9 @@ public class BufferOpImage extends AreaOpImage {
                     if (hasROI && !union.contains(x0, y0)) {
                         for (int k = 0; k < dnumBands; k++) {
                             double dstData[] = dstDataArrays[k];
-                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataDouble;
-                            dstPixelOffset += dstPixelStride;
+                            dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataDouble;                            
                         }
+                        dstPixelOffset += dstPixelStride;
                         continue;
                     }
 
@@ -1389,9 +1389,9 @@ public class BufferOpImage extends AreaOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             double dstData[] = dstDataArrays[k];
                             dstData[dstPixelOffset + dstBandOffsets[k]] = destinationNoDataDouble;
-                            dstPixelOffset += dstPixelStride;
-                            continue;
                         }
+                        dstPixelOffset += dstPixelStride;
+                        continue;
                     }
                     for (int k = 0; k < dnumBands; k++) {
                         double dstData[] = dstDataArrays[k];
