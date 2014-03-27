@@ -558,5 +558,6 @@
     <module>changematrix</module>
     <module>jt-algebra</module>
     <module>jt-buffer</module>
+    <module>jt-scheduler</module>
   </modules>
 </project>
