@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.media.jai.OpImage;
 import javax.media.jai.PlanarImage;
@@ -456,7 +458,10 @@ class WorkerThread extends Thread {
  * @see javax.media.jai.TileScheduler
  */
 public class JAIExtTileScheduler implements TileScheduler {
-
+    
+    /** Logger associated to the scheduler*/
+    public final static Logger LOGGER = Logger.getLogger(JAIExtTileScheduler.class.getName());
+    
     /** The default number of worker threads. */
     private static final int NUM_THREADS_DEFAULT = 2;
 
@@ -638,6 +643,10 @@ public class JAIExtTileScheduler implements TileScheduler {
         prefetchGroup.setDaemon(true);
 
         numInstances++;
+        
+        if(LOGGER.isLoggable(Level.FINEST)){
+            LOGGER.log(Level.FINEST, "TileScheduler instantiation");
+        }
     }
 
     /**
@@ -647,12 +656,19 @@ public class JAIExtTileScheduler implements TileScheduler {
             int numTiles, Request request) {
         Exception exception = null;
 
+        if(LOGGER.isLoggable(Level.FINEST)){
+            LOGGER.log(Level.FINEST, "Tile Computation");
+        }
+        
         int j = offset;
         if (request == null || request.listeners == null) {
             for (int i = 0; i < numTiles; i++, j++) {
                 Point p = tileIndices[j];
 
                 try {
+                    if(LOGGER.isLoggable(Level.FINEST)){
+                        LOGGER.log(Level.FINEST, "Requested tile: ("+ p.x + ", " + p.y +")");
+                    }
                     tiles[j] = owner.getTile(p.x, p.y);
                 } catch (Exception e) {
                     exception = e;
@@ -671,6 +687,9 @@ public class JAIExtTileScheduler implements TileScheduler {
                 request.tileStatus.put(p, tileStatus);
 
                 try {
+                    if(LOGGER.isLoggable(Level.FINEST)){
+                        LOGGER.log(Level.FINEST, "Requested tile: ("+ p.x + ", " + p.y +")");
+                    }
                     tiles[j] = owner.getTile(p.x, p.y);
                     Iterator iter = request.listeners.iterator();
                     while (iter.hasNext()) {
@@ -703,6 +722,9 @@ public class JAIExtTileScheduler implements TileScheduler {
         // If an exception occured, notify listeners that all remaining
         // tiles in the job have failed.
         if (exception != null && request != null && request.listeners != null) {
+            if(LOGGER.isLoggable(Level.FINEST)){
+                LOGGER.log(Level.FINEST, "Error on tile computation");
+            }
             int lastOffset = j;
             int numFailed = numTiles - (lastOffset - offset);
 
@@ -761,6 +783,10 @@ public class JAIExtTileScheduler implements TileScheduler {
             throw new IllegalArgumentException(JaiI18N.getString("JaiExtTileScheduler_1"));
         }
 
+        if(LOGGER.isLoggable(Level.FINEST)){
+            LOGGER.log(Level.FINEST, "Scheduled tile: ("+ tileX + ", " + tileY +")");
+        }
+        
         // Eventual tile to be returned.
         Raster tile = null;
 
@@ -783,6 +809,9 @@ public class JAIExtTileScheduler implements TileScheduler {
         if (computeTile) {
             try {
                 try {
+                    if(LOGGER.isLoggable(Level.FINEST)){
+                        LOGGER.log(Level.FINEST, "Computing tile: ("+ tileX + ", " + tileY +")");
+                    }
                     // Attempt to compute the tile.
                     tile = owner.computeTile(tileX, tileY);
                 } catch (OutOfMemoryError e) {
@@ -793,6 +822,9 @@ public class JAIExtTileScheduler implements TileScheduler {
                         System.gc(); // slow
                     }
 
+                    if(LOGGER.isLoggable(Level.FINEST)){
+                        LOGGER.log(Level.FINEST, "OOM Error. Retrying to compute tile: ("+ tileX + ", " + tileY +")");
+                    }
                     // Re-attempt to compute the tile.
                     tile = owner.computeTile(tileX, tileY);
                 }
@@ -814,7 +846,9 @@ public class JAIExtTileScheduler implements TileScheduler {
                 synchronized (cache) {
                     // Always set the cached tile to a non-null value.
                     cache[0] = tile != null ? tile : new Object();
-
+                    if(LOGGER.isLoggable(Level.FINEST)){
+                        LOGGER.log(Level.FINEST, "Cache notify");
+                    }
                     // Notify the thread(s).
                     cache.notifyAll();
 
@@ -831,6 +865,9 @@ public class JAIExtTileScheduler implements TileScheduler {
                 if (cache[0] == null) {
                     // Wait for the computation to complete.
                     try {
+                        if(LOGGER.isLoggable(Level.FINEST)){
+                            LOGGER.log(Level.FINEST, "Cache Waiting");
+                        }
                         cache.wait(); // XXX Should there be a timeout?
                     } catch (Exception e) {
                         // XXX What response here?
@@ -880,6 +917,10 @@ public class JAIExtTileScheduler implements TileScheduler {
             throw new IllegalArgumentException(JaiI18N.getString("JaiExtTileScheduler_6")); // coding error - no message
         }
 
+        if(LOGGER.isLoggable(Level.FINEST)){
+            LOGGER.log(Level.FINEST, "Scheduling Job");
+        }
+        
         int numTiles = tileIndices.length;
         Raster[] tiles = new Raster[numTiles];
         Object returnValue = tiles;
@@ -1010,6 +1051,10 @@ public class JAIExtTileScheduler implements TileScheduler {
             } // numThreads > 0
         } // end synchronized block
 
+        if(LOGGER.isLoggable(Level.FINEST)){
+            LOGGER.log(Level.FINEST, "Job Scheduled");
+        }
+        
         if (numThreads != 0) {
             // If blocking, wait until all tiles have been computed.
             // There is no 'else' block for non-blocking as in that
@@ -1020,6 +1065,9 @@ public class JAIExtTileScheduler implements TileScheduler {
                     synchronized (this) {
                         while (jobs[i].notDone()) {
                             try {
+                                if(LOGGER.isLoggable(Level.FINEST)){
+                                    LOGGER.log(Level.FINEST, "Waiting the Job computation");
+                                }
                                 wait(5000l);
                             } catch (InterruptedException ie) {
                                 // Ignore: should never happen.
@@ -1111,6 +1159,10 @@ public class JAIExtTileScheduler implements TileScheduler {
             throw new IllegalArgumentException(JaiI18N.getString("JaiExtTileScheduler_3"));
         }
 
+        if(LOGGER.isLoggable(Level.FINEST)){
+            LOGGER.log(Level.FINEST, "Removing Tiles");
+        }
+        
         Request req = (Request) request;
         synchronized (tileRequests) {
             // Save the list of all tile indices in this request.
@@ -1178,6 +1230,11 @@ public class JAIExtTileScheduler implements TileScheduler {
                         listener.tileCancelled(this, reqArray, req.image, p.x, p.y);
                     }
                 }
+                
+                if(LOGGER.isLoggable(Level.FINEST)){
+                    LOGGER.log(Level.FINEST, "Removed Tile: (" + p.x + ", " + p.y + ")");
+                }
+                
             }
         }
     }
@@ -1302,6 +1359,10 @@ public class JAIExtTileScheduler implements TileScheduler {
             standardGroup.setDaemon(true);
         }
 
+        if(LOGGER.isLoggable(Level.FINEST)){
+            LOGGER.log(Level.FINEST, "Thread Group created");
+        }
+        
         Vector thr = getWorkers(isPrefetch);
         int size = thr.size();
 
@@ -1424,6 +1485,10 @@ public class JAIExtTileScheduler implements TileScheduler {
             }
             jobQueue.notify();
         }
+        
+        if(LOGGER.isLoggable(Level.FINEST)){
+            LOGGER.log(Level.FINEST, "Added Job to the Queue");
+        }
     }
 
     /** Queue WorkerThread.TERMINATEs to all workers. */
@@ -1445,6 +1510,9 @@ public class JAIExtTileScheduler implements TileScheduler {
                     numWorkerThreads--;
                 }
             }
+        }
+        if(LOGGER.isLoggable(Level.FINEST)){
+            LOGGER.log(Level.FINEST, "Termination of the " + (isPrefetch? "Prefetch":"Worker") + " Threads");
         }
     }
 
