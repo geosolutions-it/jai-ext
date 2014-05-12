@@ -1,17 +1,32 @@
 package it.geosolutions.jaiext.bandmerge;
 
-import static org.junit.Assert.*;
-import java.awt.image.DataBuffer;
-import java.awt.image.Raster;
-import java.awt.image.RenderedImage;
-import javax.media.jai.RenderedOp;
-import javax.media.jai.TiledImage;
+import static org.junit.Assert.assertEquals;
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
+
+import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
+import java.awt.image.RenderedImage;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.media.jai.ImageLayout;
+import javax.media.jai.JAI;
+import javax.media.jai.RenderedOp;
+import javax.media.jai.TiledImage;
+import javax.media.jai.iterator.RandomIter;
+import javax.media.jai.operator.TranslateDescriptor;
+
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import com.sun.media.jai.util.ImageUtil;
 
 /**
@@ -138,6 +153,34 @@ public class BandMergeTest extends TestBase {
         testBandMerge(images[5], noDataUsed);
     }
 
+    @Test
+    public void testExtendedBandMerge() {
+        // This test checks the BandMerge operation on all the possible data types without No Data
+        // Also it tests if the use of AffineTransformations is correct
+        boolean noDataUsed = false;
+
+        testExtendedBandMerge(images[0], noDataUsed);
+        testExtendedBandMerge(images[1], noDataUsed);
+        testExtendedBandMerge(images[2], noDataUsed);
+        testExtendedBandMerge(images[3], noDataUsed);
+        testExtendedBandMerge(images[4], noDataUsed);
+        testExtendedBandMerge(images[5], noDataUsed);
+    }
+
+    @Test
+    public void testExtendedBandMergeNoData() {
+        // This test checks the BandMerge operation on all the possible data types with No Data
+        // Also it tests if the use of AffineTransformations is correct
+        boolean noDataUsed = true;
+
+        testExtendedBandMerge(images[0], noDataUsed);
+        testExtendedBandMerge(images[1], noDataUsed);
+        testExtendedBandMerge(images[2], noDataUsed);
+        testExtendedBandMerge(images[3], noDataUsed);
+        testExtendedBandMerge(images[4], noDataUsed);
+        testExtendedBandMerge(images[5], noDataUsed);
+    }
+    
     @AfterClass
     public static void disposal() {
         // Disposal of the images
@@ -278,5 +321,201 @@ public class BandMergeTest extends TestBase {
         }
         // Disposal of the output image
         merged.dispose();
+    }
+    
+    // This method is similar to the testBandMerge method but it tests the ExtendedBandMergeOpImage class
+    private void testExtendedBandMerge(RenderedImage[] sources, boolean noDataUsed) {
+        // Optional No Data Range used
+        Range[] noData;
+        // Source image data type
+        int dataType = sources[0].getSampleModel().getDataType();
+        // If no Data are present, the No Data Range associated is used
+        if (noDataUsed) {
+
+            switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+                noData = noDataByte;
+                break;
+            case DataBuffer.TYPE_USHORT:
+                noData = noDataUShort;
+                break;
+            case DataBuffer.TYPE_SHORT:
+                noData = noDataShort;
+                break;
+            case DataBuffer.TYPE_INT:
+                noData = noDataInt;
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                noData = noDataFloat;
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                noData = noDataDouble;
+                break;
+            default:
+                throw new IllegalArgumentException("Wrong data type");
+            }
+        } else {
+            noData = null;
+        }
+        // New array ofr the transformed source images
+        RenderedOp[] translated = new RenderedOp[sources.length];
+        
+        List<AffineTransform> transform = new ArrayList<AffineTransform>();
+        
+        for(int i = 0; i < sources.length; i++){
+            // Translation coefficients
+            int xTrans = (int)(Math.random()*10);
+            int yTrans = (int)(Math.random()*10);
+            // Translation operation
+            AffineTransform tr = AffineTransform.getTranslateInstance(xTrans, yTrans);
+            // Addition to the transformations list
+            transform.add(tr);
+            // Translation of the image
+            translated[i] = TranslateDescriptor.create(sources[i], (float)xTrans, (float)yTrans, null, null);
+        }
+        // Definition of the final image dimensions
+        ImageLayout layout = new ImageLayout();
+        layout.setMinX(sources[0].getMinX());
+        layout.setMinY(sources[0].getMinY());
+        layout.setWidth(sources[0].getWidth());
+        layout.setHeight(sources[0].getHeight());
+        
+        RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+        
+        // BandMerge operation
+        RenderedOp merged = BandMergeDescriptor.create(noData, destNoData, hints, transform, translated);
+        
+        Assert.assertNotNull(merged.getTiles());
+        // Check if the bands number is the same
+        assertEquals(BAND_NUMBER, merged.getNumBands());
+        // Upper-Left tile indexes
+        int minTileX = merged.getMinTileX();
+        int minTileY = merged.getMinTileY();
+        // Raster object
+        Raster upperLeftTile = merged.getTile(minTileX, minTileY);
+        // Tile bounds
+        int minX = upperLeftTile.getMinX();
+        int minY = upperLeftTile.getMinY();
+        int maxX = upperLeftTile.getWidth() + minX;
+        int maxY = upperLeftTile.getHeight() + minY;
+        
+        // Source corners
+        final int dstMinX = merged.getMinX();
+        final int dstMinY = merged.getMinY();
+        final int dstMaxX = merged.getMaxX();
+        final int dstMaxY = merged.getMaxY();
+        
+        Point2D ptDst = new Point2D.Double(0, 0);
+        Point2D ptSrc = new Point2D.Double(0, 0);
+        
+        // Cycle on all the tile Bands
+        for (int b = 0; b < BAND_NUMBER; b++) {
+            RandomIter iter = RandomIterFactory.create(translated[b], null, true, true);
+            
+            // Source corners
+            final int srcMinX = translated[b].getMinX();
+            final int srcMinY = translated[b].getMinY();
+            final int srcMaxX = translated[b].getMaxX();
+            final int srcMaxY = translated[b].getMaxY();
+            
+            // Cycle on the y-axis
+            for (int x = minX; x < maxX; x++) {
+                // Cycle on the x-axis
+                for (int y = minY; y < maxY; y++) {
+                    // Calculated value
+                    double value = upperLeftTile.getSampleDouble(x, y, b);
+                    // If the tile pixels are outside the image bounds, then no data is set.
+                    if(x < dstMinX || x >= dstMaxX || y < dstMinY || y >= dstMaxY){
+                        value = destNoData;
+                    }
+                    
+                    // Set the x,y destination pixel location
+                    ptDst .setLocation(x, y);
+                    // Map destination pixel to source pixel
+                    transform.get(b).transform(ptDst, ptSrc);
+                    // Source pixel indexes
+                    int srcX = round(ptSrc.getX());
+                    int srcY = round(ptSrc.getY());
+                    
+                    double valueOld = destNoData;
+                    
+                    // Check if the pixel is inside the source bounds
+                    if (!(srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY)) {
+                        // Old band value
+                        valueOld = iter.getSampleDouble(srcX, srcY, 0);
+                    }
+                    
+                    // If no Data are present, no data check is performed
+                    if (noDataUsed) {
+                        switch (dataType) {
+                        case DataBuffer.TYPE_BYTE:
+                            byte sampleB = ImageUtil.clampRoundByte(value);
+                            byte sampleBOld = ImageUtil.clampRoundByte(valueOld);
+                            if (noData[0].contains(sampleBOld)) {
+                                assertEquals(sampleB, destNoData, TOLERANCE);
+                            } else {
+                                assertEquals(sampleB, valueOld, TOLERANCE);
+                            }
+                            break;
+                        case DataBuffer.TYPE_USHORT:
+                            short sampleUS = ImageUtil.clampRoundUShort(value);
+                            short sampleUSOld = ImageUtil.clampRoundUShort(valueOld);
+                            if (noData[0].contains(sampleUSOld)) {
+                                assertEquals(sampleUS, destNoData, TOLERANCE);
+                            } else {
+                                assertEquals(sampleUS, valueOld, TOLERANCE);
+                            }
+                            break;
+                        case DataBuffer.TYPE_SHORT:
+                            short sampleS = ImageUtil.clampRoundShort(value);
+                            short sampleSOld = ImageUtil.clampRoundShort(valueOld);
+                            if (noData[0].contains(sampleSOld)) {
+                                assertEquals(sampleS, destNoData, TOLERANCE);
+                            } else {
+                                assertEquals(sampleS, valueOld, TOLERANCE);
+                            }
+                            break;
+                        case DataBuffer.TYPE_INT:
+                            int sampleI = ImageUtil.clampRoundInt(value);
+                            int sampleIOld = ImageUtil.clampRoundInt(valueOld);
+                            if (noData[0].contains(sampleIOld)) {
+                                assertEquals(sampleI, destNoData, TOLERANCE);
+                            } else {
+                                assertEquals(sampleI, valueOld, TOLERANCE);
+                            }
+                            break;
+                        case DataBuffer.TYPE_FLOAT:
+                            float sampleF = ImageUtil.clampFloat(value);
+                            float sampleFOld = ImageUtil.clampFloat(valueOld);
+                            if (noData[0].contains(sampleFOld)) {
+                                assertEquals(sampleF, destNoData, TOLERANCE);
+                            } else {
+                                assertEquals(sampleF, valueOld, TOLERANCE);
+                            }
+                            break;
+                        case DataBuffer.TYPE_DOUBLE:
+                            if (noData[0].contains(valueOld)) {
+                                assertEquals(value, destNoData, TOLERANCE);
+                            } else {
+                                assertEquals(value, valueOld, TOLERANCE);
+                            }
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Wrong data type");
+                        }
+                    } else {
+                        // Else a simple value comparison is done
+                        assertEquals(value, valueOld, TOLERANCE);
+                    }
+                }
+            }
+        }
+        // Disposal of the output image
+        merged.dispose();
+    }
+    
+    /** Returns the "round" value of a float. */
+    private static int round(double f) {
+        return f >= 0 ? (int) (f + 0.5F) : (int) (f - 0.5F);
     }
 }

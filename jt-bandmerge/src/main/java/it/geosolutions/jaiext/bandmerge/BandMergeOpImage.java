@@ -203,6 +203,12 @@ class BandMergeOpImage extends PointOpImage {
             destDataType = typei > destDataType ? typei : destDataType;
         }
 
+        // Definition of the Layout
+        layout.setMinX(destBounds.x);
+        layout.setMinY(destBounds.y);
+        layout.setWidth(destBounds.width);
+        layout.setHeight(destBounds.height);
+        
         // First image sampleModel
         SampleModel sm = layout.getSampleModel((RenderedImage) sources.get(0));
 

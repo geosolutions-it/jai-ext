@@ -8,22 +8,19 @@ import java.awt.geom.Point2D;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
-import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
+import javax.media.jai.GeometricOpImage;
 import javax.media.jai.ImageLayout;
-import javax.media.jai.PointOpImage;
-
-import java.util.Map;
-
 import javax.media.jai.PixelAccessor;
 import javax.media.jai.PlanarImage;
-import javax.media.jai.UnpackedImageData;
 import javax.media.jai.RasterFactory;
+import javax.media.jai.UnpackedImageData;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
 
@@ -31,7 +28,9 @@ import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.JDKWorkarounds;
 
 /**
- * An <code>OpImage</code> implementing the "BandMerge" operation as described in {@link BandMergeDescriptor}.
+ * An <code>OpImage</code> implementing the "BandMerge" operation as described in {@link BandMergeDescriptor}. This version of the BandMergeOpImage
+ * also supports a backward mapping from the destination image to each source image. The mapping is achieved by setting a List object containing the
+ * affine transformations, each of them is associated to the related source image.
  * 
  * <p>
  * This <code>OpImage</code> merges the pixel values of two or more source images.
@@ -43,7 +42,7 @@ import com.sun.media.jai.util.JDKWorkarounds;
  * If No Data are present, they can be handled if the user provides an array of No Data Range objects and a double value for the destination No Data.
  * 
  */
-class ExtendedBandMergeOpImage extends PointOpImage {
+class ExtendedBandMergeOpImage extends GeometricOpImage {
 
     /** List of ColorModels required for IndexColorModel support */
     ColorModel[] colorModels;
@@ -53,8 +52,6 @@ class ExtendedBandMergeOpImage extends PointOpImage {
 
     /** Boolean indicating if No Data are present */
     private final boolean hasNoData;
-
-    private final boolean transformations;
 
     /** Destination No Data value used for Byte images */
     private byte destNoDataByte;
@@ -85,6 +82,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
      * destination number of bands is the sum of all source image bands.
      * 
      * @param sources <code>List</code> of sources.
+     * @param transforms List of Affine transformations to use.
      * @param config Configurable attributes of the image including configuration variables indexed by <code>RenderingHints.Key</code>s and image
      *        properties indexed by <code>String</code>s or <code>CaselessStringKey</code>s. This is simply forwarded to the superclass constructor.
      * @param noData Array of No Data Range.
@@ -94,21 +92,17 @@ class ExtendedBandMergeOpImage extends PointOpImage {
     public ExtendedBandMergeOpImage(List sources, List<AffineTransform> transforms, Map config,
             Range[] noData, double destinationNoData, ImageLayout layout) {
 
-        super(vectorize(sources), layoutHelper(sources, layout), config, false);
-
-        // Set flag to permit in-place operation.
-        permitInPlaceOperation();
+        super(vectorize(sources), layoutHelper(sources, layout), config, false, null, null);
 
         // Initial Check on the source number and the related transformations
         if (transforms != null) {
-            transformations = true;
             if (transforms.size() != sources.size()) {
                 throw new IllegalArgumentException("Wrong Transformations number");
             }
             // Setting of the variable for the transformations
             this.transforms = transforms;
         } else {
-            transformations = false;
+            throw new IllegalArgumentException("No Transformation has been set");
         }
 
         // get ColorModels for IndexColorModel support
@@ -139,33 +133,34 @@ class ExtendedBandMergeOpImage extends PointOpImage {
             }
             // No Data are present, so associated flaw is set to true
             this.hasNoData = true;
-            // Destination No Data value is clamped to the image data type
-            switch (dataType) {
-            case DataBuffer.TYPE_BYTE:
-                this.destNoDataByte = ImageUtil.clampRoundByte(destinationNoData);
-                break;
-            case DataBuffer.TYPE_USHORT:
-                this.destNoDataShort = ImageUtil.clampRoundUShort(destinationNoData);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                this.destNoDataShort = ImageUtil.clampRoundShort(destinationNoData);
-                break;
-            case DataBuffer.TYPE_INT:
-                this.destNoDataInt = ImageUtil.clampRoundInt(destinationNoData);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                this.destNoDataFloat = ImageUtil.clampFloat(destinationNoData);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                this.destNoDataDouble = destinationNoData;
-                break;
-            default:
-                throw new IllegalArgumentException("Wrong image data type");
-            }
 
         } else {
             this.noData = null;
             this.hasNoData = false;
+        }
+        
+        // Destination No Data value is clamped to the image data type
+        switch (dataType) {
+        case DataBuffer.TYPE_BYTE:
+            this.destNoDataByte = ImageUtil.clampRoundByte(destinationNoData);
+            break;
+        case DataBuffer.TYPE_USHORT:
+            this.destNoDataShort = ImageUtil.clampRoundUShort(destinationNoData);
+            break;
+        case DataBuffer.TYPE_SHORT:
+            this.destNoDataShort = ImageUtil.clampRoundShort(destinationNoData);
+            break;
+        case DataBuffer.TYPE_INT:
+            this.destNoDataInt = ImageUtil.clampRoundInt(destinationNoData);
+            break;
+        case DataBuffer.TYPE_FLOAT:
+            this.destNoDataFloat = ImageUtil.clampFloat(destinationNoData);
+            break;
+        case DataBuffer.TYPE_DOUBLE:
+            this.destNoDataDouble = destinationNoData;
+            break;
+        default:
+            throw new IllegalArgumentException("Wrong image data type");
         }
     }
 
@@ -336,6 +331,14 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         int nSrcs = sources.length;
         // Bands associated with each sources
         int[] snbands = new int[nSrcs];
+        for (int i = 0; i < nSrcs; i++) {           
+
+            if (colorModels[i] instanceof IndexColorModel) {
+                snbands[i] = colorModels[i].getNumComponents();
+            } else {
+                snbands[i] = sources[i].getNumBands();
+            }
+        }
 
         // Destination bands
         int dnbands = dest.getNumBands();
@@ -357,13 +360,16 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         Point2D ptSrc = new Point2D.Double(0, 0);
         Point2D ptDst = new Point2D.Double(0, 0);
         // Destination object initial position
-        final int minX = dest.getMinX();
-        final int minY = dest.getMinY();
+        final int minX = destRect.x;
+        final int minY = destRect.y;
 
+        int db = 0;
+        
         // NO DATA PRESENT
         if (hasNoData) {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+                
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -381,7 +387,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -392,17 +398,17 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataByte;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataByte;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
@@ -410,10 +416,10 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                                 // No Data control
                                 byte pixelValue = (byte) (iter.getSample(srcX, srcY, sb) & 0xFF);
                                 if (noData[sindex].contains(pixelValue)) {
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataByte;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataByte;
                                 } else {
                                     // Setting the value
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = pixelValue;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
                                 }
                             }
                         }
@@ -421,11 +427,12 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
             // NO DATA NOT PRESENT
         } else {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -443,7 +450,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -454,23 +461,23 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataByte;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataByte;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = (byte) (iter
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (byte) (iter
                                         .getSample(srcX, srcY, sb) & 0xFF);
                             }
                         }
@@ -478,6 +485,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
         }
         d.setPixels(dimd);
@@ -488,6 +496,14 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         int nSrcs = sources.length;
         // Bands associated with each sources
         int[] snbands = new int[nSrcs];
+        for (int i = 0; i < nSrcs; i++) {           
+
+            if (colorModels[i] instanceof IndexColorModel) {
+                snbands[i] = colorModels[i].getNumComponents();
+            } else {
+                snbands[i] = sources[i].getNumBands();
+            }
+        }
 
         // Destination bands
         int dnbands = dest.getNumBands();
@@ -509,13 +525,15 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         Point2D ptSrc = new Point2D.Double(0, 0);
         Point2D ptDst = new Point2D.Double(0, 0);
         // Destination object initial position
-        final int minX = dest.getMinX();
-        final int minY = dest.getMinY();
+        final int minX = destRect.x;
+        final int minY = destRect.y;
 
+        int db = 0;
+        
         // NO DATA PRESENT
         if (hasNoData) {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -533,7 +551,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -544,17 +562,17 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataShort;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
@@ -562,10 +580,10 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                                 // No Data control
                                 short pixelValue = (short) (iter.getSample(srcX, srcY, sb) & 0xFFFF);
                                 if (noData[sindex].contains(pixelValue)) {
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataShort;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
                                 } else {
                                     // Setting the value
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = pixelValue;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
                                 }
                             }
                         }
@@ -573,11 +591,12 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
             // NO DATA NOT PRESENT
         } else {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -595,7 +614,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -606,23 +625,23 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataShort;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = (short) (iter
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (short) (iter
                                         .getSample(srcX, srcY, sb) & 0xFFFF);
                             }
                         }
@@ -630,6 +649,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
         }
         d.setPixels(dimd);
@@ -640,6 +660,14 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         int nSrcs = sources.length;
         // Bands associated with each sources
         int[] snbands = new int[nSrcs];
+        for (int i = 0; i < nSrcs; i++) {           
+
+            if (colorModels[i] instanceof IndexColorModel) {
+                snbands[i] = colorModels[i].getNumComponents();
+            } else {
+                snbands[i] = sources[i].getNumBands();
+            }
+        }
 
         // Destination bands
         int dnbands = dest.getNumBands();
@@ -661,13 +689,15 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         Point2D ptSrc = new Point2D.Double(0, 0);
         Point2D ptDst = new Point2D.Double(0, 0);
         // Destination object initial position
-        final int minX = dest.getMinX();
-        final int minY = dest.getMinY();
+        final int minX = destRect.x;
+        final int minY = destRect.y;
+        
+        int db = 0;
 
         // NO DATA PRESENT
         if (hasNoData) {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -685,7 +715,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -696,17 +726,17 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataShort;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
@@ -714,10 +744,10 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                                 // No Data control
                                 short pixelValue = (short) (iter.getSample(srcX, srcY, sb));
                                 if (noData[sindex].contains(pixelValue)) {
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataShort;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
                                 } else {
                                     // Setting the value
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = pixelValue;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
                                 }
                             }
                         }
@@ -725,11 +755,12 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
             // NO DATA NOT PRESENT
         } else {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -747,7 +778,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -758,23 +789,23 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataShort;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = (short) (iter
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (short) (iter
                                         .getSample(srcX, srcY, sb));
                             }
                         }
@@ -782,6 +813,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
         }
         d.setPixels(dimd);
@@ -792,6 +824,14 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         int nSrcs = sources.length;
         // Bands associated with each sources
         int[] snbands = new int[nSrcs];
+        for (int i = 0; i < nSrcs; i++) {           
+
+            if (colorModels[i] instanceof IndexColorModel) {
+                snbands[i] = colorModels[i].getNumComponents();
+            } else {
+                snbands[i] = sources[i].getNumBands();
+            }
+        }
 
         // Destination bands
         int dnbands = dest.getNumBands();
@@ -813,13 +853,15 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         Point2D ptSrc = new Point2D.Double(0, 0);
         Point2D ptDst = new Point2D.Double(0, 0);
         // Destination object initial position
-        final int minX = dest.getMinX();
-        final int minY = dest.getMinY();
+        final int minX = destRect.x;
+        final int minY = destRect.y;
 
+        int db = 0;
+        
         // NO DATA PRESENT
         if (hasNoData) {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -837,7 +879,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -848,17 +890,17 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataInt;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataInt;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
@@ -866,10 +908,10 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                                 // No Data control
                                 int pixelValue = (iter.getSample(srcX, srcY, sb));
                                 if (noData[sindex].contains(pixelValue)) {
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataInt;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataInt;
                                 } else {
                                     // Setting the value
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = pixelValue;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
                                 }
                             }
                         }
@@ -877,11 +919,12 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
             // NO DATA NOT PRESENT
         } else {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -899,7 +942,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -910,30 +953,31 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataInt;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataInt;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = (iter
-                                        .getSample(srcX, srcY, sb));
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter.getSample(
+                                        srcX, srcY, sb));
                             }
                         }
                         dstPixelOffset += dstPixelStride;
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
         }
         d.setPixels(dimd);
@@ -944,6 +988,14 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         int nSrcs = sources.length;
         // Bands associated with each sources
         int[] snbands = new int[nSrcs];
+        for (int i = 0; i < nSrcs; i++) {           
+
+            if (colorModels[i] instanceof IndexColorModel) {
+                snbands[i] = colorModels[i].getNumComponents();
+            } else {
+                snbands[i] = sources[i].getNumBands();
+            }
+        }
 
         // Destination bands
         int dnbands = dest.getNumBands();
@@ -965,13 +1017,15 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         Point2D ptSrc = new Point2D.Double(0, 0);
         Point2D ptDst = new Point2D.Double(0, 0);
         // Destination object initial position
-        final int minX = dest.getMinX();
-        final int minY = dest.getMinY();
+        final int minX = destRect.x;
+        final int minY = destRect.y;
 
+        int db = 0;
+        
         // NO DATA PRESENT
         if (hasNoData) {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -989,7 +1043,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -1000,17 +1054,17 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataFloat;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataFloat;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
@@ -1018,10 +1072,10 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                                 // No Data control
                                 float pixelValue = (iter.getSampleFloat(srcX, srcY, sb));
                                 if (noData[sindex].contains(pixelValue)) {
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataFloat;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataFloat;
                                 } else {
                                     // Setting the value
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = pixelValue;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
                                 }
                             }
                         }
@@ -1029,11 +1083,12 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
             // NO DATA NOT PRESENT
         } else {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -1051,7 +1106,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -1062,23 +1117,23 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataFloat;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataFloat;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] =  (iter
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter
                                         .getSampleFloat(srcX, srcY, sb));
                             }
                         }
@@ -1086,6 +1141,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
         }
         d.setPixels(dimd);
@@ -1096,6 +1152,14 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         int nSrcs = sources.length;
         // Bands associated with each sources
         int[] snbands = new int[nSrcs];
+        for (int i = 0; i < nSrcs; i++) {           
+
+            if (colorModels[i] instanceof IndexColorModel) {
+                snbands[i] = colorModels[i].getNumComponents();
+            } else {
+                snbands[i] = sources[i].getNumBands();
+            }
+        }
 
         // Destination bands
         int dnbands = dest.getNumBands();
@@ -1117,13 +1181,15 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         Point2D ptSrc = new Point2D.Double(0, 0);
         Point2D ptDst = new Point2D.Double(0, 0);
         // Destination object initial position
-        final int minX = dest.getMinX();
-        final int minY = dest.getMinY();
+        final int minX = destRect.x;
+        final int minY = destRect.y;
 
+        int db = 0;
+        
         // NO DATA PRESENT
         if (hasNoData) {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -1141,7 +1207,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -1152,17 +1218,17 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataDouble;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataDouble;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
@@ -1170,10 +1236,10 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                                 // No Data control
                                 double pixelValue = (iter.getSampleDouble(srcX, srcY, sb));
                                 if (noData[sindex].contains(pixelValue)) {
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataDouble;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataDouble;
                                 } else {
                                     // Setting the value
-                                    dstdata[db][dstPixelOffset + dimd.getOffset(db)] = pixelValue;
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
                                 }
                             }
                         }
@@ -1181,11 +1247,12 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
             // NO DATA NOT PRESENT
         } else {
             // Cycle on all the sources
-            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -1203,7 +1270,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                 for (int y = 0; y < destRect.height; y++) {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
-                    for (int x = 0; x < destRect.height; x++) {
+                    for (int x = 0; x < destRect.width; x++) {
                         // Set the x,y destination pixel location
                         ptDst.setLocation(x + minX, y + minY);
                         // Map destination pixel to source pixel
@@ -1214,23 +1281,23 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                         // Check if the pixel is inside the source dimension
                         if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] = destNoDataDouble;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataDouble;
                             }
                         } else {
                             // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
                                 // Setting the value
-                                dstdata[db][dstPixelOffset + dimd.getOffset(db)] =  (iter
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter
                                         .getSampleDouble(srcX, srcY, sb));
                             }
                         }
@@ -1238,6 +1305,7 @@ class ExtendedBandMergeOpImage extends PointOpImage {
                     }
                     dstLineOffset += dstLineStride;
                 }
+                db += snbands[sindex];
             }
         }
         d.setPixels(dimd);
@@ -1261,8 +1329,18 @@ class ExtendedBandMergeOpImage extends PointOpImage {
         }
     }
 
-    /** Returns the "round" value of a float. */
-    private static final int round(double f) {
+    /** Returns the "round" value of a double. */
+    private static int round(double f) {
         return f >= 0 ? (int) (f + 0.5F) : (int) (f - 0.5F);
+    }
+
+    @Override
+    protected Rectangle backwardMapRect(Rectangle arg0, int arg1) {
+        return arg0;
+    }
+
+    @Override
+    protected Rectangle forwardMapRect(Rectangle arg0, int arg1) {
+        return arg0;
     }
 }

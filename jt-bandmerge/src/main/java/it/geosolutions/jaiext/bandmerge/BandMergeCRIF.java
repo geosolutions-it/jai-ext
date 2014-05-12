@@ -5,8 +5,10 @@ import it.geosolutions.jaiext.range.Range;
 import java.util.ArrayList;
 import java.util.List;
 import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
+
 import javax.media.jai.CRIFImpl;
 import javax.media.jai.ImageLayout;
 
@@ -46,6 +48,13 @@ public class BandMergeCRIF extends CRIFImpl {
         Range[] nodata = (Range[]) paramBlock.getObjectParameter(0);
         double destinationNoData = paramBlock.getDoubleParameter(1);
 
-        return new BandMergeOpImage(sources, renderHints, nodata, destinationNoData, layout);
+        // Transformation Object
+        List<AffineTransform> transform = (List<AffineTransform>) paramBlock.getObjectParameter(2);
+        // If the transformations are present, then they are used with the ExtendedBandMergeOpImage
+        if(transform != null && !transform.isEmpty()){
+            return new ExtendedBandMergeOpImage(sources, transform, renderHints, nodata, destinationNoData, layout);
+        }else{
+            return new BandMergeOpImage(sources, renderHints, nodata, destinationNoData, layout);
+        }
     }
 }

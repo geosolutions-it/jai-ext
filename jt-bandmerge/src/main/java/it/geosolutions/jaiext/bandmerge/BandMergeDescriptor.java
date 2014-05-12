@@ -1,10 +1,14 @@
 package it.geosolutions.jaiext.bandmerge;
 
 import it.geosolutions.jaiext.range.Range;
+
 import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderableImage;
+import java.util.List;
+
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
 import javax.media.jai.ParameterBlockJAI;
@@ -30,6 +34,11 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * If No Data values are present, then the user can define an array of {@link Range} objects(each one for an image) for the No Data and a double value
  * called "destination" no data which will be set instead of the old No data value. If the array length is smaller than that of the input images, then
  * the first Range object is taken.
+ * 
+ * If the user wants to do a backward mapping from the destination pixels to each source image pixel, then he must add a parameter called "transformations". 
+ * This parameter is a List of the transformations to perform on each image. Note that the list size must be equal to that of the sources, because each 
+ * transformation must be related to only one image. The user should remember that these transformations have to map from the destination image to the source
+ * image and not the opposite.
  * 
  * <p>
  * <table border=1>
@@ -68,6 +77,9 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <td>arg1Desc</td>
  * <td>Destination No Data value.</td>
  * </tr>
+ * <td>arg2Desc</td>
+ * <td>Transformations List.</td>
+ * </tr>
  * </table>
  * </p>
  * 
@@ -91,6 +103,10 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <td>Double</td>
  * <td>0</td>
  * <tr>
+ * <td>transformations</td>
+ * <td>java.util.List</td>
+ * <td>null</td>
+ * <tr>
  * <tr>
  * </table>
  * </p>
@@ -111,25 +127,26 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
             { "Description",
                     "Operation used for merging multiple images into a single multibanded image" },
             { "DocURL", "Not Defined" }, { "Version", "1.0" }, { "arg0Desc", "NoData values" },
-            { "arg1Desc", "Destination No Data value" }
+            { "arg1Desc", "Destination No Data value" },
+            { "arg2Desc", "Transformations List" }
 
     };
 
     /**
      * Input Parameter name
      */
-    private static final String[] paramNames = { "noData", "destinationNoData" };
+    private static final String[] paramNames = { "noData", "destinationNoData", "transformations" };
 
     /**
      * Input Parameter class
      */
     private static final Class[] paramClasses = { it.geosolutions.jaiext.range.Range[].class,
-            Double.class };
+            Double.class, List.class };
 
     /**
      * Input Parameter default values
      */
-    private static final Object[] paramDefaults = { null, 0d };
+    private static final Object[] paramDefaults = { null, 0d, null };
 
     /** Constructor. */
     public BandMergeDescriptor() {
@@ -162,6 +179,31 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      */
     public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints,
             RenderedImage... sources) {
+        return create(noData, destinationNoData, hints, null, sources);
+    }
+    
+    /**
+     * Merge (possibly multi-banded)images into a multibanded image.
+     * 
+     * <p>
+     * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
+     * {@link JAI#create(String,ParameterBlock,RenderingHints)}.
+     * 
+     * @see JAI
+     * @see ParameterBlockJAI
+     * @see RenderedOp
+     * 
+     * @param noData Array of input No Data Ranges.
+     * @param destinationNoData value used by the RenderedOp for setting the output no data value.
+     * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
+     * @param transform A List of AffineTransformation to use for backward mapping each source image. May be <code>null</code>.
+     * @param sources Array of source <code>RenderedImage</code>.
+     * @return The <code>RenderedOp</code> destination.
+     * @throws IllegalArgumentException if <code>sources</code> is <code>null</code>.
+     * @throws IllegalArgumentException if a <code>source</code> is <code>null</code>.
+     */
+    public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints, 
+            List<AffineTransform> transform, RenderedImage... sources) {
         ParameterBlockJAI pb = new ParameterBlockJAI("BandMergeOp", RenderedRegistryMode.MODE_NAME);
         // Source number
         int numSources = sources.length;
@@ -182,6 +224,11 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
             pb.setSource(source, index);
         }
 
+        // Check if the transform object can be used
+        if(transform != null && !transform.isEmpty() && transform.get(0) instanceof AffineTransform){
+            pb.setParameter("transformations", transform);
+        }
+        
         // Setting of the parameters
         pb.setParameter("noData", noData);
         pb.setParameter("destinationNoData", destinationNoData);
@@ -211,6 +258,31 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      */
     public static RenderableOp createRenderable(Range[] noData, double destinationNoData,
             RenderingHints hints, RenderableImage... sources) {
+        return createRenderable(noData, destinationNoData, hints, null, sources);
+    }
+    
+    /**
+     * Merge (possibly multi-banded)images into a multibanded image.
+     * 
+     * <p>
+     * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
+     * {@link JAI#createRenderable(String,ParameterBlock,RenderingHints)}.
+     * 
+     * @see JAI
+     * @see ParameterBlockJAI
+     * @see RenderedOp
+     * 
+     * @param noData Array of input No Data Ranges.
+     * @param destinationNoData value used by the RenderableOp for setting the output no data value.
+     * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
+     * @param transform A List of AffineTransformation to use for backward mapping each source image. May be <code>null</code>.
+     * @param sources Array of source <code>RenderableImage</code>.
+     * @return The <code>RenderableOp</code> destination.
+     * @throws IllegalArgumentException if <code>sources</code> is <code>null</code>.
+     * @throws IllegalArgumentException if a <code>source</code> is <code>null</code>.
+     */
+    public static RenderableOp createRenderable(Range[] noData, double destinationNoData,
+            RenderingHints hints, List<AffineTransform> transform, RenderableImage... sources) {
         ParameterBlockJAI pb = new ParameterBlockJAI("BandMergeOp",
                 RenderableRegistryMode.MODE_NAME);
         // Source number
@@ -230,6 +302,12 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
 
             pb.setSource(source, index);
         }
+        
+        // Check if the transform object can be used
+        if(transform != null && !transform.isEmpty() && transform.get(0) instanceof AffineTransform){
+            pb.setParameter("transformations", transform);
+        }
+        
         // Setting of the parameters
         pb.setParameter("noData", noData);
         pb.setParameter("destinationNoData", destinationNoData);
