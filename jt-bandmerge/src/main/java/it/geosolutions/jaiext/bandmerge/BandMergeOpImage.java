@@ -10,12 +10,15 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.PointOpImage;
 import java.util.Map;
 import javax.media.jai.PixelAccessor;
+import javax.media.jai.ROI;
+import javax.media.jai.ROIShape;
 import javax.media.jai.UnpackedImageData;
 import javax.media.jai.RasterFactory;
 
@@ -37,11 +40,16 @@ import com.sun.media.jai.util.JDKWorkarounds;
  */
 class BandMergeOpImage extends PointOpImage {
 
+    public static final int TILE_EXTENDER = 1;
+
     /** List of ColorModels required for IndexColorModel support */
     ColorModel[] colorModels;
 
     /** Array containing all the No Data Ranges */
     private final Range[] noData;
+
+    /** Boolean indicating if ROI is present */
+    private final boolean hasROI;
 
     /** Boolean indicating if No Data are present */
     private final boolean hasNoData;
@@ -61,6 +69,17 @@ class BandMergeOpImage extends PointOpImage {
     /** Destination No Data value used for Double images */
     private double destNoDataDouble;
 
+    /** Boolean indicating if No Data and ROI are not used */
+    protected boolean caseA;
+
+    /** Boolean indicating if only the ROI is used */
+    protected boolean caseB;
+
+    /** Boolean indicating if only the No Data are used */
+    protected boolean caseC;
+
+    private ROI roi;
+
     /**
      * Constructs a <code>BandMergeOpImage</code>.
      * 
@@ -76,11 +95,12 @@ class BandMergeOpImage extends PointOpImage {
      * @param config Configurable attributes of the image including configuration variables indexed by <code>RenderingHints.Key</code>s and image
      *        properties indexed by <code>String</code>s or <code>CaselessStringKey</code>s. This is simply forwarded to the superclass constructor.
      * @param noData Array of No Data Range.
+     * @param roi Input ROI to use for the calculations.
      * @param destinationNoData output value for No Data.
      * @param layout The destination image layout.
      */
-    public BandMergeOpImage(List sources, Map config, Range[] noData, double destinationNoData,
-            ImageLayout layout) {
+    public BandMergeOpImage(List sources, Map config, Range[] noData, ROI roi,
+            double destinationNoData, ImageLayout layout) {
 
         super(vectorize(sources), layoutHelper(sources, layout), config, true);
 
@@ -96,6 +116,30 @@ class BandMergeOpImage extends PointOpImage {
         }
         // Destination Image data Type
         int dataType = getSampleModel().getDataType();
+
+        // Destination No Data value is clamped to the image data type
+        switch (dataType) {
+        case DataBuffer.TYPE_BYTE:
+            this.destNoDataByte = ImageUtil.clampRoundByte(destinationNoData);
+            break;
+        case DataBuffer.TYPE_USHORT:
+            this.destNoDataShort = ImageUtil.clampRoundUShort(destinationNoData);
+            break;
+        case DataBuffer.TYPE_SHORT:
+            this.destNoDataShort = ImageUtil.clampRoundShort(destinationNoData);
+            break;
+        case DataBuffer.TYPE_INT:
+            this.destNoDataInt = ImageUtil.clampRoundInt(destinationNoData);
+            break;
+        case DataBuffer.TYPE_FLOAT:
+            this.destNoDataFloat = ImageUtil.clampFloat(destinationNoData);
+            break;
+        case DataBuffer.TYPE_DOUBLE:
+            this.destNoDataDouble = destinationNoData;
+            break;
+        default:
+            throw new IllegalArgumentException("Wrong image data type");
+        }
 
         // If No Data are present
         if (noData != null) {
@@ -115,34 +159,23 @@ class BandMergeOpImage extends PointOpImage {
             }
             // No Data are present, so associated flaw is set to true
             this.hasNoData = true;
-            // Destination No Data value is clamped to the image data type
-            switch (dataType) {
-            case DataBuffer.TYPE_BYTE:
-                this.destNoDataByte = ImageUtil.clampRoundByte(destinationNoData);
-                break;
-            case DataBuffer.TYPE_USHORT:
-                this.destNoDataShort = ImageUtil.clampRoundUShort(destinationNoData);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                this.destNoDataShort = ImageUtil.clampRoundShort(destinationNoData);
-                break;
-            case DataBuffer.TYPE_INT:
-                this.destNoDataInt = ImageUtil.clampRoundInt(destinationNoData);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                this.destNoDataFloat = ImageUtil.clampFloat(destinationNoData);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                this.destNoDataDouble = destinationNoData;
-                break;
-            default:
-                throw new IllegalArgumentException("Wrong image data type");
-            }
-
         } else {
             this.noData = null;
             this.hasNoData = false;
         }
+
+        // ROI settings
+        this.roi = roi;
+        hasROI = roi != null;
+
+        // Definition of the possible cases that can be found
+        // caseA = no ROI nor No Data
+        // caseB = ROI present but No Data not present
+        // caseC = No Data present but ROI not present
+        // Last case not defined = both ROI and No Data are present
+        caseA = !hasROI && !hasNoData;
+        caseB = hasROI && !hasNoData;
+        caseC = !hasROI && hasNoData;
     }
 
     /**
@@ -208,7 +241,7 @@ class BandMergeOpImage extends PointOpImage {
         layout.setMinY(destBounds.y);
         layout.setWidth(destBounds.width);
         layout.setHeight(destBounds.height);
-        
+
         // First image sampleModel
         SampleModel sm = layout.getSampleModel((RenderedImage) sources.get(0));
 
@@ -257,30 +290,49 @@ class BandMergeOpImage extends PointOpImage {
     protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
         // Destination data type
         int destType = dest.getTransferType();
-        // Loop on the image raster
-        switch (destType) {
-        case DataBuffer.TYPE_BYTE:
-            byteLoop(sources, dest, destRect);
-            break;
-        case DataBuffer.TYPE_SHORT:
-        case DataBuffer.TYPE_USHORT:
-            shortLoop(sources, dest, destRect);
-            break;
-        case DataBuffer.TYPE_INT:
-            intLoop(sources, dest, destRect);
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            floatLoop(sources, dest, destRect);
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            doubleLoop(sources, dest, destRect);
-            break;
-        default:
-            throw new RuntimeException("Wrong image data type");
+
+        ROI roiTile = null;
+
+        // If a ROI is present, then only the part contained inside the current tile bounds is taken.
+        if (hasROI) {
+            Rectangle rect = new Rectangle(destRect);
+            // The tile dimension is extended for avoiding border errors
+            rect.grow(TILE_EXTENDER, TILE_EXTENDER);
+            roiTile = roi.intersect(new ROIShape(rect));
+        }
+
+        if (!hasROI || !roiTile.getBounds().isEmpty()) {
+            // Loop on the image raster
+            switch (destType) {
+            case DataBuffer.TYPE_BYTE:
+                byteLoop(sources, dest, destRect, roiTile);
+                break;
+            case DataBuffer.TYPE_SHORT:
+            case DataBuffer.TYPE_USHORT:
+                shortLoop(sources, dest, destRect, roiTile);
+                break;
+            case DataBuffer.TYPE_INT:
+                intLoop(sources, dest, destRect, roiTile);
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                floatLoop(sources, dest, destRect, roiTile);
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                doubleLoop(sources, dest, destRect, roiTile);
+                break;
+            default:
+                throw new RuntimeException("Wrong image data type");
+            }
+        } else {
+            // Fill with NoData
+            int numBands = getSampleModel().getNumBands();
+            double[] background = new double[numBands];
+            Arrays.fill(background, destNoDataDouble);
+            ImageUtil.fillBackground(dest, destRect, background);
         }
     }
 
-    private void byteLoop(Raster[] sources, WritableRaster dest, Rectangle destRect) {
+    private void byteLoop(Raster[] sources, WritableRaster dest, Rectangle destRect, ROI roiTile) {
         // Source number
         int nSrcs = sources.length;
         // Bands associated with each sources
@@ -306,11 +358,106 @@ class BandMergeOpImage extends PointOpImage {
 
         UnpackedImageData dimd = d.getPixels(dest, destRect, destType, true);
 
+        // Destination tile initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
+
         // Destination data values
         byte[][] dstdata = (byte[][]) dimd.data;
 
-        // NO DATA PRESENT
-        if (hasNoData) {
+        // ONLY VALID DATA
+        if (caseA) {
+            // Cycle on all the sources
+            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+
+                UnpackedImageData simd = colorModels[sindex] instanceof IndexColorModel ? pas[sindex]
+                        .getComponents(sources[sindex], destRect, sources[sindex].getSampleModel()
+                                .getTransferType()) : pas[sindex].getPixels(sources[sindex],
+                        destRect, sources[sindex].getSampleModel().getTransferType(), false);
+
+                int srcPixelStride = simd.pixelStride;
+                int srcLineStride = simd.lineStride;
+                int dstPixelStride = dimd.pixelStride;
+                int dstLineStride = dimd.lineStride;
+                int dRectWidth = destRect.width;
+                // Cycle on each source bands
+                for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                    if (db >= dnbands) {
+                        // exceeding destNumBands; should not have happened
+                        break;
+                    }
+
+                    byte[] dstdatabandb = dstdata[db];
+                    byte[][] srcdata = (byte[][]) simd.data;
+                    byte[] srcdatabandsb = srcdata[sb];
+                    int srcstart = simd.bandOffsets[sb];
+                    int dststart = dimd.bandOffsets[db];
+
+                    // Cycle on the y-axis
+                    for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                        // Cycle on the x-axis
+                        for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                            dstdatabandb[dstpos] = srcdatabandsb[srcpos];
+                        }
+                    }
+                }
+            }
+            // ONLY ROI
+        } else if (caseB) {
+            // Cycle on all the sources
+            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+
+                UnpackedImageData simd = colorModels[sindex] instanceof IndexColorModel ? pas[sindex]
+                        .getComponents(sources[sindex], destRect, sources[sindex].getSampleModel()
+                                .getTransferType()) : pas[sindex].getPixels(sources[sindex],
+                        destRect, sources[sindex].getSampleModel().getTransferType(), false);
+
+                int srcPixelStride = simd.pixelStride;
+                int srcLineStride = simd.lineStride;
+                int dstPixelStride = dimd.pixelStride;
+                int dstLineStride = dimd.lineStride;
+                int dRectWidth = destRect.width;
+
+                int srcstart = 0;
+                int dststart = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                    // Cycle on the x-axis
+                    for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                        // ROI Check
+                        if (roi.contains(i + minX, y + minY)) {
+                            // Cycle on each source bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                int dbidx = db + sb;
+                                byte[] dstdatabandb = dstdata[dbidx];
+                                byte[][] srcdata = (byte[][]) simd.data;
+                                byte[] srcdatabandsb = srcdata[sb];
+
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
+                                        + simd.bandOffsets[sb]];
+                            }
+                        } else {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+
+                                int dbidx = db + sb;
+                                byte[] dstdatabandb = dstdata[dbidx];
+
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataByte;
+                            }
+                        }
+                    }
+                }
+                db += snbands[sindex];
+            }
+            // ONLY NODATA
+        } else if (caseC) {
             // Cycle on all the sources
             for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
 
@@ -354,7 +501,7 @@ class BandMergeOpImage extends PointOpImage {
                     }
                 }
             }
-            // NO DATA NOT PRESENT
+            // NODATA AND ROI
         } else {
             // Cycle on all the sources
             for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
@@ -369,35 +516,55 @@ class BandMergeOpImage extends PointOpImage {
                 int dstPixelStride = dimd.pixelStride;
                 int dstLineStride = dimd.lineStride;
                 int dRectWidth = destRect.width;
-                // Cycle on each source bands
-                for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
-                    if (db >= dnbands) {
-                        // exceeding destNumBands; should not have happened
-                        break;
-                    }
 
-                    byte[] dstdatabandb = dstdata[db];
-                    byte[][] srcdata = (byte[][]) simd.data;
-                    byte[] srcdatabandsb = srcdata[sb];
-                    int srcstart = simd.bandOffsets[sb];
-                    int dststart = dimd.bandOffsets[db];
+                int srcstart = 0;
+                int dststart = 0;
 
-                    // Cycle on the y-axis
-                    for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
-                        // Cycle on the x-axis
-                        for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                    // Cycle on the x-axis
+                    for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
-                            dstdatabandb[dstpos] = srcdatabandsb[srcpos];
+                        // ROI Check
+                        if (roi.contains(i + minX, y + minY)) {
+                            // Cycle on each source bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                int dbidx = db + sb;
+                                byte[] dstdatabandb = dstdata[dbidx];
+                                byte[][] srcdata = (byte[][]) simd.data;
+                                byte[] srcdatabandsb = srcdata[sb];
+
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+
+                                // No Data control
+                                if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataByte;
+                                } else {
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
+                                            + simd.bandOffsets[sb]];
+                                }
+                            }
+                        } else {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+
+                                int dbidx = db + sb;
+                                byte[] dstdatabandb = dstdata[dbidx];
+
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataByte;
+                            }
                         }
                     }
                 }
+                db += snbands[sindex];
             }
         }
-
         d.setPixels(dimd);
     }
 
-    private void shortLoop(Raster[] sources, WritableRaster dest, Rectangle destRect) {
+    private void shortLoop(Raster[] sources, WritableRaster dest, Rectangle destRect, ROI roiTile) {
         // Source number
         int nSrcs = sources.length;
         // Bands associated with each sources
@@ -429,8 +596,8 @@ class BandMergeOpImage extends PointOpImage {
         // Destination data values
         short[][] dstdata = (short[][]) dimd.data;
 
-        // NO DATA PRESENT
-        if (hasNoData) {
+        // ONLY VALID DATA
+        if (caseA) {
             // Cycle on all the sources
             for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
 
@@ -446,29 +613,126 @@ class BandMergeOpImage extends PointOpImage {
                 int dRectWidth = destRect.width;
                 // Cycle on each source bands
                 for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
-                    if (db < dnbands) {
-                        short[][] srcdata = (short[][]) simd.data;
-                        int srcstart = simd.bandOffsets[sb];
-                        int dststart = dimd.bandOffsets[db];
-                        // Cycle on the y-axis
-                        for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
-                            // Cycle on the x-axis
-                            for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
-                                // No Data control
-                                if (noData[sindex].contains(srcdata[sb][srcpos])) {
-                                    if (isUshort) {
-                                        dstdata[db][dstpos] = destNoDataShort;
-                                    } else {
-                                        dstdata[db][dstpos] = destNoDataShort;
-                                    }
-                                } else {
-                                    dstdata[db][dstpos] = srcdata[sb][srcpos];
+                    if (db >= dnbands) {
+                        // exceeding destNumBands; should not have happened
+                        break;
+                    }
+
+                    short[] dstdatabandb = dstdata[db];
+                    short[][] srcdata = (short[][]) simd.data;
+                    short[] srcdatabandsb = srcdata[sb];
+                    int srcstart = simd.bandOffsets[sb];
+                    int dststart = dimd.bandOffsets[db];
+
+                    // Cycle on the y-axis
+                    for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                        // Cycle on the x-axis
+                        for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                            dstdatabandb[dstpos] = srcdatabandsb[srcpos];
+                        }
+                    }
+                }
+            }
+            // ONLY ROI
+        } else if (caseB) {
+            // Cycle on all the sources
+            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+
+                UnpackedImageData simd = colorModels[sindex] instanceof IndexColorModel ? pas[sindex]
+                        .getComponents(sources[sindex], destRect, sources[sindex].getSampleModel()
+                                .getTransferType()) : pas[sindex].getPixels(sources[sindex],
+                        destRect, sources[sindex].getSampleModel().getTransferType(), false);
+
+                int srcPixelStride = simd.pixelStride;
+                int srcLineStride = simd.lineStride;
+                int dstPixelStride = dimd.pixelStride;
+                int dstLineStride = dimd.lineStride;
+                int dRectWidth = destRect.width;
+
+                int srcstart = 0;
+                int dststart = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                    // Cycle on the x-axis
+                    for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                        // ROI Check
+                        if (roi.contains(i + minX, y + minY)) {
+                            // Cycle on each source bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                int dbidx = db + sb;
+                                short[] dstdatabandb = dstdata[dbidx];
+                                short[][] srcdata = (short[][]) simd.data;
+                                short[] srcdatabandsb = srcdata[sb];
+
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
                                 }
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
+                                        + simd.bandOffsets[sb]];
+                            }
+                        } else {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+
+                                int dbidx = db + sb;
+                                short[] dstdatabandb = dstdata[dbidx];
+
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataShort;
+                            }
+                        }
+                    }
+                }
+                db += snbands[sindex];
+            }
+            // ONLY NODATA
+        } else if (caseC) {
+            // Cycle on all the sources
+            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+
+                // Source data
+                UnpackedImageData simd = colorModels[sindex] instanceof IndexColorModel ? pas[sindex]
+                        .getComponents(sources[sindex], destRect, sources[sindex].getSampleModel()
+                                .getTransferType()) : pas[sindex].getPixels(sources[sindex],
+                        destRect, sources[sindex].getSampleModel().getTransferType(), false);
+
+                // Source and Destination parameters
+                int srcPixelStride = simd.pixelStride;
+                int srcLineStride = simd.lineStride;
+                int dstPixelStride = dimd.pixelStride;
+                int dstLineStride = dimd.lineStride;
+                int dRectWidth = destRect.width;
+
+                // Cycle on each source bands
+                for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                    if (db >= dnbands) {
+                        // exceeding destNumBands; should not have happened
+                        break;
+                    }
+
+                    // Source and destination data array
+                    short[] dstdatabandb = dstdata[db];
+                    short[][] srcdata = (short[][]) simd.data;
+                    short[] srcdatabandsb = srcdata[sb];
+                    int srcstart = simd.bandOffsets[sb];
+                    int dststart = dimd.bandOffsets[db];
+                    // Cycle on the y-axis
+                    for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                        // Cycle on the x-axis
+                        for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+                            // No Data control
+                            if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                dstdatabandb[dstpos] = destNoDataShort;
+                            } else {
+                                dstdatabandb[dstpos] = srcdatabandsb[srcpos];
                             }
                         }
                     }
                 }
             }
+            // NODATA AND ROI
         } else {
             // Cycle on all the sources
             for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
@@ -483,28 +747,55 @@ class BandMergeOpImage extends PointOpImage {
                 int dstPixelStride = dimd.pixelStride;
                 int dstLineStride = dimd.lineStride;
                 int dRectWidth = destRect.width;
-                // Cycle on each source bands
-                for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
-                    if (db < dnbands) {
-                        short[][] srcdata = (short[][]) simd.data;
-                        int srcstart = simd.bandOffsets[sb];
-                        int dststart = dimd.bandOffsets[db];
-                        // Cycle on the y-axis
-                        for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
-                            // Cycle on the x-axis
-                            for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
-                                dstdata[db][dstpos] = srcdata[sb][srcpos];
+                int srcstart = 0;
+                int dststart = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                    // Cycle on the x-axis
+                    for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                        // ROI Check
+                        if (roi.contains(i + minX, y + minY)) {
+                            // Cycle on each source bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                int dbidx = db + sb;
+                                short[] dstdatabandb = dstdata[dbidx];
+                                short[][] srcdata = (short[][]) simd.data;
+                                short[] srcdatabandsb = srcdata[sb];
+
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+
+                                // No Data control
+                                if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataShort;
+                                } else {
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
+                                            + simd.bandOffsets[sb]];
+                                }
+                            }
+                        } else {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+
+                                int dbidx = db + sb;
+                                short[] dstdatabandb = dstdata[dbidx];
+
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataShort;
                             }
                         }
                     }
                 }
+                db += snbands[sindex];
             }
         }
         d.setPixels(dimd);
     }
 
-    private void intLoop(Raster[] sources, WritableRaster dest, Rectangle destRect) {
+    private void intLoop(Raster[] sources, WritableRaster dest, Rectangle destRect, ROI roiTile) {
         // Source number
         int nSrcs = sources.length;
         // Bands associated with each sources
@@ -533,8 +824,8 @@ class BandMergeOpImage extends PointOpImage {
         // Destination data values
         int[][] dstdata = (int[][]) dimd.data;
 
-        // NO DATA PRESENT
-        if (hasNoData) {
+        // ONLY VALID DATA
+        if (caseA) {
             // Cycle on all the sources
             for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
 
@@ -550,25 +841,126 @@ class BandMergeOpImage extends PointOpImage {
                 int dRectWidth = destRect.width;
                 // Cycle on each source bands
                 for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
-                    if (db < dnbands) {
-                        int[][] srcdata = (int[][]) simd.data;
-                        int srcstart = simd.bandOffsets[sb];
-                        int dststart = dimd.bandOffsets[db];
-                        // Cycle on the y-axis
-                        for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
-                            // Cycle on the x-axis
-                            for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
-                                // No Data control
-                                if (noData[sindex].contains(srcdata[sb][srcpos])) {
-                                    dstdata[db][dstpos] = destNoDataInt;
-                                } else {
-                                    dstdata[db][dstpos] = srcdata[sb][srcpos];
+                    if (db >= dnbands) {
+                        // exceeding destNumBands; should not have happened
+                        break;
+                    }
+
+                    int[] dstdatabandb = dstdata[db];
+                    int[][] srcdata = (int[][]) simd.data;
+                    int[] srcdatabandsb = srcdata[sb];
+                    int srcstart = simd.bandOffsets[sb];
+                    int dststart = dimd.bandOffsets[db];
+
+                    // Cycle on the y-axis
+                    for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                        // Cycle on the x-axis
+                        for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                            dstdatabandb[dstpos] = srcdatabandsb[srcpos];
+                        }
+                    }
+                }
+            }
+            // ONLY ROI
+        } else if (caseB) {
+            // Cycle on all the sources
+            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+
+                UnpackedImageData simd = colorModels[sindex] instanceof IndexColorModel ? pas[sindex]
+                        .getComponents(sources[sindex], destRect, sources[sindex].getSampleModel()
+                                .getTransferType()) : pas[sindex].getPixels(sources[sindex],
+                        destRect, sources[sindex].getSampleModel().getTransferType(), false);
+
+                int srcPixelStride = simd.pixelStride;
+                int srcLineStride = simd.lineStride;
+                int dstPixelStride = dimd.pixelStride;
+                int dstLineStride = dimd.lineStride;
+                int dRectWidth = destRect.width;
+
+                int srcstart = 0;
+                int dststart = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                    // Cycle on the x-axis
+                    for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                        // ROI Check
+                        if (roi.contains(i + minX, y + minY)) {
+                            // Cycle on each source bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                int dbidx = db + sb;
+                                int[] dstdatabandb = dstdata[dbidx];
+                                int[][] srcdata = (int[][]) simd.data;
+                                int[] srcdatabandsb = srcdata[sb];
+
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
                                 }
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
+                                        + simd.bandOffsets[sb]];
+                            }
+                        } else {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+
+                                int dbidx = db + sb;
+                                int[] dstdatabandb = dstdata[dbidx];
+
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataInt;
+                            }
+                        }
+                    }
+                }
+                db += snbands[sindex];
+            }
+            // ONLY NODATA
+        } else if (caseC) {
+            // Cycle on all the sources
+            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+
+                // Source data
+                UnpackedImageData simd = colorModels[sindex] instanceof IndexColorModel ? pas[sindex]
+                        .getComponents(sources[sindex], destRect, sources[sindex].getSampleModel()
+                                .getTransferType()) : pas[sindex].getPixels(sources[sindex],
+                        destRect, sources[sindex].getSampleModel().getTransferType(), false);
+
+                // Source and Destination parameters
+                int srcPixelStride = simd.pixelStride;
+                int srcLineStride = simd.lineStride;
+                int dstPixelStride = dimd.pixelStride;
+                int dstLineStride = dimd.lineStride;
+                int dRectWidth = destRect.width;
+
+                // Cycle on each source bands
+                for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                    if (db >= dnbands) {
+                        // exceeding destNumBands; should not have happened
+                        break;
+                    }
+
+                    // Source and destination data array
+                    int[] dstdatabandb = dstdata[db];
+                    int[][] srcdata = (int[][]) simd.data;
+                    int[] srcdatabandsb = srcdata[sb];
+                    int srcstart = simd.bandOffsets[sb];
+                    int dststart = dimd.bandOffsets[db];
+                    // Cycle on the y-axis
+                    for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                        // Cycle on the x-axis
+                        for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+                            // No Data control
+                            if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                dstdatabandb[dstpos] = destNoDataInt;
+                            } else {
+                                dstdatabandb[dstpos] = srcdatabandsb[srcpos];
                             }
                         }
                     }
                 }
             }
+            // NODATA AND ROI
         } else {
             // Cycle on all the sources
             for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
@@ -583,28 +975,55 @@ class BandMergeOpImage extends PointOpImage {
                 int dstPixelStride = dimd.pixelStride;
                 int dstLineStride = dimd.lineStride;
                 int dRectWidth = destRect.width;
-                // Cycle on each source bands
-                for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
-                    if (db < dnbands) {
-                        int[][] srcdata = (int[][]) simd.data;
-                        int srcstart = simd.bandOffsets[sb];
-                        int dststart = dimd.bandOffsets[db];
-                        // Cycle on the y-axis
-                        for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
-                            // Cycle on the x-axis
-                            for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
-                                dstdata[db][dstpos] = srcdata[sb][srcpos];
+                int srcstart = 0;
+                int dststart = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                    // Cycle on the x-axis
+                    for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                        // ROI Check
+                        if (roi.contains(i + minX, y + minY)) {
+                            // Cycle on each source bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                int dbidx = db + sb;
+                                int[] dstdatabandb = dstdata[dbidx];
+                                int[][] srcdata = (int[][]) simd.data;
+                                int[] srcdatabandsb = srcdata[sb];
+
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+
+                                // No Data control
+                                if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataInt;
+                                } else {
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
+                                            + simd.bandOffsets[sb]];
+                                }
+                            }
+                        } else {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+
+                                int dbidx = db + sb;
+                                int[] dstdatabandb = dstdata[dbidx];
+
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataInt;
                             }
                         }
                     }
                 }
+                db += snbands[sindex];
             }
         }
         d.setPixels(dimd);
     }
 
-    private void floatLoop(Raster[] sources, WritableRaster dest, Rectangle destRect) {
+    private void floatLoop(Raster[] sources, WritableRaster dest, Rectangle destRect, ROI roiTile) {
         // Source number
         int nSrcs = sources.length;
         // Bands associated with each sources
@@ -633,8 +1052,8 @@ class BandMergeOpImage extends PointOpImage {
         // Destination data values
         float[][] dstdata = (float[][]) dimd.data;
 
-        // NO DATA PRESENT
-        if (hasNoData) {
+        // ONLY VALID DATA
+        if (caseA) {
             // Cycle on all the sources
             for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
 
@@ -650,25 +1069,126 @@ class BandMergeOpImage extends PointOpImage {
                 int dRectWidth = destRect.width;
                 // Cycle on each source bands
                 for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
-                    if (db < dnbands) {
-                        float[][] srcdata = (float[][]) simd.data;
-                        int srcstart = simd.bandOffsets[sb];
-                        int dststart = dimd.bandOffsets[db];
-                        // Cycle on the y-axis
-                        for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
-                            // Cycle on the x-axis
-                            for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
-                                // No Data control
-                                if (noData[sindex].contains(srcdata[sb][srcpos])) {
-                                    dstdata[db][dstpos] = destNoDataFloat;
-                                } else {
-                                    dstdata[db][dstpos] = srcdata[sb][srcpos];
+                    if (db >= dnbands) {
+                        // exceeding destNumBands; should not have happened
+                        break;
+                    }
+
+                    float[] dstdatabandb = dstdata[db];
+                    float[][] srcdata = (float[][]) simd.data;
+                    float[] srcdatabandsb = srcdata[sb];
+                    int srcstart = simd.bandOffsets[sb];
+                    int dststart = dimd.bandOffsets[db];
+
+                    // Cycle on the y-axis
+                    for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                        // Cycle on the x-axis
+                        for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                            dstdatabandb[dstpos] = srcdatabandsb[srcpos];
+                        }
+                    }
+                }
+            }
+            // ONLY ROI
+        } else if (caseB) {
+            // Cycle on all the sources
+            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+
+                UnpackedImageData simd = colorModels[sindex] instanceof IndexColorModel ? pas[sindex]
+                        .getComponents(sources[sindex], destRect, sources[sindex].getSampleModel()
+                                .getTransferType()) : pas[sindex].getPixels(sources[sindex],
+                        destRect, sources[sindex].getSampleModel().getTransferType(), false);
+
+                int srcPixelStride = simd.pixelStride;
+                int srcLineStride = simd.lineStride;
+                int dstPixelStride = dimd.pixelStride;
+                int dstLineStride = dimd.lineStride;
+                int dRectWidth = destRect.width;
+
+                int srcstart = 0;
+                int dststart = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                    // Cycle on the x-axis
+                    for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                        // ROI Check
+                        if (roi.contains(i + minX, y + minY)) {
+                            // Cycle on each source bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                int dbidx = db + sb;
+                                float[] dstdatabandb = dstdata[dbidx];
+                                float[][] srcdata = (float[][]) simd.data;
+                                float[] srcdatabandsb = srcdata[sb];
+
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
                                 }
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
+                                        + simd.bandOffsets[sb]];
+                            }
+                        } else {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+
+                                int dbidx = db + sb;
+                                float[] dstdatabandb = dstdata[dbidx];
+
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataFloat;
+                            }
+                        }
+                    }
+                }
+                db += snbands[sindex];
+            }
+            // ONLY NODATA
+        } else if (caseC) {
+            // Cycle on all the sources
+            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+
+                // Source data
+                UnpackedImageData simd = colorModels[sindex] instanceof IndexColorModel ? pas[sindex]
+                        .getComponents(sources[sindex], destRect, sources[sindex].getSampleModel()
+                                .getTransferType()) : pas[sindex].getPixels(sources[sindex],
+                        destRect, sources[sindex].getSampleModel().getTransferType(), false);
+
+                // Source and Destination parameters
+                int srcPixelStride = simd.pixelStride;
+                int srcLineStride = simd.lineStride;
+                int dstPixelStride = dimd.pixelStride;
+                int dstLineStride = dimd.lineStride;
+                int dRectWidth = destRect.width;
+
+                // Cycle on each source bands
+                for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                    if (db >= dnbands) {
+                        // exceeding destNumBands; should not have happened
+                        break;
+                    }
+
+                    // Source and destination data array
+                    float[] dstdatabandb = dstdata[db];
+                    float[][] srcdata = (float[][]) simd.data;
+                    float[] srcdatabandsb = srcdata[sb];
+                    int srcstart = simd.bandOffsets[sb];
+                    int dststart = dimd.bandOffsets[db];
+                    // Cycle on the y-axis
+                    for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                        // Cycle on the x-axis
+                        for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+                            // No Data control
+                            if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                dstdatabandb[dstpos] = destNoDataFloat;
+                            } else {
+                                dstdatabandb[dstpos] = srcdatabandsb[srcpos];
                             }
                         }
                     }
                 }
             }
+            // NODATA AND ROI
         } else {
             // Cycle on all the sources
             for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
@@ -683,29 +1203,55 @@ class BandMergeOpImage extends PointOpImage {
                 int dstPixelStride = dimd.pixelStride;
                 int dstLineStride = dimd.lineStride;
                 int dRectWidth = destRect.width;
-                // Cycle on each source bands
-                for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
-                    if (db < dnbands) {
-                        float[][] srcdata = (float[][]) simd.data;
-                        int srcstart = simd.bandOffsets[sb];
-                        int dststart = dimd.bandOffsets[db];
-                        // Cycle on the y-axis
-                        for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
-                            // Cycle on the x-axis
-                            for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
-                                dstdata[db][dstpos] = srcdata[sb][srcpos];
+                int srcstart = 0;
+                int dststart = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                    // Cycle on the x-axis
+                    for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                        // ROI Check
+                        if (roi.contains(i + minX, y + minY)) {
+                            // Cycle on each source bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                int dbidx = db + sb;
+                                float[] dstdatabandb = dstdata[dbidx];
+                                float[][] srcdata = (float[][]) simd.data;
+                                float[] srcdatabandsb = srcdata[sb];
+
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+
+                                // No Data control
+                                if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataFloat;
+                                } else {
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
+                                            + simd.bandOffsets[sb]];
+                                }
+                            }
+                        } else {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+
+                                int dbidx = db + sb;
+                                float[] dstdatabandb = dstdata[dbidx];
+
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataFloat;
                             }
                         }
                     }
                 }
+                db += snbands[sindex];
             }
         }
-
         d.setPixels(dimd);
     }
 
-    private void doubleLoop(Raster[] sources, WritableRaster dest, Rectangle destRect) {
+    private void doubleLoop(Raster[] sources, WritableRaster dest, Rectangle destRect, ROI roiTile) {
         // Source number
         int nSrcs = sources.length;
         // Bands associated with each sources
@@ -734,8 +1280,8 @@ class BandMergeOpImage extends PointOpImage {
         // Destination data values
         double[][] dstdata = (double[][]) dimd.data;
 
-        // NO DATA PRESENT
-        if (hasNoData) {
+        // ONLY VALID DATA
+        if (caseA) {
             // Cycle on all the sources
             for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
 
@@ -751,25 +1297,126 @@ class BandMergeOpImage extends PointOpImage {
                 int dRectWidth = destRect.width;
                 // Cycle on each source bands
                 for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
-                    if (db < dnbands) {
-                        double[][] srcdata = (double[][]) simd.data;
-                        int srcstart = simd.bandOffsets[sb];
-                        int dststart = dimd.bandOffsets[db];
-                        // Cycle on the y-axis
-                        for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
-                            // Cycle on the x-axis
-                            for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
-                                // No Data control
-                                if (noData[sindex].contains(srcdata[sb][srcpos])) {
-                                    dstdata[db][dstpos] = destNoDataDouble;
-                                } else {
-                                    dstdata[db][dstpos] = srcdata[sb][srcpos];
+                    if (db >= dnbands) {
+                        // exceeding destNumBands; should not have happened
+                        break;
+                    }
+
+                    double[] dstdatabandb = dstdata[db];
+                    double[][] srcdata = (double[][]) simd.data;
+                    double[] srcdatabandsb = srcdata[sb];
+                    int srcstart = simd.bandOffsets[sb];
+                    int dststart = dimd.bandOffsets[db];
+
+                    // Cycle on the y-axis
+                    for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                        // Cycle on the x-axis
+                        for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                            dstdatabandb[dstpos] = srcdatabandsb[srcpos];
+                        }
+                    }
+                }
+            }
+            // ONLY ROI
+        } else if (caseB) {
+            // Cycle on all the sources
+            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+
+                UnpackedImageData simd = colorModels[sindex] instanceof IndexColorModel ? pas[sindex]
+                        .getComponents(sources[sindex], destRect, sources[sindex].getSampleModel()
+                                .getTransferType()) : pas[sindex].getPixels(sources[sindex],
+                        destRect, sources[sindex].getSampleModel().getTransferType(), false);
+
+                int srcPixelStride = simd.pixelStride;
+                int srcLineStride = simd.lineStride;
+                int dstPixelStride = dimd.pixelStride;
+                int dstLineStride = dimd.lineStride;
+                int dRectWidth = destRect.width;
+
+                int srcstart = 0;
+                int dststart = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                    // Cycle on the x-axis
+                    for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                        // ROI Check
+                        if (roi.contains(i + minX, y + minY)) {
+                            // Cycle on each source bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                int dbidx = db + sb;
+                                double[] dstdatabandb = dstdata[dbidx];
+                                double[][] srcdata = (double[][]) simd.data;
+                                double[] srcdatabandsb = srcdata[sb];
+
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
                                 }
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
+                                        + simd.bandOffsets[sb]];
+                            }
+                        } else {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+
+                                int dbidx = db + sb;
+                                double[] dstdatabandb = dstdata[dbidx];
+
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataDouble;
+                            }
+                        }
+                    }
+                }
+                db += snbands[sindex];
+            }
+            // ONLY NODATA
+        } else if (caseC) {
+            // Cycle on all the sources
+            for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
+
+                // Source data
+                UnpackedImageData simd = colorModels[sindex] instanceof IndexColorModel ? pas[sindex]
+                        .getComponents(sources[sindex], destRect, sources[sindex].getSampleModel()
+                                .getTransferType()) : pas[sindex].getPixels(sources[sindex],
+                        destRect, sources[sindex].getSampleModel().getTransferType(), false);
+
+                // Source and Destination parameters
+                int srcPixelStride = simd.pixelStride;
+                int srcLineStride = simd.lineStride;
+                int dstPixelStride = dimd.pixelStride;
+                int dstLineStride = dimd.lineStride;
+                int dRectWidth = destRect.width;
+
+                // Cycle on each source bands
+                for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
+                    if (db >= dnbands) {
+                        // exceeding destNumBands; should not have happened
+                        break;
+                    }
+
+                    // Source and destination data array
+                    double[] dstdatabandb = dstdata[db];
+                    double[][] srcdata = (double[][]) simd.data;
+                    double[] srcdatabandsb = srcdata[sb];
+                    int srcstart = simd.bandOffsets[sb];
+                    int dststart = dimd.bandOffsets[db];
+                    // Cycle on the y-axis
+                    for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                        // Cycle on the x-axis
+                        for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+                            // No Data control
+                            if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                dstdatabandb[dstpos] = destNoDataDouble;
+                            } else {
+                                dstdatabandb[dstpos] = srcdatabandsb[srcpos];
                             }
                         }
                     }
                 }
             }
+            // NODATA AND ROI
         } else {
             // Cycle on all the sources
             for (int sindex = 0, db = 0; sindex < nSrcs; sindex++) {
@@ -784,22 +1431,49 @@ class BandMergeOpImage extends PointOpImage {
                 int dstPixelStride = dimd.pixelStride;
                 int dstLineStride = dimd.lineStride;
                 int dRectWidth = destRect.width;
-                // Cycle on each source bands
-                for (int sb = 0; sb < snbands[sindex]; sb++, db++) {
-                    if (db < dnbands) {
-                        double[][] srcdata = (double[][]) simd.data;
-                        int srcstart = simd.bandOffsets[sb];
-                        int dststart = dimd.bandOffsets[db];
-                        // Cycle on the y-axis
-                        for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
-                            // Cycle on the x-axis
-                            for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
-                                dstdata[db][dstpos] = srcdata[sb][srcpos];
+                int srcstart = 0;
+                int dststart = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
+                    // Cycle on the x-axis
+                    for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+
+                        // ROI Check
+                        if (roi.contains(i + minX, y + minY)) {
+                            // Cycle on each source bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                int dbidx = db + sb;
+                                double[] dstdatabandb = dstdata[dbidx];
+                                double[][] srcdata = (double[][]) simd.data;
+                                double[] srcdatabandsb = srcdata[sb];
+
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+
+                                // No Data control
+                                if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataDouble;
+                                } else {
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
+                                            + simd.bandOffsets[sb]];
+                                }
+                            }
+                        } else {
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+
+                                int dbidx = db + sb;
+                                double[] dstdatabandb = dstdata[dbidx];
+
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataDouble;
                             }
                         }
                     }
                 }
+                db += snbands[sindex];
             }
         }
         d.setPixels(dimd);

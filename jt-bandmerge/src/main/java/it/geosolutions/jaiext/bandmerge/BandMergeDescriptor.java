@@ -12,6 +12,7 @@ import java.util.List;
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
 import javax.media.jai.ParameterBlockJAI;
+import javax.media.jai.ROI;
 import javax.media.jai.RenderableOp;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderableRegistryMode;
@@ -80,6 +81,9 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <td>arg2Desc</td>
  * <td>Transformations List.</td>
  * </tr>
+ * <td>arg3Desc</td>
+ * <td>ROI object to use.</td>
+ * </tr>
  * </table>
  * </p>
  * 
@@ -107,6 +111,10 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <td>java.util.List</td>
  * <td>null</td>
  * <tr>
+ * <td>roi</td>
+ * <td>javax.media.jai.ROI</td>
+ * <td>null</td>
+ * <tr>
  * <tr>
  * </table>
  * </p>
@@ -128,25 +136,26 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
                     "Operation used for merging multiple images into a single multibanded image" },
             { "DocURL", "Not Defined" }, { "Version", "1.0" }, { "arg0Desc", "NoData values" },
             { "arg1Desc", "Destination No Data value" },
-            { "arg2Desc", "Transformations List" }
+            { "arg2Desc", "Transformations List" },
+            { "arg3Desc", "ROI object to use" }
 
     };
 
     /**
      * Input Parameter name
      */
-    private static final String[] paramNames = { "noData", "destinationNoData", "transformations" };
+    private static final String[] paramNames = { "noData", "destinationNoData", "transformations", "roi" };
 
     /**
      * Input Parameter class
      */
     private static final Class[] paramClasses = { it.geosolutions.jaiext.range.Range[].class,
-            Double.class, List.class };
+            Double.class, List.class, javax.media.jai.ROI.class };
 
     /**
      * Input Parameter default values
      */
-    private static final Object[] paramDefaults = { null, 0d, null };
+    private static final Object[] paramDefaults = { null, 0d, null, null };
 
     /** Constructor. */
     public BandMergeDescriptor() {
@@ -204,6 +213,32 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      */
     public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints, 
             List<AffineTransform> transform, RenderedImage... sources) {
+        return create(noData, destinationNoData, hints, transform, null, sources);
+    }
+
+    /**
+     * Merge (possibly multi-banded)images into a multibanded image.
+     * 
+     * <p>
+     * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
+     * {@link JAI#create(String,ParameterBlock,RenderingHints)}.
+     * 
+     * @see JAI
+     * @see ParameterBlockJAI
+     * @see RenderedOp
+     * 
+     * @param noData Array of input No Data Ranges.
+     * @param destinationNoData value used by the RenderedOp for setting the output no data value.
+     * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
+     * @param transform A List of AffineTransformation to use for backward mapping each source image. May be <code>null</code>.
+     * @param roi Input ROI object to use in the bandmerge operation.
+     * @param sources Array of source <code>RenderedImage</code>.
+     * @return The <code>RenderedOp</code> destination.
+     * @throws IllegalArgumentException if <code>sources</code> is <code>null</code>.
+     * @throws IllegalArgumentException if a <code>source</code> is <code>null</code>.
+     */
+    public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints, 
+            List<AffineTransform> transform, ROI roi, RenderedImage... sources) {
         ParameterBlockJAI pb = new ParameterBlockJAI("BandMergeOp", RenderedRegistryMode.MODE_NAME);
         // Source number
         int numSources = sources.length;
@@ -232,11 +267,12 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
         // Setting of the parameters
         pb.setParameter("noData", noData);
         pb.setParameter("destinationNoData", destinationNoData);
+        pb.setParameter("roi", roi);
 
         // Creation of the RenderedOp
         return JAI.create("BandMergeOp", pb, hints);
     }
-
+    
     /**
      * Merge (possibly multi-banded)images into a multibanded image.
      * 
@@ -283,6 +319,32 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      */
     public static RenderableOp createRenderable(Range[] noData, double destinationNoData,
             RenderingHints hints, List<AffineTransform> transform, RenderableImage... sources) {
+        return createRenderable(noData, destinationNoData, hints, transform, null, sources);
+    }
+    
+    /**
+     * Merge (possibly multi-banded)images into a multibanded image.
+     * 
+     * <p>
+     * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
+     * {@link JAI#createRenderable(String,ParameterBlock,RenderingHints)}.
+     * 
+     * @see JAI
+     * @see ParameterBlockJAI
+     * @see RenderedOp
+     * 
+     * @param noData Array of input No Data Ranges.
+     * @param destinationNoData value used by the RenderableOp for setting the output no data value.
+     * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
+     * @param transform A List of AffineTransformation to use for backward mapping each source image. May be <code>null</code>.
+     * @param roi Input ROI object to use in the bandmerge operation.
+     * @param sources Array of source <code>RenderableImage</code>.
+     * @return The <code>RenderableOp</code> destination.
+     * @throws IllegalArgumentException if <code>sources</code> is <code>null</code>.
+     * @throws IllegalArgumentException if a <code>source</code> is <code>null</code>.
+     */
+    public static RenderableOp createRenderable(Range[] noData, double destinationNoData,
+            RenderingHints hints, List<AffineTransform> transform, ROI roi, RenderableImage... sources) {
         ParameterBlockJAI pb = new ParameterBlockJAI("BandMergeOp",
                 RenderableRegistryMode.MODE_NAME);
         // Source number
@@ -311,6 +373,8 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
         // Setting of the parameters
         pb.setParameter("noData", noData);
         pb.setParameter("destinationNoData", destinationNoData);
+        pb.setParameter("roi", roi);
+        
         // Creation of the RenderedOp
         return JAI.createRenderable("BandMergeOp", pb, hints);
     }

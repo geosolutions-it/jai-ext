@@ -20,6 +20,8 @@ import javax.media.jai.GeometricOpImage;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.PixelAccessor;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.ROI;
+import javax.media.jai.ROIShape;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.UnpackedImageData;
 import javax.media.jai.iterator.RandomIter;
@@ -45,6 +47,9 @@ import com.sun.media.jai.util.JDKWorkarounds;
  */
 class ExtendedBandMergeOpImage extends GeometricOpImage {
 
+    /** Quantity used for extending the input tile dimensions */
+    public static final int TILE_EXTENDER = 1;
+
     /** List of ColorModels required for IndexColorModel support */
     ColorModel[] colorModels;
 
@@ -53,6 +58,9 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
 
     /** Boolean indicating if No Data are present */
     private final boolean hasNoData;
+
+    /** Boolean indicating if ROI is present */
+    private final boolean hasROI;
 
     /** Destination No Data value used for Byte images */
     private byte destNoDataByte;
@@ -70,16 +78,27 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
     private double destNoDataDouble;
 
     private List<AffineTransform> transforms;
-    
+
     private List<TRANSFORM> transformObj;
+
+    /** Boolean indicating if No Data and ROI are not used */
+    protected boolean caseA;
+
+    /** Boolean indicating if only the ROI is used */
+    protected boolean caseB;
+
+    /** Boolean indicating if only the No Data are used */
+    protected boolean caseC;
+
+    private ROI roi;
 
     /**
      * Enum used for implementing the various optional transformations on the input points
      * 
      * @author Nicola Lagomarsini GeoSolutions S.A.S.
-     *
+     * 
      */
-    public enum TRANSFORM{
+    public enum TRANSFORM {
         AFFINE {
             @Override
             public void transform(AffineTransform tr, Point2D src, Point2D dst) {
@@ -96,10 +115,10 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
         TRANSLATION {
             @Override
             public void transform(AffineTransform tr, Point2D src, Point2D dst) {
-                dst.setLocation(src.getX() + tr.getTranslateX(), src.getY() + tr.getTranslateY());                
+                dst.setLocation(src.getX() + tr.getTranslateX(), src.getY() + tr.getTranslateY());
             }
         };
-        
+
         /**
          * Transforms the input point coordinates and stores them inside the destination point
          * 
@@ -108,26 +127,22 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
          * @param dst
          */
         public abstract void transform(AffineTransform tr, Point2D src, Point2D dst);
-        
-        public static TRANSFORM getTransform(AffineTransform tr){
-            if(tr.isIdentity() || Math.abs(tr.getScaleX() - 1) == 0 &&
-                    Math.abs(tr.getScaleY() - 1) == 0 &&
-                    Math.abs(tr.getShearX())     == 0 &&
-                    Math.abs(tr.getShearY())     == 0 &&
-                    Math.abs(tr.getTranslateX()) <= 1E-3 &&
-                    Math.abs(tr.getTranslateY()) <= 1E-3){
+
+        public static TRANSFORM getTransform(AffineTransform tr) {
+            if (tr.isIdentity() || Math.abs(tr.getScaleX() - 1) == 0
+                    && Math.abs(tr.getScaleY() - 1) == 0 && Math.abs(tr.getShearX()) == 0
+                    && Math.abs(tr.getShearY()) == 0 && Math.abs(tr.getTranslateX()) <= 1E-3
+                    && Math.abs(tr.getTranslateY()) <= 1E-3) {
                 return IDENTITY;
-            }else if(Math.abs(tr.getScaleX() - 1) == 0 &&
-                    Math.abs(tr.getScaleY() - 1) == 0 &&
-                    Math.abs(tr.getShearX())     == 0 &&
-                    Math.abs(tr.getShearY())     == 0){
+            } else if (Math.abs(tr.getScaleX() - 1) == 0 && Math.abs(tr.getScaleY() - 1) == 0
+                    && Math.abs(tr.getShearX()) == 0 && Math.abs(tr.getShearY()) == 0) {
                 return TRANSLATION;
-            }else{
+            } else {
                 return AFFINE;
             }
         }
     }
-    
+
     /**
      * Constructs a <code>BandMergeOpImage</code>.
      * 
@@ -144,13 +159,14 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
      * @param config Configurable attributes of the image including configuration variables indexed by <code>RenderingHints.Key</code>s and image
      *        properties indexed by <code>String</code>s or <code>CaselessStringKey</code>s. This is simply forwarded to the superclass constructor.
      * @param noData Array of No Data Range.
+     * @param roi Input ROI to use for the calculations.
      * @param destinationNoData output value for No Data.
      * @param layout The destination image layout.
      */
     public ExtendedBandMergeOpImage(List sources, List<AffineTransform> transforms, Map config,
-            Range[] noData, double destinationNoData, ImageLayout layout) {
-
-        super(vectorize(sources), layoutHelper(sources, layout), config, false, null, null);
+            Range[] noData, ROI roi, double destinationNoData, ImageLayout layout) {
+        super(vectorize(sources), layoutHelper(sources, layout), config, false, null, null,
+                new double[] { destinationNoData });
 
         // Initial Check on the source number and the related transformations
         if (transforms != null) {
@@ -159,8 +175,8 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
             }
             // Setting of the variable for the transformations
             this.transforms = transforms;
-            this.transformObj = optimize(transforms);            // optimize transformations
-            
+            this.transformObj = optimize(transforms); // optimize transformations
+
         } else {
             throw new IllegalArgumentException("No Transformation has been set");
         }
@@ -198,7 +214,20 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
             this.noData = null;
             this.hasNoData = false;
         }
-        
+
+        // ROI settings
+        this.roi = roi;
+        hasROI = roi != null;
+
+        // Definition of the possible cases that can be found
+        // caseA = no ROI nor No Data
+        // caseB = ROI present but No Data not present
+        // caseC = No Data present but ROI not present
+        // Last case not defined = both ROI and No Data are present
+        caseA = !hasROI && !hasNoData;
+        caseB = hasROI && !hasNoData;
+        caseC = !hasROI && hasNoData;
+
         // Destination No Data value is clamped to the image data type
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
@@ -225,29 +254,30 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
     }
 
     private List<TRANSFORM> optimize(List<AffineTransform> transforms) {
-        final List<TRANSFORM> result= new ArrayList<TRANSFORM>();
-        for(AffineTransform tr:transforms){
+        final List<TRANSFORM> result = new ArrayList<TRANSFORM>();
+        for (AffineTransform tr : transforms) {
             /**
-             * Returns {@code true} if the specified affine transform is an identity transform up to the
-             * specified tolerance. This method is equivalent to computing the difference between this
-             * matrix and an identity matrix (as created by {@link AffineTransform#AffineTransform()
-             * new AffineTransform()}) and returning {@code true} if and only if all differences are
-             * smaller than or equal to {@code tolerance}.
+             * Returns {@code true} if the specified affine transform is an identity transform up to the specified tolerance. This method is
+             * equivalent to computing the difference between this matrix and an identity matrix (as created by
+             * {@link AffineTransform#AffineTransform() new AffineTransform()}) and returning {@code true} if and only if all differences are smaller
+             * than or equal to {@code tolerance}.
              * <p>
-             * This method is used for working around rounding error in affine transforms resulting
-             * from a computation, as in the example below:
-             *
-             * <blockquote><pre>
+             * This method is used for working around rounding error in affine transforms resulting from a computation, as in the example below:
+             * 
+             * <blockquote>
+             * 
+             * <pre>
              * [ 1.0000000000000000001  0.0                      0.0 ]
              * [ 0.0                    0.999999999999999999999  0.0 ]
              * [ 0.0                    0.0                      1.0 ]
-             * </pre></blockquote>
-             *
+             * </pre>
+             * 
+             * </blockquote>
+             * 
              * @param tr The affine transform to be checked for identity.
-             * @param tolerance The tolerance value to use when checking for identity.
-             * return {@code true} if this tranformation is close enough to the
-             *        identity, {@code false} otherwise.
-             *
+             * @param tolerance The tolerance value to use when checking for identity. return {@code true} if this tranformation is close enough to
+             *        the identity, {@code false} otherwise.
+             * 
              * @since 2.3.1
              */
             result.add(TRANSFORM.getTransform(tr));
@@ -393,36 +423,52 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
     protected void computeRect(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
         // Destination data type
         int destType = dest.getTransferType();
-        // Loop on the image raster
-        switch (destType) {
-        case DataBuffer.TYPE_BYTE:
-            byteLoop(sources, dest, destRect);
-            break;
-        case DataBuffer.TYPE_SHORT:
-            ushortLoop(sources, dest, destRect);
-        case DataBuffer.TYPE_USHORT:
-            shortLoop(sources, dest, destRect);
-            break;
-        case DataBuffer.TYPE_INT:
-            intLoop(sources, dest, destRect);
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            floatLoop(sources, dest, destRect);
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            doubleLoop(sources, dest, destRect);
-            break;
-        default:
-            throw new RuntimeException("Wrong image data type");
+
+        ROI roiTile = null;
+
+        // If a ROI is present, then only the part contained inside the current tile bounds is taken.
+        if (hasROI) {
+            Rectangle rect = new Rectangle(destRect);
+            // The tile dimension is extended for avoiding border errors
+            rect.grow(TILE_EXTENDER, TILE_EXTENDER);
+            roiTile = roi.intersect(new ROIShape(rect));
+        }
+
+        if (!hasROI || !roiTile.getBounds().isEmpty()) {
+            // Loop on the image raster
+            switch (destType) {
+            case DataBuffer.TYPE_BYTE:
+                byteLoop(sources, dest, destRect, roiTile);
+                break;
+            case DataBuffer.TYPE_SHORT:
+                ushortLoop(sources, dest, destRect, roiTile);
+            case DataBuffer.TYPE_USHORT:
+                shortLoop(sources, dest, destRect, roiTile);
+                break;
+            case DataBuffer.TYPE_INT:
+                intLoop(sources, dest, destRect, roiTile);
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                floatLoop(sources, dest, destRect, roiTile);
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                doubleLoop(sources, dest, destRect, roiTile);
+                break;
+            default:
+                throw new RuntimeException("Wrong image data type");
+            }
+        } else {
+            ImageUtil.fillBackground(dest, destRect, backgroundValues);
         }
     }
 
-    private void byteLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
+    private void byteLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect,
+            ROI roiTile) {
         // Source number
         int nSrcs = sources.length;
         // Bands associated with each sources
         int[] snbands = new int[nSrcs];
-        for (int i = 0; i < nSrcs; i++) {           
+        for (int i = 0; i < nSrcs; i++) {
 
             if (colorModels[i] instanceof IndexColorModel) {
                 snbands[i] = colorModels[i].getNumComponents();
@@ -455,12 +501,143 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
         final int minY = destRect.y;
 
         int db = 0;
-        
-        // NO DATA PRESENT
-        if (hasNoData) {
+
+        // Only valid data
+        if (caseA) {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
-                
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // Set the x,y destination pixel location
+                        ptDst.setLocation(x + minX, y + minY);
+                        // Map destination pixel to source pixel
+                        transObj.transform(trans, ptDst, ptSrc);
+                        // Source pixel indexes
+                        int srcX = round(ptSrc.getX());
+                        int srcY = round(ptSrc.getY());
+                        // Check if the pixel is inside the source dimension
+                        if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataByte;
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+                                // Setting the value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (byte) (iter
+                                        .getSample(srcX, srcY, sb) & 0xFF);
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+            // Only ROI
+        } else if (caseB) {
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataByte;
+                                }
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (byte) (iter
+                                            .getSample(srcX, srcY, sb) & 0xFF);
+                                }
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataByte;
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+            // Only NoData
+        } else if (caseC) {
+
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -521,7 +698,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 }
                 db += snbands[sindex];
             }
-            // NO DATA NOT PRESENT
+            // NoData and ROI
         } else {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
@@ -544,34 +721,51 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
                     for (int x = 0; x < destRect.width; x++) {
-                        // Set the x,y destination pixel location
-                        ptDst.setLocation(x + minX, y + minY);
-                        // Map destination pixel to source pixel
-                        transObj.transform(trans, ptDst, ptSrc);
-                        // Source pixel indexes
-                        int srcX = round(ptSrc.getX());
-                        int srcY = round(ptSrc.getY());
-                        // Check if the pixel is inside the source dimension
-                        if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
-                            // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++) {
-                                if (db >= dnbands) {
-                                    // exceeding destNumBands; should not have happened
-                                    break;
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataByte;
                                 }
-                                // Setting the no data value
-                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataByte;
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // No Data control
+                                    byte pixelValue = (byte) (iter.getSample(srcX, srcY, sb) & 0xFF);
+                                    if (noData[sindex].contains(pixelValue)) {
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataByte;
+                                    } else {
+                                        // Setting the value
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
+                                    }
+                                }
                             }
                         } else {
                             // Cycle on the bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
-                                if (db >= dnbands) {
-                                    // exceeding destNumBands; should not have happened
-                                    break;
-                                }
-                                // Setting the value
-                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (byte) (iter
-                                        .getSample(srcX, srcY, sb) & 0xFF);
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataByte;
                             }
                         }
                         dstPixelOffset += dstPixelStride;
@@ -584,12 +778,13 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
         d.setPixels(dimd);
     }
 
-    private void ushortLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
+    private void ushortLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect,
+            ROI roiTile) {
         // Source number
         int nSrcs = sources.length;
         // Bands associated with each sources
         int[] snbands = new int[nSrcs];
-        for (int i = 0; i < nSrcs; i++) {           
+        for (int i = 0; i < nSrcs; i++) {
 
             if (colorModels[i] instanceof IndexColorModel) {
                 snbands[i] = colorModels[i].getNumComponents();
@@ -622,73 +817,9 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
         final int minY = destRect.y;
 
         int db = 0;
-        
-        // NO DATA PRESENT
-        if (hasNoData) {
-            // Cycle on all the sources
-            for (int sindex = 0; sindex < nSrcs; sindex++) {
-                // Random Iterator for cycling on the sources
-                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
-                // Affine transformation for the selected source
-                AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
-                // Source corners
-                final int srcMinX = sources[sindex].getMinX();
-                final int srcMinY = sources[sindex].getMinY();
-                final int srcMaxX = sources[sindex].getMaxX();
-                final int srcMaxY = sources[sindex].getMaxY();
-                // Destination Line and Pixel offset initialization
-                int dstLineOffset = 0;
-                int dstPixelOffset = 0;
 
-                // Cycle on the y-axis
-                for (int y = 0; y < destRect.height; y++) {
-                    dstPixelOffset = dstLineOffset;
-                    // Cycle on the x-axis
-                    for (int x = 0; x < destRect.width; x++) {
-                        // Set the x,y destination pixel location
-                        ptDst.setLocation(x + minX, y + minY);
-                        // Map destination pixel to source pixel
-                        transObj.transform(trans, ptDst, ptSrc);
-                        // Source pixel indexes
-                        int srcX = round(ptSrc.getX());
-                        int srcY = round(ptSrc.getY());
-                        // Check if the pixel is inside the source dimension
-                        if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
-                            // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++) {
-                                if (db >= dnbands) {
-                                    // exceeding destNumBands; should not have happened
-                                    break;
-                                }
-                                // Setting the no data value
-                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
-                            }
-                        } else {
-                            // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++) {
-                                if (db >= dnbands) {
-                                    // exceeding destNumBands; should not have happened
-                                    break;
-                                }
-                                // No Data control
-                                short pixelValue = (short) (iter.getSample(srcX, srcY, sb) & 0xFFFF);
-                                if (noData[sindex].contains(pixelValue)) {
-                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
-                                } else {
-                                    // Setting the value
-                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
-                                }
-                            }
-                        }
-                        dstPixelOffset += dstPixelStride;
-                    }
-                    dstLineOffset += dstLineStride;
-                }
-                db += snbands[sindex];
-            }
-            // NO DATA NOT PRESENT
-        } else {
+        // Only valid data
+        if (caseA) {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
@@ -737,7 +868,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                                 }
                                 // Setting the value
                                 dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (short) (iter
-                                        .getSample(srcX, srcY, sb) & 0xFFFF);
+                                        .getSample(srcX, srcY, sb));
                             }
                         }
                         dstPixelOffset += dstPixelStride;
@@ -746,53 +877,83 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 }
                 db += snbands[sindex];
             }
-        }
-        d.setPixels(dimd);
-    }
-
-    private void shortLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
-        // Source number
-        int nSrcs = sources.length;
-        // Bands associated with each sources
-        int[] snbands = new int[nSrcs];
-        for (int i = 0; i < nSrcs; i++) {           
-
-            if (colorModels[i] instanceof IndexColorModel) {
-                snbands[i] = colorModels[i].getNumComponents();
-            } else {
-                snbands[i] = sources[i].getNumBands();
-            }
-        }
-
-        // Destination bands
-        int dnbands = dest.getNumBands();
-        // Destination data type
-        int destType = dest.getTransferType();
-        // PixelAccessor associated with the destination raster
-        PixelAccessor d = new PixelAccessor(dest.getSampleModel(), null);
-
-        UnpackedImageData dimd = d.getPixels(dest, destRect, destType, true);
-
-        // Destination data values
-        short[][] dstdata = (short[][]) dimd.data;
-
-        int dstPixelStride = dimd.pixelStride;
-        int dstLineStride = dimd.lineStride;
-
-        RandomIter iter;
-        // Source and Destination Point2D objects
-        Point2D ptSrc = new Point2D.Double(0, 0);
-        Point2D ptDst = new Point2D.Double(0, 0);
-        // Destination object initial position
-        final int minX = destRect.x;
-        final int minY = destRect.y;
-        
-        int db = 0;
-
-        // NO DATA PRESENT
-        if (hasNoData) {
+            // Only ROI
+        } else if (caseB) {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                                }
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (short) (iter
+                                            .getSample(srcX, srcY, sb));
+                                }
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+            // Only NoData
+        } else if (caseC) {
+
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -853,8 +1014,128 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 }
                 db += snbands[sindex];
             }
-            // NO DATA NOT PRESENT
+            // NoData and ROI
         } else {
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                                }
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // No Data control
+                                    short pixelValue = (short) (iter.getSample(srcX, srcY, sb));
+                                    if (noData[sindex].contains(pixelValue)) {
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                                    } else {
+                                        // Setting the value
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
+                                    }
+                                }
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+        }
+        d.setPixels(dimd);
+    }
+
+    private void shortLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect,
+            ROI roiTile) {
+        // Source number
+        int nSrcs = sources.length;
+        // Bands associated with each sources
+        int[] snbands = new int[nSrcs];
+        for (int i = 0; i < nSrcs; i++) {
+
+            if (colorModels[i] instanceof IndexColorModel) {
+                snbands[i] = colorModels[i].getNumComponents();
+            } else {
+                snbands[i] = sources[i].getNumBands();
+            }
+        }
+
+        // Destination bands
+        int dnbands = dest.getNumBands();
+        // Destination data type
+        int destType = dest.getTransferType();
+        // PixelAccessor associated with the destination raster
+        PixelAccessor d = new PixelAccessor(dest.getSampleModel(), null);
+
+        UnpackedImageData dimd = d.getPixels(dest, destRect, destType, true);
+
+        // Destination data values
+        short[][] dstdata = (short[][]) dimd.data;
+
+        int dstPixelStride = dimd.pixelStride;
+        int dstLineStride = dimd.lineStride;
+
+        RandomIter iter;
+        // Source and Destination Point2D objects
+        Point2D ptSrc = new Point2D.Double(0, 0);
+        Point2D ptDst = new Point2D.Double(0, 0);
+        // Destination object initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
+
+        int db = 0;
+
+        // Only valid data
+        if (caseA) {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
@@ -912,16 +1193,229 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 }
                 db += snbands[sindex];
             }
+            // Only ROI
+        } else if (caseB) {
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                                }
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (short) (iter
+                                            .getSample(srcX, srcY, sb));
+                                }
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+            // Only NoData
+        } else if (caseC) {
+
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // Set the x,y destination pixel location
+                        ptDst.setLocation(x + minX, y + minY);
+                        // Map destination pixel to source pixel
+                        transObj.transform(trans, ptDst, ptSrc);
+                        // Source pixel indexes
+                        int srcX = round(ptSrc.getX());
+                        int srcY = round(ptSrc.getY());
+                        // Check if the pixel is inside the source dimension
+                        if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+                                // No Data control
+                                short pixelValue = (short) (iter.getSample(srcX, srcY, sb));
+                                if (noData[sindex].contains(pixelValue)) {
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                                } else {
+                                    // Setting the value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
+                                }
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+            // NoData and ROI
+        } else {
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                                }
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // No Data control
+                                    short pixelValue = (short) (iter.getSample(srcX, srcY, sb));
+                                    if (noData[sindex].contains(pixelValue)) {
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                                    } else {
+                                        // Setting the value
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
+                                    }
+                                }
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataShort;
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
         }
         d.setPixels(dimd);
     }
 
-    private void intLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
+    private void intLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect, ROI roiTile) {
         // Source number
         int nSrcs = sources.length;
         // Bands associated with each sources
         int[] snbands = new int[nSrcs];
-        for (int i = 0; i < nSrcs; i++) {           
+        for (int i = 0; i < nSrcs; i++) {
 
             if (colorModels[i] instanceof IndexColorModel) {
                 snbands[i] = colorModels[i].getNumComponents();
@@ -954,11 +1448,143 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
         final int minY = destRect.y;
 
         int db = 0;
-        
-        // NO DATA PRESENT
-        if (hasNoData) {
+
+        // Only valid data
+        if (caseA) {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // Set the x,y destination pixel location
+                        ptDst.setLocation(x + minX, y + minY);
+                        // Map destination pixel to source pixel
+                        transObj.transform(trans, ptDst, ptSrc);
+                        // Source pixel indexes
+                        int srcX = round(ptSrc.getX());
+                        int srcY = round(ptSrc.getY());
+                        // Check if the pixel is inside the source dimension
+                        if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataInt;
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                if (db >= dnbands) {
+                                    // exceeding destNumBands; should not have happened
+                                    break;
+                                }
+                                // Setting the value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter
+                                        .getSample(srcX, srcY, sb));
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+            // Only ROI
+        } else if (caseB) {
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataInt;
+                                }
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter
+                                            .getSample(srcX, srcY, sb));
+                                }
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataInt;
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+            // Only NoData
+        } else if (caseC) {
+
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -1019,8 +1645,128 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 }
                 db += snbands[sindex];
             }
-            // NO DATA NOT PRESENT
+            // NoData and ROI
         } else {
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataInt;
+                                }
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // No Data control
+                                    int pixelValue = (iter.getSample(srcX, srcY, sb));
+                                    if (noData[sindex].contains(pixelValue)) {
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataInt;
+                                    } else {
+                                        // Setting the value
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
+                                    }
+                                }
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataInt;
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+        }
+        d.setPixels(dimd);
+    }
+
+    private void floatLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect,
+            ROI roiTile) {
+        // Source number
+        int nSrcs = sources.length;
+        // Bands associated with each sources
+        int[] snbands = new int[nSrcs];
+        for (int i = 0; i < nSrcs; i++) {
+
+            if (colorModels[i] instanceof IndexColorModel) {
+                snbands[i] = colorModels[i].getNumComponents();
+            } else {
+                snbands[i] = sources[i].getNumBands();
+            }
+        }
+
+        // Destination bands
+        int dnbands = dest.getNumBands();
+        // Destination data type
+        int destType = dest.getTransferType();
+        // PixelAccessor associated with the destination raster
+        PixelAccessor d = new PixelAccessor(dest.getSampleModel(), null);
+
+        UnpackedImageData dimd = d.getPixels(dest, destRect, destType, true);
+
+        // Destination data values
+        float[][] dstdata = (float[][]) dimd.data;
+
+        int dstPixelStride = dimd.pixelStride;
+        int dstLineStride = dimd.lineStride;
+
+        RandomIter iter;
+        // Source and Destination Point2D objects
+        Point2D ptSrc = new Point2D.Double(0, 0);
+        Point2D ptDst = new Point2D.Double(0, 0);
+        // Destination object initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
+
+        int db = 0;
+
+        // Only valid data
+        if (caseA) {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
@@ -1058,7 +1804,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataInt;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataFloat;
                             }
                         } else {
                             // Cycle on the bands
@@ -1068,8 +1814,8 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                                     break;
                                 }
                                 // Setting the value
-                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter.getSample(
-                                        srcX, srcY, sb));
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter
+                                        .getSampleFloat(srcX, srcY, sb));
                             }
                         }
                         dstPixelOffset += dstPixelStride;
@@ -1078,53 +1824,83 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 }
                 db += snbands[sindex];
             }
-        }
-        d.setPixels(dimd);
-    }
-
-    private void floatLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
-        // Source number
-        int nSrcs = sources.length;
-        // Bands associated with each sources
-        int[] snbands = new int[nSrcs];
-        for (int i = 0; i < nSrcs; i++) {           
-
-            if (colorModels[i] instanceof IndexColorModel) {
-                snbands[i] = colorModels[i].getNumComponents();
-            } else {
-                snbands[i] = sources[i].getNumBands();
-            }
-        }
-
-        // Destination bands
-        int dnbands = dest.getNumBands();
-        // Destination data type
-        int destType = dest.getTransferType();
-        // PixelAccessor associated with the destination raster
-        PixelAccessor d = new PixelAccessor(dest.getSampleModel(), null);
-
-        UnpackedImageData dimd = d.getPixels(dest, destRect, destType, true);
-
-        // Destination data values
-        float[][] dstdata = (float[][]) dimd.data;
-
-        int dstPixelStride = dimd.pixelStride;
-        int dstLineStride = dimd.lineStride;
-
-        RandomIter iter;
-        // Source and Destination Point2D objects
-        Point2D ptSrc = new Point2D.Double(0, 0);
-        Point2D ptDst = new Point2D.Double(0, 0);
-        // Destination object initial position
-        final int minX = destRect.x;
-        final int minY = destRect.y;
-
-        int db = 0;
-        
-        // NO DATA PRESENT
-        if (hasNoData) {
+            // Only ROI
+        } else if (caseB) {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataFloat;
+                                }
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter
+                                            .getSampleFloat(srcX, srcY, sb));
+                                }
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataFloat;
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+            // Only NoData
+        } else if (caseC) {
+
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -1185,8 +1961,128 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 }
                 db += snbands[sindex];
             }
-            // NO DATA NOT PRESENT
+            // NoData and ROI
         } else {
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataFloat;
+                                }
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // No Data control
+                                    float pixelValue = (iter.getSampleFloat(srcX, srcY, sb));
+                                    if (noData[sindex].contains(pixelValue)) {
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataFloat;
+                                    } else {
+                                        // Setting the value
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
+                                    }
+                                }
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataFloat;
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+        }
+        d.setPixels(dimd);
+    }
+
+    private void doubleLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect,
+            ROI roiTile) {
+        // Source number
+        int nSrcs = sources.length;
+        // Bands associated with each sources
+        int[] snbands = new int[nSrcs];
+        for (int i = 0; i < nSrcs; i++) {
+
+            if (colorModels[i] instanceof IndexColorModel) {
+                snbands[i] = colorModels[i].getNumComponents();
+            } else {
+                snbands[i] = sources[i].getNumBands();
+            }
+        }
+
+        // Destination bands
+        int dnbands = dest.getNumBands();
+        // Destination data type
+        int destType = dest.getTransferType();
+        // PixelAccessor associated with the destination raster
+        PixelAccessor d = new PixelAccessor(dest.getSampleModel(), null);
+
+        UnpackedImageData dimd = d.getPixels(dest, destRect, destType, true);
+
+        // Destination data values
+        double[][] dstdata = (double[][]) dimd.data;
+
+        int dstPixelStride = dimd.pixelStride;
+        int dstLineStride = dimd.lineStride;
+
+        RandomIter iter;
+        // Source and Destination Point2D objects
+        Point2D ptSrc = new Point2D.Double(0, 0);
+        Point2D ptDst = new Point2D.Double(0, 0);
+        // Destination object initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
+
+        int db = 0;
+
+        // Only valid data
+        if (caseA) {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
                 // Random Iterator for cycling on the sources
@@ -1224,7 +2120,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                                     break;
                                 }
                                 // Setting the no data value
-                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataFloat;
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataDouble;
                             }
                         } else {
                             // Cycle on the bands
@@ -1235,7 +2131,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                                 }
                                 // Setting the value
                                 dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter
-                                        .getSampleFloat(srcX, srcY, sb));
+                                        .getSampleDouble(srcX, srcY, sb));
                             }
                         }
                         dstPixelOffset += dstPixelStride;
@@ -1244,53 +2140,83 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 }
                 db += snbands[sindex];
             }
-        }
-        d.setPixels(dimd);
-    }
-
-    private void doubleLoop(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
-        // Source number
-        int nSrcs = sources.length;
-        // Bands associated with each sources
-        int[] snbands = new int[nSrcs];
-        for (int i = 0; i < nSrcs; i++) {           
-
-            if (colorModels[i] instanceof IndexColorModel) {
-                snbands[i] = colorModels[i].getNumComponents();
-            } else {
-                snbands[i] = sources[i].getNumBands();
-            }
-        }
-
-        // Destination bands
-        int dnbands = dest.getNumBands();
-        // Destination data type
-        int destType = dest.getTransferType();
-        // PixelAccessor associated with the destination raster
-        PixelAccessor d = new PixelAccessor(dest.getSampleModel(), null);
-
-        UnpackedImageData dimd = d.getPixels(dest, destRect, destType, true);
-
-        // Destination data values
-        double[][] dstdata = (double[][]) dimd.data;
-
-        int dstPixelStride = dimd.pixelStride;
-        int dstLineStride = dimd.lineStride;
-
-        RandomIter iter;
-        // Source and Destination Point2D objects
-        Point2D ptSrc = new Point2D.Double(0, 0);
-        Point2D ptDst = new Point2D.Double(0, 0);
-        // Destination object initial position
-        final int minX = destRect.x;
-        final int minY = destRect.y;
-
-        int db = 0;
-        
-        // NO DATA PRESENT
-        if (hasNoData) {
+            // Only ROI
+        } else if (caseB) {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
+                // Random Iterator for cycling on the sources
+                iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
+                // Affine transformation for the selected source
+                AffineTransform trans = transforms.get(sindex);
+                TRANSFORM transObj = transformObj.get(sindex);
+                // Source corners
+                final int srcMinX = sources[sindex].getMinX();
+                final int srcMinY = sources[sindex].getMinY();
+                final int srcMaxX = sources[sindex].getMaxX();
+                final int srcMaxY = sources[sindex].getMaxY();
+                // Destination Line and Pixel offset initialization
+                int dstLineOffset = 0;
+                int dstPixelOffset = 0;
+
+                // Cycle on the y-axis
+                for (int y = 0; y < destRect.height; y++) {
+                    dstPixelOffset = dstLineOffset;
+                    // Cycle on the x-axis
+                    for (int x = 0; x < destRect.width; x++) {
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataDouble;
+                                }
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter
+                                            .getSampleDouble(srcX, srcY, sb));
+                                }
+                            }
+                        } else {
+                            // Cycle on the bands
+                            for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataDouble;
+                            }
+                        }
+                        dstPixelOffset += dstPixelStride;
+                    }
+                    dstLineOffset += dstLineStride;
+                }
+                db += snbands[sindex];
+            }
+            // Only NoData
+        } else if (caseC) {
+
+            // Cycle on all the sources
+            for (int sindex = 0; sindex < nSrcs; sindex++) {
+
                 // Random Iterator for cycling on the sources
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
@@ -1351,7 +2277,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 }
                 db += snbands[sindex];
             }
-            // NO DATA NOT PRESENT
+            // NoData and ROI
         } else {
             // Cycle on all the sources
             for (int sindex = 0; sindex < nSrcs; sindex++) {
@@ -1374,34 +2300,51 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                     dstPixelOffset = dstLineOffset;
                     // Cycle on the x-axis
                     for (int x = 0; x < destRect.width; x++) {
-                        // Set the x,y destination pixel location
-                        ptDst.setLocation(x + minX, y + minY);
-                        // Map destination pixel to source pixel
-                        transObj.transform(trans, ptDst, ptSrc);
-                        // Source pixel indexes
-                        int srcX = round(ptSrc.getX());
-                        int srcY = round(ptSrc.getY());
-                        // Check if the pixel is inside the source dimension
-                        if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY || srcY >= srcMaxY) {
-                            // Cycle on the bands
-                            for (int sb = 0; sb < snbands[sindex]; sb++) {
-                                if (db >= dnbands) {
-                                    // exceeding destNumBands; should not have happened
-                                    break;
+                        // ROI check
+                        int dstX = x + minX;
+                        int dstY = y + minY;
+                        if (roiTile.contains(dstX, dstY)) {
+                            // Set the x,y destination pixel location
+                            ptDst.setLocation(dstX, dstY);
+                            // Map destination pixel to source pixel
+                            transObj.transform(trans, ptDst, ptSrc);
+                            // Source pixel indexes
+                            int srcX = round(ptSrc.getX());
+                            int srcY = round(ptSrc.getY());
+                            // Check if the pixel is inside the source dimension
+                            if (srcX < srcMinX || srcX >= srcMaxX || srcY < srcMinY
+                                    || srcY >= srcMaxY) {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // Setting the no data value
+                                    dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataDouble;
                                 }
-                                // Setting the no data value
-                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataDouble;
+                            } else {
+                                // Cycle on the bands
+                                for (int sb = 0; sb < snbands[sindex]; sb++) {
+                                    if (db >= dnbands) {
+                                        // exceeding destNumBands; should not have happened
+                                        break;
+                                    }
+                                    // No Data control
+                                    double pixelValue = (iter.getSampleDouble(srcX, srcY, sb));
+                                    if (noData[sindex].contains(pixelValue)) {
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataDouble;
+                                    } else {
+                                        // Setting the value
+                                        dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = pixelValue;
+                                    }
+                                }
                             }
                         } else {
                             // Cycle on the bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
-                                if (db >= dnbands) {
-                                    // exceeding destNumBands; should not have happened
-                                    break;
-                                }
-                                // Setting the value
-                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = (iter
-                                        .getSampleDouble(srcX, srcY, sb));
+                                // Setting the no data value
+                                dstdata[db + sb][dstPixelOffset + dimd.getOffset(db + sb)] = destNoDataDouble;
                             }
                         }
                         dstPixelOffset += dstPixelStride;
