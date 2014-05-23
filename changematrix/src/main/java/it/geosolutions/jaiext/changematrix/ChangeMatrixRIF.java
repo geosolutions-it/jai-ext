@@ -68,7 +68,7 @@ public class ChangeMatrixRIF implements RenderedImageFactory {
         RenderedImage now = paramBlock.getRenderedSource(1);
         if (now.getSampleModel().getNumBands() > 1) {
             throw new IllegalArgumentException(
-                    "Unable to process image with more than one band (source[0])");
+                    "Unable to process image with more than one band (source[1])");
         }
         final int nowDataType = now.getSampleModel().getDataType();
         if (nowDataType != DataBuffer.TYPE_BYTE && nowDataType != DataBuffer.TYPE_INT
@@ -115,7 +115,10 @@ public class ChangeMatrixRIF implements RenderedImageFactory {
 
             }
         }
-
-        return new ChangeMatrixOpImage(reference, now, renderHints, layout, roi, result);
+        
+        //Pixel Multiplier value
+        int pixelMultiplier = paramBlock.getIntParameter(ChangeMatrixDescriptor.PIXEL_MULTY_ARG_INDEX);
+        
+        return new ChangeMatrixOpImage(reference, now, renderHints, layout, roi, pixelMultiplier, result);
     }
 }

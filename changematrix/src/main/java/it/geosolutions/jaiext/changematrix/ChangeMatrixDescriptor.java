@@ -35,12 +35,12 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * This operation will work on two images with samples that are integer values (classes) and will compute a {@link ChangeMatrix} that would tell us
  * how many pixel changed classes or not.
  * <p>
- * The {@link ChangeMatrix} class must be initialised with the integer classes for which we are interested in registering the changes. The reference
+ * The {@link ChangeMatrix} class must be initialized with the integer classes for which we are interested in registering the changes. The reference
  * image parameter represent the situation at time T0 and the source image for the operation represents the situation at time T1 > T0 (usually present
  * time).
  * <p>
  * For each pair of classes <Ci,Cj> the change matrix record the number of pixels that went from Ci in the reference image to Cj in the source image.
- * If Ci and Cj are the same class that evaluates how many pixel of class Ci remaine in the same class.
+ * If Ci and Cj are the same class that evaluates how many pixel of class Ci remain in the same class.
  * <p>
  * The operation support providing a ROI.
  * <p>
@@ -63,6 +63,12 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <td>Integer</td>
  * <td>0</td>
  * <td>Integer that tells us which band to use for the source RenderedImage</td>
+ * </tr>
+ * <tr>
+ * <td>pixelMultiplier</td>
+ * <td>Integer</td>
+ * <td>1</td>
+ * <td>Integer value used for processing the pixels of the two images.</td>
  * </tr>
  * <tr>
  * <td>roi</td>
@@ -199,41 +205,54 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
         }
     }
 
-    /**
-	 * 
-	 */
+    /** Default value for the pixel Multiplier (Should be substituted by a value related to the input image classes ) */
+    private static final int DEFAULT_PIXEL_MULTIPLIER = 1;
+
+    /** Serial Version UID associated to the class */
     private static final long serialVersionUID = -6996896157854316840L;
 
+    /** Index associated to the ROI input parameter */
     public static final int ROI_ARG_INDEX = 0;
 
+    /** Index associated to the ChangeMatrix input parameter */
     public static final int RESULT_ARG_INDEX = 1;
 
-    public static final String[] PARAM_NAMES = { "roi", "result" };
+    /** Index associated to the PixelMultiplier input parameter */
+    public static final int PIXEL_MULTY_ARG_INDEX = 2;
 
-    private static final Class<?>[] PARAM_CLASSES = { javax.media.jai.ROI.class, ChangeMatrix.class };
+    /** Names of all the input parameters */
+    public static final String[] PARAM_NAMES = { "roi", "result", "pixelMultiplier" };
 
-    private static final Object[] PARAM_DEFAULTS = { (ROI) null, NO_PARAMETER_DEFAULT };
+    /** Classes of all the input parameters */
+    private static final Class<?>[] PARAM_CLASSES = { javax.media.jai.ROI.class,
+            ChangeMatrix.class, java.lang.Integer.class };
+
+    /** Default valuescfor all the input parameters */
+    private static final Object[] PARAM_DEFAULTS = { (ROI) null, NO_PARAMETER_DEFAULT,
+            DEFAULT_PIXEL_MULTIPLIER };
 
     /** Constructor. */
     public ChangeMatrixDescriptor() {
-        super(
-                new String[][] {
-                        { "GlobalName", "ChangeMatrix" },
-                        { "LocalName", "ChangeMatrix" },
-                        { "Vendor", "org.jaitools.media.jai" },
-                        { "Description", "Calculate change matrix between two images" },
-                        { "DocURL", "http://www.geotools.org" },
-                        { "Version", "1.0.0" },
-                        {
-                                "arg0Desc",
-                                "roi (default null) - an optional ROI object for source and/or"
-                                        + "destination masking" },
-                        {
-                                "arg1Desc",
-                                "result (ChangeMatrix) -"
-                                        + "a sparse matrix as a Map holding the count of change pixels" } },
+        super(new String[][] {
+                { "GlobalName", "ChangeMatrix" },
+                { "LocalName", "ChangeMatrix" },
+                { "Vendor", "org.jaitools.media.jai" },
+                { "Description", "Calculate change matrix between two images" },
+                { "DocURL", "http://www.geotools.org" },
+                { "Version", "1.0.0" },
+                {
+                        "arg0Desc",
+                        "roi (default null) - an optional ROI object for source and/or"
+                                + "destination masking" },
+                {
+                        "arg1Desc",
+                        "result (ChangeMatrix) -"
+                                + "a sparse matrix as a Map holding the count of change pixels" },
+                { "arg2Desc", "integer value used for processing the image pixels" }
 
-                new String[] { RenderedRegistryMode.MODE_NAME }, // supported modes
+        },
+
+        new String[] { RenderedRegistryMode.MODE_NAME }, // supported modes
 
                 1, // number of sources
 

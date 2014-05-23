@@ -1,0 +1,1764 @@
+<?xml version="1.0" encoding="windows-1252" standalone="no"?>
+<!DOCTYPE log SYSTEM "logger.dtd">
+<log>
+<record>
+  <date>2013-05-22T10:45:01</date>
+  <millis>1369212301860</millis>
+  <sequence>0</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Test N°.1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:05</date>
+  <millis>1369212305618</millis>
+  <sequence>1</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Starting Thread Executed</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:05</date>
+  <millis>1369212305931</millis>
+  <sequence>2</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:06</date>
+  <millis>1369212306304</millis>
+  <sequence>3</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:06</date>
+  <millis>1369212306851</millis>
+  <sequence>4</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:07</date>
+  <millis>1369212307443</millis>
+  <sequence>5</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:08</date>
+  <millis>1369212308020</millis>
+  <sequence>6</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 16</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:08</date>
+  <millis>1369212308489</millis>
+  <sequence>7</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 32</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:08</date>
+  <millis>1369212308997</millis>
+  <sequence>8</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 64</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:09</date>
+  <millis>1369212309018</millis>
+  <sequence>9</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Test N°.2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:11</date>
+  <millis>1369212311819</millis>
+  <sequence>10</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Starting Thread Executed</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:12</date>
+  <millis>1369212312054</millis>
+  <sequence>11</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:12</date>
+  <millis>1369212312444</millis>
+  <sequence>12</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:13</date>
+  <millis>1369212313068</millis>
+  <sequence>13</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:13</date>
+  <millis>1369212313678</millis>
+  <sequence>14</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:14</date>
+  <millis>1369212314255</millis>
+  <sequence>15</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 16</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:14</date>
+  <millis>1369212314818</millis>
+  <sequence>16</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 32</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:15</date>
+  <millis>1369212315239</millis>
+  <sequence>17</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 64</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:15</date>
+  <millis>1369212315254</millis>
+  <sequence>18</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Test N°.3</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:18</date>
+  <millis>1369212318125</millis>
+  <sequence>19</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Starting Thread Executed</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:18</date>
+  <millis>1369212318329</millis>
+  <sequence>20</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:18</date>
+  <millis>1369212318641</millis>
+  <sequence>21</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:19</date>
+  <millis>1369212319187</millis>
+  <sequence>22</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:19</date>
+  <millis>1369212319713</millis>
+  <sequence>23</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:20</date>
+  <millis>1369212320236</millis>
+  <sequence>24</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 16</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:20</date>
+  <millis>1369212320735</millis>
+  <sequence>25</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 32</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:21</date>
+  <millis>1369212321177</millis>
+  <sequence>26</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 64</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:21</date>
+  <millis>1369212321190</millis>
+  <sequence>27</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Test N°.4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:23</date>
+  <millis>1369212323996</millis>
+  <sequence>28</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Starting Thread Executed</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:24</date>
+  <millis>1369212324225</millis>
+  <sequence>29</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:24</date>
+  <millis>1369212324541</millis>
+  <sequence>30</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:25</date>
+  <millis>1369212325069</millis>
+  <sequence>31</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:25</date>
+  <millis>1369212325584</millis>
+  <sequence>32</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:26</date>
+  <millis>1369212326117</millis>
+  <sequence>33</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 16</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:26</date>
+  <millis>1369212326631</millis>
+  <sequence>34</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 32</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:27</date>
+  <millis>1369212327058</millis>
+  <sequence>35</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 64</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:27</date>
+  <millis>1369212327068</millis>
+  <sequence>36</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Test N°.5</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:29</date>
+  <millis>1369212329609</millis>
+  <sequence>37</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Starting Thread Executed</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:29</date>
+  <millis>1369212329892</millis>
+  <sequence>38</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:30</date>
+  <millis>1369212330159</millis>
+  <sequence>39</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:30</date>
+  <millis>1369212330658</millis>
+  <sequence>40</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:31</date>
+  <millis>1369212331130</millis>
+  <sequence>41</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:31</date>
+  <millis>1369212331640</millis>
+  <sequence>42</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 16</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:32</date>
+  <millis>1369212332134</millis>
+  <sequence>43</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 32</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:32</date>
+  <millis>1369212332565</millis>
+  <sequence>44</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 64</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:32</date>
+  <millis>1369212332576</millis>
+  <sequence>45</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Test N°.6</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:35</date>
+  <millis>1369212335406</millis>
+  <sequence>46</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Starting Thread Executed</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:35</date>
+  <millis>1369212335657</millis>
+  <sequence>47</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:35</date>
+  <millis>1369212335965</millis>
+  <sequence>48</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:36</date>
+  <millis>1369212336491</millis>
+  <sequence>49</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:37</date>
+  <millis>1369212337006</millis>
+  <sequence>50</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:37</date>
+  <millis>1369212337490</millis>
+  <sequence>51</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 16</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:37</date>
+  <millis>1369212337974</millis>
+  <sequence>52</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 32</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:38</date>
+  <millis>1369212338458</millis>
+  <sequence>53</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 64</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:38</date>
+  <millis>1369212338458</millis>
+  <sequence>54</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Test N°.7</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:40</date>
+  <millis>1369212340954</millis>
+  <sequence>55</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Starting Thread Executed</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:41</date>
+  <millis>1369212341189</millis>
+  <sequence>56</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:41</date>
+  <millis>1369212341517</millis>
+  <sequence>57</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:41</date>
+  <millis>1369212341985</millis>
+  <sequence>58</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:42</date>
+  <millis>1369212342516</millis>
+  <sequence>59</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:43</date>
+  <millis>1369212343000</millis>
+  <sequence>60</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 16</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:43</date>
+  <millis>1369212343502</millis>
+  <sequence>61</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 32</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:44</date>
+  <millis>1369212344002</millis>
+  <sequence>62</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 64</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:44</date>
+  <millis>1369212344002</millis>
+  <sequence>63</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Test N°.8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:46</date>
+  <millis>1369212346639</millis>
+  <sequence>64</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Starting Thread Executed</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:46</date>
+  <millis>1369212346890</millis>
+  <sequence>65</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:47</date>
+  <millis>1369212347186</millis>
+  <sequence>66</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:47</date>
+  <millis>1369212347654</millis>
+  <sequence>67</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:48</date>
+  <millis>1369212348154</millis>
+  <sequence>68</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:48</date>
+  <millis>1369212348622</millis>
+  <sequence>69</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 16</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:49</date>
+  <millis>1369212349121</millis>
+  <sequence>70</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 32</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:49</date>
+  <millis>1369212349575</millis>
+  <sequence>71</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 64</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:49</date>
+  <millis>1369212349590</millis>
+  <sequence>72</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Test N°.9</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:52</date>
+  <millis>1369212352071</millis>
+  <sequence>73</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Starting Thread Executed</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:52</date>
+  <millis>1369212352295</millis>
+  <sequence>74</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:52</date>
+  <millis>1369212352607</millis>
+  <sequence>75</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:53</date>
+  <millis>1369212353075</millis>
+  <sequence>76</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:53</date>
+  <millis>1369212353607</millis>
+  <sequence>77</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:54</date>
+  <millis>1369212354075</millis>
+  <sequence>78</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 16</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:54</date>
+  <millis>1369212354558</millis>
+  <sequence>79</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 32</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:54</date>
+  <millis>1369212354980</millis>
+  <sequence>80</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 64</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:54</date>
+  <millis>1369212354996</millis>
+  <sequence>81</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Test N°.10</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:57</date>
+  <millis>1369212357713</millis>
+  <sequence>82</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Starting Thread Executed</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:57</date>
+  <millis>1369212357952</millis>
+  <sequence>83</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 1</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:58</date>
+  <millis>1369212358214</millis>
+  <sequence>84</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 2</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:58</date>
+  <millis>1369212358734</millis>
+  <sequence>85</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 4</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:59</date>
+  <millis>1369212359201</millis>
+  <sequence>86</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 8</message>
+</record>
+<record>
+  <date>2013-05-22T10:45:59</date>
+  <millis>1369212359732</millis>
+  <sequence>87</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 16</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360232</millis>
+  <sequence>88</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 32</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>89</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>testwriteImageAndWatchFlag</method>
+  <thread>10</thread>
+  <message>Number of Threads: 64</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>90</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 1 for 1 threads is 320 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>91</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 1 for 2 threads is 537 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>92</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 1 for 4 threads is 731 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>93</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 1 for 8 threads is 702 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>94</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 1 for 16 threads is 698 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>95</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 1 for 32 threads is 805 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>96</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 1 for 64 threads is 729 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>97</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 2 for 1 threads is 419 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>98</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 2 for 2 threads is 503 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360669</millis>
+  <sequence>99</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 2 for 4 threads is 653 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>100</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 2 for 8 threads is 657 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>101</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 2 for 16 threads is 685 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>102</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 2 for 32 threads is 689 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>103</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 2 for 64 threads is 897 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>104</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 3 for 1 threads is 468 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>105</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 3 for 2 threads is 656 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>106</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 3 for 4 threads is 728 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>107</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 3 for 8 threads is 733 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>108</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 3 for 16 threads is 766 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>109</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 3 for 32 threads is 770 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>110</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 3 for 64 threads is 868 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>111</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 4 for 1 threads is 437 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>112</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 4 for 2 threads is 634 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>113</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 4 for 4 threads is 757 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>114</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 4 for 8 threads is 777 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>115</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 4 for 16 threads is 751 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>116</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 4 for 32 threads is 747 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>117</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 4 for 64 threads is 899 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>118</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 5 for 1 threads is 354 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>119</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 5 for 2 threads is 748 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>120</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 5 for 4 threads is 803 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>121</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 5 for 8 threads is 847 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>122</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 5 for 16 threads is 785 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>123</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 5 for 32 threads is 777 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>124</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 5 for 64 threads is 892 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>125</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 6 for 1 threads is 399 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>126</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 6 for 2 threads is 649 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>127</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 6 for 4 threads is 791 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>128</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 6 for 8 threads is 768 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>129</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 6 for 16 threads is 837 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>130</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 6 for 32 threads is 797 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>131</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 6 for 64 threads is 798 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>132</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 7 for 1 threads is 427 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>133</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 7 for 2 threads is 601 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>134</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 7 for 4 threads is 856 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>135</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 7 for 8 threads is 762 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>136</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 7 for 16 threads is 815 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>137</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 7 for 32 threads is 780 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>138</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 7 for 64 threads is 765 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>139</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 8 for 1 threads is 408 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>140</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 8 for 2 threads is 665 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>141</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 8 for 4 threads is 879 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>142</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 8 for 8 threads is 785 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>143</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 8 for 16 threads is 862 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>144</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 8 for 32 threads is 769 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>145</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 8 for 64 threads is 849 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>146</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 9 for 1 threads is 429 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>147</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 9 for 2 threads is 636 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>148</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 9 for 4 threads is 876 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>149</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 9 for 8 threads is 754 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>150</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 9 for 16 threads is 856 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>151</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 9 for 32 threads is 779 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>152</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 9 for 64 threads is 902 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>153</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 10 for 1 threads is 419 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>154</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 10 for 2 threads is 764 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>155</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 10 for 4 threads is 768 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>156</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 10 for 8 threads is 858 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>157</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 10 for 16 threads is 793 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>158</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 10 for 32 threads is 762 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+<record>
+  <date>2013-05-22T10:46:00</date>
+  <millis>1369212360685</millis>
+  <sequence>159</sequence>
+  <logger>class it.geosolutions.concurrencytest.ConcurrentCacheTest</logger>
+  <level>INFO</level>
+  <class>it.geosolutions.concurrencytest.ConcurrentCacheTest</class>
+  <method>main</method>
+  <thread>10</thread>
+  <message>Throughput in test 10 for 64 threads is 886 requests/second with ConcurrentTileCache and 4 segments</message>
+</record>
+</log>

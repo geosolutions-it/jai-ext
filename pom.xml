@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-  <project xmlns="http://maven.apache.org/POM/4.0.0"
-           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-           xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                               http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0                                http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <!--                    -->
@@ -15,6 +12,8 @@
     <interactive.tests>false</interactive.tests>
     <test.maxHeapSize>512M</test.maxHeapSize>
     <jt.version>1.2.0</jt.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <geotools.version>10-SNAPSHOT</geotools.version>
      <fork.javac>true</fork.javac>
     <javac.maxHeapSize>256M</javac.maxHeapSize>
   </properties>
@@ -154,6 +153,7 @@
         
         <configuration>
             <!-- Necessary to enable javadoc to handle J2SE 1.4 features. -->
+          <source>1.5</source>
           <!-- source>1.5</source -->
             <!-- Specifies whether or not the version text is included.-->
           <version>false</version>
@@ -387,6 +387,17 @@
 	<artifactId>junit</artifactId>
 	<scope>test</scope>
   </dependency>
+ <dependency>
+    <groupId>org.geotools</groupId>
+    <artifactId>gt-sample-data</artifactId>
+    <version>${geotools.version}</version>
+	<scope>test</scope>
+  </dependency>
+  <dependency>
+    <groupId>com.google.guava</groupId>
+    <artifactId>guava</artifactId>
+    <version>14.0.1</version>
+  </dependency>
 </dependencies>
 
 
@@ -426,11 +437,16 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.6</source>  <!-- The -source argument for the Java compiler. -->
-          <target>1.6</target>  <!-- The -target argument for the Java compiler. -->
+          <source>1.5</source>  <!-- The -source argument for the Java compiler. -->
+          <target>1.5</target>  <!-- The -target argument for the Java compiler. -->
           <debug>true</debug>   <!-- Whether to include debugging information.   -->
-          <encoding>UTF-8</encoding> <!-- The -encoding argument for the Java compiler. -->
-          <fork>${fork.javac}</fork> 
+          <encoding>ISO-8859-1</encoding> <!-- The -encoding argument for the Java compiler. -->
+
+          <!--source>1.6</source-->  <!-- The -source argument for the Java compiler. -->
+          <!--target>1.6</target-->  <!-- The -target argument for the Java compiler. -->
+          <!--debug>true</debug-->   <!-- Whether to include debugging information.   -->
+          <!--encoding>UTF-8</encoding--> <!-- The -encoding argument for the Java compiler. -->
+          <!--fork>${fork.javac}</fork--> 
           <maxmem>${javac.maxHeapSize}</maxmem>
         </configuration>
       </plugin>
@@ -449,6 +465,19 @@
          </configuration>
       </plugin>
       
+      <!--Test Jar plugin -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.4</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
           <inherited>true</inherited>
           <groupId>org.apache.maven.plugins</groupId>
@@ -509,7 +538,26 @@
   <!-- ========================================================== -->
   <modules>
     <module>squareroot</module>
-    <module>roiaware-ops</module>
+    <module>concurrent-tile-cache</module>
+    <module>roiaware-legacy</module>
+    <module>jt-scale</module>
+    <module>jt-affine</module>
+    <module>jt-utilities</module>
+    <module>jt-warp</module>
+    <module>jt-iterators</module>
+    <module>jt-mosaic</module>
+    <module>jt-translate</module>
+    <module>jt-lookup</module>
+    <module>jt-stats</module>
+    <module>jt-zonal</module>
+    <module>jt-crop</module>
+    <module>jt-rescale</module>
+    <module>jt-nullop</module>
+    <module>jt-bandmerge</module>
+    <module>jt-border</module>
     <module>changematrix</module>
+    <module>jt-algebra</module>
+    <module>jt-buffer</module>
+    <module>jt-scheduler</module>
   </modules>
 </project>
