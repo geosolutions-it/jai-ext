@@ -6,6 +6,7 @@ import java.awt.image.RenderedImage;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Observable;
+import java.util.Set;
 import java.util.Vector;
 
 import javax.media.jai.TileCache;
@@ -288,13 +289,17 @@ public void removeTiles(RenderedImage owner) {
             }
         }
     } else {
-        synchronized (this) {
-            Iterable keys = (Iterable) cacheObject.asMap().keySet().iterator();
-            cacheObject.invalidateAll(keys);
-        }
+            int minTx = owner.getMinTileX();
+            int minTy = owner.getMinTileY();
+            int maxTx = minTx + owner.getNumXTiles();
+            int maxTy = minTy + owner.getNumYTiles();
 
+            for (int y = minTy; y < maxTy; y++) {
+                for (int x = minTx; x < maxTx; x++) {
+                    remove(owner, x, y);
+                }
+            }
     }
-
 }
 
 /**

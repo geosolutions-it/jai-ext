@@ -16,6 +16,7 @@
     <geotools.version>10-SNAPSHOT</geotools.version>
      <fork.javac>true</fork.javac>
     <javac.maxHeapSize>256M</javac.maxHeapSize>
+    <guava.version>14.0.1</guava.version>
   </properties>
 
   <!-- ======================================================== -->
@@ -354,6 +355,11 @@
         <artifactId>jt-utils</artifactId>
         <version>${jt.version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${guava.version}</version>
+      </dependency>
       <!--dependency>
         <groupId>org.jcuda</groupId>
         <artifactId>aggregation</artifactId>
@@ -392,11 +398,6 @@
     <artifactId>gt-sample-data</artifactId>
     <version>${geotools.version}</version>
 	<scope>test</scope>
-  </dependency>
-  <dependency>
-    <groupId>com.google.guava</groupId>
-    <artifactId>guava</artifactId>
-    <version>14.0.1</version>
   </dependency>
 </dependencies>
 
