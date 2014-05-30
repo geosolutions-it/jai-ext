@@ -15,7 +15,7 @@
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-coverage</artifactId>
-			<version>10-SNAPSHOT</version>
+			<version>${geotools.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.googlecode.concurrentlinkedhashmap</groupId>
@@ -26,6 +26,11 @@
 			<groupId>com.boundary</groupId>
 			<artifactId>high-scale-lib</artifactId>
 			<version>1.0.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>${guava.version}</version>
 		</dependency>
 	</dependencies>
 	<repositories>
