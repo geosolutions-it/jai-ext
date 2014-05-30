@@ -115,13 +115,7 @@ public class StatisticsTest {
     @Test
     public void testMeanAndSum() {
         double mean = 0;
-        double sum = 0;
-        // Mean and sum calculation
-        for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
-            sum += testArray[i];
-            sumObj.addSample(testArray[i]);
-            meanObj.addSample(testArray[i]);
-        }
+        double sum = calculateSumMean(sumObj, meanObj);
         // Comparison
         double sum2 = (Double) (sumObj.getResult());
         assertEquals(sum, sum2, TOLERANCE);
@@ -134,20 +128,11 @@ public class StatisticsTest {
     // have a correct behavior
     @Test
     public void testMinMaxExtrema() {
-        double min = Double.POSITIVE_INFINITY;
-        double max = Double.NEGATIVE_INFINITY;
-        // Maximum and minimum calculation
-        for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
-            if (testArray[i] > max) {
-                max = testArray[i];
-            }
-            if (testArray[i] < min) {
-                min = testArray[i];
-            }
-            minObj.addSample(testArray[i]);
-            maxObj.addSample(testArray[i]);
-            extremaObj.addSample(testArray[i]);
-        }
+        double[] minMax = calculateMaxMinExtrema(minObj, maxObj, extremaObj);
+        
+        double min = minMax[0];
+        double max = minMax[1];
+        
         // Comparison
         double[] array = (double[]) (extremaObj.getResult());
         double max2 = array[1];
@@ -165,15 +150,9 @@ public class StatisticsTest {
     @Test
     public void testDevStdVariance() {
         double mean = 0;
-        double sum = 0;
         double variance = 0;
         double std = 0;
-        // Variance and standard deviation calculation
-        for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
-            sum += testArray[i];
-            varianceObj.addSample(testArray[i]);
-            devstdObj.addSample(testArray[i]);
-        }
+        double sum = calculateVarianceAndStd(varianceObj, devstdObj);
         mean = sum / (ARRAY_DIMENSIONS - 1);
         double sum2 = 0;
         for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
@@ -255,7 +234,21 @@ public class StatisticsTest {
     // correct results
     @Test
     public void testCumulativeStats() {
-
+    	// Calculation of the statistics
+        Statistics oldMeanObj = StatsFactory.createMeanObject();
+        Statistics oldSumObj = StatsFactory.createSumObject();
+        Statistics oldMaxObj = StatsFactory.createMaxObject();
+        Statistics oldMinObj = StatsFactory.createMinObject();
+        Statistics oldExtremaObj = StatsFactory.createExtremaObject();
+        Statistics oldVarianceObj = StatsFactory.createVarianceObject();
+        Statistics oldDevStdObj = StatsFactory.createDevStdObject();
+    	// Calculate sum and mean
+        calculateSumMean(oldSumObj, oldMeanObj);
+    	// Calculate Max and Min and Extrema
+        calculateMaxMinExtrema(oldMinObj, oldMaxObj, oldExtremaObj);
+        // Calculate Variance and Std
+        calculateVarianceAndStd(oldVarianceObj, oldDevStdObj);
+    	
         // Addition of dummy data
         Statistics newMeanObj = StatsFactory.createMeanObject();
         newMeanObj.addSample(1);
@@ -279,13 +272,13 @@ public class StatisticsTest {
         newDevStdObj.addSample(1);
 
         // Statistics accumulation
-        newMeanObj.accumulateStats(meanObj);
-        newSumObj.accumulateStats(sumObj);
-        newMaxObj.accumulateStats(maxObj);
-        newMinObj.accumulateStats(minObj);
-        newExtremaObj.accumulateStats(extremaObj);
-        newVarianceObj.accumulateStats(varianceObj);
-        newDevStdObj.accumulateStats(devstdObj);
+        newMeanObj.accumulateStats(oldMeanObj);
+        newSumObj.accumulateStats(oldSumObj);
+        newMaxObj.accumulateStats(oldMaxObj);
+        newMinObj.accumulateStats(oldMinObj);
+        newExtremaObj.accumulateStats(oldExtremaObj);
+        newVarianceObj.accumulateStats(oldVarianceObj);
+        newDevStdObj.accumulateStats(oldDevStdObj);
 
         // Storage of the updated statistics
         double newMeanUpdated = (Double) (newMeanObj.getResult());
@@ -466,4 +459,43 @@ public class StatisticsTest {
     public void testMedianException() {
         medianObj.accumulateStats(sumObj);
     }
+    
+	private double calculateSumMean(Statistics sumObj, Statistics meanObj) {
+		double sum = 0;
+        // Mean and sum calculation
+        for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
+            sum += testArray[i];
+            sumObj.addSample(testArray[i]);
+            meanObj.addSample(testArray[i]);
+        }
+		return sum;
+	}
+    
+	private double[] calculateMaxMinExtrema(Statistics minObj, Statistics maxObj, Statistics extremaObj) {
+		double[] minMax = new double[]{Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
+        // Maximum and minimum calculation
+        for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
+            if (testArray[i] > minMax[1]) {
+            	minMax[1] = testArray[i];
+            }
+            if (testArray[i] < minMax[0]) {
+            	minMax[0] = testArray[i];
+            }
+            minObj.addSample(testArray[i]);
+            maxObj.addSample(testArray[i]);
+            extremaObj.addSample(testArray[i]);
+        }
+		return minMax;
+	}
+    
+	private double calculateVarianceAndStd(Statistics varianceObj, Statistics devstdObj) {
+		double sum = 0;
+        // Variance and standard deviation calculation
+        for (int i = 0; i < ARRAY_DIMENSIONS; i++) {
+            sum += testArray[i];
+            varianceObj.addSample(testArray[i]);
+            devstdObj.addSample(testArray[i]);
+        }
+		return sum;
+	}
 }
