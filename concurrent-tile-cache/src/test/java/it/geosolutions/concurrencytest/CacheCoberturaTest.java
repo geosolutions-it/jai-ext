@@ -15,7 +15,7 @@ public class CacheCoberturaTest {
 @Test
 public void testConcurrency() throws Exception {
     // setting the parameters
-    int cacheUsed=4;
+    int cacheUsed=1;
     int concurrencyLevel = 16;
     long memoryCacheCapacity = 128 * 1024 * 1024;
     RenderedImage imageSynth = ConcurrentCacheTest.getSynthetic(1);

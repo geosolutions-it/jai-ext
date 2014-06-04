@@ -16,7 +16,7 @@
     <geotools.version>10-SNAPSHOT</geotools.version>
      <fork.javac>true</fork.javac>
     <javac.maxHeapSize>256M</javac.maxHeapSize>
-    <guava.version>14.0.1</guava.version>
+    <guava.version>11.0.1</guava.version>
   </properties>
 
   <!-- ======================================================== -->

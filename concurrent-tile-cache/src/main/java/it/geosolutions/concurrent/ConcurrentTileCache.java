@@ -105,9 +105,6 @@ private Cache<Object, CachedTileImpl> buildCache() {
                     return (int) cti.getTileSize();
                 }
             });
-    if (diagnosticEnabled) {
-        builder.removalListener(listener).recordStats();
-    }
 
     return builder.build();
 
