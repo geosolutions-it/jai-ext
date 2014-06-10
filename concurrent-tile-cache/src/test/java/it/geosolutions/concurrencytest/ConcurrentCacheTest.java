@@ -1,9 +1,7 @@
 package it.geosolutions.concurrencytest;
 
 import it.geosolutions.concurrent.ConcurrentTileCache;
-import it.geosolutions.concurrentlinked.ConcurrentCache;
-import it.geosolutions.concurrentlinked.ConcurrentLinkedCache;
-import it.geosolutions.concurrentlinked.ConcurrentNonBlockingCache;
+
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.File;
@@ -16,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.imageio.stream.FileImageInputStream;
 import javax.media.jai.InterpolationNearest;
 import javax.media.jai.JAI;
@@ -132,29 +131,6 @@ public class ConcurrentCacheTest {
                 cTileCache.enableDiagnostics();
             }
             JAI.getDefaultInstance().setTileCache(cTileCache);
-            break;
-        case 2:
-            ConcurrentLinkedCache cLinkedCache = new ConcurrentLinkedCache();
-            cLinkedCache.setConcurrencyLevel(concurrencyLevel);
-            if (diagnostics) {
-                cLinkedCache.enableDiagnostics();
-            }
-            JAI.getDefaultInstance().setTileCache(cLinkedCache);
-            break;
-        case 3:
-            ConcurrentCache cCache = new ConcurrentCache();
-            cCache.setConcurrencyLevel(concurrencyLevel);
-            if (diagnostics) {
-                cCache.enableDiagnostics();
-            }
-            JAI.getDefaultInstance().setTileCache(cCache);
-            break;
-        case 4:
-            ConcurrentNonBlockingCache cNonBlockingCache = new ConcurrentNonBlockingCache();
-            if (diagnostics) {
-                cNonBlockingCache.enableDiagnostics();
-            }
-            JAI.getDefaultInstance().setTileCache(cNonBlockingCache);
             break;
         }
         JAI.getDefaultInstance().getTileCache().setMemoryCapacity(memoryCacheCapacity);
@@ -435,18 +411,6 @@ public class ConcurrentCacheTest {
                 case 1:
                     ConcurrentTileCache cTileCache = (ConcurrentTileCache) cache;
                     memory = cTileCache.getCacheMemoryUsed();
-                    break;
-                case 2:
-                    ConcurrentLinkedCache cLinkedCache = (ConcurrentLinkedCache) cache;
-                    memory = cLinkedCache.getCacheMemoryUsed();
-                    break;
-                case 3:
-                    ConcurrentCache cCache = (ConcurrentCache) cache;
-                    memory = cCache.getCacheMemoryUsed();
-                    break;
-                case 4:
-                    ConcurrentNonBlockingCache cNonBlockingCache = (ConcurrentNonBlockingCache) cache;
-                    memory = cNonBlockingCache.getCacheMemoryUsed();
                     break;
                 }
 

@@ -14,6 +14,8 @@ import org.junit.Test;
 /**
  * This test-class is used for evaluating the functionalities of the {@link Range} class and its subclasses. Also this class is compared to other
  * Range classes for seeing if its <code>contain()</code> method could have a better performance than that of the other Range classes.
+ * 
+ * Guava Ranges are commented in order to wait to upgrade the Guava version to 14.0.1
  */
 public class RangeTest {
 
@@ -187,25 +189,25 @@ public class RangeTest {
 
     private static NumberRange<Double> rangeGeoToolsDpoint;
 
-    private static com.google.common.collect.Range<Byte> rangeGuavaB;
-
-    private static com.google.common.collect.Range<Short> rangeGuavaS;
-
-    private static com.google.common.collect.Range<Integer> rangeGuavaI;
-
-    private static com.google.common.collect.Range<Float> rangeGuavaF;
-
-    private static com.google.common.collect.Range<Double> rangeGuavaD;
-
-    private static com.google.common.collect.Range<Byte> rangeGuavaBpoint;
-
-    private static com.google.common.collect.Range<Short> rangeGuavaSpoint;
-
-    private static com.google.common.collect.Range<Integer> rangeGuavaIpoint;
-
-    private static com.google.common.collect.Range<Float> rangeGuavaFpoint;
-
-    private static com.google.common.collect.Range<Double> rangeGuavaDpoint;
+//    private static com.google.common.collect.Range<Byte> rangeGuavaB;
+//
+//    private static com.google.common.collect.Range<Short> rangeGuavaS;
+//
+//    private static com.google.common.collect.Range<Integer> rangeGuavaI;
+//
+//    private static com.google.common.collect.Range<Float> rangeGuavaF;
+//
+//    private static com.google.common.collect.Range<Double> rangeGuavaD;
+//
+//    private static com.google.common.collect.Range<Byte> rangeGuavaBpoint;
+//
+//    private static com.google.common.collect.Range<Short> rangeGuavaSpoint;
+//
+//    private static com.google.common.collect.Range<Integer> rangeGuavaIpoint;
+//
+//    private static com.google.common.collect.Range<Float> rangeGuavaFpoint;
+//
+//    private static com.google.common.collect.Range<Double> rangeGuavaDpoint;
 
     @BeforeClass
     public static void initialSetup() { 
@@ -305,18 +307,18 @@ public class RangeTest {
         rangeGeoToolsFpoint = new org.geotools.util.NumberRange<Float>(Float.class, 5f, 5f);
         rangeGeoToolsDpoint = new org.geotools.util.NumberRange<Double>(Double.class, 5d, 5d);
 
-        // Guava Ranges
-        rangeGuavaB = com.google.common.collect.Range.closed((byte) 1, (byte) 60);
-        rangeGuavaS = com.google.common.collect.Range.closed((short) 1, (short) 60);
-        rangeGuavaI = com.google.common.collect.Range.closed(1, 60);
-        rangeGuavaF = com.google.common.collect.Range.closed(0.5f, 60.5f);
-        rangeGuavaD = com.google.common.collect.Range.closed(1.5d, 60.5d);
-        // 1 point Ranges
-        rangeGuavaBpoint = com.google.common.collect.Range.singleton((byte) 5);
-        rangeGuavaSpoint = com.google.common.collect.Range.singleton((short) 5);
-        rangeGuavaIpoint = com.google.common.collect.Range.singleton(5);
-        rangeGuavaFpoint = com.google.common.collect.Range.singleton(5f);
-        rangeGuavaDpoint = com.google.common.collect.Range.singleton(5d);
+//        // Guava Ranges
+//        rangeGuavaB = com.google.common.collect.Range.closed((byte) 1, (byte) 60);
+//        rangeGuavaS = com.google.common.collect.Range.closed((short) 1, (short) 60);
+//        rangeGuavaI = com.google.common.collect.Range.closed(1, 60);
+//        rangeGuavaF = com.google.common.collect.Range.closed(0.5f, 60.5f);
+//        rangeGuavaD = com.google.common.collect.Range.closed(1.5d, 60.5d);
+//        // 1 point Ranges
+//        rangeGuavaBpoint = com.google.common.collect.Range.singleton((byte) 5);
+//        rangeGuavaSpoint = com.google.common.collect.Range.singleton((short) 5);
+//        rangeGuavaIpoint = com.google.common.collect.Range.singleton(5);
+//        rangeGuavaFpoint = com.google.common.collect.Range.singleton(5f);
+//        rangeGuavaDpoint = com.google.common.collect.Range.singleton(5d);
     }
 
     @Test
@@ -612,51 +614,51 @@ public class RangeTest {
         }
     }
 
-    @Test
-    public void testGuavaRangeTimeByte1or2Points() {
-
-        if (!SINGLE_POINT) {
-            switch(TEST_SELECTOR){
-            case DataBuffer.TYPE_BYTE:
-                testGuavaRangeTime(rangeGuavaB, SINGLE_POINT,arrayBtest);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                testGuavaRangeTime(rangeGuavaS, SINGLE_POINT,arrayStest);
-                break;
-            case DataBuffer.TYPE_INT:
-                testGuavaRangeTime(rangeGuavaI, SINGLE_POINT,arrayItest);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                testGuavaRangeTime(rangeGuavaF, SINGLE_POINT,arrayFtest);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                testGuavaRangeTime(rangeGuavaD, SINGLE_POINT,arrayDtest);
-                break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
-            }
-        } else {
-            switch(TEST_SELECTOR){
-            case DataBuffer.TYPE_BYTE:
-                testGuavaRangeTime(rangeGuavaBpoint, SINGLE_POINT,arrayBtest);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                testGuavaRangeTime(rangeGuavaSpoint, SINGLE_POINT,arrayStest);
-                break;
-            case DataBuffer.TYPE_INT:
-                testGuavaRangeTime(rangeGuavaIpoint, SINGLE_POINT,arrayItest);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                testGuavaRangeTime(rangeGuavaFpoint, SINGLE_POINT,arrayFtest);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                testGuavaRangeTime(rangeGuavaDpoint, SINGLE_POINT,arrayDtest);
-                break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
-            }
-        }
-    }
+//    @Test
+//    public void testGuavaRangeTimeByte1or2Points() {
+//
+//        if (!SINGLE_POINT) {
+//            switch(TEST_SELECTOR){
+//            case DataBuffer.TYPE_BYTE:
+//                testGuavaRangeTime(rangeGuavaB, SINGLE_POINT,arrayBtest);
+//                break;
+//            case DataBuffer.TYPE_SHORT:
+//                testGuavaRangeTime(rangeGuavaS, SINGLE_POINT,arrayStest);
+//                break;
+//            case DataBuffer.TYPE_INT:
+//                testGuavaRangeTime(rangeGuavaI, SINGLE_POINT,arrayItest);
+//                break;
+//            case DataBuffer.TYPE_FLOAT:
+//                testGuavaRangeTime(rangeGuavaF, SINGLE_POINT,arrayFtest);
+//                break;
+//            case DataBuffer.TYPE_DOUBLE:
+//                testGuavaRangeTime(rangeGuavaD, SINGLE_POINT,arrayDtest);
+//                break;
+//                default:
+//                    throw new IllegalArgumentException("Wrong data type");
+//            }
+//        } else {
+//            switch(TEST_SELECTOR){
+//            case DataBuffer.TYPE_BYTE:
+//                testGuavaRangeTime(rangeGuavaBpoint, SINGLE_POINT,arrayBtest);
+//                break;
+//            case DataBuffer.TYPE_SHORT:
+//                testGuavaRangeTime(rangeGuavaSpoint, SINGLE_POINT,arrayStest);
+//                break;
+//            case DataBuffer.TYPE_INT:
+//                testGuavaRangeTime(rangeGuavaIpoint, SINGLE_POINT,arrayItest);
+//                break;
+//            case DataBuffer.TYPE_FLOAT:
+//                testGuavaRangeTime(rangeGuavaFpoint, SINGLE_POINT,arrayFtest);
+//                break;
+//            case DataBuffer.TYPE_DOUBLE:
+//                testGuavaRangeTime(rangeGuavaDpoint, SINGLE_POINT,arrayDtest);
+//                break;
+//                default:
+//                    throw new IllegalArgumentException("Wrong data type");
+//            }
+//        }
+//    }
     
     
     
@@ -964,38 +966,38 @@ public class RangeTest {
                 + " nsec.");
     }
 
-    public <T extends Number & Comparable<T>>void testGuavaRangeTime(com.google.common.collect.Range<T> testRange,
-            boolean isPoint, T[] array) {
-        int totalCycles = NOT_BENCHMARK_ITERATION + BENCHMARK_ITERATION;
-        // Initialization of the statistics
-        long mean = 0;
-        for (int i = 0; i < totalCycles; i++) {
-            // Total calculation time
-            long start = System.nanoTime();
-
-            for (int j = 0; j < array.length; j++) {
-                testRange.contains(array[j]);
-            }
-            long end = System.nanoTime() - start;
-
-            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
-            if (i > NOT_BENCHMARK_ITERATION - 1) {
-                if (i == NOT_BENCHMARK_ITERATION) {
-                    mean = end;
-                } else {
-                    mean = mean + end;
-                }
-            }
-        }
-        String description = "";
-        if (isPoint) {
-            description += " a single point";
-        }
-        // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION;
-        // Output print
-        System.out.println("\nMean value for" + description + " Guava Range : " + meanValue
-                + " nsec.");
-    }
+//    public <T extends Number & Comparable<T>>void testGuavaRangeTime(com.google.common.collect.Range<T> testRange,
+//            boolean isPoint, T[] array) {
+//        int totalCycles = NOT_BENCHMARK_ITERATION + BENCHMARK_ITERATION;
+//        // Initialization of the statistics
+//        long mean = 0;
+//        for (int i = 0; i < totalCycles; i++) {
+//            // Total calculation time
+//            long start = System.nanoTime();
+//
+//            for (int j = 0; j < array.length; j++) {
+//                testRange.contains(array[j]);
+//            }
+//            long end = System.nanoTime() - start;
+//
+//            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
+//            if (i > NOT_BENCHMARK_ITERATION - 1) {
+//                if (i == NOT_BENCHMARK_ITERATION) {
+//                    mean = end;
+//                } else {
+//                    mean = mean + end;
+//                }
+//            }
+//        }
+//        String description = "";
+//        if (isPoint) {
+//            description += " a single point";
+//        }
+//        // Mean values
+//        double meanValue = mean / BENCHMARK_ITERATION;
+//        // Output print
+//        System.out.println("\nMean value for" + description + " Guava Range : " + meanValue
+//                + " nsec.");
+//    }
 
 }
