@@ -15,10 +15,7 @@
  */
 package it.geosolutions.jaiext.warp;
 
-import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
-
-import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
@@ -133,17 +130,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
     }
 
     protected void computeRectByte(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random iterator initialization. If an extender is used, then an extended image is taken.
-        RandomIter iterSource;
-        if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-        } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-        }
+        RandomIter iterSource = getRandomIterator(src, extender);
+
         final int minX = src.getMinX();
         final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
         final int minY = src.getMinY();
@@ -164,7 +154,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
 
         if (ctable == null) { // source does not have IndexColorModel
             // ONLY VALID DATA
-            if (caseA) {
+            if (caseA || (caseB && roiContainsTile)) {
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -237,10 +227,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00 = !roiTile.contains(xint, yint);
-                            final boolean w01 = !roiTile.contains(xint + 1, yint);
-                            final boolean w10 = !roiTile.contains(xint, yint + 1);
-                            final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
+                            final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
+                            final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                            final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                            final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00 && w01 && w10 && w11) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
@@ -267,7 +257,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                     } // COLS LOOP
                 } // ROWS LOOP
                   // ONLY NODATA
-            } else if (caseC) {
+            } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -350,10 +340,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00Roi = !roiTile.contains(xint, yint);
-                            final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                            final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                            final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
+                            final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
+                            final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                            final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                            final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
@@ -391,7 +381,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
             }
         } else {// source has IndexColorModel
                 // ONLY VALID DATA
-            if (caseA) {
+            if (caseA || (caseB && roiContainsTile)) {
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -466,10 +456,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00 = !roiTile.contains(xint, yint);
-                            final boolean w01 = !roiTile.contains(xint + 1, yint);
-                            final boolean w10 = !roiTile.contains(xint, yint + 1);
-                            final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
+                            final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
+                            final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                            final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                            final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00 && w01 && w10 && w11) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
@@ -498,7 +488,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                     } // COLS LOOP
                 } // ROWS LOOP
                   // ONLY NODATA
-            } else if (caseC) {
+            } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -583,10 +573,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00Roi = !roiTile.contains(xint, yint);
-                            final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                            final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                            final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
+                            final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
+                            final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                            final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                            final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
@@ -630,17 +620,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
     }
 
     protected void computeRectUShort(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random iterator initialization. If an extender is used, then an extended image is taken.
-        RandomIter iterSource;
-        if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-        } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-        }
+        RandomIter iterSource = getRandomIterator(src, extender);
+
         final int minX = src.getMinX();
         final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
         final int minY = src.getMinY();
@@ -660,7 +643,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -733,10 +716,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !roiTile.contains(xint, yint);
-                        final boolean w01 = !roiTile.contains(xint + 1, yint);
-                        final boolean w10 = !roiTile.contains(xint, yint + 1);
-                        final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
+                        final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
@@ -763,7 +746,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
               // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -846,10 +829,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !roiTile.contains(xint, yint);
-                        final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                        final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                        final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
+                        final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
@@ -889,17 +872,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
     }
 
     protected void computeRectShort(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random iterator initialization. If an extender is used, then an extended image is taken.
-        RandomIter iterSource;
-        if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-        } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-        }
+        RandomIter iterSource = getRandomIterator(src, extender);
+
         final int minX = src.getMinX();
         final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
         final int minY = src.getMinY();
@@ -919,7 +895,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -992,10 +968,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !roiTile.contains(xint, yint);
-                        final boolean w01 = !roiTile.contains(xint + 1, yint);
-                        final boolean w10 = !roiTile.contains(xint, yint + 1);
-                        final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
+                        final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
@@ -1022,7 +998,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
               // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1105,10 +1081,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !roiTile.contains(xint, yint);
-                        final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                        final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                        final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
+                        final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
@@ -1147,17 +1123,11 @@ final class WarpBilinearOpImage extends WarpOpImage {
         iterSource.done();
     }
 
-    protected void computeRectInt(final PlanarImage src, final RasterAccessor dst, final ROI roiTile) {
+    protected void computeRectInt(final PlanarImage src, final RasterAccessor dst,
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random iterator initialization. If an extender is used, then an extended image is taken.
-        RandomIter iterSource;
-        if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-        } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-        }
+        RandomIter iterSource = getRandomIterator(src, extender);
+
         final int minX = src.getMinX();
         final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
         final int minY = src.getMinY();
@@ -1177,7 +1147,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1250,10 +1220,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !roiTile.contains(xint, yint);
-                        final boolean w01 = !roiTile.contains(xint + 1, yint);
-                        final boolean w10 = !roiTile.contains(xint, yint + 1);
-                        final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
+                        final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
@@ -1280,7 +1250,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
               // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1363,10 +1333,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !roiTile.contains(xint, yint);
-                        final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                        final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                        final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
+                        final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
@@ -1406,17 +1376,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
     }
 
     protected void computeRectFloat(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random iterator initialization. If an extender is used, then an extended image is taken.
-        RandomIter iterSource;
-        if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-        } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-        }
+        RandomIter iterSource = getRandomIterator(src, extender);
+
         final int minX = src.getMinX();
         final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
         final int minY = src.getMinY();
@@ -1436,7 +1399,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1509,10 +1472,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !roiTile.contains(xint, yint);
-                        final boolean w01 = !roiTile.contains(xint + 1, yint);
-                        final boolean w10 = !roiTile.contains(xint, yint + 1);
-                        final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
+                        final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
@@ -1539,7 +1502,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
               // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1622,10 +1585,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !roiTile.contains(xint, yint);
-                        final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                        final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                        final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
+                        final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
@@ -1664,17 +1627,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
     }
 
     protected void computeRectDouble(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random iterator initialization. If an extender is used, then an extended image is taken.
-        RandomIter iterSource;
-        if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX(), src.getMinY(),
-                    src.getWidth() + 1, src.getHeight() + 1);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-        } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-        }
+        RandomIter iterSource = getRandomIterator(src, extender);
+
         final int minX = src.getMinX();
         final int maxX = src.getMaxX() - (extended ? 0 : 1); // Right padding
         final int minY = src.getMinY();
@@ -1694,7 +1650,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1767,10 +1723,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !roiTile.contains(xint, yint);
-                        final boolean w01 = !roiTile.contains(xint + 1, yint);
-                        final boolean w10 = !roiTile.contains(xint, yint + 1);
-                        final boolean w11 = !roiTile.contains(xint + 1, yint + 1);
+                        final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
@@ -1797,7 +1753,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
               // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1880,10 +1836,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !roiTile.contains(xint, yint);
-                        final boolean w01Roi = !roiTile.contains(xint + 1, yint);
-                        final boolean w10Roi = !roiTile.contains(xint, yint + 1);
-                        final boolean w11Roi = !roiTile.contains(xint + 1, yint + 1);
+                        final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;

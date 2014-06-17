@@ -15,10 +15,7 @@
  */
 package it.geosolutions.jaiext.warp;
 
-import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
-
-import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
@@ -138,38 +135,41 @@ final class WarpGeneralOpImage extends WarpOpImage {
         default:
             throw new IllegalArgumentException("Wrong data Type");
         }
+        
+        // Definition of the padding
+        if (interp != null) {
+            leftPad = interp.getLeftPadding();
+            rightPad = interp.getRightPadding();
+            topPad = interp.getTopPadding();
+            bottomPad = interp.getBottomPadding();
+        } else {
+            leftPad = rightPad = topPad = bottomPad = 0;
+        }
     }
 
-    protected void computeRectByte(PlanarImage src, RasterAccessor dst, final ROI roiTile) {
-        int lpad, rpad, tpad, bpad;
+    protected void computeRectByte(PlanarImage src, RasterAccessor dst, final RandomIter roiIter,
+            boolean roiContainsTile) {
 
-        if (interp != null) {
-            lpad = interp.getLeftPadding();
-            rpad = interp.getRightPadding();
-            tpad = interp.getTopPadding();
-            bpad = interp.getBottomPadding();
-        } else {
-            lpad = rpad = tpad = bpad = 0;
-        }
         // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
+            // Creation of an iterator on the image extended by the padding factors
+            iter = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
-            Rectangle bounds = new Rectangle(src.getMinX() - lpad, src.getMinY() - tpad,
-                    src.getWidth() + lpad + rpad, src.getHeight() + tpad + bpad);
-            iter = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-        } else {
-            minX = src.getMinX() + lpad;
-            maxX = src.getMaxX() - rpad;
-            minY = src.getMinY() + tpad;
-            maxY = src.getMaxY() - bpad;
-            iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
 
+        } else {
+            // Creation of an iterator on the image
+            iter = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         final int dstWidth = dst.getWidth();
@@ -198,7 +198,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         if (ctable == null) { // source does not have IndexColorModel
 
             // ONLY VALID DATA
-            if (caseA) {
+            if (caseA || (caseB && roiContainsTile)) {
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -224,8 +224,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             // Interpolation
-                            xint -= lpad;
-                            yint -= tpad;
+                            xint -= leftPad;
+                            yint -= topPad;
 
                             for (int b = 0; b < dstBands; b++) {
                                 for (int j = 0; j < kheight; j++) {
@@ -268,14 +268,18 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
-                            xint -= lpad;
-                            yint -= tpad;
+                            xint -= leftPad;
+                            yint -= topPad;
 
                             roiWeight = false;
 
                             for (int j = 0; j < kheight; j++) {
                                 for (int i = 0; i < kwidth; i++) {
-                                    roiWeight |= roiTile.contains(xint + i, yint + j);
+                                    int x = xint + i;
+                                    int y = yint + j;
+                                    if (roiBounds.contains(x, y)) {
+                                        roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                    }
                                 }
                             }
                             //
@@ -304,7 +308,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                     }
                 }
                 // ONLY NODATA
-            } else if (caseC) {
+            } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -329,13 +333,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
-                            xint -= lpad;
-                            yint -= tpad;
+                            xint -= leftPad;
+                            yint -= topPad;
 
                             roiWeight = false;
                             for (int j = 0; j < kheight; j++) {
                                 for (int i = 0; i < kwidth; i++) {
-                                    roiWeight |= roiTile.contains(xint + i, yint + j);
+                                    int x = xint + i;
+                                    int y = yint + j;
+                                    if (roiBounds.contains(x, y)) {
+                                        roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                    }
                                 }
                             }
                             //
@@ -384,13 +392,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
-                            xint -= lpad;
-                            yint -= tpad;
+                            xint -= leftPad;
+                            yint -= topPad;
 
                             roiWeight = false;
                             for (int j = 0; j < kheight; j++) {
                                 for (int i = 0; i < kwidth; i++) {
-                                    roiWeight |= roiTile.contains(xint + i, yint + j);
+                                    int x = xint + i;
+                                    int y = yint + j;
+                                    if (roiBounds.contains(x, y)) {
+                                        roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                    }
                                 }
                             }
                             //
@@ -428,7 +440,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         } else { // source has IndexColorModel
 
             // ONLY VALID DATA
-            if (caseA) {
+            if (caseA || (caseB && roiContainsTile)) {
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -453,8 +465,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
-                            xint -= lpad;
-                            yint -= tpad;
+                            xint -= leftPad;
+                            yint -= topPad;
 
                             for (int b = 0; b < dstBands; b++) {
                                 byte[] t = ctable[b];
@@ -498,13 +510,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
-                            xint -= lpad;
-                            yint -= tpad;
+                            xint -= leftPad;
+                            yint -= topPad;
 
                             roiWeight = false;
                             for (int j = 0; j < kheight; j++) {
                                 for (int i = 0; i < kwidth; i++) {
-                                    roiWeight |= roiTile.contains(xint + i, yint + j);
+                                    int x = xint + i;
+                                    int y = yint + j;
+                                    if (roiBounds.contains(x, y)) {
+                                        roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                    }
                                 }
                             }
                             //
@@ -534,7 +550,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                     }
                 }
                 // ONLY NODATA
-            } else if (caseC) {
+            } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -559,8 +575,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
-                            xint -= lpad;
-                            yint -= tpad;
+                            xint -= leftPad;
+                            yint -= topPad;
                             //
                             // NODATA check
                             //
@@ -609,13 +625,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             }
                         } else {
-                            xint -= lpad;
-                            yint -= tpad;
+                            xint -= leftPad;
+                            yint -= topPad;
 
                             roiWeight = false;
                             for (int j = 0; j < kheight; j++) {
                                 for (int i = 0; i < kwidth; i++) {
-                                    roiWeight |= roiTile.contains(xint + i, yint + j);
+                                    int x = xint + i;
+                                    int y = yint + j;
+                                    if (roiBounds.contains(x, y)) {
+                                        roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                    }
                                 }
                             }
                             //
@@ -655,34 +675,28 @@ final class WarpGeneralOpImage extends WarpOpImage {
         iter.done();
     }
 
-    protected void computeRectUShort(PlanarImage src, RasterAccessor dst, final ROI roiTile) {
-        int lpad, rpad, tpad, bpad;
-        if (interp != null) {
-            lpad = interp.getLeftPadding();
-            rpad = interp.getRightPadding();
-            tpad = interp.getTopPadding();
-            bpad = interp.getBottomPadding();
-        } else {
-            lpad = rpad = tpad = bpad = 0;
-        }
+    protected void computeRectUShort(PlanarImage src, RasterAccessor dst, final RandomIter roiIter,
+            boolean roiContainsTile) {
         // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
+            // Creation of an iterator on the image extended by the padding factors
+            iter = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
-            Rectangle bounds = new Rectangle(src.getMinX() - lpad, src.getMinY() - tpad,
-                    src.getWidth() + lpad + rpad, src.getHeight() + tpad + bpad);
-            iter = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
+
         } else {
-            minX = src.getMinX() + lpad;
-            maxX = src.getMaxX() - rpad;
-            minY = src.getMinY() + tpad;
-            maxY = src.getMaxY() - bpad;
-            iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+            // Creation of an iterator on the image
+            iter = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         int kwidth = interp.getWidth();
@@ -709,7 +723,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -734,8 +748,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         for (int b = 0; b < dstBands; b++) {
                             for (int j = 0; j < kheight; j++) {
@@ -778,13 +792,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight |= roiTile.contains(xint + i, yint + j);
+                                int x = xint + i;
+                                int y = yint + j;
+                                if (roiBounds.contains(x, y)) {
+                                    roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         //
@@ -813,7 +831,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             int value = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
@@ -839,8 +857,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         for (int b = 0; b < dstBands; b++) {
                             for (int j = 0; j < kheight; j++) {
@@ -893,13 +911,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight |= roiTile.contains(xint + i, yint + j);
+                                int x = xint + i;
+                                int y = yint + j;
+                                if (roiBounds.contains(x, y)) {
+                                    roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         //
@@ -941,34 +963,28 @@ final class WarpGeneralOpImage extends WarpOpImage {
         iter.done();
     }
 
-    protected void computeRectShort(PlanarImage src, RasterAccessor dst, final ROI roiTile) {
-        int lpad, rpad, tpad, bpad;
-        if (interp != null) {
-            lpad = interp.getLeftPadding();
-            rpad = interp.getRightPadding();
-            tpad = interp.getTopPadding();
-            bpad = interp.getBottomPadding();
-        } else {
-            lpad = rpad = tpad = bpad = 0;
-        }
+    protected void computeRectShort(PlanarImage src, RasterAccessor dst, final RandomIter roiIter,
+            boolean roiContainsTile) {
         // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
+            // Creation of an iterator on the image extended by the padding factors
+            iter = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
-            Rectangle bounds = new Rectangle(src.getMinX() - lpad, src.getMinY() - tpad,
-                    src.getWidth() + lpad + rpad, src.getHeight() + tpad + bpad);
-            iter = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
+
         } else {
-            minX = src.getMinX() + lpad;
-            maxX = src.getMaxX() - rpad;
-            minY = src.getMinY() + tpad;
-            maxY = src.getMaxY() - bpad;
-            iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+            // Creation of an iterator on the image
+            iter = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         int kwidth = interp.getWidth();
@@ -995,7 +1011,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1020,8 +1036,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         for (int b = 0; b < dstBands; b++) {
                             for (int j = 0; j < kheight; j++) {
@@ -1064,13 +1080,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight |= roiTile.contains(xint + i, yint + j);
+                                int x = xint + i;
+                                int y = yint + j;
+                                if (roiBounds.contains(x, y)) {
+                                    roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         //
@@ -1099,7 +1119,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             int value = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
@@ -1125,8 +1145,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         for (int b = 0; b < dstBands; b++) {
                             for (int j = 0; j < kheight; j++) {
@@ -1179,13 +1199,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight |= roiTile.contains(xint + i, yint + j);
+                                int x = xint + i;
+                                int y = yint + j;
+                                if (roiBounds.contains(x, y)) {
+                                    roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         //
@@ -1227,34 +1251,28 @@ final class WarpGeneralOpImage extends WarpOpImage {
         iter.done();
     }
 
-    protected void computeRectInt(PlanarImage src, RasterAccessor dst, final ROI roiTile) {
-        int lpad, rpad, tpad, bpad;
-        if (interp != null) {
-            lpad = interp.getLeftPadding();
-            rpad = interp.getRightPadding();
-            tpad = interp.getTopPadding();
-            bpad = interp.getBottomPadding();
-        } else {
-            lpad = rpad = tpad = bpad = 0;
-        }
+    protected void computeRectInt(PlanarImage src, RasterAccessor dst, final RandomIter roiIter,
+            boolean roiContainsTile) {
         // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
+            // Creation of an iterator on the image extended by the padding factors
+            iter = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
-            Rectangle bounds = new Rectangle(src.getMinX() - lpad, src.getMinY() - tpad,
-                    src.getWidth() + lpad + rpad, src.getHeight() + tpad + bpad);
-            iter = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
+
         } else {
-            minX = src.getMinX() + lpad;
-            maxX = src.getMaxX() - rpad;
-            minY = src.getMinY() + tpad;
-            maxY = src.getMaxY() - bpad;
-            iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+            // Creation of an iterator on the image
+            iter = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         int kwidth = interp.getWidth();
@@ -1281,7 +1299,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1306,8 +1324,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         for (int b = 0; b < dstBands; b++) {
                             for (int j = 0; j < kheight; j++) {
@@ -1350,13 +1368,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight |= roiTile.contains(xint + i, yint + j);
+                                int x = xint + i;
+                                int y = yint + j;
+                                if (roiBounds.contains(x, y)) {
+                                    roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         //
@@ -1385,7 +1407,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             int value = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
@@ -1411,8 +1433,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         for (int b = 0; b < dstBands; b++) {
                             for (int j = 0; j < kheight; j++) {
@@ -1465,13 +1487,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight |= roiTile.contains(xint + i, yint + j);
+                                int x = xint + i;
+                                int y = yint + j;
+                                if (roiBounds.contains(x, y)) {
+                                    roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         //
@@ -1513,34 +1539,28 @@ final class WarpGeneralOpImage extends WarpOpImage {
         iter.done();
     }
 
-    protected void computeRectFloat(PlanarImage src, RasterAccessor dst, final ROI roiTile) {
-        int lpad, rpad, tpad, bpad;
-        if (interp != null) {
-            lpad = interp.getLeftPadding();
-            rpad = interp.getRightPadding();
-            tpad = interp.getTopPadding();
-            bpad = interp.getBottomPadding();
-        } else {
-            lpad = rpad = tpad = bpad = 0;
-        }
+    protected void computeRectFloat(PlanarImage src, RasterAccessor dst, final RandomIter roiIter,
+            boolean roiContainsTile) {
         // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
+            // Creation of an iterator on the image extended by the padding factors
+            iter = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
-            Rectangle bounds = new Rectangle(src.getMinX() - lpad, src.getMinY() - tpad,
-                    src.getWidth() + lpad + rpad, src.getHeight() + tpad + bpad);
-            iter = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
+
         } else {
-            minX = src.getMinX() + lpad;
-            maxX = src.getMaxX() - rpad;
-            minY = src.getMinY() + tpad;
-            maxY = src.getMaxY() - bpad;
-            iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+            // Creation of an iterator on the image
+            iter = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         int kwidth = interp.getWidth();
@@ -1564,7 +1584,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1589,8 +1609,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         for (int b = 0; b < dstBands; b++) {
                             for (int j = 0; j < kheight; j++) {
@@ -1633,13 +1653,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight |= roiTile.contains(xint + i, yint + j);
+                                int x = xint + i;
+                                int y = yint + j;
+                                if (roiBounds.contains(x, y)) {
+                                    roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         //
@@ -1668,7 +1692,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             float value = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
@@ -1694,8 +1718,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         for (int b = 0; b < dstBands; b++) {
                             for (int j = 0; j < kheight; j++) {
@@ -1748,13 +1772,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight |= roiTile.contains(xint + i, yint + j);
+                                int x = xint + i;
+                                int y = yint + j;
+                                if (roiBounds.contains(x, y)) {
+                                    roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         //
@@ -1796,34 +1824,28 @@ final class WarpGeneralOpImage extends WarpOpImage {
         iter.done();
     }
 
-    protected void computeRectDouble(PlanarImage src, RasterAccessor dst, final ROI roiTile) {
-        int lpad, rpad, tpad, bpad;
-        if (interp != null) {
-            lpad = interp.getLeftPadding();
-            rpad = interp.getRightPadding();
-            tpad = interp.getTopPadding();
-            bpad = interp.getBottomPadding();
-        } else {
-            lpad = rpad = tpad = bpad = 0;
-        }
+    protected void computeRectDouble(PlanarImage src, RasterAccessor dst, final RandomIter roiIter,
+            boolean roiContainsTile) {
         // Setting of the Random iterator keeping into account the presence of the Borderextender
         int minX, maxX, minY, maxY;
         RandomIter iter;
         if (extended) {
+            // Creation of an iterator on the image extended by the padding factors
+            iter = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
-            Rectangle bounds = new Rectangle(src.getMinX() - lpad, src.getMinY() - tpad,
-                    src.getWidth() + lpad + rpad, src.getHeight() + tpad + bpad);
-            iter = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
+
         } else {
-            minX = src.getMinX() + lpad;
-            maxX = src.getMaxX() - rpad;
-            minY = src.getMinY() + tpad;
-            maxY = src.getMaxY() - bpad;
-            iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
+            // Creation of an iterator on the image
+            iter = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         int kwidth = interp.getWidth();
@@ -1847,7 +1869,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1872,8 +1894,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         for (int b = 0; b < dstBands; b++) {
                             for (int j = 0; j < kheight; j++) {
@@ -1916,13 +1938,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight |= roiTile.contains(xint + i, yint + j);
+                                int x = xint + i;
+                                int y = yint + j;
+                                if (roiBounds.contains(x, y)) {
+                                    roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         //
@@ -1951,7 +1977,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             double value = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
@@ -1977,8 +2003,8 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         for (int b = 0; b < dstBands; b++) {
                             for (int j = 0; j < kheight; j++) {
@@ -2031,13 +2057,17 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         }
                     } else {
-                        xint -= lpad;
-                        yint -= tpad;
+                        xint -= leftPad;
+                        yint -= topPad;
 
                         roiWeight = false;
                         for (int j = 0; j < kheight; j++) {
                             for (int i = 0; i < kwidth; i++) {
-                                roiWeight |= roiTile.contains(xint + i, yint + j);
+                                int x = xint + i;
+                                int y = yint + j;
+                                if (roiBounds.contains(x, y)) {
+                                    roiWeight |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         //
