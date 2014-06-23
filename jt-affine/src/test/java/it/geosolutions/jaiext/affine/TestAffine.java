@@ -1,3 +1,20 @@
+/* JAI-Ext - OpenSource Java Advanced Image Extensions Library
+*    http://www.geo-solutions.it/
+*    Copyright 2014 GeoSolutions
+
+
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+
+* http://www.apache.org/licenses/LICENSE-2.0
+
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package it.geosolutions.jaiext.affine;
 
 import static org.junit.Assert.assertEquals;
@@ -8,6 +25,7 @@ import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
+import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
@@ -23,7 +41,6 @@ import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 
-import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 
 /**
  * This test-class is an extension of the TestBase class inside the jt-utilities project. By calling the testGlobalAffine() method with the selected
