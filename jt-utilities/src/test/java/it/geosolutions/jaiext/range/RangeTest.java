@@ -24,7 +24,6 @@ import java.awt.image.DataBuffer;
 import org.apache.commons.lang.math.DoubleRange;
 import org.apache.commons.lang.math.FloatRange;
 import org.apache.commons.lang.math.IntRange;
-import org.geotools.util.NumberRange;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -186,25 +185,25 @@ public class RangeTest {
 
     private static DoubleRange rangeCommonsDpoint;
 
-    private static NumberRange<Byte> rangeGeoToolsB;
-
-    private static NumberRange<Short> rangeGeoToolsS;
-
-    private static NumberRange<Integer> rangeGeoToolsI;
-
-    private static NumberRange<Float> rangeGeoToolsF;
-
-    private static NumberRange<Double> rangeGeoToolsD;
-
-    private static NumberRange<Byte> rangeGeoToolsBpoint;
-
-    private static NumberRange<Short> rangeGeoToolsSpoint;
-
-    private static NumberRange<Integer> rangeGeoToolsIpoint;
-
-    private static NumberRange<Float> rangeGeoToolsFpoint;
-
-    private static NumberRange<Double> rangeGeoToolsDpoint;
+//    private static NumberRange<Byte> rangeGeoToolsB;
+//
+//    private static NumberRange<Short> rangeGeoToolsS;
+//
+//    private static NumberRange<Integer> rangeGeoToolsI;
+//
+//    private static NumberRange<Float> rangeGeoToolsF;
+//
+//    private static NumberRange<Double> rangeGeoToolsD;
+//
+//    private static NumberRange<Byte> rangeGeoToolsBpoint;
+//
+//    private static NumberRange<Short> rangeGeoToolsSpoint;
+//
+//    private static NumberRange<Integer> rangeGeoToolsIpoint;
+//
+//    private static NumberRange<Float> rangeGeoToolsFpoint;
+//
+//    private static NumberRange<Double> rangeGeoToolsDpoint;
 
 //    private static com.google.common.collect.Range<Byte> rangeGuavaB;
 //
@@ -308,21 +307,21 @@ public class RangeTest {
         rangeCommonsFpoint = new org.apache.commons.lang.math.FloatRange(5f);
         rangeCommonsDpoint = new org.apache.commons.lang.math.DoubleRange(5d);
 
-        // GeoTools Ranges
-        rangeGeoToolsB = new org.geotools.util.NumberRange<Byte>(Byte.class, (byte) 1, (byte) 60);
-        rangeGeoToolsS = new org.geotools.util.NumberRange<Short>(Short.class, (short) 1,
-                (short) 60);
-        rangeGeoToolsI = new org.geotools.util.NumberRange<Integer>(Integer.class, 1, 60);
-        rangeGeoToolsF = new org.geotools.util.NumberRange<Float>(Float.class, 0.5f, 60.5f);
-        rangeGeoToolsD = new org.geotools.util.NumberRange<Double>(Double.class, 1.5d, 60.5d);
-        // 1 point Ranges
-        rangeGeoToolsBpoint = new org.geotools.util.NumberRange<Byte>(Byte.class, (byte) 5,
-                (byte) 5);
-        rangeGeoToolsSpoint = new org.geotools.util.NumberRange<Short>(Short.class, (short) 5,
-                (short) 5);
-        rangeGeoToolsIpoint = new org.geotools.util.NumberRange<Integer>(Integer.class, 5, 5);
-        rangeGeoToolsFpoint = new org.geotools.util.NumberRange<Float>(Float.class, 5f, 5f);
-        rangeGeoToolsDpoint = new org.geotools.util.NumberRange<Double>(Double.class, 5d, 5d);
+//        // GeoTools Ranges
+//        rangeGeoToolsB = new org.geotools.util.NumberRange<Byte>(Byte.class, (byte) 1, (byte) 60);
+//        rangeGeoToolsS = new org.geotools.util.NumberRange<Short>(Short.class, (short) 1,
+//                (short) 60);
+//        rangeGeoToolsI = new org.geotools.util.NumberRange<Integer>(Integer.class, 1, 60);
+//        rangeGeoToolsF = new org.geotools.util.NumberRange<Float>(Float.class, 0.5f, 60.5f);
+//        rangeGeoToolsD = new org.geotools.util.NumberRange<Double>(Double.class, 1.5d, 60.5d);
+//        // 1 point Ranges
+//        rangeGeoToolsBpoint = new org.geotools.util.NumberRange<Byte>(Byte.class, (byte) 5,
+//                (byte) 5);
+//        rangeGeoToolsSpoint = new org.geotools.util.NumberRange<Short>(Short.class, (short) 5,
+//                (short) 5);
+//        rangeGeoToolsIpoint = new org.geotools.util.NumberRange<Integer>(Integer.class, 5, 5);
+//        rangeGeoToolsFpoint = new org.geotools.util.NumberRange<Float>(Float.class, 5f, 5f);
+//        rangeGeoToolsDpoint = new org.geotools.util.NumberRange<Double>(Double.class, 5d, 5d);
 
 //        // Guava Ranges
 //        rangeGuavaB = com.google.common.collect.Range.closed((byte) 1, (byte) 60);
@@ -586,50 +585,50 @@ public class RangeTest {
         }
     }
 
-    @Test
-    public void testGeoToolsRangeTimeByte1or2Points() {
-        if (!SINGLE_POINT) {
-            switch(TEST_SELECTOR){
-            case DataBuffer.TYPE_BYTE:
-                testGeoToolsRangeTime(rangeGeoToolsB, SINGLE_POINT,arrayBtest);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                testGeoToolsRangeTime(rangeGeoToolsS, SINGLE_POINT,arrayStest);
-                break;
-            case DataBuffer.TYPE_INT:
-                testGeoToolsRangeTime(rangeGeoToolsI, SINGLE_POINT,arrayItest);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                testGeoToolsRangeTime(rangeGeoToolsF, SINGLE_POINT,arrayFtest);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                testGeoToolsRangeTime(rangeGeoToolsD, SINGLE_POINT,arrayDtest);
-                break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
-            }
-        } else {
-            switch(TEST_SELECTOR){
-            case DataBuffer.TYPE_BYTE:
-                testGeoToolsRangeTime(rangeGeoToolsBpoint, SINGLE_POINT,arrayBtest);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                testGeoToolsRangeTime(rangeGeoToolsSpoint, SINGLE_POINT,arrayStest);
-                break;
-            case DataBuffer.TYPE_INT:
-                testGeoToolsRangeTime(rangeGeoToolsIpoint, SINGLE_POINT,arrayItest);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                testGeoToolsRangeTime(rangeGeoToolsFpoint, SINGLE_POINT,arrayFtest);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                testGeoToolsRangeTime(rangeGeoToolsDpoint, SINGLE_POINT,arrayDtest);
-                break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
-            }
-        }
-    }
+//    @Test
+//    public void testGeoToolsRangeTimeByte1or2Points() {
+//        if (!SINGLE_POINT) {
+//            switch(TEST_SELECTOR){
+//            case DataBuffer.TYPE_BYTE:
+//                testGeoToolsRangeTime(rangeGeoToolsB, SINGLE_POINT,arrayBtest);
+//                break;
+//            case DataBuffer.TYPE_SHORT:
+//                testGeoToolsRangeTime(rangeGeoToolsS, SINGLE_POINT,arrayStest);
+//                break;
+//            case DataBuffer.TYPE_INT:
+//                testGeoToolsRangeTime(rangeGeoToolsI, SINGLE_POINT,arrayItest);
+//                break;
+//            case DataBuffer.TYPE_FLOAT:
+//                testGeoToolsRangeTime(rangeGeoToolsF, SINGLE_POINT,arrayFtest);
+//                break;
+//            case DataBuffer.TYPE_DOUBLE:
+//                testGeoToolsRangeTime(rangeGeoToolsD, SINGLE_POINT,arrayDtest);
+//                break;
+//                default:
+//                    throw new IllegalArgumentException("Wrong data type");
+//            }
+//        } else {
+//            switch(TEST_SELECTOR){
+//            case DataBuffer.TYPE_BYTE:
+//                testGeoToolsRangeTime(rangeGeoToolsBpoint, SINGLE_POINT,arrayBtest);
+//                break;
+//            case DataBuffer.TYPE_SHORT:
+//                testGeoToolsRangeTime(rangeGeoToolsSpoint, SINGLE_POINT,arrayStest);
+//                break;
+//            case DataBuffer.TYPE_INT:
+//                testGeoToolsRangeTime(rangeGeoToolsIpoint, SINGLE_POINT,arrayItest);
+//                break;
+//            case DataBuffer.TYPE_FLOAT:
+//                testGeoToolsRangeTime(rangeGeoToolsFpoint, SINGLE_POINT,arrayFtest);
+//                break;
+//            case DataBuffer.TYPE_DOUBLE:
+//                testGeoToolsRangeTime(rangeGeoToolsDpoint, SINGLE_POINT,arrayDtest);
+//                break;
+//                default:
+//                    throw new IllegalArgumentException("Wrong data type");
+//            }
+//        }
+//    }
 
 //    @Test
 //    public void testGuavaRangeTimeByte1or2Points() {
@@ -950,38 +949,38 @@ public class RangeTest {
                 + " nsec.");
     }
 
-    public <T extends Number & Comparable<T>>void testGeoToolsRangeTime(org.geotools.util.Range<T> testRange, boolean isPoint, T[] array) {
-        int totalCycles = NOT_BENCHMARK_ITERATION + BENCHMARK_ITERATION;
-        // Initialization of the statistics
-        long mean = 0;
-        for (int i = 0; i < totalCycles; i++) {
-            // Total calculation time
-            long start = System.nanoTime();
-
-            for (int j = 0; j < array.length; j++) {
-                testRange.contains(array[j]);
-            }
-            long end = System.nanoTime() - start;
-
-            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
-            if (i > NOT_BENCHMARK_ITERATION - 1) {
-                if (i == NOT_BENCHMARK_ITERATION) {
-                    mean = end;
-                } else {
-                    mean = mean + end;
-                }
-            }
-        }
-        String description = "";
-        if (isPoint) {
-            description += " a single point";
-        }
-        // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION;
-        // Output print
-        System.out.println("\nMean value for" + description + " GeoTools Range : " + meanValue
-                + " nsec.");
-    }
+//    public <T extends Number & Comparable<T>>void testGeoToolsRangeTime(org.geotools.util.Range<T> testRange, boolean isPoint, T[] array) {
+//        int totalCycles = NOT_BENCHMARK_ITERATION + BENCHMARK_ITERATION;
+//        // Initialization of the statistics
+//        long mean = 0;
+//        for (int i = 0; i < totalCycles; i++) {
+//            // Total calculation time
+//            long start = System.nanoTime();
+//
+//            for (int j = 0; j < array.length; j++) {
+//                testRange.contains(array[j]);
+//            }
+//            long end = System.nanoTime() - start;
+//
+//            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
+//            if (i > NOT_BENCHMARK_ITERATION - 1) {
+//                if (i == NOT_BENCHMARK_ITERATION) {
+//                    mean = end;
+//                } else {
+//                    mean = mean + end;
+//                }
+//            }
+//        }
+//        String description = "";
+//        if (isPoint) {
+//            description += " a single point";
+//        }
+//        // Mean values
+//        double meanValue = mean / BENCHMARK_ITERATION;
+//        // Output print
+//        System.out.println("\nMean value for" + description + " GeoTools Range : " + meanValue
+//                + " nsec.");
+//    }
 
 //    public <T extends Number & Comparable<T>>void testGuavaRangeTime(com.google.common.collect.Range<T> testRange,
 //            boolean isPoint, T[] array) {

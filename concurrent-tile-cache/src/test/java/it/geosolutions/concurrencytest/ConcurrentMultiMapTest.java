@@ -33,8 +33,7 @@ import javax.imageio.stream.ImageInputStream;
 import javax.media.jai.RenderedOp;
 
 import junit.framework.Assert;
-
-import org.geotools.TestData;
+import it.geosolutions.jaiext.testclasses.TestData;
 import org.junit.Test;
 
 import com.sun.media.jai.operator.ImageReadDescriptor;

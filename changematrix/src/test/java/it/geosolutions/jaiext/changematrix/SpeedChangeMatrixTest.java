@@ -39,7 +39,7 @@ import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TileCache;
 
-import org.geotools.test.TestData;
+import it.geosolutions.jaiext.testclasses.TestData;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
