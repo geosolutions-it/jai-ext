@@ -24,8 +24,8 @@
   <!-- ======================================================== -->
   <!--                    Project Description                   -->
   <!-- ======================================================== -->
-  <groupId>it.geosolutions.jai-ext</groupId>
-  <artifactId>jai-ext</artifactId>
+  <groupId>it.geosolutions.jaiext</groupId>
+  <artifactId>jaiext</artifactId>
   <packaging>pom</packaging>
   <version>1.0-SNAPSHOT</version>
   <name>GeoSolutions JAI Extensions Library Root Project</name>
