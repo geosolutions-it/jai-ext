@@ -22,6 +22,7 @@ import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.scale.ScaleDescriptor;
+import it.geosolutions.jaiext.testclasses.TestData;
 import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 import java.awt.Rectangle;
@@ -39,7 +40,6 @@ import javax.media.jai.PlanarImage;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 
-import org.geotools.test.TestData;
 import org.junit.Test;
 
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;

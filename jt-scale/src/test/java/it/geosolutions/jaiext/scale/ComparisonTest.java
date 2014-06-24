@@ -29,6 +29,7 @@ import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.testclasses.TestData;
 
 import javax.media.jai.BorderExtender;
 import javax.media.jai.Interpolation;
@@ -37,7 +38,6 @@ import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.RenderedOp;
 
-import org.geotools.test.TestData;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

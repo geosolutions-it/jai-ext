@@ -45,7 +45,7 @@ import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.ConstantDescriptor;
 import javax.media.jai.operator.CropDescriptor;
 
-import org.geotools.test.TestData;
+import it.geosolutions.jaiext.testclasses.TestData;
 import org.junit.Test;
 
 /**

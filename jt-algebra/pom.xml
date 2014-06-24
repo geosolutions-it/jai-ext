@@ -10,7 +10,6 @@
 	</parent>
 	<groupId>it.geosolutions.jaiext.algebra</groupId>
 	<artifactId>jt-algebra</artifactId>
-	<version>1.0-SNAPSHOT</version>
 	<name>jt-algebra</name>
 	<url>http://maven.apache.org</url>
 	<properties>
@@ -18,20 +17,14 @@
 	</properties>
 	<dependencies>
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.8.1</version>
-			<scope>test</scope>
+			<groupId>it.geosolutions.jaiext.utilities</groupId>
+			<artifactId>jt-utilities</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>it.geosolutions.jaiext.utilities</groupId>
 			<artifactId>jt-utilities</artifactId>
-			<version>1.0-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>it.geosolutions.jaiext.utilities</groupId>
-			<artifactId>jt-utilities</artifactId>
-			<version>1.0-SNAPSHOT</version>
+			<version>${project.version}</version>
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
