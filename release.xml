@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<project name="Release" default="release">
+  <target name="release">
+    <property name="version" value="1.0-SNAPSHOT" />
+    
+    <property name="host" value="demo.geo-solutions.it" />
+    <property name="remoteReleasesPath" value="${path}" />
+    <property name="user" value="${usr}" />
+    <property name="password" value="${psw}" />
+    
+    <!-- Prepare deployment folder -->
+    <delete includeEmptyDirs="true" dir="deploy" />
+    <mkdir dir="deploy" />
+     
+     <!-- copying all jar classes to a single archive to be deployed -->
+     <zip destfile="deploy/jai-ext-${version}-jars.zip" basedir="release/target/dependency" />
+     
+     <!-- copying javadocs -->
+     <copy file="target/release/jai-ext-${version}-javadoc.zip" toFile="deploy/jai-ext-${version}-javadocs.zip" />
+	 
+	 <!-- copying sources -->
+     <copy file="target/release/jai-ext-${version}-src.zip" toFile="deploy/jai-ext-${version}-sources.zip" />
+     
+     <!-- transfer to Remote-->
+     <scp todir="${user}:${password}@${host}:${remoteReleasesPath}/${version}">
+       <fileset dir="deploy">
+         <include name="*"/>
+       </fileset>
+     </scp>
+  </target>
+</project>
+

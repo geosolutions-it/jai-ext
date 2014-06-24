@@ -118,8 +118,50 @@
               <goal>copy-dependencies</goal>
             </goals>
             <configuration>
-              <includeGroupIds>it.geosolutions.imageio-ext</includeGroupIds>
-              <includeArtifactIds>imageio-ext-gdalframework</includeArtifactIds>
+              <includeGroupIds>
+			  it.geosolutions.jaiext.concurrent-tile-cache,
+			  it.geosolutions.jaiext.affine,
+			  it.geosolutions.jaiext.algebra,
+			  it.geosolutions.jaiext.bandmerge,
+			  it.geosolutions.jaiext.border,
+			  it.geosolutions.jaiext.buffer,
+			  it.geosolutions.jaiext.crop,
+			  it.geosolutions.jaiext.iterators
+			  it.geosolutions.jaiext.lookup,
+			  it.geosolutions.jaiext.mosaic,
+			  it.geosolutions.jaiext.nullop,
+			  it.geosolutions.jaiext.rescale,
+			  it.geosolutions.jaiext.scale,
+			  it.geosolutions.jaiext.scheduler,
+			  it.geosolutions.jaiext.stats,
+			  it.geosolutions.jaiext.translate,
+			  it.geosolutions.jaiext.utilities
+			  it.geosolutions.jaiext.warp,
+			  it.geosolutions.jaiext.zonal,
+			  it.geosolutions.jaiext.squareroot
+			  </includeGroupIds>
+              <includeArtifactIds>
+			  concurrent-tile-cache,
+			  jt-affine,
+			  jt-algebra,
+			  jt-bandmerge,
+			  jt-border,
+			  jt-buffer,
+			  jt-crop,
+			  jt-iterators,
+			  jt-lookup,
+			  jt-mosaic,
+			  jt-nullop,
+			  jt-rescale,
+			  jt-scale,
+			  jt-scheduler,
+			  jt-stats,
+			  jt-translate,
+			  jt-utilities,
+			  jt-warp,
+			  jt-zonal,
+			  square-root
+			  </includeArtifactIds>
             </configuration>
           </execution>
         </executions>
