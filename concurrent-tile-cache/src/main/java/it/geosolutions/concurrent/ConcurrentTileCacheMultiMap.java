@@ -590,7 +590,11 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
                 });
         // Setting of the listener
         builder.removalListener(createListener(diagnosticEnabled));
-
+        // Enable statistics only when the diagnostic flag is set to true;
+        if(diagnosticEnabled){
+            builder.recordStats();
+        }
+        
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Building Cache");
         }
