@@ -1,23 +1,21 @@
-/*
- * Created on Jun 10, 2005
- * @author Rafael Santos (rafael.santos@lac.inpe.br)
- *
- * Part of the Java Advanced Imaging Stuff site
- * (http://www.lac.inpe.br/~rafael.santos/Java/JAI)
- *
- * STATUS: Complete, but could be improved, for example, with:
- *   - Plotting more than one band of the histogram.
- *   - Considering the minimum number of pixels in a bin.
- *   - Customization as a JavaBean.
- *
- * Redistribution and usage conditions must be done under the
- * Creative Commons license:
- * English: http://creativecommons.org/licenses/by-nc-sa/2.0/br/deed.en
- * Portuguese: http://creativecommons.org/licenses/by-nc-sa/2.0/br/deed.pt
- * More information on design and applications are on the projects' page
- * (http://www.lac.inpe.br/~rafael.santos/Java/JAI).
- */
-package org.geotools.renderedimage.viewer;
+/* JAI-Ext - OpenSource Java Advanced Image Extensions Library
+*    http://www.geo-solutions.it/
+*    Copyright 2014 GeoSolutions
+
+
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+
+* http://www.apache.org/licenses/LICENSE-2.0
+
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+package it.geosolutions.rendered.viewer;
 
 import java.awt.Color;
 import java.awt.Dimension;
