@@ -11,6 +11,7 @@
     <extensive.tests>false</extensive.tests>
     <interactive.tests>false</interactive.tests>
     <test.maxHeapSize>512M</test.maxHeapSize>
+	<test.maxPermSize>128m</test.maxPermSize>
     <jt.version>1.2.0</jt.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.8.1</junit.version>
@@ -458,7 +459,7 @@
             <include>**/*Test.java</include>
           </includes>
           <forkMode>once</forkMode>
-          <argLine>-Xmx${test.maxHeapSize} -enableassertions -Dtest.extensive=${extensive.tests} -Dtest.interactive=${interactive.tests}</argLine>
+          <argLine>-Xmx${test.maxHeapSize} -XX:MaxPermSize=${test.maxPermSize} -enableassertions -Dtest.extensive=${extensive.tests} -Dtest.interactive=${interactive.tests}</argLine>
          </configuration>
       </plugin>
       
@@ -536,7 +537,6 @@
   <modules>
     <module>squareroot</module>
     <module>concurrent-tile-cache</module>
-    <module>roiaware-legacy</module>
     <module>jt-scale</module>
     <module>jt-affine</module>
     <module>jt-utilities</module>
@@ -552,7 +552,6 @@
     <module>jt-nullop</module>
     <module>jt-bandmerge</module>
     <module>jt-border</module>
-    <module>changematrix</module>
     <module>jt-algebra</module>
     <module>jt-buffer</module>
     <module>jt-scheduler</module>
