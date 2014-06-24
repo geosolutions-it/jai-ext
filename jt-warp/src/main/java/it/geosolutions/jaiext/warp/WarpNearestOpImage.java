@@ -133,7 +133,7 @@ final class WarpNearestOpImage extends WarpOpImage {
     }
 
     protected void computeRectByte(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
@@ -157,7 +157,7 @@ final class WarpNearestOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // NO ROI AND NODATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -214,7 +214,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -233,7 +233,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -290,7 +290,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -313,7 +313,7 @@ final class WarpNearestOpImage extends WarpOpImage {
     }
 
     protected void computeRectUShort(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
@@ -337,7 +337,7 @@ final class WarpNearestOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // NO ROI AND NODATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -394,7 +394,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -413,7 +413,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             short inputValue = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
@@ -477,7 +477,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -505,7 +505,7 @@ final class WarpNearestOpImage extends WarpOpImage {
     }
 
     protected void computeRectShort(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
@@ -529,7 +529,7 @@ final class WarpNearestOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // NO ROI AND NODATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -586,7 +586,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -605,7 +605,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             short inputValue = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
@@ -669,7 +669,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -696,7 +696,8 @@ final class WarpNearestOpImage extends WarpOpImage {
         iter.done();
     }
 
-    protected void computeRectInt(final PlanarImage src, final RasterAccessor dst, final ROI roiTile) {
+    protected void computeRectInt(final PlanarImage src, final RasterAccessor dst,
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
@@ -720,7 +721,7 @@ final class WarpNearestOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // NO ROI AND NODATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -776,7 +777,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -794,7 +795,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             int inputValue = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
@@ -858,7 +859,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -886,7 +887,7 @@ final class WarpNearestOpImage extends WarpOpImage {
     }
 
     protected void computeRectFloat(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
@@ -910,7 +911,7 @@ final class WarpNearestOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // NO ROI AND NODATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -966,7 +967,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -985,7 +986,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             float inputValue = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
@@ -1049,7 +1050,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -1077,7 +1078,7 @@ final class WarpNearestOpImage extends WarpOpImage {
     }
 
     protected void computeRectDouble(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator on the source image bounds
         final RandomIter iter = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED,
                 ARRAY_CALC);
@@ -1101,7 +1102,7 @@ final class WarpNearestOpImage extends WarpOpImage {
         int lineOffset = 0;
 
         // NO ROI AND NODATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1157,7 +1158,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -1176,7 +1177,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                 }
             }
             // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             double inputValue = 0;
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
@@ -1240,7 +1241,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!roiTile.contains(sx, sy)) {
+                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {

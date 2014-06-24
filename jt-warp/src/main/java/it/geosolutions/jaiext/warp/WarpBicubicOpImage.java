@@ -17,10 +17,7 @@
 */
 package it.geosolutions.jaiext.warp;
 
-import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
-
-import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
@@ -196,32 +193,37 @@ final class WarpBicubicOpImage extends WarpOpImage {
         if (precisionBits > 0) {
             round = 1 << (precisionBits - 1);
         }
+        
+        // Definition of the padding
+        leftPad = 1;
+        rightPad = 2;
+        topPad = 1;
+        bottomPad = 2;
     }
 
     protected void computeRectByte(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
 
         // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
-                    src.getWidth() + 3, src.getHeight() + 3);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-
+            // Creation of an iterator on the image extended by the padding factors
+            iterSource = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
 
         } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-
-            minX = src.getMinX() + 1; // Left padding
-            maxX = src.getMaxX() - 2; // Right padding
-            minY = src.getMinY() + 1; // Top padding
-            maxY = src.getMaxY() - 2; // Bottom padding
+            // Creation of an iterator on the image
+            iterSource = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         final int dstWidth = dst.getWidth();
@@ -236,10 +238,15 @@ final class WarpBicubicOpImage extends WarpOpImage {
         final float[] warpData = new float[2 * dstWidth];
 
         int lineOffset = 0;
+        
+        // Creation of an iterator for the ROI Image
+        if(hasROI && !roiContainsTile && roiIter == null){
+            throw new IllegalArgumentException("Error on creating the ROI iterator");
+        }
 
         if (ctable == null) { // source does not have IndexColorModel
             // ONLY VALID DATA
-            if (caseA) {
+            if (caseA || (caseB && roiContainsTile)) {
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -319,12 +326,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                            // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                             boolean inRoi = false;
 
-                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                    inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                    int x = xint + (i - 1);
+                                    int y = yint + (j - 1);
+                                    if (roiBounds.contains(x, y)) {
+                                        inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                    }
                                 }
                             }
                             if (inRoi) {
@@ -354,7 +365,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                     } // COLS LOOP
                 } // ROWS LOOP
                   // ONLY NODATA
-            } else if (caseC) {
+            } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
                 // Array used during calculations
                 final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
                 long[] sumArray = new long[KERNEL_LINE_DIM];
@@ -520,12 +531,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                            // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                             boolean inRoi = false;
 
-                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                    inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                    int x = xint + (i - 1);
+                                    int y = yint + (j - 1);
+                                    if (roiBounds.contains(x, y)) {
+                                        inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                    }
                                 }
                             }
                             if (inRoi) {
@@ -612,7 +627,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
             }
         } else {// source has IndexColorModel
                 // ONLY VALID DATA
-            if (caseA) {
+            if (caseA || (caseB && roiContainsTile)) {
                 for (int h = 0; h < dstHeight; h++) {
                     int pixelOffset = lineOffset;
                     lineOffset += lineStride;
@@ -693,12 +708,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                            // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                             boolean inRoi = false;
 
-                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                    inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                    int x = xint + (i - 1);
+                                    int y = yint + (j - 1);
+                                    if (roiBounds.contains(x, y)) {
+                                        inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                    }
                                 }
                             }
                             if (inRoi) {
@@ -729,7 +748,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                     } // COLS LOOP
                 } // ROWS LOOP
                   // ONLY NODATA
-            } else if (caseC) {
+            } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
                 // Array used during calculations
                 final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
                 long[] sumArray = new long[KERNEL_LINE_DIM];
@@ -897,12 +916,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                            // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                             boolean inRoi = false;
 
-                            for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                                for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                    inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                            for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                                for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                    int x = xint + (i - 1);
+                                    int y = yint + (j - 1);
+                                    if (roiBounds.contains(x, y)) {
+                                        inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                    }
                                 }
                             }
                             if (inRoi) {
@@ -995,28 +1018,27 @@ final class WarpBicubicOpImage extends WarpOpImage {
     }
 
     protected void computeRectUShort(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
-                    src.getWidth() + 3, src.getHeight() + 3);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-
+            // Creation of an iterator on the image extended by the padding factors
+            iterSource = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
 
         } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-
-            minX = src.getMinX() + 1; // Left padding
-            maxX = src.getMaxX() - 2; // Right padding
-            minY = src.getMinY() + 1; // Top padding
-            maxY = src.getMaxY() - 2; // Bottom padding
+            // Creation of an iterator on the image
+            iterSource = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         final int dstWidth = dst.getWidth();
@@ -1032,9 +1054,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
         int lineOffset = 0;
 
+        // Creation of an iterator for the ROI Image
+        if(hasROI && !roiContainsTile && roiIter == null){
+            throw new IllegalArgumentException("Error on creating the ROI iterator");
+        }
+        
         // source does not have IndexColorModel
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1115,12 +1142,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                         boolean inRoi = false;
 
-                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                        for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                int x = xint + (i - 1);
+                                int y = yint + (j - 1);
+                                if (roiBounds.contains(x, y)) {
+                                    inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         if (inRoi) {
@@ -1151,7 +1182,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
               // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             // Array used during calculations
             final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
             long[] sumArray = new long[KERNEL_LINE_DIM];
@@ -1317,12 +1348,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                         boolean inRoi = false;
 
-                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                        for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                int x = xint + (i - 1);
+                                int y = yint + (j - 1);
+                                if (roiBounds.contains(x, y)) {
+                                    inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         if (inRoi) {
@@ -1411,28 +1446,27 @@ final class WarpBicubicOpImage extends WarpOpImage {
     }
 
     protected void computeRectShort(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
-                    src.getWidth() + 3, src.getHeight() + 3);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-
+            // Creation of an iterator on the image extended by the padding factors
+            iterSource = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
 
         } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-
-            minX = src.getMinX() + 1; // Left padding
-            maxX = src.getMaxX() - 2; // Right padding
-            minY = src.getMinY() + 1; // Top padding
-            maxY = src.getMaxY() - 2; // Bottom padding
+            // Creation of an iterator on the image
+            iterSource = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         final int dstWidth = dst.getWidth();
@@ -1448,9 +1482,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
         int lineOffset = 0;
 
+        // Creation of an iterator for the ROI Image
+        if(hasROI && !roiContainsTile && roiIter == null){
+            throw new IllegalArgumentException("Error on creating the ROI iterator");
+        }
+        
         // source does not have IndexColorModel
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1531,12 +1570,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                         boolean inRoi = false;
 
-                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                        for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                int x = xint + (i - 1);
+                                int y = yint + (j - 1);
+                                if (roiBounds.contains(x, y)) {
+                                    inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         if (inRoi) {
@@ -1567,7 +1610,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
               // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             // Array used during calculations
             final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
             long[] sumArray = new long[KERNEL_LINE_DIM];
@@ -1733,12 +1776,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                         boolean inRoi = false;
 
-                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                        for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                int x = xint + (i - 1);
+                                int y = yint + (j - 1);
+                                if (roiBounds.contains(x, y)) {
+                                    inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         if (inRoi) {
@@ -1826,28 +1873,28 @@ final class WarpBicubicOpImage extends WarpOpImage {
         iterSource.done();
     }
 
-    protected void computeRectInt(final PlanarImage src, final RasterAccessor dst, final ROI roiTile) {
+    protected void computeRectInt(final PlanarImage src, final RasterAccessor dst,
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
-                    src.getWidth() + 3, src.getHeight() + 3);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-
+            // Creation of an iterator on the image extended by the padding factors
+            iterSource = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
 
         } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-
-            minX = src.getMinX() + 1; // Left padding
-            maxX = src.getMaxX() - 2; // Right padding
-            minY = src.getMinY() + 1; // Top padding
-            maxY = src.getMaxY() - 2; // Bottom padding
+            // Creation of an iterator on the image
+            iterSource = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         final int dstWidth = dst.getWidth();
@@ -1863,9 +1910,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
         int lineOffset = 0;
 
+        // Creation of an iterator for the ROI Image
+        if(hasROI && !roiContainsTile && roiIter == null){
+            throw new IllegalArgumentException("Error on creating the ROI iterator");
+        }
+        
         // source does not have IndexColorModel
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -1946,12 +1998,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                         boolean inRoi = false;
 
-                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                        for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                int x = xint + (i - 1);
+                                int y = yint + (j - 1);
+                                if (roiBounds.contains(x, y)) {
+                                    inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         if (inRoi) {
@@ -1982,7 +2038,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
               // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             // Array used during calculations
             final long[][] pixelKernel = new long[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
             long[] sumArray = new long[KERNEL_LINE_DIM];
@@ -2148,12 +2204,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                         boolean inRoi = false;
 
-                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                        for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                int x = xint + (i - 1);
+                                int y = yint + (j - 1);
+                                if (roiBounds.contains(x, y)) {
+                                    inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         if (inRoi) {
@@ -2242,28 +2302,27 @@ final class WarpBicubicOpImage extends WarpOpImage {
     }
 
     protected void computeRectFloat(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
-                    src.getWidth() + 3, src.getHeight() + 3);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-
+            // Creation of an iterator on the image extended by the padding factors
+            iterSource = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
 
         } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-
-            minX = src.getMinX() + 1; // Left padding
-            maxX = src.getMaxX() - 2; // Right padding
-            minY = src.getMinY() + 1; // Top padding
-            maxY = src.getMaxY() - 2; // Bottom padding
+            // Creation of an iterator on the image
+            iterSource = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         final int dstWidth = dst.getWidth();
@@ -2279,9 +2338,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
         int lineOffset = 0;
 
+        // Creation of an iterator for the ROI Image
+        if(hasROI && !roiContainsTile && roiIter == null){
+            throw new IllegalArgumentException("Error on creating the ROI iterator");
+        }
+        
         // source does not have IndexColorModel
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -2362,12 +2426,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                         boolean inRoi = false;
 
-                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                        for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                int x = xint + (i - 1);
+                                int y = yint + (j - 1);
+                                if (roiBounds.contains(x, y)) {
+                                    inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         if (inRoi) {
@@ -2398,7 +2466,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
               // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             // Array used during calculations
             final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
             double[] sumArray = new double[KERNEL_LINE_DIM];
@@ -2558,12 +2626,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                         boolean inRoi = false;
 
-                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                        for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                int x = xint + (i - 1);
+                                int y = yint + (j - 1);
+                                if (roiBounds.contains(x, y)) {
+                                    inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         if (inRoi) {
@@ -2652,28 +2724,27 @@ final class WarpBicubicOpImage extends WarpOpImage {
     }
 
     protected void computeRectDouble(final PlanarImage src, final RasterAccessor dst,
-            final ROI roiTile) {
+            final RandomIter roiIter, boolean roiContainsTile) {
         // Random Iterator initialization, taking into account the presence of the borderExtender
         RandomIter iterSource;
         final int minX, maxX, minY, maxY;
         if (extended) {
-            final Rectangle bounds = new Rectangle(src.getMinX() - 1, src.getMinY() - 1,
-                    src.getWidth() + 3, src.getHeight() + 3);
-            iterSource = RandomIterFactory.create(src.getExtendedData(bounds, extender), bounds,
-                    TILE_CACHED, ARRAY_CALC);
-
+            // Creation of an iterator on the image extended by the padding factors
+            iterSource = getRandomIterator(src, leftPad, rightPad, topPad, bottomPad, extender);
+            // Definition of the image bounds
             minX = src.getMinX();
             maxX = src.getMaxX();
             minY = src.getMinY();
             maxY = src.getMaxY();
 
         } else {
-            iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
-
-            minX = src.getMinX() + 1; // Left padding
-            maxX = src.getMaxX() - 2; // Right padding
-            minY = src.getMinY() + 1; // Top padding
-            maxY = src.getMaxY() - 2; // Bottom padding
+            // Creation of an iterator on the image
+            iterSource = getRandomIterator(src, null);
+            // Definition of the image bounds
+            minX = src.getMinX() + leftPad; // Left padding
+            maxX = src.getMaxX() - rightPad; // Right padding
+            minY = src.getMinY() + topPad; // Top padding
+            maxY = src.getMaxY() - bottomPad; // Bottom padding
         }
 
         final int dstWidth = dst.getWidth();
@@ -2689,9 +2760,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
         int lineOffset = 0;
 
+        // Creation of an iterator for the ROI Image
+        if(hasROI && !roiContainsTile && roiIter == null){
+            throw new IllegalArgumentException("Error on creating the ROI iterator");
+        }
+        
         // source does not have IndexColorModel
         // ONLY VALID DATA
-        if (caseA) {
+        if (caseA || (caseB && roiContainsTile)) {
             for (int h = 0; h < dstHeight; h++) {
                 int pixelOffset = lineOffset;
                 lineOffset += lineStride;
@@ -2763,12 +2839,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                         boolean inRoi = false;
 
-                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                        for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                int x = xint + (i - 1);
+                                int y = yint + (j - 1);
+                                if (roiBounds.contains(x, y)) {
+                                    inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         if (inRoi) {
@@ -2790,7 +2870,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                 } // COLS LOOP
             } // ROWS LOOP
               // ONLY NODATA
-        } else if (caseC) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
             // Array used during calculations
             final double[][] pixelKernel = new double[KERNEL_LINE_DIM][KERNEL_LINE_DIM];
             double[] sumArray = new double[KERNEL_LINE_DIM];
@@ -2942,12 +3022,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        // Initialization of the flag indicating that all the kernel pixels are inside the ROI
+                        // Initialization of the flag indicating that at least one kernel pixels is inside the ROI
                         boolean inRoi = false;
 
-                        for (int j = 0; j < KERNEL_LINE_DIM; j++) {
-                            for (int i = 0; i < KERNEL_LINE_DIM; i++) {
-                                inRoi |= roiTile.contains(xint + (i - 1), yint + (j - 1));
+                        for (int j = 0; j < KERNEL_LINE_DIM && !inRoi; j++) {
+                            for (int i = 0; i < KERNEL_LINE_DIM && !inRoi; i++) {
+                                int x = xint + (i - 1);
+                                int y = yint + (j - 1);
+                                if (roiBounds.contains(x, y)) {
+                                    inRoi |= roiIter.getSample(x, y, 0) > 0;
+                                }
                             }
                         }
                         if (inRoi) {
