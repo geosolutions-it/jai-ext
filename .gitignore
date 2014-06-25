@@ -28,3 +28,4 @@ concurrent-tile-cache/bin/*
 roiaware-legacy/target/*
 squareroot/target/*
 release/target/*
+deploy/*
