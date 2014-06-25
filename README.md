@@ -12,7 +12,8 @@ More informations can be found at the [JAI-EXT Wiki](https://github.com/geosolut
 The JAI-EXT project is licensed with the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 # Getting Started
-* [Five minutes guide](https://github.com/geosolutions-it/jai-ext/wiki/Five-minutes-Guide)
+Here the user can find a guide for executing a JAI-EXT operation and a brief description of the most important parameters to use:
+* [Fifteen minutes guide](https://github.com/geosolutions-it/jai-ext/wiki/Fifteen-minutes-Guide)
 
 
 # Getting Support
