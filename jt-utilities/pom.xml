@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>it.geosolutions.jaiext</groupId>
 		<artifactId>jaiext</artifactId>
-		<version>1.0-M062014</version>
+		<version>1.0-SNAPSHOT</version>
 	</parent>
 	<groupId>it.geosolutions.jaiext.utilities</groupId>
 	<artifactId>jt-utilities</artifactId>
