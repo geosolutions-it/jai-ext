@@ -24,7 +24,7 @@
      <copy file="target/release/jai-ext-${version}-src.zip" toFile="deploy/jai-ext-${version}-sources.zip" />
      
      <!-- transfer to Remote-->
-     <scp todir="${user}:${password}@${host}:${remoteReleasesPath}/${version}">
+     <scp todir="${user}:${password}@${host}:${remoteReleasesPath}/${version}" trust="true">
        <fileset dir="deploy">
          <include name="*"/>
        </fileset>
