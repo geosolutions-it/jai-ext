@@ -2,12 +2,14 @@
 <project name="Release" default="release">
   <target name="release">
     <property name="version" value="1.0-SNAPSHOT" />
-    
+
+    <property file="../release.properties" />
+
     <property name="host" value="demo.geo-solutions.it" />
     <property name="remoteReleasesPath" value="${path}" />
-    <property name="user" value="${usr}" />
-    <property name="password" value="${psw}" />
-    
+    <property name="user" value="${USR}" />
+    <property name="password" value="${PSW}" />
+
     <!-- Prepare deployment folder -->
     <delete includeEmptyDirs="true" dir="deploy" />
     <mkdir dir="deploy" />
