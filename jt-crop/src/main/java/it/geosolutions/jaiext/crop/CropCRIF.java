@@ -45,9 +45,6 @@ import com.sun.media.jai.opimage.RIFUtil;
  * The image factory for the Crop operator.
  * 
  * @author Andrea Aime
- * @since 2.7.2
- *
- * @source $URL$
  */
 public class CropCRIF implements RenderedImageFactory {
 

@@ -32,8 +32,6 @@ import javax.media.jai.PointOpImage;
  * 
  * This is a clean room implementation (there are no others ways in which a Crop can be implemented,
  * so it looks a lot like the original one)
- * 
- * @since 2.7.2
  */
 final class CropOpImage extends PointOpImage {
 
