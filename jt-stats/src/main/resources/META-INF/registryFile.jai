@@ -8,4 +8,4 @@ descriptor  it.geosolutions.jaiext.stats.StatisticsDescriptor
 # RenderedImageFactories
 #
 
-rendered  it.geosolutions.jaiext.stats.StatisticsRIF  it.geosolutions.jaiext.roiaware  Stats Stats 
+rendered  it.geosolutions.jaiext.stats.StatisticsRIF  it.geosolutions.jaiext  Stats Stats 

@@ -67,7 +67,7 @@ public class CropDescriptor extends OperationDescriptorImpl {
 
     public CropDescriptor() {
         super(new String[][] { { "GlobalName", "CropNoData" }, { "LocalName", "CropNoData" },
-                { "Vendor", "it.geosolutions.jaiext.roiaware" },
+                { "Vendor", "it.geosolutions.jaiext" },
                 { "Description", "Crops the image to the specified bounds" },
                 { "DocURL", "Not Defined" }, { "Version", "1.0.0" },
 
@@ -107,7 +107,7 @@ public class CropDescriptor extends OperationDescriptorImpl {
                 
                 registry.registerDescriptor(descriptor);
                 registry.registerFactory(RenderedRegistryMode.MODE_NAME,
-                        descName, "it.geosolutions.jaiext.roiaware",new CropCRIF());
+                        descName, "it.geosolutions.jaiext",new CropCRIF());
             }
         } catch (Exception e) {
             if (LOGGER.isLoggable(Level.FINE)) {

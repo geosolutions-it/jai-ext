@@ -217,7 +217,7 @@ class AffinePropertyGenerator extends PropertyGeneratorImpl {
  * <tr><th>Name</th>        <th>Value</th></tr>
  * <tr><td>GlobalName</td>  <td>AffineNoData</td></tr>
  * <tr><td>LocalName</td>   <td>AffineNoData</td></tr>
- * <tr><td>Vendor</td>      <td>it.geosolutions.jaiext.roiaware</td></tr>
+ * <tr><td>Vendor</td>      <td>it.geosolutions.jaiext</td></tr>
  * <tr><td>Description</td> <td>Performs interpolated affine transform on
  *                              an image.</td></tr>
  * <tr><td>DocURL</td>      <td>http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/AffineDescriptor.html</td></tr>
@@ -265,7 +265,7 @@ public class AffineDescriptor extends OperationDescriptorImpl {
     private static final String[][] resources = {
         {"GlobalName",  "AffineNoData"},
         {"LocalName",   "AffineNoData"},
-        {"Vendor",      "it.geosolutions.jaiext.roiaware"},
+        {"Vendor",      "it.geosolutions.jaiext"},
         {"Description", JaiI18N.getString("AffineDescriptor0")},
         {"DocURL",      "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/AffineDescriptor.html"},
         {"Version",     JaiI18N.getString("DescriptorVersion")},

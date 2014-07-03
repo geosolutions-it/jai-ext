@@ -75,7 +75,7 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>it.geosolutions.jaiext.roiaware</td>
+ * <td>it.geosolutions.jaiext</td>
  * </tr>
  * <tr>
  * <td>Description</td>
@@ -148,7 +148,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
     private static final String[][] resources = {
             { "GlobalName", "BandMergeOp" },
             { "LocalName", "BandMergeOp" },
-            { "Vendor", "it.geosolutions.jaiext.roiaware" },
+            { "Vendor", "it.geosolutions.jaiext" },
             { "Description",
                     "Operation used for merging multiple images into a single multibanded image" },
             { "DocURL", "Not Defined" }, { "Version", "1.0" }, { "arg0Desc", "NoData values" },

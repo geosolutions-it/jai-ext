@@ -42,7 +42,7 @@ public class SquareRootStretchDescriptor extends OperationDescriptorImpl
         {
             { "GlobalName", "SquareRootStretch" },
             { "LocalName", "SquareRootStretch" },
-            { "Vendor", "it.geosolutions.jaiext.contrastenhancement" },
+            { "Vendor", "it.geosolutions.jaiext" },
             { "Description", JaiI18N.getString("SquareRootStretchDescriptor0") },
             { "DocURL", "" },
             { "Version", JaiI18N.getString("DescriptorVersion") },

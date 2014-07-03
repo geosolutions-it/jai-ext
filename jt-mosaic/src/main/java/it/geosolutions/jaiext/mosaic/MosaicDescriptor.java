@@ -111,7 +111,7 @@ private static final long serialVersionUID = 2718297230579888333L;
 private static final String[][] resources = {
         { "GlobalName", "MosaicNoData" },
         { "LocalName", "MosaicNoData" },
-        { "Vendor", "it.geosolutions.jaiext.mosaic" },
+        { "Vendor", "it.geosolutions.jaiext" },
         {
                 "Description",
                 "A different mosaic operation which supports noData and doesn't supports threshold" },

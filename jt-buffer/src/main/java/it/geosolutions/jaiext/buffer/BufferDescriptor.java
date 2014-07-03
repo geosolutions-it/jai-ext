@@ -43,7 +43,7 @@ public class BufferDescriptor extends OperationDescriptorImpl {
      * The resource strings that provide the general documentation and specify the parameter list for the "Buffer" operation.
      */
     private static final String[][] resources = { { "GlobalName", "Buffer" },
-            { "LocalName", "Buffer" }, { "Vendor", "it.geosolutions.jaiext.roiaware" },
+            { "LocalName", "Buffer" }, { "Vendor", "it.geosolutions.jaiext" },
             { "Description", "Calculates sum on a buffer for each pixels." },
             { "DocURL", "Not Defined" }, { "Version", JaiI18N.getString("DescriptorVersion") },
             { "arg0Desc", JaiI18N.getString("BufferDescriptor0") },

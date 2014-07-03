@@ -89,7 +89,7 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>it.geosolutions.jaiext.roiaware</td>
+ * <td>it.geosolutions.jaiext</td>
  * </tr>
  * <tr>
  * <td>Description</td>
@@ -233,7 +233,7 @@ public class ZonalStatsDescriptor extends OperationDescriptorImpl {
     private static final String[][] resources = {
             { "GlobalName", "Zonal" },
             { "LocalName", "Zonal" },
-            { "Vendor", "it.geosolutions.jaiext.roiaware" },
+            { "Vendor", "it.geosolutions.jaiext" },
             { "Description",
                     "Image operator for calculating statistics on various Geometries supporting ROI and No Data" },
             { "DocURL", "Not defined" },

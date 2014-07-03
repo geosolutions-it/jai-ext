@@ -88,7 +88,7 @@ public class BandSelectDescriptor extends OperationDescriptorImpl {
     private static final String[][] resources = {
         {"GlobalName",  "BandSelect2"},
         {"LocalName",   "BandSelect2"},
-        {"Vendor",      "com.sun.media.jai"},
+        {"Vendor",      "it.geosolutions.jaiext"},
         {"Description", JaiI18N.getString("BandSelectDescriptor0")},
         {"DocURL",      "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/BandSelectDescriptor.html"},
         {"Version",     JaiI18N.getString("DescriptorVersion")},

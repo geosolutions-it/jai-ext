@@ -144,7 +144,7 @@ class TranslatePropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>it.geosolutions.jaiext.roiaware</td>
+ * <td>it.geosolutions.jaiext</td>
  * </tr>
  * <tr>
  * <td>Description</td>
@@ -201,7 +201,7 @@ public class TranslateDescriptor extends OperationDescriptorImpl {
     private static final String[][] resources = {
             { "GlobalName", "Translation" },
             { "LocalName", "Translation" },
-            { "Vendor", "it.geosolutions.jaiext.roiaware" },
+            { "Vendor", "it.geosolutions.jaiext" },
             { "Description", JaiI18N.getString("TranslateDescriptor0") },
             {
                     "DocURL",
