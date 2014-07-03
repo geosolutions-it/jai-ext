@@ -577,8 +577,8 @@
   <!--   Modules for the build in approximate dependency order    -->
   <!-- ========================================================== -->
   <modules>
-    <module>squareroot</module>
-    <module>concurrent-tile-cache</module>
+    <module>jt-squareroot</module>
+    <module>jt-concurrent-tile-cache</module>
     <module>jt-scale</module>
     <module>jt-affine</module>
     <module>jt-utilities</module>

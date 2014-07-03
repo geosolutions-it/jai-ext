@@ -8,7 +8,7 @@
 		<version>1.0-SNAPSHOT</version>
 	</parent>
 	<groupId>it.geosolutions.jaiext.concurrent-tile-cache</groupId>
-	<artifactId>concurrent-tile-cache</artifactId>
+	<artifactId>jt-concurrent-tile-cache</artifactId>
 	<packaging>jar</packaging>
 	<name>New tile cache implementation supporting concurrency</name>
 	<dependencies>
