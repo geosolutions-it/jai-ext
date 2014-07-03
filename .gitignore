@@ -18,6 +18,7 @@ jt-crop/target/*
 jt-rescale/target/*
 jt-nullop/target/*
 jt-bandmerge/target/*
+jt-bandselect/target/*
 jt-border/target/*
 jt-buffer/target/*
 jt-scheduler/target/*

@@ -593,6 +593,7 @@
     <module>jt-rescale</module>
     <module>jt-nullop</module>
     <module>jt-bandmerge</module>
+    <module>jt-bandselect</module>
     <module>jt-border</module>
     <module>jt-algebra</module>
     <module>jt-buffer</module>
