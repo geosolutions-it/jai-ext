@@ -36,9 +36,6 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * but does so respecting the tile scheduler and tile cache specified in the rendering hints
  * 
  * @author Andrea Aime
- * @since 2.7.2
- *
- * @source $URL$
  */
 public class CropDescriptor extends OperationDescriptorImpl {
     

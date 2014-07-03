@@ -18,10 +18,13 @@
 package it.geosolutions.jaiext.crop;
 
 import java.awt.image.renderable.RenderedImageFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.media.jai.OperationDescriptor;
 import javax.media.jai.OperationRegistry;
 import javax.media.jai.OperationRegistrySpi;
+import javax.media.jai.RegistryElementDescriptor;
 import javax.media.jai.registry.RenderedRegistryMode;
 
 /**
@@ -29,11 +32,11 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * factories.
  * 
  * @author Andrea Aime
- * @since 2.7.2
- *
- * @source $URL$
  */
 public class CropSpi implements OperationRegistrySpi {
+    
+    /** Logger class used for Log any exception thrown*/
+    private static final Logger LOGGER = Logger.getLogger(CropSpi.class.toString());
 
     /** The name of the product to which these operations belong. */
     private String productName = "it.geosolutions.jaiext.roiaware";
@@ -51,11 +54,21 @@ public class CropSpi implements OperationRegistrySpi {
      */
     public void updateRegistry(OperationRegistry registry) {
         OperationDescriptor op = new CropDescriptor();
-        registry.registerDescriptor(op);
-        String descName = op.getName();
-
         RenderedImageFactory rif = new CropCRIF();
-
-        registry.registerFactory(RenderedRegistryMode.MODE_NAME, descName, productName, rif);
+        // Check if the operation has already been registered
+        String[] desc = registry.getOperationNames();
+        boolean found = false;
+        for(int i = 0; i < desc.length; i++){
+            if(desc[i].equalsIgnoreCase(op.getName())){
+                found = true;
+                break;
+            }
+        }
+        // Operation not registered
+        if (!found) {
+            registry.registerDescriptor(op);
+            String descName = op.getName();
+            registry.registerFactory(RenderedRegistryMode.MODE_NAME, descName, productName, rif);
+        }
     }
 }
