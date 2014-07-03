@@ -175,7 +175,7 @@ class LookupPropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>it.geosolutions.jaiext.roiaware</td>
+ * <td>it.geosolutions.jaiext</td>
  * </tr>
  * <tr>
  * <td>Description</td>
@@ -250,7 +250,7 @@ public class LookupDescriptor extends OperationDescriptorImpl {
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
     private static final String[][] resources = { { "GlobalName", "LookupNoData" },
-            { "LocalName", "LookupNoData" }, { "Vendor", "it.geosolutions.jaiext.roiaware" },
+            { "LocalName", "LookupNoData" }, { "Vendor", "it.geosolutions.jaiext" },
             { "Description", "Lookup operation supporting ROI and No Data" },
             { "DocURL", "Not defined" }, { "Version", "1.0" },
             { "arg0Desc", "The lookup table to use" },

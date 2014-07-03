@@ -39,7 +39,7 @@ public class CropSpi implements OperationRegistrySpi {
     private static final Logger LOGGER = Logger.getLogger(CropSpi.class.toString());
 
     /** The name of the product to which these operations belong. */
-    private String productName = "it.geosolutions.jaiext.roiaware";
+    private String productName = "it.geosolutions.jaiext";
 
     /** Default constructor. */
     public CropSpi() {

@@ -8,4 +8,4 @@ descriptor  it.geosolutions.jaiext.bandmerge.BandMergeDescriptor
 # RenderedImageFactories
 #
 
-rendered  it.geosolutions.jaiext.bandmerge.BandMergeCRIF  it.geosolutions.jaiext.roiaware  BandMergeOp BandMergeOp 
+rendered  it.geosolutions.jaiext.bandmerge.BandMergeCRIF  it.geosolutions.jaiext  BandMergeOp BandMergeOp 

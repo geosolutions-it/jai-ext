@@ -129,7 +129,7 @@ class RescalePropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>it.geosolutions.jaiext.roiaware</td>
+ * <td>it.geosolutions.jaiext</td>
  * </tr>
  * <tr>
  * <td>Description</td>
@@ -212,7 +212,7 @@ public class RescaleDescriptor extends OperationDescriptorImpl {
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
     private static final String[][] resources = { { "GlobalName", "Rescaling" },
-            { "LocalName", "Rescaling" }, { "Vendor", "it.geosolutions.jaiext.roiaware" },
+            { "LocalName", "Rescaling" }, { "Vendor", "it.geosolutions.jaiext" },
             { "Description", "Operation which converts the image dynamic to a new dynamic" },
             { "DocURL", "Not Defined" }, { "Version", "1.0" },
             { "arg0Desc", "Scale factors used for rescaling values" },

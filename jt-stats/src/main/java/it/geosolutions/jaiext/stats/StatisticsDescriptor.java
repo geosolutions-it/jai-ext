@@ -143,7 +143,7 @@ class StatisticsPropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>it.geosolutions.jaiext.roiaware</td>
+ * <td>it.geosolutions.jaiext</td>
  * </tr>
  * <tr>
  * <td>Description</td>
@@ -258,7 +258,7 @@ public class StatisticsDescriptor extends OperationDescriptorImpl {
     private static final String[][] resources = {
             { "GlobalName", "Stats" },
             { "LocalName", "Stats" },
-            { "Vendor", "it.geosolutions.jaiext.roiaware" },
+            { "Vendor", "it.geosolutions.jaiext" },
             { "Description",
                     "Image operator for calculating simple image statistics like mean supporting ROI and No Data" },
             { "DocURL", "Not defined" },

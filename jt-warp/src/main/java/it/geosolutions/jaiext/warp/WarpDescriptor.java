@@ -220,7 +220,7 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>it.geosolutions.jaiext.roiaware</td>
+ * <td>it.geosolutions.jaiext</td>
  * </tr>
  * <tr>
  * <td>Description</td>
@@ -315,7 +315,7 @@ public class WarpDescriptor extends OperationDescriptorImpl {
 
             final RenderedImageFactory rif = new WarpRIF();
             registry.registerFactory(RenderedRegistryMode.MODE_NAME, descName,
-                    "it.geosolutions.jaiext.roiaware", rif);
+                    "it.geosolutions.jaiext", rif);
             return true;
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, e.getLocalizedMessage(), e);
@@ -330,7 +330,7 @@ public class WarpDescriptor extends OperationDescriptorImpl {
     private static final String[][] resources = {
             { "GlobalName", "WarpNoData" },
             { "LocalName", "WarpNoData" },
-            { "Vendor", "it.geosolutions.jaiext.roiaware" },
+            { "Vendor", "it.geosolutions.jaiext" },
             { "Description", "Warps an image according to a specified Warp object." },
             {
                     "DocURL",

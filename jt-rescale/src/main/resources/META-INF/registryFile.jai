@@ -8,4 +8,4 @@ descriptor  it.geosolutions.jaiext.rescale.RescaleDescriptor
 # RenderedImageFactories
 #
 
-rendered  it.geosolutions.jaiext.rescale.RescaleCRIF  it.geosolutions.jaiext.roiaware  Rescaling Rescaling 
+rendered  it.geosolutions.jaiext.rescale.RescaleCRIF  it.geosolutions.jaiext  Rescaling Rescaling 

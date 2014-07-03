@@ -586,7 +586,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
     private static final String[][] resources = {
             { "GlobalName", "algebric" },
             { "LocalName", "algebric" },
-            { "Vendor", "it.geosolutions.jaiext.roiaware" },
+            { "Vendor", "it.geosolutions.jaiext" },
             { "Description",
                     "This class executes the operation selected by the user on each pixel of the source images " },
             { "DocURL", "Not Defined" }, { "Version", "1.0" },

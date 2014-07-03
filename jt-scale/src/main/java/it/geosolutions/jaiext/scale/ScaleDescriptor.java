@@ -315,7 +315,7 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
  * <tr><th>Name</th>        <th>Value</th></tr>
  * <tr><td>GlobalName</td>  <td>ScaleNoData</td></tr>
  * <tr><td>LocalName</td>   <td>ScaleNoData</td></tr>
- * <tr><td>Vendor</td>      <td>it.geosolutions.jaiext.roiaware</td></tr>
+ * <tr><td>Vendor</td>      <td>it.geosolutions.jaiext</td></tr>
  * <tr><td>Description</td> <td>Resizes an image.</td></tr>
  * <tr><td>DocURL</td>      <td> See this URL for the official description http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ScaleDescriptor.html</td></tr>
  * <tr><td>Version</td>     <td>1.0</td></tr>
@@ -362,7 +362,7 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
     private static final String[][] resources = {
         {"GlobalName",  "ScaleNoData"},
         {"LocalName",   "ScaleNoData"},
-        {"Vendor",      "it.geosolutions.jaiext.roiaware"},
+        {"Vendor",      "it.geosolutions.jaiext"},
         {"Description", JaiI18N.getString("ScaleDescriptor0")},
         {"DocURL",      "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ScaleDescriptor.html"},
         {"Version",     JaiI18N.getString("DescriptorVersion")},
