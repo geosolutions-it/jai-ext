@@ -33,5 +33,11 @@
 			<version>${guava.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>${apache.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>

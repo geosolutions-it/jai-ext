@@ -64,6 +64,8 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
     
     /** Boolean used for indicating that the No Data Range is not degenarated(useful only for NaN check inside Float or Double Range) */
     private boolean isNotPointRange;
+
+    private boolean isBicubic2;
     
     /**
      * Simple interpolator object used for Bicubic/Bicubic2 interpolation. On construction it is possible to set a range for no data values that will
@@ -87,6 +89,7 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
         if (precisionBits > 0) {
             round = 1 << (precisionBits - 1);
         }
+        this.isBicubic2 = !bicubic2Disabled;
     }
 
     
@@ -114,6 +117,10 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
             this.noDataRange = noDataRange;     
             this.isNotPointRange = !noDataRange.isPoint();
         }
+    }
+    
+    public boolean isBicubic2(){
+        return isBicubic2;
     }
     
     public int getDataType() {
