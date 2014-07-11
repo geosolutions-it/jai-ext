@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.changematrix;
 
 import it.geosolutions.jaiext.changematrix.ChangeMatrixDescriptor.ChangeMatrix;
@@ -26,11 +26,13 @@ import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Map;
 
 import javax.media.jai.AreaOpImage;
 import javax.media.jai.ImageLayout;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.PointOpImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
@@ -66,6 +68,12 @@ public class ChangeMatrixOpImage extends PointOpImage {
     /** Flag indicating the presence of ROI */
     private final boolean noROI;
 
+    /** Flag indicating that the area layer is present */
+    private final boolean areaGrid;
+
+    /** Image which maps the area for each pixel*/
+    private final RenderedImage areaMap;
+
     /**
      * Creates a new instance.
      * 
@@ -84,8 +92,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
      */
     @SuppressWarnings("rawtypes")
     public ChangeMatrixOpImage(final RenderedImage reference, final RenderedImage now,
-            final Map config, final ImageLayout layout, ROI roi, int pixelMultiplier,
-            final ChangeMatrix result) {
+            final RenderedImage area, final Map config, final ImageLayout layout, ROI roi,
+            int pixelMultiplier, final ChangeMatrix result) {
 
         super(reference, now, layout, config, true);
         // Setting of the ChangeMatrix
@@ -165,7 +173,9 @@ public class ChangeMatrixOpImage extends PointOpImage {
             this.noROI = true;
         }
 
-        // where do we put the final elements?
+        // Area grid is present
+        areaGrid = area != null;
+        areaMap = area;
     }
 
     /**
@@ -194,6 +204,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     getSourceImage(0).getColorModel());
             final RasterAccessor s2 = new RasterAccessor(sources[1], destRect, formatTags[1],
                     getSourceImage(1).getColorModel());
+
             final RasterAccessor d = new RasterAccessor(dest, destRect, formatTags[2],
                     getColorModel());
             // Source and Destination RasterAccessor parameters
@@ -206,6 +217,26 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src2LineStride = s2.getScanlineStride();
             final int src2PixelStride = s2.getPixelStride();
             final int[] src2BandOffsets = s2.getBandOffsets();
+
+            // Definition of the variables associated to the areaMap parameter
+            int src3LineStride = 0;
+            int src3PixelStride = 0;
+            int src3BandOffset = 0;
+            double[] s3Data = null;
+            if (areaGrid) {
+                int tileX = PlanarImage.XToTileX(dest.getMinX(), areaMap.getTileGridXOffset(),
+                        areaMap.getTileWidth());
+                int tileY = PlanarImage.YToTileY(dest.getMinY(), areaMap.getTileGridYOffset(),
+                        areaMap.getTileHeight());
+                Raster data = areaMap.getTile(tileX, tileY);
+                RenderedImage[] srcs = new RenderedImage[]{getSourceImage(0), getSourceImage(1), areaMap};
+                RasterFormatTag[] tags = RasterAccessor.findCompatibleTags(srcs , this);
+                RasterAccessor s3 = new RasterAccessor(data, destRect, tags[2], null) ;
+                src3LineStride = s3.getScanlineStride();
+                src3PixelStride = s3.getPixelStride();
+                src3BandOffset = s3.getBandOffsets()[0];
+                s3Data = s3.getDoubleDataArray(0);
+            }
 
             final int dstNumBands = d.getNumBands();
             final int dstWidth = d.getWidth();
@@ -228,14 +259,16 @@ public class ChangeMatrixOpImage extends PointOpImage {
                         byteToShortLoop(dstNumBands, dstWidth, dstHeight, minX, minY,
                                 src1LineStride, src1PixelStride, src1BandOffsets,
                                 s1.getByteDataArrays(), src2LineStride, src2PixelStride,
-                                src2BandOffsets, s2.getByteDataArrays(), dstLineStride,
+                                src2BandOffsets, s2.getByteDataArrays(), src3LineStride,
+                                src3PixelStride, src3BandOffset, s3Data, dstLineStride,
                                 dstPixelStride, dstBandOffsets, d.getShortDataArrays(), tileRoi);
                         break;
                     case DataBuffer.TYPE_INT:
                         byteToIntLoop(dstNumBands, dstWidth, dstHeight, minX, minY, src1LineStride,
                                 src1PixelStride, src1BandOffsets, s1.getByteDataArrays(),
                                 src2LineStride, src2PixelStride, src2BandOffsets,
-                                s2.getByteDataArrays(), dstLineStride, dstPixelStride,
+                                s2.getByteDataArrays(), src3LineStride, src3PixelStride,
+                                src3BandOffset, s3Data, dstLineStride, dstPixelStride,
                                 dstBandOffsets, d.getIntDataArrays(), tileRoi);
                         break;
                     }
@@ -243,7 +276,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     byteLoop(dstNumBands, dstWidth, dstHeight, minX, minY, src1LineStride,
                             src1PixelStride, src1BandOffsets, s1.getByteDataArrays(),
                             src2LineStride, src2PixelStride, src2BandOffsets,
-                            s2.getByteDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
+                            s2.getByteDataArrays(), src3LineStride, src3PixelStride,
+                            src3BandOffset, s3Data, dstLineStride, dstPixelStride, dstBandOffsets,
                             d.getByteDataArrays(), tileRoi);
                 }
                 break;
@@ -253,13 +287,15 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     ushortToIntLoop(dstNumBands, dstWidth, dstHeight, minX, minY, src1LineStride,
                             src1PixelStride, src1BandOffsets, s1.getShortDataArrays(),
                             src2LineStride, src2PixelStride, src2BandOffsets,
-                            s2.getShortDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
+                            s2.getShortDataArrays(), src3LineStride, src3PixelStride,
+                            src3BandOffset, s3Data, dstLineStride, dstPixelStride, dstBandOffsets,
                             d.getIntDataArrays(), tileRoi);
                 } else {
                     ushortLoop(dstNumBands, dstWidth, dstHeight, minX, minY, src1LineStride,
                             src1PixelStride, src1BandOffsets, s1.getShortDataArrays(),
                             src2LineStride, src2PixelStride, src2BandOffsets,
-                            s2.getShortDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
+                            s2.getShortDataArrays(), src3LineStride, src3PixelStride,
+                            src3BandOffset, s3Data, dstLineStride, dstPixelStride, dstBandOffsets,
                             d.getShortDataArrays(), tileRoi);
                 }
                 break;
@@ -269,13 +305,15 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     shortToIntLoop(dstNumBands, dstWidth, dstHeight, minX, minY, src1LineStride,
                             src1PixelStride, src1BandOffsets, s1.getShortDataArrays(),
                             src2LineStride, src2PixelStride, src2BandOffsets,
-                            s2.getShortDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
+                            s2.getShortDataArrays(), src3LineStride, src3PixelStride,
+                            src3BandOffset, s3Data, dstLineStride, dstPixelStride, dstBandOffsets,
                             d.getIntDataArrays(), tileRoi);
                 } else {
                     shortLoop(dstNumBands, dstWidth, dstHeight, minX, minY, src1LineStride,
                             src1PixelStride, src1BandOffsets, s1.getShortDataArrays(),
                             src2LineStride, src2PixelStride, src2BandOffsets,
-                            s2.getShortDataArrays(), dstLineStride, dstPixelStride, dstBandOffsets,
+                            s2.getShortDataArrays(), src3LineStride, src3PixelStride,
+                            src3BandOffset, s3Data, dstLineStride, dstPixelStride, dstBandOffsets,
                             d.getShortDataArrays(), tileRoi);
                 }
                 break;
@@ -283,8 +321,9 @@ public class ChangeMatrixOpImage extends PointOpImage {
                 // If the destination data type is Integer then it cannot change
                 intLoop(dstNumBands, dstWidth, dstHeight, minX, minY, src1LineStride,
                         src1PixelStride, src1BandOffsets, s1.getIntDataArrays(), src2LineStride,
-                        src2PixelStride, src2BandOffsets, s2.getIntDataArrays(), dstLineStride,
-                        dstPixelStride, dstBandOffsets, d.getIntDataArrays(), tileRoi);
+                        src2PixelStride, src2BandOffsets, s2.getIntDataArrays(), src3LineStride,
+                        src3PixelStride, src3BandOffset, s3Data, dstLineStride, dstPixelStride,
+                        dstBandOffsets, d.getIntDataArrays(), tileRoi);
                 break;
             }
             d.copyDataToRaster();
@@ -297,8 +336,11 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final int[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
-            final int[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
+            final int[][] src2Data, final int src3LineStride, final int src3PixelStride,
+            int src3BandOffset, double[] src3Data, final int dstLineStride,
+            final int dstPixelStride, final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
+        // Definition of the variable used for storing the pixel area
+        double area;
 
         for (int b = 0; b < dstNumBands; b++) {
             final int[] s1 = src1Data[b];
@@ -306,14 +348,17 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int[] d = dstData[b];
             int src1LineOffset = src1BandOffsets[b];
             int src2LineOffset = src2BandOffsets[b];
+            int src3LineOffset = src3BandOffset;
             int dstLineOffset = dstBandOffsets[b];
 
             for (int h = 0; h < dstHeight; h++) {
                 int src1PixelOffset = src1LineOffset;
                 int src2PixelOffset = src2LineOffset;
+                int src3PixelOffset = src3LineOffset;
                 int dstPixelOffset = dstLineOffset;
                 src1LineOffset += src1LineStride;
                 src2LineOffset += src2LineStride;
+                src3LineOffset += src3LineStride;
                 dstLineOffset += dstLineStride;
 
                 for (int w = 0; w < dstWidth; w++) {
@@ -329,7 +374,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
 
                     if (noROI || tileRoi.contains(x, y)) {
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        area = areaGrid ? src3Data[src3PixelOffset] : -1;
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         d[dstPixelOffset] = before + pixelMultiplier * after;
                     } else {
@@ -339,6 +385,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
+                    src3PixelOffset += src3PixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
             }
@@ -350,8 +397,12 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final byte[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
-            final byte[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final byte[][] dstData, ROI tileRoi) {
+            final byte[][] src2Data, final int src3LineStride, final int src3PixelStride,
+            int src3BandOffset, double[] src3Data, final int dstLineStride,
+            final int dstPixelStride, final int[] dstBandOffsets, final byte[][] dstData,
+            ROI tileRoi) {
+        // Definition of the variable used for storing the pixel area
+        double area;
 
         for (int b = 0; b < dstNumBands; b++) {
             final byte[] s1 = src1Data[b];
@@ -359,14 +410,17 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final byte[] d = dstData[b];
             int src1LineOffset = src1BandOffsets[b];
             int src2LineOffset = src2BandOffsets[b];
+            int src3LineOffset = src3BandOffset;
             int dstLineOffset = dstBandOffsets[b];
 
             for (int h = 0; h < dstHeight; h++) {
                 int src1PixelOffset = src1LineOffset;
                 int src2PixelOffset = src2LineOffset;
+                int src3PixelOffset = src3LineOffset;
                 int dstPixelOffset = dstLineOffset;
                 src1LineOffset += src1LineStride;
                 src2LineOffset += src2LineStride;
+                src3LineOffset += src3LineStride;
                 dstLineOffset += dstLineStride;
 
                 for (int w = 0; w < dstWidth; w++) {
@@ -381,7 +435,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        area = areaGrid ? src3Data[src3PixelOffset] : -1;
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
                         // Check if the processing is an allowed value
@@ -397,6 +452,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
+                    src3PixelOffset += src3PixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
             }
@@ -408,8 +464,11 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final byte[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
-            final byte[][] src2Data, final int dstLineStride, final int dstPixelStride,
+            final byte[][] src2Data, final int src3LineStride, final int src3PixelStride,
+            int src3BandOffset, double[] src3Data, int dstLineStride, int dstPixelStride,
             final int[] dstBandOffsets, final short[][] dstData, ROI tileRoi) {
+        // Definition of the variable used for storing the pixel area
+        double area;
 
         for (int b = 0; b < dstNumBands; b++) {
             final byte[] s1 = src1Data[b];
@@ -417,14 +476,17 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final short[] d = dstData[b];
             int src1LineOffset = src1BandOffsets[b];
             int src2LineOffset = src2BandOffsets[b];
+            int src3LineOffset = src3BandOffset;
             int dstLineOffset = dstBandOffsets[b];
 
             for (int h = 0; h < dstHeight; h++) {
                 int src1PixelOffset = src1LineOffset;
                 int src2PixelOffset = src2LineOffset;
+                int src3PixelOffset = src3LineOffset;
                 int dstPixelOffset = dstLineOffset;
                 src1LineOffset += src1LineStride;
                 src2LineOffset += src2LineStride;
+                src3LineOffset += src3LineStride;
                 dstLineOffset += dstLineStride;
 
                 for (int w = 0; w < dstWidth; w++) {
@@ -439,7 +501,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        area = areaGrid ? src3Data[src3PixelOffset] : -1;
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
                         // Check if the processing is an allowed value
@@ -456,6 +519,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
+                    src3PixelOffset += src3PixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
             }
@@ -467,8 +531,11 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final byte[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
-            final byte[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
+            final byte[][] src2Data, final int src3LineStride, final int src3PixelStride,
+            int src3BandOffset, double[] src3Data, final int dstLineStride,
+            final int dstPixelStride, final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
+        // Definition of the variable used for storing the pixel area
+        double area;
 
         for (int b = 0; b < dstNumBands; b++) {
             final byte[] s1 = src1Data[b];
@@ -476,14 +543,17 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int[] d = dstData[b];
             int src1LineOffset = src1BandOffsets[b];
             int src2LineOffset = src2BandOffsets[b];
+            int src3LineOffset = src3BandOffset;
             int dstLineOffset = dstBandOffsets[b];
 
             for (int h = 0; h < dstHeight; h++) {
                 int src1PixelOffset = src1LineOffset;
                 int src2PixelOffset = src2LineOffset;
+                int src3PixelOffset = src3LineOffset;
                 int dstPixelOffset = dstLineOffset;
                 src1LineOffset += src1LineStride;
                 src2LineOffset += src2LineStride;
+                src3LineOffset += src3LineStride;
                 dstLineOffset += dstLineStride;
 
                 for (int w = 0; w < dstWidth; w++) {
@@ -498,7 +568,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        area = areaGrid ? src3Data[src3PixelOffset] : -1;
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         d[dstPixelOffset] = (before + pixelMultiplier * after);
                     } else {
@@ -507,6 +578,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
+                    src3PixelOffset += src3PixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
             }
@@ -518,8 +590,12 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
-            final short[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final short[][] dstData, ROI tileRoi) {
+            final short[][] src2Data, final int src3LineStride, final int src3PixelStride,
+            int src3BandOffset, double[] src3Data, final int dstLineStride,
+            final int dstPixelStride, final int[] dstBandOffsets, final short[][] dstData,
+            ROI tileRoi) {
+        // Definition of the variable used for storing the pixel area
+        double area;
 
         for (int b = 0; b < dstNumBands; b++) {
             final short[] s1 = src1Data[b];
@@ -527,14 +603,17 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final short[] d = dstData[b];
             int src1LineOffset = src1BandOffsets[b];
             int src2LineOffset = src2BandOffsets[b];
+            int src3LineOffset = src3BandOffset;
             int dstLineOffset = dstBandOffsets[b];
 
             for (int h = 0; h < dstHeight; h++) {
                 int src1PixelOffset = src1LineOffset;
                 int src2PixelOffset = src2LineOffset;
+                int src3PixelOffset = src3LineOffset;
                 int dstPixelOffset = dstLineOffset;
                 src1LineOffset += src1LineStride;
                 src2LineOffset += src2LineStride;
+                src3LineOffset += src3LineStride;
                 dstLineOffset += dstLineStride;
 
                 for (int w = 0; w < dstWidth; w++) {
@@ -549,7 +628,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        area = areaGrid ? src3Data[src3PixelOffset] : -1;
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
                         // Check if the processing is an allowed value
@@ -566,6 +646,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
+                    src3PixelOffset += src3PixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
             }
@@ -577,8 +658,11 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
-            final short[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
+            final short[][] src2Data, final int src3LineStride, final int src3PixelStride,
+            int src3BandOffset, double[] src3Data, final int dstLineStride,
+            final int dstPixelStride, final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
+        // Definition of the variable used for storing the pixel area
+        double area;
 
         for (int b = 0; b < dstNumBands; b++) {
             final short[] s1 = src1Data[b];
@@ -586,14 +670,17 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int[] d = dstData[b];
             int src1LineOffset = src1BandOffsets[b];
             int src2LineOffset = src2BandOffsets[b];
+            int src3LineOffset = src3BandOffset;
             int dstLineOffset = dstBandOffsets[b];
 
             for (int h = 0; h < dstHeight; h++) {
                 int src1PixelOffset = src1LineOffset;
                 int src2PixelOffset = src2LineOffset;
+                int src3PixelOffset = src3LineOffset;
                 int dstPixelOffset = dstLineOffset;
                 src1LineOffset += src1LineStride;
                 src2LineOffset += src2LineStride;
+                src3LineOffset += src3LineStride;
                 dstLineOffset += dstLineStride;
 
                 for (int w = 0; w < dstWidth; w++) {
@@ -608,7 +695,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        area = areaGrid ? src3Data[src3PixelOffset] : -1;
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
 
@@ -619,6 +707,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
+                    src3PixelOffset += src3PixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
             }
@@ -630,8 +719,12 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
-            final short[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final short[][] dstData, ROI tileRoi) {
+            final short[][] src2Data, final int src3LineStride, final int src3PixelStride,
+            int src3BandOffset, double[] src3Data, final int dstLineStride,
+            final int dstPixelStride, final int[] dstBandOffsets, final short[][] dstData,
+            ROI tileRoi) {
+        // Definition of the variable used for storing the pixel area
+        double area;
 
         for (int b = 0; b < dstNumBands; b++) {
             final short[] s1 = src1Data[b];
@@ -639,14 +732,17 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final short[] d = dstData[b];
             int src1LineOffset = src1BandOffsets[b];
             int src2LineOffset = src2BandOffsets[b];
+            int src3LineOffset = src3BandOffset;
             int dstLineOffset = dstBandOffsets[b];
 
             for (int h = 0; h < dstHeight; h++) {
                 int src1PixelOffset = src1LineOffset;
                 int src2PixelOffset = src2LineOffset;
+                int src3PixelOffset = src3LineOffset;
                 int dstPixelOffset = dstLineOffset;
                 src1LineOffset += src1LineStride;
                 src2LineOffset += src2LineStride;
+                src3LineOffset += src3LineStride;
                 dstLineOffset += dstLineStride;
 
                 for (int w = 0; w < dstWidth; w++) {
@@ -661,7 +757,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        area = areaGrid ? src3Data[src3PixelOffset] : -1;
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
                         // Check if the processing is an allowed value
@@ -677,6 +774,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
+                    src3PixelOffset += src3PixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
             }
@@ -688,8 +786,11 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int src1MinX, final int src1MinY, final int src1LineStride,
             final int src1PixelStride, final int[] src1BandOffsets, final short[][] src1Data,
             final int src2LineStride, final int src2PixelStride, final int[] src2BandOffsets,
-            final short[][] src2Data, final int dstLineStride, final int dstPixelStride,
-            final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
+            final short[][] src2Data, final int src3LineStride, final int src3PixelStride,
+            int src3BandOffset, double[] src3Data, final int dstLineStride,
+            final int dstPixelStride, final int[] dstBandOffsets, final int[][] dstData, ROI tileRoi) {
+        // Definition of the variable used for storing the pixel area
+        double area;
 
         for (int b = 0; b < dstNumBands; b++) {
             final short[] s1 = src1Data[b];
@@ -697,14 +798,17 @@ public class ChangeMatrixOpImage extends PointOpImage {
             final int[] d = dstData[b];
             int src1LineOffset = src1BandOffsets[b];
             int src2LineOffset = src2BandOffsets[b];
+            int src3LineOffset = src3BandOffset;
             int dstLineOffset = dstBandOffsets[b];
 
             for (int h = 0; h < dstHeight; h++) {
                 int src1PixelOffset = src1LineOffset;
                 int src2PixelOffset = src2LineOffset;
+                int src3PixelOffset = src3LineOffset;
                 int dstPixelOffset = dstLineOffset;
                 src1LineOffset += src1LineStride;
                 src2LineOffset += src2LineStride;
+                src3LineOffset += src3LineStride;
                 dstLineOffset += dstLineStride;
 
                 for (int w = 0; w < dstWidth; w++) {
@@ -719,7 +823,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int x = src1MinX + (src1PixelOffset % src1LineStride) / src1PixelStride;
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset]);
+                        area = areaGrid ? src3Data[src3PixelOffset] : -1;
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
 
@@ -730,10 +835,10 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
+                    src3PixelOffset += src3PixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
             }
         }
     }
-
 }
