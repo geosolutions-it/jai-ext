@@ -445,7 +445,7 @@ class BandMergeOpImage extends PointOpImage {
                     for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
                         // ROI Check
-                        if (roi.contains(i + minX, y + minY)) {
+                        if (roiTile.contains(i + minX, y + minY)) {
                             // Cycle on each source bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
@@ -543,7 +543,7 @@ class BandMergeOpImage extends PointOpImage {
                     for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
                         // ROI Check
-                        if (roi.contains(i + minX, y + minY)) {
+                        if (roiTile.contains(i + minX, y + minY)) {
                             // Cycle on each source bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
@@ -676,7 +676,7 @@ class BandMergeOpImage extends PointOpImage {
                     for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
                         // ROI Check
-                        if (roi.contains(i + minX, y + minY)) {
+                        if (roiTile.contains(i + minX, y + minY)) {
                             // Cycle on each source bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
@@ -774,7 +774,7 @@ class BandMergeOpImage extends PointOpImage {
                     for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
                         // ROI Check
-                        if (roi.contains(i + minX, y + minY)) {
+                        if (roiTile.contains(i + minX, y + minY)) {
                             // Cycle on each source bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
@@ -904,7 +904,7 @@ class BandMergeOpImage extends PointOpImage {
                     for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
                         // ROI Check
-                        if (roi.contains(i + minX, y + minY)) {
+                        if (roiTile.contains(i + minX, y + minY)) {
                             // Cycle on each source bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
@@ -1002,7 +1002,7 @@ class BandMergeOpImage extends PointOpImage {
                     for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
                         // ROI Check
-                        if (roi.contains(i + minX, y + minY)) {
+                        if (roiTile.contains(i + minX, y + minY)) {
                             // Cycle on each source bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
@@ -1132,7 +1132,7 @@ class BandMergeOpImage extends PointOpImage {
                     for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
                         // ROI Check
-                        if (roi.contains(i + minX, y + minY)) {
+                        if (roiTile.contains(i + minX, y + minY)) {
                             // Cycle on each source bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
@@ -1230,7 +1230,7 @@ class BandMergeOpImage extends PointOpImage {
                     for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
                         // ROI Check
-                        if (roi.contains(i + minX, y + minY)) {
+                        if (roiTile.contains(i + minX, y + minY)) {
                             // Cycle on each source bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
@@ -1360,7 +1360,7 @@ class BandMergeOpImage extends PointOpImage {
                     for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
                         // ROI Check
-                        if (roi.contains(i + minX, y + minY)) {
+                        if (roiTile.contains(i + minX, y + minY)) {
                             // Cycle on each source bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
@@ -1458,7 +1458,7 @@ class BandMergeOpImage extends PointOpImage {
                     for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
 
                         // ROI Check
-                        if (roi.contains(i + minX, y + minY)) {
+                        if (roiTile.contains(i + minX, y + minY)) {
                             // Cycle on each source bands
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;

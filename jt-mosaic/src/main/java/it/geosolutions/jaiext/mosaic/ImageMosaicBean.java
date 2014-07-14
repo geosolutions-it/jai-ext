@@ -47,8 +47,10 @@ public class ImageMosaicBean implements Serializable {
     private RenderedImage image;
 
     private PlanarImage alphaChannel;
+    
+    private RenderedImage roiImage;
 
-    private ROI imageRoi;
+    private ROI roi;
 
     private Range sourceNoData;
 
@@ -68,12 +70,12 @@ public class ImageMosaicBean implements Serializable {
         this.alphaChannel = alphaChannel;
     }
 
-    public ROI getImageRoi() {
-        return imageRoi;
+    public ROI getRoi() {
+        return roi;
     }
 
-    public void setImageRoi(ROI imageRoi) {
-        this.imageRoi = imageRoi;
+    public void setRoi(ROI roi) {
+        this.roi = roi;
     }
 
     public Range getSourceNoData() {
@@ -83,9 +85,16 @@ public class ImageMosaicBean implements Serializable {
     public void setSourceNoData(Range sourceNoData) {
         this.sourceNoData = sourceNoData;
     }
+    
+    public RenderedImage getRoiImage() {
+        return roiImage;
+    }
+
+    public void setRoiImage(RenderedImage roiImage) {
+        this.roiImage = roiImage;
+    }
 
     // default constructor
     public ImageMosaicBean() {
     }
-
 }

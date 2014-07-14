@@ -24,14 +24,17 @@ import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
+import java.awt.image.renderable.ParameterBlock;
 import java.util.Map;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
+import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.PointOpImage;
 import javax.media.jai.ROI;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.iterator.RandomIter;
 import com.sun.media.jai.util.ImageUtil;
 
@@ -106,6 +109,9 @@ public class RescaleOpImage extends PointOpImage {
     /** Destination value for No Data double */
     private double destinationNoDataDouble;
 
+    /** Extended ROI image*/
+    private RenderedOp srcROIImgExt;
+
     public RescaleOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             double[] valueScale, double[] valueOffsets, double destinationNoData, ROI roi,
             Range noData, boolean useROIAccessor) {
@@ -163,14 +169,31 @@ public class RescaleOpImage extends PointOpImage {
             ROI srcROI = roi;
             // Creation of a PlanarImage containing the ROI data
             srcROIImage = srcROI.getAsImage();
-            // ROI image bounds calculation
-            final Rectangle rect = new Rectangle(srcROIImage.getBounds());
-            // Roi image data store
-            Raster data = srcROIImage.getData(rect);
-            // Creation of a RandomIterator for selecting random pixel inside the ROI
-            roiIter = RandomIterFactory.create(data, data.getBounds(), false, true);
-            // ROI bounds are saved
+            // Source Bounds
+            Rectangle srcRect = new Rectangle(source.getMinX(), source.getMinY(),
+                    source.getWidth(), source.getHeight());
+            // Padding of the input ROI image in order to avoid the call of the getExtendedData() method
+            // ROI bounds are saved 
             roiBounds = srcROIImage.getBounds();
+            int deltaX0 = (roiBounds.x - srcRect.x);
+            int leftP = deltaX0 > 0 ? deltaX0 : 0;
+            int deltaY0 = (roiBounds.y - srcRect.y);
+            int topP = deltaY0 > 0 ? deltaY0 : 0;
+            int deltaX1 = (srcRect.x + srcRect.width - roiBounds.x + roiBounds.width);
+            int rightP = deltaX1 > 0 ? deltaX1 : 0;
+            int deltaY1 = (srcRect.y + srcRect.height - roiBounds.y + roiBounds.height);
+            int bottomP = deltaY1 > 0 ? deltaY1 : 0;
+            // Extend the ROI image
+            ParameterBlock pb = new ParameterBlock();
+            pb.setSource(srcROIImage, 0);
+            pb.set(leftP, 0);
+            pb.set(rightP, 1);
+            pb.set(topP, 2);
+            pb.set(bottomP, 3);
+            pb.set(ROI_EXTENDER, 4);
+            srcROIImgExt = JAI.create("border", pb);
+            // Creation of a RandomIterator for selecting random pixel inside the ROI
+            roiIter = RandomIterFactory.create(srcROIImage, srcROIImage.getBounds(), false, true);
             // The useRoiAccessor parameter is set
             this.useROIAccessor = useROIAccessor;
         } else {
@@ -269,7 +292,15 @@ public class RescaleOpImage extends PointOpImage {
         // ROI calculations if roiAccessor is used
         RasterAccessor roiAccessor = null;
         if (useROIAccessor) {
-            Raster roiRaster = srcROIImage.getExtendedData(srcRect, ROI_EXTENDER);
+            // Note that the getExtendedData() method is not called because the input images are padded.
+            // For each image there is a check if the rectangle is contained inside the source image;
+            // if this not happen, the data is taken from the padded image.
+            Raster roiRaster = null;
+            if(roiBounds.contains(srcRect)){
+                roiRaster = srcROIImage.getData(srcRect);
+            }else{
+                roiRaster = srcROIImgExt.getData(srcRect);
+            }
             // creation of the rasterAccessor
             roiAccessor = new RasterAccessor(roiRaster, srcRect, RasterAccessor.findCompatibleTags(
                     new RenderedImage[] { srcROIImage }, srcROIImage)[0],

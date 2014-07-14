@@ -330,15 +330,25 @@ public class AffineGeneralOpImage extends AffineOpImage {
         if (extender == null) {
             sources[0] = srcIMG.getData(srcRect);
             if (hasROI && useROIAccessor) {
-                // If roi accessor is used, the roi must be calculated only in the intersection between the source
-                // image and the roi image.
-                Rectangle roiComputableBounds = srcRect.intersection(srcROIImage.getBounds());
-                rois[0] = srcROIImage.getData(roiComputableBounds);
+                if(srcROIImage.getBounds().contains(srcRect)){
+                    rois[0] = srcROIImage.getData(srcRect);
+                }else{
+                    rois[0] = srcROIImgExt.getData(srcRect);
+                }
             }
         } else {
-            sources[0] = srcIMG.getExtendedData(srcRect, extender);
+            if(srcIMG.getBounds().contains(srcRect)){
+                sources[0] = srcIMG.getData(srcRect);
+            }else{
+                sources[0] = extendedIMG.getData(srcRect);
+            }
+
             if (hasROI && useROIAccessor) {
-                rois[0] = srcROIImage.getExtendedData(srcRect, roiExtender);
+                if(srcROIImage.getBounds().contains(srcRect)){
+                    rois[0] = srcROIImage.getData(srcRect);
+                }else{
+                    rois[0] = srcROIImgExt.getData(srcRect);
+                }
             }
         }
 
