@@ -105,7 +105,15 @@ public class SimpleStatsOpImage extends StatisticsOpImage {
         // ROI calculations if roiAccessor is used
         RasterAccessor roi = null;
         if (useROIAccessor) {
-            Raster roiRaster = srcROIImage.getExtendedData(srcRect, ROI_EXTENDER);
+            // Note that the getExtendedData() method is not called because the input images are padded.
+            // For each image there is a check if the rectangle is contained inside the source image;
+            // if this not happen, the data is taken from the padded image.
+            Raster roiRaster = null;
+            if(srcROIImage.getBounds().contains(srcRect)){
+                roiRaster = srcROIImage.getData(srcRect);
+            }else{
+                roiRaster = srcROIImgExt.getData(srcRect);
+            }
 
             // creation of the rasterAccessor
             roi = new RasterAccessor(roiRaster, srcRect, RasterAccessor.findCompatibleTags(

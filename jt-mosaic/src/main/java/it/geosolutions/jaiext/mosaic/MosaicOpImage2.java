@@ -249,7 +249,7 @@ public class MosaicOpImage2 extends OpImage {
         for (int i = 0; i < numSources; i++) {
             PlanarImage alpha = imageBeans[i].getAlphaChannel();
             alphaList.add(alpha);
-            ROI imageROI = imageBeans[i].getImageRoi();
+            ROI imageROI = imageBeans[i].getRoi();
             if (alpha != null) {
                 alphaPresent = true;
                 SampleModel alphaSampleModel = alpha.getSampleModel();
@@ -369,7 +369,7 @@ public class MosaicOpImage2 extends OpImage {
                             zeroBorderExtender));
                 }
 
-                ROI roi = imageBeans[i].getImageRoi();
+                ROI roi = imageBeans[i].getRoi();
                 if (roiPresent && roi != null) {
                     rasterBeanArray[i].setRoiRaster(roi.getAsImage().getExtendedData(destRectangle,
                             zeroBorderExtender));
@@ -694,7 +694,7 @@ public class MosaicOpImage2 extends OpImage {
             weightTypesUsed[i] = WeightType.WEIGHT_TYPE_NODATA;
             if (srcBean[i].getAlphaRasterAccessor() != null) {
                 weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-            } else if (roiPresent && imageBeans[i].getImageRoi() != null) {
+            } else if (roiPresent && imageBeans[i].getRoi() != null) {
                 weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
             }
         }

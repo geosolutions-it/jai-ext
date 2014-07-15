@@ -26,6 +26,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.awt.image.renderable.ParameterBlock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +36,7 @@ import java.util.Vector;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.BorderExtenderConstant;
 import javax.media.jai.ImageLayout;
+import javax.media.jai.JAI;
 import javax.media.jai.OpImage;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
@@ -245,16 +247,51 @@ public class MosaicOpImage extends OpImage {
         if (sources.size() != images.length) {
             throw new IllegalArgumentException("Source and images must have the same length");
         }
-        // Type of data used for every image
-        int dataType = sampleModel.getDataType();
-
+        
         // Stores the data passed by the parameterBlock
         this.numBands = sampleModel.getNumBands();
         int numSources = getNumSources();
-        this.mosaicTypeSelected = mosaicTypeSelected;
         this.imageBeans = images;
+        this.mosaicTypeSelected = mosaicTypeSelected;
         this.roiPresent = false;
         this.alphaPresent = false;
+        
+        // Definition of the Bounds
+        Rectangle totalBounds = getBounds();
+        
+        // Type of data used for every image
+        int dataType = sampleModel.getDataType();
+        
+        // Value for filling the image border
+        double sourceExtensionBorder;
+        switch (dataType) {
+        case DataBuffer.TYPE_BYTE:
+            sourceExtensionBorder = 0.0;
+            break;
+        case DataBuffer.TYPE_USHORT:
+            sourceExtensionBorder = 0.0;
+            break;
+        case DataBuffer.TYPE_SHORT:
+            sourceExtensionBorder = Short.MIN_VALUE;
+            break;
+        case DataBuffer.TYPE_INT:
+            sourceExtensionBorder = Integer.MIN_VALUE;
+            break;
+        case DataBuffer.TYPE_FLOAT:
+            sourceExtensionBorder = -Float.MAX_VALUE;
+            break;
+        case DataBuffer.TYPE_DOUBLE:
+        default:
+            sourceExtensionBorder = -Double.MAX_VALUE;
+        }
+        
+        // BorderExtender used for filling the image border with the above
+        // sourceExtensionBorder
+        this.sourceBorderExtender = sourceExtensionBorder == 0.0 ? BorderExtender
+                .createInstance(BorderExtender.BORDER_ZERO) : new BorderExtenderConstant(
+                new double[] { sourceExtensionBorder });
+        // BorderExtender used for filling the ROI or alpha images border values.
+        this.zeroBorderExtender = BorderExtender.createInstance(BorderExtender.BORDER_ZERO);
 
         // Stores the destination no data values.
         if (destinationNoData == null) {
@@ -285,7 +322,6 @@ public class MosaicOpImage extends OpImage {
             if (destinationNoData.length < numBands) {
                 Arrays.fill(this.destinationNoDataDouble, destinationNoData[0]);
             } else {
-
                 System.arraycopy(destinationNoData, 0, this.destinationNoDataDouble, 0, numBands);
             }
             switch (dataType) {
@@ -356,16 +392,46 @@ public class MosaicOpImage extends OpImage {
         byteLookupTable = new byte[numSources][numBands][256];
 
         // This cycle is used for checking if every alpha channel is single banded
-        // and has the same
-        // sample model of the source images
+        // and has the same sample model of the source images. Also wrap all the source,
+        // Alpha and ROI images(if present) with a Border operator in order to avoid
+        // the call of the getExtendedData() method.
+        
         for (int i = 0; i < numSources; i++) {
+            // Selection of the i-th source.
+            RenderedImage img = getSourceImage(i);
+            // Calculation of the padding
+            int[] padding = calculatePadding(img, totalBounds);
+            // Extend the Source image
+            ParameterBlock pb = new ParameterBlock();
+            pb.setSource(img, 0);
+            pb.set(padding[0], 0);
+            pb.set(padding[1], 1);
+            pb.set(padding[2], 2);
+            pb.set(padding[3], 3);
+            pb.set(sourceBorderExtender, 4);
+            // Setting of the padded source to the associated bean
+            imageBeans[i].setImage(JAI.create("border", pb));
+            // Selection of the alpha channel
             PlanarImage alpha = imageBeans[i].getAlphaChannel();
             alphaList.add(alpha);
-            ROI imageROI = imageBeans[i].getImageRoi();
+            ROI roi = imageBeans[i].getRoi();
             if (alpha != null) {
                 alphaPresent = true;
                 SampleModel alphaSampleModel = alpha.getSampleModel();
-
+                // Padding of the alpha channel
+                // Calculate padding
+                int[] pads = calculatePadding(alpha, totalBounds);
+                // Extend the Source image
+                pb = new ParameterBlock();
+                pb.setSource(alpha, 0);
+                pb.set(pads[0], 0);
+                pb.set(pads[1], 1);
+                pb.set(pads[2], 2);
+                pb.set(pads[3], 3);
+                pb.set(zeroBorderExtender, 4);
+                // Setting of the padded alpha to the associated bean
+                imageBeans[i].setAlphaChannel(JAI.create("border", pb));
+                
                 if (alphaSampleModel.getNumBands() != 1) {
                     throw new IllegalArgumentException("Alpha bands number must be 1");
                 } else if (alphaSampleModel.getDataType() != sampleModel.getDataType()) {
@@ -378,9 +444,23 @@ public class MosaicOpImage extends OpImage {
                                     + "sampleSize must be equal");
                 }
             }
-            // If even only one ROI is present, this boolean is set to True
-            if (imageROI != null) {
+            // If even only one ROI is present, the roiPresent flag is set to True
+            if (roi != null) {
                 roiPresent = true;
+                RenderedImage roiIMG = roi.getAsImage();
+                // Padding of the ROI image
+                // Calculate padding
+                int[] pads = calculatePadding(roiIMG, totalBounds);
+                // Extend the Source image
+                pb = new ParameterBlock();
+                pb.setSource(roiIMG, 0);
+                pb.set(pads[0], 0);
+                pb.set(pads[1], 1);
+                pb.set(pads[2], 2);
+                pb.set(pads[3], 3);
+                pb.set(zeroBorderExtender, 4);
+                // Setting of the padded ROI image to the associated bean
+                imageBeans[i].setRoiImage(JAI.create("border", pb));
             }
 
             Range noDataRange = imageBeans[i].getSourceNoData();
@@ -420,40 +500,27 @@ public class MosaicOpImage extends OpImage {
                 }
             }
         }
+    }
 
-        // Value for filling the image border
-        double sourceExtensionBorder;
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            sourceExtensionBorder = 0.0;
-            break;
-        case DataBuffer.TYPE_USHORT:
-            sourceExtensionBorder = 0.0;
-            break;
-        case DataBuffer.TYPE_SHORT:
-            sourceExtensionBorder = Short.MIN_VALUE;
-            break;
-        case DataBuffer.TYPE_INT:
-            sourceExtensionBorder = Integer.MIN_VALUE;
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            sourceExtensionBorder = -Float.MAX_VALUE;
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-        default:
-            sourceExtensionBorder = -Double.MAX_VALUE;
-        }
-
-        // BorderExtender used for filling the image border with the above
-        // sourceExtensionBorder
-        this.sourceBorderExtender = sourceExtensionBorder == 0.0 ? BorderExtender
-                .createInstance(BorderExtender.BORDER_ZERO) : new BorderExtenderConstant(
-                new double[] { sourceExtensionBorder });
-
-        // BorderExtender used for filling the ROI or alpha images border values.
-        if (alphaPresent || roiPresent) {
-            this.zeroBorderExtender = BorderExtender.createInstance(BorderExtender.BORDER_ZERO);
-        }
+    /**
+     * Method for calculating the padding between the total mosaic bounds and the bounds of the input source.
+     * 
+     * @param src
+     * @param totalBounds
+     * @return
+     */
+    private int[] calculatePadding(RenderedImage src, Rectangle totalBounds) {
+        // Calculation of the padding to set in order toexpand the input
+        // image to the Rectangle dimensions
+        int deltaX0 = (src.getMinX() - totalBounds.x);
+        int leftP = deltaX0 > 0 ? deltaX0 : 0;
+        int deltaY0 = (src.getMinY() - totalBounds.y);
+        int topP = deltaY0 > 0 ? deltaY0 : 0;
+        int deltaX1 = (totalBounds.x + totalBounds.width - src.getMinX() - src.getWidth());
+        int rightP = deltaX1 > 0 ? deltaX1 : 0;
+        int deltaY1 = (totalBounds.y + totalBounds.height - src.getMinY() - src.getHeight());
+        int bottomP = deltaY1 > 0 ? deltaY1 : 0;
+        return new int[]{leftP, rightP, topP, bottomP};
     }
 
     /**
@@ -478,22 +545,31 @@ public class MosaicOpImage extends OpImage {
         for (int i = 0; i < numSources; i++) {
             PlanarImage source = getSourceImage(i);
             Rectangle srcRect = mapDestRect(destRectangle, i);
-            Raster data = srcRect != null && srcRect.isEmpty() ? null : source.getExtendedData(
-                    destRectangle, sourceBorderExtender);
-
+            Raster data = null;
+            // First, check if the source mapped rectangle is not empty
+            if(!(srcRect != null && srcRect.isEmpty())){
+                // Get the source data from the source or the padded image.
+                if(source.getBounds().contains(destRectangle)){
+                    data = source.getData(destRectangle);
+                }else{
+                    data = imageBeans[i].getImage().getData(destRectangle);
+                }
+            }
             // Raster bean initialization
             sourceRasters[i] = data;
             noDataRanges[i] = imageBeans[i].getSourceNoData();
+            // If the data are present then we can check if Alpha and ROI are present
             if (data != null) {
+                // Get the Alpha data from the padded alpha image if present
                 PlanarImage alpha = imageBeans[i].getAlphaChannel();
                 if (alphaPresent && alpha != null) {
-                    alphaRasters[i] = alpha.getExtendedData(destRectangle, zeroBorderExtender);
+                    alphaRasters[i] = alpha.getData(destRectangle);
                 }
 
-                ROI roi = imageBeans[i].getImageRoi();
+                // Get the ROI data from the padded ROI image if present
+                RenderedImage roi = imageBeans[i].getRoiImage();
                 if (roiPresent && roi != null) {
-                    roiRasters[i] = roi.getAsImage().getExtendedData(destRectangle,
-                            zeroBorderExtender);
+                    roiRasters[i] = roi.getData(destRectangle);
                 }
             }
 
@@ -702,7 +778,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getImageRoi() != null) {
+                } else if (roiPresent && imageBeans[i].getRoi() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
@@ -1027,7 +1103,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getImageRoi() != null) {
+                } else if (roiPresent && imageBeans[i].getRoi() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
@@ -1358,7 +1434,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getImageRoi() != null) {
+                } else if (roiPresent && imageBeans[i].getRoi() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
@@ -1687,7 +1763,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getImageRoi() != null) {
+                } else if (roiPresent && imageBeans[i].getRoi() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
@@ -2016,7 +2092,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getImageRoi() != null) {
+                } else if (roiPresent && imageBeans[i].getRoi() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
@@ -2350,7 +2426,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getImageRoi() != null) {
+                } else if (roiPresent && imageBeans[i].getRoi() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }

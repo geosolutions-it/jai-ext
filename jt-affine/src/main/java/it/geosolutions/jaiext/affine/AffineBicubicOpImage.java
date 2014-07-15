@@ -715,7 +715,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
-                                                * srcPixelStride + (h - 1) * srcScanlineStride] & 0xff;
+                                                * srcPixelStride + (h - 1) * srcScanlineStride + bandOffsets[k2] ] & 0xff;
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
                                     }
                                 }
@@ -852,7 +852,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
                                     int sample = bandDataArray[pos + (z - 1) * srcPixelStride
-                                            + (h - 1) * srcScanlineStride] & 0xff;
+                                            + (h - 1) * srcScanlineStride + bandOffsets[k2] ] & 0xff;
                                     pixelKernel[h][z] = sample;
                                     if (byteLookupTable[sample] != destinationNoDataByte) {
                                         weight |= (1 << (4 * h + z));
@@ -1039,7 +1039,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
-                                                * srcPixelStride + (h - 1) * srcScanlineStride] & 0xff;
+                                                * srcPixelStride + (h - 1) * srcScanlineStride + bandOffsets[k2] ] & 0xff;
                                         int index = baseIndex - 1 + z + (h - 1)
                                                 * (roiScanlineStride);
                                         if (index < roiDataLength) {
@@ -1235,7 +1235,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
-                                                * srcPixelStride + (h - 1) * srcScanlineStride] & 0xff;
+                                                * srcPixelStride + (h - 1) * srcScanlineStride + bandOffsets[k2] ] & 0xff;
 
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
 
@@ -1751,7 +1751,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
-                                                * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
+                                                * srcPixelStride + (h - 1) * srcScanlineStride + bandOffsets[k2] ] & 0xffff;
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
                                     }
                                 }
@@ -1888,7 +1888,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                     // Selection of one pixel
                                     pixelKernel[h][z] = bandDataArray[pos + (z - 1)
-                                            * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
+                                            * srcPixelStride + (h - 1) * srcScanlineStride + bandOffsets[k2] ] & 0xffff;
                                     if (!noData.contains((short) pixelKernel[h][z])) {
                                         weight |= (1 << (4 * h + z));
                                     } else {
@@ -2069,7 +2069,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
-                                                * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
+                                                * srcPixelStride + (h - 1) * srcScanlineStride + bandOffsets[k2] ] & 0xffff;
                                         int index = baseIndex - 1 + z + (h - 1)
                                                 * (roiScanlineStride);
                                         if (index < roiDataLength) {
@@ -2262,7 +2262,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     for (int z = 0; z < KERNEL_LINE_DIM; z++) {
                                         // Selection of one pixel
                                         pixelKernel[h][z] = srcDataArrays[k2][pos + (z - 1)
-                                                * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
+                                                * srcPixelStride + (h - 1) * srcScanlineStride + bandOffsets[k2] ] & 0xffff;
 
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
 

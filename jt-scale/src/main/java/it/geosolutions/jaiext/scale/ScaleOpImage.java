@@ -24,6 +24,7 @@ import java.awt.geom.Point2D;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
+import java.awt.image.renderable.ParameterBlock;
 import java.util.Map;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
@@ -40,6 +41,7 @@ import javax.media.jai.JAI;
 import javax.media.jai.OpImage;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.WarpOpImage;
 import javax.media.jai.iterator.RandomIter;
 
@@ -273,6 +275,12 @@ public abstract class ScaleOpImage extends GeometricOpImage {
 
     /** Boolean indicating if only the No Data are used */
     protected boolean caseC;
+
+    /** Extended ROI image*/
+    protected RenderedOp srcROIImgExt;
+
+    /** Extended source Image*/
+    protected RenderedOp extendedIMG;
 
     /** ROI Border Extender */
     final static BorderExtender roiExtender = BorderExtender
@@ -1010,6 +1018,16 @@ public abstract class ScaleOpImage extends GeometricOpImage {
         } else {
             // If extender is present we can write the entire destination.
             computableBounds = getBounds();
+            // Padding of the input image in order to avoid the call of the getExtendedData() method.
+            // Extend the Source image
+            ParameterBlock pb = new ParameterBlock();
+            pb.setSource(source, 0);
+            pb.set(lpad, 0);
+            pb.set(rpad, 1);
+            pb.set(tpad, 2);
+            pb.set(bpad, 3);
+            pb.set(extender, 4);
+            extendedIMG = JAI.create("border", pb);
         }
 
         // SG Retrieve the rendered source image and its ROI.
@@ -1023,11 +1041,31 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             final Rectangle rect = new Rectangle(srcROIImage.getMinX() - lpad,
                     srcROIImage.getMinY() - tpad, srcROIImage.getWidth() + lpad + rpad,
                     srcROIImage.getHeight() + tpad + bpad);
-            Raster data = srcROIImage.getExtendedData(rect,
-                    BorderExtender.createInstance(BorderExtender.BORDER_ZERO));
-            roiIter = RandomIterFactory.create(data, data.getBounds(), false, true);
-            hasROI = true;
+            // Padding of the input ROI image in order to avoid the call of the getExtendedData() method
+            // Calculate the padding between the ROI and the source image padded
             roiBounds = srcROIImage.getBounds();
+            Rectangle srcRect = new Rectangle(source.getMinX()  - lpad , source.getMinY() - tpad,
+                    source.getWidth() + lpad + rpad, source.getHeight() + tpad + bpad);
+            int deltaX0 = (roiBounds.x - srcRect.x);
+            int leftP = deltaX0 > 0 ? deltaX0 : 0;
+            int deltaY0 = (roiBounds.y - srcRect.y);
+            int topP = deltaY0 > 0 ? deltaY0 : 0;
+            int deltaX1 = (srcRect.x + srcRect.width - roiBounds.x - roiBounds.width);
+            int rightP = deltaX1 > 0 ? deltaX1 : 0;
+            int deltaY1 = (srcRect.y + srcRect.height - roiBounds.y - roiBounds.height);
+            int bottomP = deltaY1 > 0 ? deltaY1 : 0;
+            // Extend the ROI image
+            ParameterBlock pb = new ParameterBlock();
+            pb.setSource(srcROIImage, 0);
+            pb.set(leftP, 0);
+            pb.set(rightP, 1);
+            pb.set(topP, 2);
+            pb.set(bottomP, 3);
+            pb.set(roiExtender, 4);
+            srcROIImgExt = JAI.create("border", pb);
+            // ROI iterator definition
+            roiIter = RandomIterFactory.create(srcROIImgExt, rect, false, true);
+            hasROI = true;
             this.useRoiAccessor = useRoiAccessor;
 
         } else {
@@ -1443,6 +1481,10 @@ public abstract class ScaleOpImage extends GeometricOpImage {
         IntegerSequence srcYSplits = new IntegerSequence();
         source0.getSplits(srcXSplits, srcYSplits, srcRect);
 
+        // Note that the getExtendedData() method is not called because the input images are padded.
+        // For each image there is a check if the rectangle is contained inside the source image;
+        // if this not happen, the data is taken from the padded image.
+
         if (srcXSplits.getNumElements() == 1 && srcYSplits.getNumElements() == 1) {
 
             // If the source is fully contained within
@@ -1452,9 +1494,19 @@ public abstract class ScaleOpImage extends GeometricOpImage {
                 if (hasROI && useRoiAccessor)
                     rois[0] = srcROIImage.getData(srcRect);
             } else {
-                sources[0] = source0.getExtendedData(srcRect, extender);
-                if (hasROI && useRoiAccessor)
-                    rois[0] = srcROIImage.getExtendedData(srcRect, roiExtender);
+                if(source0.getBounds().contains(srcRect)){
+                    sources[0] = source0.getData(srcRect);
+                }else{
+                    sources[0] = extendedIMG.getData(srcRect);
+                }
+
+                if (hasROI && useRoiAccessor) {
+                    if(srcROIImage.getBounds().contains(srcRect)){
+                        rois[0] = srcROIImage.getData(srcRect);
+                    }else{
+                        rois[0] = srcROIImgExt.getData(srcRect);
+                    }
+                }
             }
             if (hasROI && useRoiAccessor)
                 // Compute the destination tile.
@@ -1530,10 +1582,19 @@ public abstract class ScaleOpImage extends GeometricOpImage {
                                     if (hasROI && useRoiAccessor)
                                         rois[0] = srcROIImage.getData(wSrcRect);
                                 } else {
-                                    sources[0] = source0.getExtendedData(wSrcRect, extender);
-                                    if (hasROI && useRoiAccessor)
-                                        rois[0] = srcROIImage
-                                                .getExtendedData(wSrcRect, roiExtender);
+                                    if(source0.getBounds().contains(srcRect)){
+                                        sources[0] = source0.getData(srcRect);
+                                    }else{
+                                        sources[0] = extendedIMG.getData(srcRect);
+                                    }
+
+                                    if (hasROI && useRoiAccessor) {
+                                        if(srcROIImage.getBounds().contains(srcRect)){
+                                            rois[0] = srcROIImage.getData(srcRect);
+                                        }else{
+                                            rois[0] = srcROIImgExt.getData(srcRect);
+                                        }
+                                    }
                                 }
 
                                 // Compute the destination tile.
@@ -1580,10 +1641,19 @@ public abstract class ScaleOpImage extends GeometricOpImage {
                                     if (hasROI && useRoiAccessor)
                                         rois[0] = srcROIImage.getData(hSrcRect);
                                 } else {
-                                    sources[0] = source0.getExtendedData(hSrcRect, extender);
-                                    if (hasROI && useRoiAccessor)
-                                        rois[0] = srcROIImage
-                                                .getExtendedData(hSrcRect, roiExtender);
+                                    if(source0.getBounds().contains(srcRect)){
+                                        sources[0] = source0.getData(srcRect);
+                                    }else{
+                                        sources[0] = extendedIMG.getData(srcRect);
+                                    }
+
+                                    if (hasROI && useRoiAccessor) {
+                                        if(srcROIImage.getBounds().contains(srcRect)){
+                                            rois[0] = srcROIImage.getData(srcRect);
+                                        }else{
+                                            rois[0] = srcROIImgExt.getData(srcRect);
+                                        }
+                                    }
                                 }
 
                                 // Compute the destination tile.
@@ -1616,9 +1686,19 @@ public abstract class ScaleOpImage extends GeometricOpImage {
                                 if (hasROI && useRoiAccessor)
                                     rois[0] = srcROIImage.getData(newSrcRect);
                             } else {
-                                sources[0] = source0.getExtendedData(newSrcRect, extender);
-                                if (hasROI && useRoiAccessor)
-                                    rois[0] = srcROIImage.getExtendedData(newSrcRect, roiExtender);
+                                if(source0.getBounds().contains(srcRect)){
+                                    sources[0] = source0.getData(srcRect);
+                                }else{
+                                    sources[0] = extendedIMG.getData(srcRect);
+                                }
+
+                                if (hasROI && useRoiAccessor) {
+                                    if(srcROIImage.getBounds().contains(srcRect)){
+                                        rois[0] = srcROIImage.getData(srcRect);
+                                    }else{
+                                        rois[0] = srcROIImgExt.getData(srcRect);
+                                    }
+                                }
                             }
 
                             // Compute the destination tile.
@@ -1684,10 +1764,19 @@ public abstract class ScaleOpImage extends GeometricOpImage {
                                     if (hasROI && useRoiAccessor)
                                         rois[0] = srcROIImage.getData(RTSrcRect);
                                 } else {
-                                    sources[0] = source0.getExtendedData(RTSrcRect, extender);
-                                    if (hasROI && useRoiAccessor)
-                                        rois[0] = srcROIImage.getExtendedData(RTSrcRect,
-                                                roiExtender);
+                                    if(source0.getBounds().contains(srcRect)){
+                                        sources[0] = source0.getData(srcRect);
+                                    }else{
+                                        sources[0] = extendedIMG.getData(srcRect);
+                                    }
+
+                                    if (hasROI && useRoiAccessor) {
+                                        if(srcROIImage.getBounds().contains(srcRect)){
+                                            rois[0] = srcROIImage.getData(srcRect);
+                                        }else{
+                                            rois[0] = srcROIImgExt.getData(srcRect);
+                                        }
+                                    }
                                 }
 
                                 // Compute the destination tile.
@@ -1739,10 +1828,19 @@ public abstract class ScaleOpImage extends GeometricOpImage {
                                     if (hasROI && useRoiAccessor)
                                         rois[0] = srcROIImage.getData(BTSrcRect);
                                 } else {
-                                    sources[0] = source0.getExtendedData(BTSrcRect, extender);
-                                    if (hasROI && useRoiAccessor)
-                                        rois[0] = srcROIImage.getExtendedData(BTSrcRect,
-                                                roiExtender);
+                                    if(source0.getBounds().contains(srcRect)){
+                                        sources[0] = source0.getData(srcRect);
+                                    }else{
+                                        sources[0] = extendedIMG.getData(srcRect);
+                                    }
+
+                                    if (hasROI && useRoiAccessor) {
+                                        if(srcROIImage.getBounds().contains(srcRect)){
+                                            rois[0] = srcROIImage.getData(srcRect);
+                                        }else{
+                                            rois[0] = srcROIImgExt.getData(srcRect);
+                                        }
+                                    }
                                 }
 
                                 // Compute the destination tile.
@@ -1779,10 +1877,19 @@ public abstract class ScaleOpImage extends GeometricOpImage {
                                     if (hasROI && useRoiAccessor)
                                         rois[0] = srcROIImage.getData(LRTSrcRect);
                                 } else {
-                                    sources[0] = source0.getExtendedData(LRTSrcRect, extender);
-                                    if (hasROI && useRoiAccessor)
-                                        rois[0] = srcROIImage.getExtendedData(LRTSrcRect,
-                                                roiExtender);
+                                    if(source0.getBounds().contains(srcRect)){
+                                        sources[0] = source0.getData(srcRect);
+                                    }else{
+                                        sources[0] = extendedIMG.getData(srcRect);
+                                    }
+
+                                    if (hasROI && useRoiAccessor) {
+                                        if(srcROIImage.getBounds().contains(srcRect)){
+                                            rois[0] = srcROIImage.getData(srcRect);
+                                        }else{
+                                            rois[0] = srcROIImgExt.getData(srcRect);
+                                        }
+                                    }
                                 }
 
                                 // Compute the destination tile.

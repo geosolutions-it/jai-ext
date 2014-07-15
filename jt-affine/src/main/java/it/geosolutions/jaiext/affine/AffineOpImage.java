@@ -27,16 +27,18 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.awt.image.renderable.ParameterBlock;
 import java.util.Map;
 
 import javax.media.jai.BorderExtender;
 import javax.media.jai.GeometricOpImage;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
+import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.util.ImagingException;
 import javax.media.jai.util.ImagingListener;
@@ -169,6 +171,12 @@ abstract class AffineOpImage extends GeometricOpImage {
 
     /** Boolean indicating if only the No Data are used */
     protected boolean caseC;
+
+    /** Extended source image*/
+    protected RenderedOp extendedIMG;
+
+    /** Extended ROI image*/
+    protected RenderedOp srcROIImgExt;
 
     /**
      * Computes floor(num/denom) using integer arithmetic. denom must not be equal to 0.
@@ -412,6 +420,17 @@ abstract class AffineOpImage extends GeometricOpImage {
             theDest = new Rectangle(lx0, ly0, lx1 - lx0, ly1 - ly0);
         } else {
             theDest = getBounds();
+            // Padding of the input image in order to avoid the call of the getExtendedData() method
+            // Extend the Source image
+            ParameterBlock pb = new ParameterBlock();
+            pb.setSource(source, 0);
+            pb.set(lpad, 0);
+            pb.set(rpad, 1);
+            pb.set(tpad, 2);
+            pb.set(bpad, 3);
+            pb.set(extender, 4);
+            // Call of the Border operation
+            extendedIMG = JAI.create("border", pb);
         }
 
         // Store the inverse and forward transforms.
@@ -456,12 +475,30 @@ abstract class AffineOpImage extends GeometricOpImage {
             final Rectangle rect = new Rectangle(srcROIImage.getMinX() - lpad,
                     srcROIImage.getMinY() - tpad, srcROIImage.getWidth() + lpad + rpad,
                     srcROIImage.getHeight() + tpad + bpad);
-            Raster data = srcROIImage.getExtendedData(rect,
-                    BorderExtender.createInstance(BorderExtender.BORDER_ZERO));
-            roiIter = RandomIterFactory.create(data, data.getBounds(), false, true);
+            // Padding of the input ROI image in order to avoid the call of the getExtendedData() method
+            // Calculate the padding between the ROI and the source image padded
             roiBounds = srcROIImage.getBounds();
+            Rectangle srcRect = padimg;
+            int deltaX0 = (roiBounds.x - srcRect.x);
+            int leftP = deltaX0 > 0 ? deltaX0 : 0;
+            int deltaY0 = (roiBounds.y - srcRect.y);
+            int topP = deltaY0 > 0 ? deltaY0 : 0;
+            int deltaX1 = (srcRect.x + srcRect.width - roiBounds.x - roiBounds.width);
+            int rightP = deltaX1 > 0 ? deltaX1 : 0;
+            int deltaY1 = (srcRect.y + srcRect.height - roiBounds.y - roiBounds.height);
+            int bottomP = deltaY1 > 0 ? deltaY1 : 0;
+            // Extend the ROI image
+            ParameterBlock pb = new ParameterBlock();
+            pb.setSource(srcROIImage, 0);
+            pb.set(leftP, 0);
+            pb.set(rightP, 1);
+            pb.set(topP, 2);
+            pb.set(bottomP, 3);
+            pb.set(roiExtender, 4);
+            srcROIImgExt = JAI.create("border", pb);
+            // ROI iterator definition
+            roiIter = RandomIterFactory.create(srcROIImgExt, rect, false, true);
             hasROI = true;
-
         } else {
             srcROI = null;
             srcROIImage = null;
@@ -645,7 +682,7 @@ abstract class AffineOpImage extends GeometricOpImage {
         }
 
         if (!destRect1.equals(destRect)) {
-            // beware that estRect1 contains destRect
+            // beware that destRect1 contains destRect
             ImageUtil.fillBordersWithBackgroundValues(destRect1, destRect, dest, backgroundValues);
         }
 
@@ -656,19 +693,31 @@ abstract class AffineOpImage extends GeometricOpImage {
         PlanarImage srcIMG = getSourceImage(0);
 
         // Get the source and ROI data
+        // Note that the getExtendedData() method is not called because the input images are padded.
+        // For each image there is a check if the rectangle is contained inside the source image;
+        // if this not happen, the data is taken from the padded image.
         if (extender == null) {
             sources[0] = srcIMG.getData(srcRect);
             if (hasROI && useROIAccessor) {
-                // If roi accessor is used, the roi must be calculated only in the intersection between the source
-                // image and the roi image.
-                Rectangle roiComputableBounds = srcRect.intersection(srcROIImage.getBounds());
-                rois[0] = srcROIImage.getData(roiComputableBounds);
-                // rois[0] = srcROIImage.getExtendedData(srcRect, roiExtender);
+                if(srcROIImage.getBounds().contains(srcRect)){
+                    rois[0] = srcROIImage.getData(srcRect);
+                }else{
+                    rois[0] = srcROIImgExt.getData(srcRect);
+                }
             }
         } else {
-            sources[0] = srcIMG.getExtendedData(srcRect, extender);
+            if(srcIMG.getBounds().contains(srcRect)){
+                sources[0] = srcIMG.getData(srcRect);
+            }else{
+                sources[0] = extendedIMG.getData(srcRect);
+            }
+
             if (hasROI && useROIAccessor) {
-                rois[0] = srcROIImage.getExtendedData(srcRect, roiExtender);
+                if(srcROIImage.getBounds().contains(srcRect)){
+                    rois[0] = srcROIImage.getData(srcRect);
+                }else{
+                    rois[0] = srcROIImgExt.getData(srcRect);
+                }
             }
         }
 

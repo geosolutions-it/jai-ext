@@ -114,7 +114,7 @@ public class CropCRIF implements RenderedImageFactory {
             bean[0] = new ImageMosaicBean();
             // Setting of the parameters
             bean[0].setImage(image);
-            bean[0].setImageRoi(roi);
+            bean[0].setRoi(roi);
             bean[0].setSourceNoData(noData);
             
             //layout settings

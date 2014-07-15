@@ -25,6 +25,7 @@ import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.awt.image.renderable.ParameterBlock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,10 +33,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
+import javax.media.jai.JAI;
 import javax.media.jai.OpImage;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.RasterAccessor;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.PropertyUtil;
@@ -113,6 +116,9 @@ public abstract class StatisticsOpImage extends OpImage {
     /** No Data Range */
     protected Range noData;
 
+    /** Extended ROI image*/
+    protected RenderedOp srcROIImgExt;
+
     public StatisticsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             int xPeriod, int yPeriod, ROI roi, Range noData, boolean useROIAccessor, int[] bands,
             StatsType[] statsTypes, double[] minBound, double[] maxBound, int[] numBins) {
@@ -166,14 +172,31 @@ public abstract class StatisticsOpImage extends OpImage {
             ROI srcROI = roi;
             // Creation of a PlanarImage containing the ROI data
             srcROIImage = srcROI.getAsImage();
-            // ROI image bounds calculation
-            final Rectangle rect = new Rectangle(srcROIImage.getBounds());
-            // Roi image data store
-            Raster data = srcROIImage.getData(rect);
-            // Creation of a RandomIterator for selecting random pixel inside the ROI
-            roiIter = RandomIterFactory.create(data, data.getBounds(), false, true);
-            // ROI bounds are saved
+            // Source Bounds
+            Rectangle srcRect = new Rectangle(source.getMinX(), source.getMinY(),
+                    source.getWidth(), source.getHeight());
+            // Padding of the input ROI image in order to avoid the call of the getExtendedData() method
+            // ROI bounds are saved 
             roiBounds = srcROIImage.getBounds();
+            int deltaX0 = (roiBounds.x - srcRect.x);
+            int leftP = deltaX0 > 0 ? deltaX0 : 0;
+            int deltaY0 = (roiBounds.y - srcRect.y);
+            int topP = deltaY0 > 0 ? deltaY0 : 0;
+            int deltaX1 = (srcRect.x + srcRect.width - roiBounds.x + roiBounds.width);
+            int rightP = deltaX1 > 0 ? deltaX1 : 0;
+            int deltaY1 = (srcRect.y + srcRect.height - roiBounds.y + roiBounds.height);
+            int bottomP = deltaY1 > 0 ? deltaY1 : 0;
+            // Extend the ROI image
+            ParameterBlock pb = new ParameterBlock();
+            pb.setSource(srcROIImage, 0);
+            pb.set(leftP, 0);
+            pb.set(rightP, 1);
+            pb.set(topP, 2);
+            pb.set(bottomP, 3);
+            pb.set(ROI_EXTENDER, 4);
+            srcROIImgExt = JAI.create("border", pb);
+            // Creation of a RandomIterator for selecting random pixel inside the ROI
+            roiIter = RandomIterFactory.create(srcROIImage, srcROIImage.getBounds(), false, true);
             // The useRoiAccessor parameter is set
             this.useROIAccessor = useROIAccessor;
         } else {

@@ -1506,11 +1506,11 @@ public class MosaicTest {
                     ROIShape roiData1 = new ROIShape(roiImage1);
 
                     // Only 1 ROI is set to the ImageMosaicBean for the second image
-                    helpBean1Band.setImageRoi(roiData1);
-                    helpBean3Band.setImageRoi(roiData1);
+                    helpBean1Band.setRoi(roiData1);
+                    helpBean3Band.setRoi(roiData1);
                 } else {
-                    helpBean1Band.setImageRoi(null);
-                    helpBean3Band.setImageRoi(null);
+                    helpBean1Band.setRoi(null);
+                    helpBean3Band.setRoi(null);
                 }
                 // alpha channel creation
                 if (k == 2) {
@@ -1529,9 +1529,9 @@ public class MosaicTest {
                 }
             } else {
                 helpBean1Band.setAlphaChannel(null);
-                helpBean1Band.setImageRoi(null);
+                helpBean1Band.setRoi(null);
                 helpBean3Band.setAlphaChannel(null);
-                helpBean3Band.setImageRoi(null);
+                helpBean3Band.setRoi(null);
             }
             imagesBean1Band[k] = helpBean1Band;
             imagesBean3Band[k] = helpBean3Band;
@@ -2048,10 +2048,10 @@ public class MosaicTest {
                 ImageMosaicBean[] beanToModify = beanContainer[i][j].getInnerBean();
                 ImageMosaicBean[] beanToModify3Band = beanContainer[i][j].getInnerBean3Band();
                 // The 2 ROIs are set to the ImageMosaicBean
-                beanToModify[0].setImageRoi(roiData1);
-                beanToModify[1].setImageRoi(roiData2);
-                beanToModify3Band[0].setImageRoi(roiData1);
-                beanToModify3Band[1].setImageRoi(roiData2);
+                beanToModify[0].setRoi(roiData1);
+                beanToModify[1].setRoi(roiData2);
+                beanToModify3Band[0].setRoi(roiData1);
+                beanToModify3Band[1].setRoi(roiData2);
             }
         }
     }
@@ -2166,9 +2166,9 @@ public class MosaicTest {
                 break;
             }
             helpBean1Band.setAlphaChannel(null);
-            helpBean1Band.setImageRoi(null);
+            helpBean1Band.setRoi(null);
             helpBean3Band.setAlphaChannel(null);
-            helpBean3Band.setImageRoi(null);
+            helpBean3Band.setRoi(null);
             imagesBean1Band[k] = helpBean1Band;
             imagesBean3Band[k] = helpBean3Band;
         }

@@ -30,6 +30,7 @@ import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
+import java.awt.image.renderable.ParameterBlock;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -39,12 +40,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
+import javax.media.jai.JAI;
 import javax.media.jai.OpImage;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RectIter;
 import javax.media.jai.iterator.RectIterFactory;
@@ -152,6 +155,8 @@ public class ZonalStatsOpImage extends OpImage {
     private ROI srcROI;
 
     private List<ZoneGeometry> zoneList;
+
+    private RenderedOp srcROIImgExt;
 
     public ZonalStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             RenderedImage classifier, AffineTransform transform, List<ROI> rois, Range noData,
@@ -429,6 +434,29 @@ public class ZonalStatsOpImage extends OpImage {
             if (useROIAccessor) {
                 // Creation of a PlanarImage containing the ROI data
                 srcROIImage = srcROI.getAsImage();
+                // Source Bounds
+                Rectangle srcRect = new Rectangle(source.getMinX(), source.getMinY(),
+                        source.getWidth(), source.getHeight());
+                // Padding of the input ROI image in order to avoid the call of the getExtendedData() method
+                // ROI bounds are saved 
+                Rectangle roiBounds = srcROIImage.getBounds();
+                int deltaX0 = (roiBounds.x - srcRect.x);
+                int leftP = deltaX0 > 0 ? deltaX0 : 0;
+                int deltaY0 = (roiBounds.y - srcRect.y);
+                int topP = deltaY0 > 0 ? deltaY0 : 0;
+                int deltaX1 = (srcRect.x + srcRect.width - roiBounds.x + roiBounds.width);
+                int rightP = deltaX1 > 0 ? deltaX1 : 0;
+                int deltaY1 = (srcRect.y + srcRect.height - roiBounds.y + roiBounds.height);
+                int bottomP = deltaY1 > 0 ? deltaY1 : 0;
+                // Extend the ROI image
+                ParameterBlock pb = new ParameterBlock();
+                pb.setSource(srcROIImage, 0);
+                pb.set(leftP, 0);
+                pb.set(rightP, 1);
+                pb.set(topP, 2);
+                pb.set(bottomP, 3);
+                pb.set(ROI_EXTENDER, 4);
+                srcROIImgExt = JAI.create("border", pb);
             }
         } else {
             hasROI = false;
@@ -471,7 +499,15 @@ public class ZonalStatsOpImage extends OpImage {
             // ROI calculations if roiAccessor is used
             RasterAccessor roi = null;
             if (useROIAccessor) {
-                Raster roiRaster = srcROIImage.getExtendedData(computableArea, ROI_EXTENDER);
+                // Note that the getExtendedData() method is not called because the input images are padded.
+                // For each image there is a check if the rectangle is contained inside the source image;
+                // if this not happen, the data is taken from the padded image.
+                Raster roiRaster = null;
+                if(srcROIImage.getBounds().contains(computableArea)){
+                    roiRaster = srcROIImage.getData(computableArea);
+                }else{
+                    roiRaster = srcROIImgExt.getData(computableArea);
+                }
 
                 // creation of the rasterAccessor
                 roi = new RasterAccessor(roiRaster, computableArea,
