@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.changematrix;
 
+import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +29,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.media.jai.OperationDescriptorImpl;
 import javax.media.jai.ROI;
 import javax.media.jai.registry.RenderedRegistryMode;
+
+import com.google.common.util.concurrent.AtomicDouble;
 
 /**
  * An {@code OperationDescriptor} for the "ChangeMatrix" operation.
@@ -115,6 +118,9 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
 
         /** Sparse matrix to hold the results */
         private List<AtomicLong> matrix;
+        
+        /** Sparse matrix to hold the results for the Areas*/
+        private List<AtomicDouble> areaMatrix;
 
         /** Number of classes. */
         private int classesNumber;
@@ -141,6 +147,10 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
             for (int i = classesNumber * classesNumber - 1; i >= 0; i--) {
                 matrix.add(new AtomicLong(0));
             }
+            areaMatrix = new ArrayList<AtomicDouble>(classesNumber * classesNumber);
+            for (int i = classesNumber * classesNumber - 1; i >= 0; i--) {
+                areaMatrix.add(new AtomicDouble(0));
+            }
 
             // mappings
             int k = 0;
@@ -156,7 +166,7 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
          * @param reference, the initial class
          * @param newSample, the landing class
          */
-        public void registerPair(int reference, int now) {
+        public void registerPair(int reference, int now, double area) {
             if (frozen) {
                 return;
             }
@@ -164,8 +174,10 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
             Integer col = classesMappings.get(now);
             if (row != null && col != null) {
                 matrix.get(col + row * classesNumber).incrementAndGet();
+                if(area >= 0){
+                    areaMatrix.get(col + row * classesNumber).addAndGet(area);
+                }
             }
-
         }
 
         /**
@@ -183,6 +195,26 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
             Integer col = classesMappings.get(now);
             if (row != null && col != null) {
                 return matrix.get(col + row * classesNumber).get();
+            } else {
+                return NO_VALUE;
+            }
+        }
+        
+        /**
+         * Retrieves the total area value for a certain order pair of classes.
+         * <p>
+         * In case one of both classes weren't part of the set of classes for which we were asked to compute changes, {@link #NO_VALUE} is returned.
+         * 
+         * @param reference, the value for the reference image
+         * @param now, the value for the second image
+         * @return a <code>double</code> that holds the total area of the pixels that changed class as per the provided ones, or {@link #NO_VALUE} in case one
+         *         of the two, or both, classes weren't in the initial set of classes to register changes for.
+         */
+        public double retrieveTotalArea(int reference, int now) {
+            Integer row = classesMappings.get(reference);
+            Integer col = classesMappings.get(now);
+            if (row != null && col != null) {
+                return areaMatrix.get(col + row * classesNumber).get();
             } else {
                 return NO_VALUE;
             }
@@ -219,17 +251,20 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
 
     /** Index associated to the PixelMultiplier input parameter */
     public static final int PIXEL_MULTY_ARG_INDEX = 2;
+    
+    /** Index associated to the Area Map input parameter */
+    public static final int AREA_MAP_INDEX = 3;
 
     /** Names of all the input parameters */
-    public static final String[] PARAM_NAMES = { "roi", "result", "pixelMultiplier" };
+    public static final String[] PARAM_NAMES = { "roi", "result", "pixelMultiplier", "area" };
 
     /** Classes of all the input parameters */
     private static final Class<?>[] PARAM_CLASSES = { javax.media.jai.ROI.class,
-            ChangeMatrix.class, java.lang.Integer.class };
+            ChangeMatrix.class, java.lang.Integer.class, RenderedImage.class };
 
     /** Default valuescfor all the input parameters */
     private static final Object[] PARAM_DEFAULTS = { (ROI) null, NO_PARAMETER_DEFAULT,
-            DEFAULT_PIXEL_MULTIPLIER };
+            DEFAULT_PIXEL_MULTIPLIER, null };
 
     /** Constructor. */
     public ChangeMatrixDescriptor() {
@@ -248,7 +283,8 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
                         "arg1Desc",
                         "result (ChangeMatrix) -"
                                 + "a sparse matrix as a Map holding the count of change pixels" },
-                { "arg2Desc", "integer value used for processing the image pixels" }
+                { "arg2Desc", "integer value used for processing the image pixels" },
+                { "arg3Desc", "Area map" }
 
         },
 

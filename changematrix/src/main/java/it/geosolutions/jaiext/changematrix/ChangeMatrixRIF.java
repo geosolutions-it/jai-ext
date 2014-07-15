@@ -87,6 +87,10 @@ public class ChangeMatrixRIF implements RenderedImageFactory {
                     "Unable to process images with different raster dimensions");
         }
 
+        // Get the Area Image
+        RenderedImage area = (RenderedImage) paramBlock
+                .getObjectParameter(ChangeMatrixDescriptor.AREA_MAP_INDEX);
+        
         ImageLayout layout = RIFUtil.getImageLayoutHint(renderHints);
         if (layout == null)
             layout = new ImageLayout();
@@ -119,6 +123,6 @@ public class ChangeMatrixRIF implements RenderedImageFactory {
         //Pixel Multiplier value
         int pixelMultiplier = paramBlock.getIntParameter(ChangeMatrixDescriptor.PIXEL_MULTY_ARG_INDEX);
         
-        return new ChangeMatrixOpImage(reference, now, renderHints, layout, roi, pixelMultiplier, result);
+        return new ChangeMatrixOpImage(reference, now, area, renderHints, layout, roi, pixelMultiplier, result);
     }
 }
