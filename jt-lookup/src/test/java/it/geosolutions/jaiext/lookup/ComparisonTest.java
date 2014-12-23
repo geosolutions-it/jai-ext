@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.lookup;
 
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
@@ -203,6 +204,10 @@ public class ComparisonTest extends TestBase {
                     throw new IllegalArgumentException("Wrong data type");
             }
             
+        }
+        
+        if(OLD_DESCRIPTOR){
+            JAIExt.registerJAIDescriptor("lookup");
         }
         
         

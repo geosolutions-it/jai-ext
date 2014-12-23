@@ -17,7 +17,6 @@
 */
 package it.geosolutions.jaiext.crop;
 
-import it.geosolutions.jaiext.mosaic.ImageMosaicBean;
 import it.geosolutions.jaiext.mosaic.MosaicOpImage;
 import it.geosolutions.jaiext.range.Range;
 
@@ -109,13 +108,6 @@ public class CropCRIF implements RenderedImageFactory {
             // The source image is taken as a list of data
             List<RenderedImage> listSrc = new Vector<RenderedImage>();            
             listSrc.add(image);
-            // The related ImageMosaicBean object is created
-            ImageMosaicBean[] bean = new ImageMosaicBean[1];            
-            bean[0] = new ImageMosaicBean();
-            // Setting of the parameters
-            bean[0].setImage(image);
-            bean[0].setRoi(roi);
-            bean[0].setSourceNoData(noData);
             
             //layout settings
             if(layout == null){
@@ -128,7 +120,16 @@ public class CropCRIF implements RenderedImageFactory {
             
             
             // Mosaic operation
-            image = new MosaicOpImage(listSrc, layout, local, bean, MosaicDescriptor.MOSAIC_TYPE_OVERLAY, destNoData);
+            image = new MosaicOpImage(
+            		listSrc, 
+            		layout, 
+            		local, 
+            		MosaicDescriptor.MOSAIC_TYPE_OVERLAY, 
+            		null,
+            		new ROI[]{roi},
+            		null,
+            		destNoData,
+            		new Range[]{noData});
             return image;
         }
         

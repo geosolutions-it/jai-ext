@@ -212,11 +212,11 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>GlobalName</td>
- * <td>WarpNoData</td>
+ * <td>Warp</td>
  * </tr>
  * <tr>
  * <td>LocalName</td>
- * <td>WarpNoData</td>
+ * <td>Warp</td>
  * </tr>
  * <tr>
  * <td>Vendor</td>
@@ -274,13 +274,13 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
  * <td>javax.media.jai.Interpolation</td>
  * <td>null</td>
  * <tr>
+ * <td>backgroundValues</td>
+ * <td>double[]</td>
+ * <td>{0.0}</td>
+ * <tr>
  * <td>roi</td>
  * <td>javax.media.jai.ROI</td>
  * <td>null</td>
- * <tr>
- * <td>background</td>
- * <td>double[]</td>
- * <td>{0.0}</td>
  * <tr>
  * <td>nodata</td>
  * <td>it.geosolutions.jaiext.range.Range</td>
@@ -328,8 +328,8 @@ public class WarpDescriptor extends OperationDescriptorImpl {
      * The resource strings that provide the general documentation and specify the parameter list for the "Warp" operation.
      */
     private static final String[][] resources = {
-            { "GlobalName", "WarpNoData" },
-            { "LocalName", "WarpNoData" },
+            { "GlobalName", "Warp" },
+            { "LocalName", "Warp" },
             { "Vendor", "it.geosolutions.jaiext" },
             { "Description", "Warps an image according to a specified Warp object." },
             {
@@ -344,14 +344,15 @@ public class WarpDescriptor extends OperationDescriptorImpl {
             };
 
     /** The parameter names for the "Warp" operation. */
-    private static final String[] paramNames = { "warp", "interpolation", "roi", "background", "nodata" };
+    private static final String[] paramNames = { "warp", "interpolation", "backgroundValues", "roi", "nodata" };
 
     /** The parameter class types for the "Warp" operation. */
     private static final Class[] paramClasses = { javax.media.jai.Warp.class,
-            javax.media.jai.Interpolation.class, javax.media.jai.ROI.class, double[].class, it.geosolutions.jaiext.range.Range.class };
+            javax.media.jai.Interpolation.class, double[].class, javax.media.jai.ROI.class, it.geosolutions.jaiext.range.Range.class };
 
     /** The parameter default values for the "Warp" operation. */
-    private static final Object[] paramDefaults = { NO_PARAMETER_DEFAULT, null, null, null, null };
+    private static final Object[] paramDefaults = { NO_PARAMETER_DEFAULT,
+            Interpolation.getInstance(Interpolation.INTERP_NEAREST), null, null, null };
 
     /** Constructor. */
     public WarpDescriptor() {
@@ -420,22 +421,22 @@ public class WarpDescriptor extends OperationDescriptorImpl {
      */
     public static RenderedOp create(RenderedImage source0, Warp warp, Interpolation interpolation,
             double[] backgroundValues, ROI sourceROI, Range noData, RenderingHints hints) {
-        ParameterBlockJAI pb = new ParameterBlockJAI("WarpNoData", RenderedRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("Warp", RenderedRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
-        if (sourceROI != null) {
-            pb.setParameter("roi", sourceROI);
-        }
         pb.setParameter("warp", warp);
         pb.setParameter("interpolation", interpolation);
         if(backgroundValues!=null){
-            pb.setParameter("background", backgroundValues);
+            pb.setParameter("backgroundValues", backgroundValues);
+        }
+        if (sourceROI != null) {
+            pb.setParameter("roi", sourceROI);
         }
         
         if(noData!=null){
             pb.setParameter("nodata", noData);
         }
 
-        return JAI.create("WarpNoData", pb, hints);
+        return JAI.create("Warp", pb, hints);
     }
 }

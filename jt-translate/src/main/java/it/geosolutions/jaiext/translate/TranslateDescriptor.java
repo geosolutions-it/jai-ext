@@ -24,6 +24,7 @@ import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 
 import javax.media.jai.ImageLayout;
+import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
 import javax.media.jai.ParameterBlockJAI;
@@ -136,11 +137,11 @@ class TranslatePropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>GlobalName</td>
- * <td>Translation</td>
+ * <td>Translate</td>
  * </tr>
  * <tr>
  * <td>LocalName</td>
- * <td>Translation</td>
+ * <td>Translate</td>
  * </tr>
  * <tr>
  * <td>Vendor</td>
@@ -199,8 +200,8 @@ public class TranslateDescriptor extends OperationDescriptorImpl {
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
     private static final String[][] resources = {
-            { "GlobalName", "Translation" },
-            { "LocalName", "Translation" },
+            { "GlobalName", "Translate" },
+            { "LocalName", "Translate" },
             { "Vendor", "it.geosolutions.jaiext" },
             { "Description", JaiI18N.getString("TranslateDescriptor0") },
             {
@@ -208,18 +209,21 @@ public class TranslateDescriptor extends OperationDescriptorImpl {
                     "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/TranslateDescriptor.html" },
             { "Version", JaiI18N.getString("DescriptorVersion") },
             { "arg0Desc", JaiI18N.getString("TranslateDescriptor1") },
-            { "arg1Desc", JaiI18N.getString("TranslateDescriptor2") }
+            { "arg1Desc", JaiI18N.getString("TranslateDescriptor2") },
+            { "arg2Desc", JaiI18N.getString("TranslateDescriptor3") }
             
     };
 
     /** The parameter class list for this operation. */
-    private static final Class[] paramClasses = { java.lang.Float.class, java.lang.Float.class };
+    private static final Class[] paramClasses = { java.lang.Float.class, java.lang.Float.class,
+        javax.media.jai.Interpolation.class};
 
     /** The parameter name list for this operation. */
-    private static final String[] paramNames = { "xTrans", "yTrans" };
+    private static final String[] paramNames = { "xTrans", "yTrans", "interpolation" };
 
     /** The parameter default value list for this operation. */
-    private static final Object[] paramDefaults = { new Float(0.0F), new Float(0.0F) };
+    private static final Object[] paramDefaults = { new Float(0.0F), new Float(0.0F),
+        Interpolation.getInstance(Interpolation.INTERP_NEAREST) };
 
     public TranslateDescriptor() {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
@@ -257,13 +261,14 @@ public class TranslateDescriptor extends OperationDescriptorImpl {
      * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.
      */
     public static RenderedOp create(RenderedImage source0, Float xTrans, Float yTrans,
-             RenderingHints hints) {
-        ParameterBlockJAI pb = new ParameterBlockJAI("Translation", RenderedRegistryMode.MODE_NAME);
+             Interpolation interpolation, RenderingHints hints) {
+        ParameterBlockJAI pb = new ParameterBlockJAI("Translate", RenderedRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
 
         pb.setParameter("xTrans", xTrans);
         pb.setParameter("yTrans", yTrans);
+        pb.setParameter("interpolation", interpolation);
 
         ImageLayout layout = RIFUtil.getImageLayoutHint(hints); 
         
@@ -272,6 +277,6 @@ public class TranslateDescriptor extends OperationDescriptorImpl {
             throw new UnsupportedOperationException("Translate Operation can be used only for integral displacements. If"
                     + "a layout is present, the translate operation cannot deal with");
         }
-        return JAI.create("Translation", pb, hints);
+        return JAI.create("Translate", pb, hints);
     }
 }

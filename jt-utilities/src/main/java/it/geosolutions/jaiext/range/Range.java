@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.range;
 
 import java.awt.image.DataBuffer;
@@ -35,16 +35,16 @@ public abstract class Range {
         // FIXME LONG VALUE CAN BE CHANGED IF LONG DATA TYPE TAKES ANOTHER VALUE
         LONG(Long.class, DataBuffer.TYPE_DOUBLE + 1);
 
-        private Class<?> classType;
+        private Class<? extends Number> classType;
 
         private int dataType;
 
-        private DataType(Class<?> classType, int dataType) {
+        private DataType(Class<? extends Number> classType, int dataType) {
             this.classType = classType;
             this.dataType = dataType;
         }
 
-        public Class<?> getClassValue() {
+        public Class<? extends Number> getClassValue() {
             return classType;
         }
 
@@ -73,12 +73,23 @@ public abstract class Range {
 
     }
 
+    protected boolean isMinIncluded;
+
+    protected boolean isMaxIncluded;
+
+    Range(boolean isMinIncluded, boolean isMaxIncluded) {
+        this.isMaxIncluded = isMaxIncluded;
+        this.isMinIncluded = isMinIncluded;
+    }
+
     /** Method for checking if a byte value is contained inside the Range */
     public boolean contains(byte value) {
         throw new UnsupportedOperationException("Wrong data type");
     }
 
-    /** Method for checking if a short/ushort value is contained inside the Range */
+    /**
+     * Method for checking if a short/ushort value is contained inside the Range
+     */
     public boolean contains(short value) {
         throw new UnsupportedOperationException("Wrong data type");
     }
@@ -104,9 +115,9 @@ public abstract class Range {
     }
 
     /** Method for checking if a Generic value is contained inside the Range */
-    public <T extends Number & Comparable<T>>boolean contains(T value) {
+    public <T extends Number> boolean contains(T value) {
         int dataType = this.getDataType().getDataType();
-        switch(dataType){
+        switch (dataType) {
         case DataBuffer.TYPE_BYTE:
             return contains(value.byteValue());
         case DataBuffer.TYPE_USHORT:
@@ -118,23 +129,146 @@ public abstract class Range {
             return contains(value.floatValue());
         case DataBuffer.TYPE_DOUBLE:
             return contains(value.doubleValue());
-        case DataBuffer.TYPE_DOUBLE+1:
+        case DataBuffer.TYPE_DOUBLE + 1:
             return contains(value.longValue());
         default:
             throw new IllegalArgumentException("Wrong data type");
         }
     }
 
+    public boolean contains(Range other) {
+        // NaN checks
+        if (this.isNaN() && !other.isNaN()) {
+            return false;
+        }
+        if (other.isNaN()) {
+            if (this.isNanIncluded()) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        double min1 = this.getMin().doubleValue();
+        double max1 = this.getMax().doubleValue();
+
+        double min2 = other.getMin().doubleValue();
+        double max2 = other.getMax().doubleValue();
+
+        // Simple check
+        boolean minContains = min1 < min2;
+        boolean maxContains = max1 > max2;
+
+        if (minContains && maxContains) {
+            return true;
+        }
+
+        boolean minEquals = min1 == min2;
+        boolean maxEquals = max1 == max2;
+
+        // Check on equal bounds
+        if (!minContains && minEquals) {
+            minContains = this.isMinIncluded() && other.isMinIncluded();
+        }
+        if (!maxContains && maxEquals) {
+            maxContains = this.isMaxIncluded() && other.isMaxIncluded();
+        }
+
+        if (minContains && maxContains) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public abstract Range union(Range other);
+
     /** Returns the Range data Type */
     public abstract DataType getDataType();
 
     /** Indicates if the Range is a degenerated single point Range or not */
     public abstract boolean isPoint();
-    
-    /** Returns the maximum bound of the Range*/
+
+    /** Returns the maximum bound of the Range */
     public abstract Number getMax();
-    
-    /** Returns the minimum bound of the Range*/
+
+    /** Returns the minimum bound of the Range */
     public abstract Number getMin();
 
+    /** Returns the maximum bound of the Range or the nearest one if not included */
+    public abstract Number getMax(boolean isMaxIncluded);
+
+    /** Returns the minimum bound of the Range or the nearest one if not included */
+    public abstract Number getMin(boolean isMinIncluded);
+
+    /** Returns true if the current Range accepts NaN values */
+    public boolean isNanIncluded() {
+        return false;
+    }
+
+    /** Returns true if and only if the current Range is a point representing NaN */
+    public boolean isNaN() {
+        return false;
+    }
+
+    /** Returns the a boolean indicating if the Maximum bound is included */
+    public boolean isMaxIncluded() {
+        return isMaxIncluded;
+    }
+
+    /** Returns the a boolean indicating if the Minimum bound is included */
+    public boolean isMinIncluded() {
+        return isMinIncluded;
+    }
+
+    /** Sets the isMinIncluded parameter */
+    protected void setMinIncluded(boolean isMinIncluded) {
+        this.isMinIncluded = isMinIncluded;
+    }
+
+    /** Sets the isMaxIncluded parameter */
+    protected void setMaxIncluded(boolean isMaxIncluded) {
+        this.isMaxIncluded = isMaxIncluded;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (super.equals(obj)) {
+            return true;
+        }
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof Range)) {
+            return false;
+        }
+        Range r1 = (Range) obj;
+        if (r1.getDataType() != this.getDataType()) {
+            return false;
+        }
+        if (r1.isPoint() != this.isPoint()) {
+            return false;
+        }
+        if (r1.isMaxIncluded() != this.isMaxIncluded()) {
+            return false;
+        }
+        if (r1.isPoint() != this.isMinIncluded()) {
+            return false;
+        }
+        if (r1.getMin().doubleValue() != this.getMin().doubleValue()) {
+            return false;
+        }
+        if (r1.getMax().doubleValue() != this.getMax().doubleValue()) {
+            return false;
+        }
+
+        if (r1.isNanIncluded() != this.isNanIncluded()) {
+            return false;
+        }
+
+        return true;
+    }
 }

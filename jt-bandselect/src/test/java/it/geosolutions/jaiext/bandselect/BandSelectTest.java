@@ -20,9 +20,7 @@ package it.geosolutions.jaiext.bandselect;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.RenderingHints;
-import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
-import java.awt.image.DirectColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.SinglePixelPackedSampleModel;
@@ -54,10 +52,10 @@ public class BandSelectTest extends TestBase {
         
         // now select second band
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("BandSelect2");
+            new ParameterBlockJAI("BandSelect");
         pb.addSource(twoBands);
         pb.setParameter("bandIndices", new int[]{1});
-        RenderedOp oneBand = JAI.create("BandSelect2", pb);
+        RenderedOp oneBand = JAI.create("BandSelect", pb);
         
         
         // make sure we got the right band
@@ -99,10 +97,10 @@ public class BandSelectTest extends TestBase {
         
         // now select second band
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("BandSelect2");
+            new ParameterBlockJAI("BandSelect");
         pb.addSource(twoBands);
         pb.setParameter("bandIndices", new int[0]);
-        RenderedOp oneBand = JAI.create("BandSelect2", pb);
+        RenderedOp oneBand = JAI.create("BandSelect", pb);
     }
     
     @Test(expected=IllegalArgumentException.class)
@@ -112,10 +110,10 @@ public class BandSelectTest extends TestBase {
         
         // now select second band
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("BandSelect2");
+            new ParameterBlockJAI("BandSelect");
         pb.addSource(twoBands);
         pb.setParameter("bandIndices", new int[]{-1});
-        RenderedOp oneBand = JAI.create("BandSelect2", pb);
+        RenderedOp oneBand = JAI.create("BandSelect", pb);
     }
     
     @Test(expected=IllegalArgumentException.class)
@@ -125,9 +123,9 @@ public class BandSelectTest extends TestBase {
         
         // now select second band
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("BandSelect2");
+            new ParameterBlockJAI("BandSelect");
         pb.addSource(twoBands);
         pb.setParameter("bandIndices", new int[]{2});
-        RenderedOp oneBand = JAI.create("BandSelect2", pb);
+        RenderedOp oneBand = JAI.create("BandSelect", pb);
     }
 }

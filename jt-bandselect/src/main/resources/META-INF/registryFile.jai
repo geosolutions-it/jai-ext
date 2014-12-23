@@ -8,4 +8,4 @@ descriptor  it.geosolutions.jaiext.bandselect.BandSelectDescriptor
 # RenderedImageFactories
 #
 
-rendered  it.geosolutions.jaiext.bandselect.BandSelectCRIF  it.geosolutions.jaiext  BandSelect2 BandSelect2 
+rendered  it.geosolutions.jaiext.bandselect.BandSelectCRIF  it.geosolutions.jaiext  BandSelect BandSelect 

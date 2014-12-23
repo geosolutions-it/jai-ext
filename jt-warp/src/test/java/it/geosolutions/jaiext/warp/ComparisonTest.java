@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.warp;
 
+import it.geosolutions.jaiext.ConcurrentOperationRegistry;
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 
@@ -93,7 +95,9 @@ public class ComparisonTest extends TestWarp {
 
     @BeforeClass
     public static void initialSetup() {
-
+        ConcurrentOperationRegistry registry = (ConcurrentOperationRegistry) ConcurrentOperationRegistry.initializeRegistry();
+        JAIExt.initJAIEXT(registry);
+        JAI.getDefaultInstance().setOperationRegistry(registry);
         // Setting of the image filler parameter to true for a better image creation
         IMAGE_FILLER = true;
         // Images initialization
@@ -280,6 +284,7 @@ public class ComparisonTest extends TestWarp {
 
             // creation of the image
             if (OLD_DESCRIPTOR) {
+                JAIExt.registerJAIDescriptor("Warp");
                 imageWarp = javax.media.jai.operator.WarpDescriptor.create(image, warpObj,
                         interpolation, backgroundValues, null);
             } else {

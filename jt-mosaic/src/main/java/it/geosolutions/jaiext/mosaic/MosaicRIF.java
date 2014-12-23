@@ -17,11 +17,15 @@
 */
 package it.geosolutions.jaiext.mosaic;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderedImageFactory;
 
+import javax.media.jai.PlanarImage;
+import javax.media.jai.ROI;
 import javax.media.jai.operator.MosaicType;
 
 import com.sun.media.jai.opimage.RIFUtil;
@@ -37,9 +41,16 @@ public class MosaicRIF implements RenderedImageFactory {
      * This method implements the RenderedImageFactory create method and return the MosaicOpImage using the parameters defined by the parameterBlock
      */
     public RenderedImage create(ParameterBlock paramBlock, RenderingHints hints) {
-        return new MosaicOpImage(paramBlock.getSources(), RIFUtil.getImageLayoutHint(hints),
-                hints, (ImageMosaicBean[]) paramBlock.getObjectParameter(0),
-                (MosaicType) paramBlock.getObjectParameter(1), (double[])paramBlock.getObjectParameter(2));
+        return
+                new MosaicOpImage(paramBlock.getSources(),
+                                  RIFUtil.getImageLayoutHint(hints),
+                                  hints,
+                                  (MosaicType)paramBlock.getObjectParameter(0),
+                                  (PlanarImage[])paramBlock.getObjectParameter(1),
+                                  (ROI[])paramBlock.getObjectParameter(2),
+                                  (double[][])paramBlock.getObjectParameter(3),
+                                  (double[])paramBlock.getObjectParameter(4),
+                                  (Range[])paramBlock.getObjectParameter(5));
     }
 
 }

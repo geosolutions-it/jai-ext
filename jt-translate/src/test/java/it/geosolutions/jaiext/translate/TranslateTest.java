@@ -95,7 +95,7 @@ public class TranslateTest extends TestBase {
         }
 
         // Translated image
-        PlanarImage translatedIMG = TranslateDescriptor.create(testIMG, xTrans, yTrans, null);
+        PlanarImage translatedIMG = TranslateDescriptor.create(testIMG, xTrans, yTrans, null, null);
 
         translatedIMG.getTiles();
 
@@ -130,7 +130,7 @@ public class TranslateTest extends TestBase {
                 imageValueB, false);
         try {
             // Translated image
-            PlanarImage translatedIMG = TranslateDescriptor.create(testIMG, xTrans, yTrans, null);
+            PlanarImage translatedIMG = TranslateDescriptor.create(testIMG, xTrans, yTrans, null, null);
         } catch (Exception e) {
             String exception = "Translate Operation can be used only for integral displacements. If"
                     + "a layout is present, the translate operation cannot deal with";

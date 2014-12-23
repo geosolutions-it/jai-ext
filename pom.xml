@@ -599,5 +599,10 @@
     <module>jt-algebra</module>
     <module>jt-buffer</module>
     <module>jt-scheduler</module>
+    <module>jt-binarize</module>
+    <module>jt-bandcombine</module>
+    <module>jt-convolve</module>
+    <module>jt-classifier</module>
+    <module>jt-piecewise</module>
   </modules>
 </project>

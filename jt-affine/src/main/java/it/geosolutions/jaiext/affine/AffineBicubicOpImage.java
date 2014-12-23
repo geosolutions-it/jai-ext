@@ -18,6 +18,8 @@
 package it.geosolutions.jaiext.affine;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -90,13 +92,13 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
     public AffineBicubicOpImage(RenderedImage source, BorderExtender extender, Map config,
             ImageLayout layout, AffineTransform transform, Interpolation interp,
-            double[] backgroundValues, boolean setDestinationNoData, boolean useROIAccessor) {
-        super(source, extender, config, layout, transform, interp, null);
-        affineOpInitialization(source, interp, layout, useROIAccessor, setDestinationNoData);
+            double[] backgroundValues, boolean setDestinationNoData, boolean useROIAccessor, Range nodata) {
+        super(source, extender, config, layout, transform, interp, backgroundValues);
+        affineOpInitialization(source, interp, layout, backgroundValues, useROIAccessor, setDestinationNoData, nodata);
     }
 
     private void affineOpInitialization(RenderedImage source, Interpolation interp,
-            ImageLayout layout, boolean useROIAccessor, boolean setDestinationNoData) {
+            ImageLayout layout, double[] backgroundValues, boolean useROIAccessor, boolean setDestinationNoData, Range nodata) {
 
         SampleModel sm = source.getSampleModel();
 
@@ -115,6 +117,11 @@ public class AffineBicubicOpImage extends AffineOpImage {
         int srcDataType = sm.getDataType();
 
         // If both roiBounds and roiIter are not null, they are used in calculation
+        Range nod = nodata;
+        Double destNod = null;
+        if (backgroundValues != null && backgroundValues.length > 0){
+        	destNod = backgroundValues[0];
+		}
         if (interp instanceof InterpolationBicubic) {
             interpBN = (InterpolationBicubic) interp;
             this.interp = interpBN;
@@ -149,23 +156,39 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 round = 1 << (precisionBits - 1);
             }
 
-            this.useROIAccessor = false;
-            if (noData != null) {
-                hasNoData = true;
-                destinationNoDataDouble = interpBN.getDestinationNoData();
-            } else if (hasROI) {
-                destinationNoDataDouble = interpBN.getDestinationNoData();
-                this.useROIAccessor = useROIAccessor;
+            if(nod == null){
+            	nod = interpBN.getNoDataRange();
+            }
+            if(destNod == null){
+            	destNod = interpBN.getDestinationNoData();
             }
         }
 
-        // Creation of the destination background values
-        int srcNumBands = source.getSampleModel().getNumBands();
-        double[] background = new double[srcNumBands];
-        for (int i = 0; i < srcNumBands; i++) {
-            background[i] = destinationNoDataDouble;
-        }
-        this.backgroundValues = background;
+        // Nodata definition
+		if (nod != null) {
+			hasNoData = true;
+			noData = nod;
+		}
+		if(destNod != null){
+			destinationNoDataDouble = destNod;
+		} else if (this.backgroundValues != null && this.backgroundValues.length > 0){
+			destinationNoDataDouble = this.backgroundValues[0];
+		}
+		// ROIAccessor definition
+		if (hasROI) {
+			this.useROIAccessor = useROIAccessor;
+		}
+//        //Creation of the destination background values(the value related to the first band)
+//        if(backgroundValues != null && backgroundValues.length > 0){
+//        	this.backgroundValues=backgroundValues;
+//        } else {
+//    		int srcNumBands= source.getSampleModel().getNumBands();
+//            double[] background=new double[srcNumBands];
+//            for(int i = 0; i<srcNumBands;i++){
+//                background[i]=destinationNoDataDouble;
+//            }       
+//            this.backgroundValues=background;
+//        }
 
         // destination No Data set
         this.setDestinationNoData = setDestinationNoData;

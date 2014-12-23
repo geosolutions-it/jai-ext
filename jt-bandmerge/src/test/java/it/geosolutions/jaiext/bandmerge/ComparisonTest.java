@@ -28,6 +28,8 @@ import javax.media.jai.TiledImage;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
@@ -234,6 +236,7 @@ public class ComparisonTest extends TestBase {
             // creation of the image with the selected descriptor
 
             if (OLD_DESCRIPTOR) {
+                JAIExt.registerJAIDescriptor("bandmerge");
                 // Old descriptor calculations
                 imageMerged = JAI.create("bandmerge", pbj, null);
             } else {

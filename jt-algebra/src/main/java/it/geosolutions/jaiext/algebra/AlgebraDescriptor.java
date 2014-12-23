@@ -1,25 +1,26 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.algebra;
 
 import it.geosolutions.jaiext.range.Range;
 
 import java.awt.RenderingHints;
+import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.RenderableImage;
 
@@ -32,10 +33,12 @@ import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderableRegistryMode;
 import javax.media.jai.registry.RenderedRegistryMode;
 
+import com.sun.media.jai.util.ImageUtil;
+
 public class AlgebraDescriptor extends OperationDescriptorImpl {
 
     public enum Operator {
-        SUM(0, 0) {
+        SUM(0, 0, true) {
             @Override
             public byte calculate(byte... values) {
                 if (values.length > 1) {
@@ -47,13 +50,18 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public short calculate(short... values) {
+            public short calculate(boolean isUshort, short... values) {
                 if (values.length > 1) {
                     for (int i = 1; i < values.length; i++) {
                         values[0] += values[i];
                     }
                 }
                 return values[0];
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
             }
 
             @Override
@@ -95,43 +103,8 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
                 }
                 return values[0];
             }
-
-            @Override
-            public double getNullValue() {
-                return nullValue;
-            }
-
-            @Override
-            public byte calculate(byte value0, byte value1) {
-                return (byte) (value0 + value1);
-            }
-
-            @Override
-            public short calculate(short value0, short value1) {
-                return (short) (value0 + value1);
-            }
-
-            @Override
-            public int calculate(int value0, int value1) {
-                return (value0 + value1);
-            }
-
-            @Override
-            public float calculate(float value0, float value1) {
-                return (value0 + value1);
-            }
-
-            @Override
-            public double calculate(double value0, double value1) {
-                return (value0 + value1);
-            }
-
-            @Override
-            public long calculate(long value0, long value1) {
-                return (value0 + value1);
-            }
         },
-        SUBTRACT(1, 0) {
+        SUBTRACT(1, 0, true) {
             @Override
             public byte calculate(byte... values) {
                 if (values.length > 1) {
@@ -143,13 +116,18 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public short calculate(short... values) {
+            public short calculate(boolean isUshort, short... values) {
                 if (values.length > 1) {
                     for (int i = 1; i < values.length; i++) {
                         values[0] -= values[i];
                     }
                 }
                 return values[0];
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
             }
 
             @Override
@@ -191,44 +169,8 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
                 }
                 return values[0];
             }
-
-            @Override
-            public double getNullValue() {
-                return nullValue;
-            }
-
-            @Override
-            public byte calculate(byte value0, byte value1) {
-                return (byte) (value0 - value1);
-            }
-
-            @Override
-            public short calculate(short value0, short value1) {
-                return (short) (value0 - value1);
-            }
-
-            @Override
-            public int calculate(int value0, int value1) {
-                return (value0 - value1);
-            }
-
-            @Override
-            public float calculate(float value0, float value1) {
-                return (value0 - value1);
-            }
-
-            @Override
-            public double calculate(double value0, double value1) {
-                return (value0 - value1);
-            }
-
-            @Override
-            public long calculate(long value0, long value1) {
-                return (value0 - value1);
-            }
-
         },
-        MULTIPLY(2, 1) {
+        MULTIPLY(2, 1, true) {
             @Override
             public byte calculate(byte... values) {
                 long temp = 1;
@@ -248,21 +190,36 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public short calculate(short... values) {
+            public short calculate(boolean isUshort, short... values) {
                 long temp = 1;
                 if (values.length > 1) {
                     for (int i = 0; i < values.length; i++) {
                         temp *= values[i];
                     }
-                    if (temp > Short.MAX_VALUE) {
-                        values[0] = Short.MAX_VALUE;
-                    } else if (temp < Short.MIN_VALUE) {
-                        values[0] = Short.MIN_VALUE;
+                    if (isUshort) {
+                        if (temp > USHORT_MAX_VALUE) {
+                            values[0] = (short) USHORT_MAX_VALUE;
+                        } else if (temp < 0) {
+                            values[0] = 0;
+                        } else {
+                            values[0] = (short) temp;
+                        }
                     } else {
-                        values[0] = (short) temp;
+                        if (temp > Short.MAX_VALUE) {
+                            values[0] = Short.MAX_VALUE;
+                        } else if (temp < Short.MIN_VALUE) {
+                            values[0] = Short.MIN_VALUE;
+                        } else {
+                            values[0] = (short) temp;
+                        }
                     }
                 }
                 return values[0];
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
             }
 
             @Override
@@ -320,72 +277,8 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
                 }
                 return values[0];
             }
-
-            @Override
-            public double getNullValue() {
-                return nullValue;
-            }
-
-            @Override
-            public byte calculate(byte value0, byte value1) {
-                long temp = 1;
-                temp = 1L * value0 * value1;
-                if (temp > Byte.MAX_VALUE) {
-                    temp = Byte.MAX_VALUE;
-                } else if (temp < Byte.MIN_VALUE) {
-                    temp = Byte.MIN_VALUE;
-                }
-                return (byte) (temp);
-            }
-
-            @Override
-            public short calculate(short value0, short value1) {
-                long temp = 1;
-                temp = 1L * value0 * value1;
-                if (temp > Short.MAX_VALUE) {
-                    temp = Short.MAX_VALUE;
-                } else if (temp < Short.MIN_VALUE) {
-                    temp = Short.MIN_VALUE;
-                }
-                return (short) (temp);
-            }
-
-            @Override
-            public int calculate(int value0, int value1) {
-                long temp = 1;
-                temp = 1L * value0 * value1;
-                if (temp > Integer.MAX_VALUE) {
-                    temp = Integer.MAX_VALUE;
-                } else if (temp < Integer.MIN_VALUE) {
-                    temp = Integer.MIN_VALUE;
-                }
-                return (int) (temp);
-            }
-
-            @Override
-            public float calculate(float value0, float value1) {
-                double temp = 1;
-                temp = 1.0d * value0 * value1;
-                if (temp > Float.MAX_VALUE) {
-                    temp = Float.MAX_VALUE;
-                } else if (temp < -Float.MAX_VALUE) {
-                    temp = -Float.MAX_VALUE;
-                }
-                return (float) (temp);
-            }
-
-            @Override
-            public double calculate(double value0, double value1) {
-                return (value0 * value1);
-            }
-
-            @Override
-            public long calculate(long value0, long value1) {
-                return (value0 * value1);
-            }
-
         },
-        DIVIDE(3, 1) {
+        DIVIDE(3, 1, true) {
             @Override
             public byte calculate(byte... values) {
                 if (values.length > 1) {
@@ -403,19 +296,24 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public short calculate(short... values) {
+            public short calculate(boolean isUshort, short... values) {
                 if (values.length > 1) {
                     for (int i = 1; i < values.length; i++) {
                         if (values[i] == 0 && values[0] >= 0) {
-                            values[0] = Short.MAX_VALUE;
+                            values[0] = (short) (isUshort ? USHORT_MAX_VALUE : Short.MAX_VALUE);
                         } else if (values[i] == 0 && values[0] < 0) {
-                            values[0] = Short.MIN_VALUE;
+                            values[0] = isUshort ? 0 : Short.MIN_VALUE;
                         } else {
                             values[0] /= values[i];
                         }
                     }
                 }
                 return values[0];
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
             }
 
             @Override
@@ -469,92 +367,786 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
                 }
                 return values[0];
             }
+        },
+        AND(4, Long.MAX_VALUE, true) {
 
             @Override
-            public double getNullValue() {
-                return nullValue;
+            public byte calculate(byte... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] &= values[i];
+                    }
+                }
+                return values[0];
             }
 
             @Override
-            public byte calculate(byte value0, byte value1) {
-                if (value1 == 0 && value0 >= 0) {
-                    return Byte.MAX_VALUE;
-                } else if (value1 == 0 && value0 < 0) {
-                    return Byte.MIN_VALUE;
-                } else {
-                    return (byte) (value0 / value1);
+            public short calculate(boolean isUshort, short... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] &= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] &= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public float calculate(float... values) {
+                throw new UnsupportedOperationException(
+                        "Float data type is not supported for this operation");
+            }
+
+            @Override
+            public double calculate(double... values) {
+                throw new UnsupportedOperationException(
+                        "Double data type is not supported for this operation");
+            }
+
+            @Override
+            public long calculate(long... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] &= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            public boolean isDataTypeSupported(int dataType) {
+                return dataType != DataBuffer.TYPE_FLOAT && dataType != DataBuffer.TYPE_DOUBLE;
+            }
+        },
+        OR(5, 0, true) {
+
+            @Override
+            public byte calculate(byte... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] |= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] |= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] |= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public float calculate(float... values) {
+                throw new UnsupportedOperationException(
+                        "Float data type is not supported for this operation");
+
+            }
+
+            @Override
+            public double calculate(double... values) {
+                throw new UnsupportedOperationException(
+                        "Double data type is not supported for this operation");
+
+            }
+
+            @Override
+            public long calculate(long... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] |= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            public boolean isDataTypeSupported(int dataType) {
+                return dataType != DataBuffer.TYPE_FLOAT && dataType != DataBuffer.TYPE_DOUBLE;
+            }
+        },
+        NOT(6, 0, false) {
+
+            @Override
+            public byte calculate(byte... values) {
+                return (byte) ~values[0];
+
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                return (short) ~values[0];
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                return ~values[0];
+            }
+
+            @Override
+            public float calculate(float... values) {
+                throw new UnsupportedOperationException(
+                        "Float data type is not supported for this operation");
+            }
+
+            @Override
+            public double calculate(double... values) {
+                throw new UnsupportedOperationException(
+                        "Double data type is not supported for this operation");
+            }
+
+            @Override
+            public long calculate(long... values) {
+                return ~values[0];
+            }
+
+            public boolean isDataTypeSupported(int dataType) {
+                return dataType != DataBuffer.TYPE_FLOAT && dataType != DataBuffer.TYPE_DOUBLE;
+            }
+        },
+        XOR(7, 0, true) {
+
+            @Override
+            public byte calculate(byte... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] ^= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] ^= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] ^= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public float calculate(float... values) {
+                throw new UnsupportedOperationException(
+                        "Float data type is not supported for this operation");
+
+            }
+
+            @Override
+            public double calculate(double... values) {
+                throw new UnsupportedOperationException(
+                        "Double data type is not supported for this operation");
+
+            }
+
+            @Override
+            public long calculate(long... values) {
+                if (values.length > 1) {
+                    for (int i = 1; i < values.length; i++) {
+                        values[0] ^= values[i];
+                    }
+                }
+                return values[0];
+            }
+
+            public boolean isDataTypeSupported(int dataType) {
+                return dataType != DataBuffer.TYPE_FLOAT && dataType != DataBuffer.TYPE_DOUBLE;
+            }
+        },
+        EXP(8, 0, false) {
+
+            private byte[] byteTable;
+
+            protected void initialization() {
+
+                if (byteTable != null)
+                    return;
+
+                byteTable = new byte[0x100];
+
+                /*
+                 * exp(5) = 148.4131591... exp(6) = 403.4287935... Calculate up to 5 and set the rest to the maximum value.
+                 */
+                byteTable[0] = 1;
+
+                for (int i = 1; i < 6; i++) {
+                    byteTable[i] = (byte) (Math.exp(i) + 0.5);
+                }
+
+                for (int i = 6; i < 0x100; i++) {
+                    byteTable[i] = (byte) ImageUtil.BYTE_MASK;
                 }
             }
 
             @Override
-            public short calculate(short value0, short value1) {
-                if (value1 == 0 && value0 >= 0) {
-                    return Short.MAX_VALUE;
-                } else if (value1 == 0 && value0 < 0) {
-                    return Short.MIN_VALUE;
+            public byte calculate(byte... values) {
+                return byteTable[values[0] & ImageUtil.BYTE_MASK];
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                double value = values[0];
+                if (isUshort) {
+                    value = values[0] & ImageUtil.USHORT_MASK;
+                    if (value == 0) {
+                        return 1;
+                    } else if (value > USHORT_UPPER_BOUND) {
+                        return (short) ImageUtil.USHORT_MASK;
+                    } else {
+                        return (short) (Math.exp(value) + 0.5);
+                    }
                 } else {
-                    return (short) (value0 / value1);
+                    if (value < LOWER_BOUND) {
+                        return 0;
+                    } else if (value == 0) {
+                        return 1;
+                    } else if (value > SHORT_UPPER_BOUND) {
+                        return Short.MAX_VALUE;
+                    } else {
+                        return (short) (Math.exp(value) + 0.5);
+                    }
                 }
             }
 
             @Override
-            public int calculate(int value0, int value1) {
-                if (value1 == 0 && value0 >= 0) {
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                double value = values[0];
+                if (value < LOWER_BOUND) {
+                    return 0;
+                } else if (value == 0) {
+                    return 1;
+                } else if (value > INT_UPPER_BOUND) {
                     return Integer.MAX_VALUE;
-                } else if (value1 == 0 && value0 < 0) {
-                    return Integer.MIN_VALUE;
                 } else {
-                    return (value0 / value1);
+                    return (int) (Math.exp(value) + 0.5);
                 }
             }
 
             @Override
-            public float calculate(float value0, float value1) {
-                return (value0 / value1);
+            public float calculate(float... values) {
+                return (float) Math.exp(values[0]);
             }
 
             @Override
-            public double calculate(double value0, double value1) {
-                return (value0 / value1);
+            public double calculate(double... values) {
+                return Math.exp(values[0]);
             }
 
             @Override
-            public long calculate(long value0, long value1) {
-                if (value1 == 0 && value0 >= 0) {
+            public long calculate(long... values) {
+                double value = values[0];
+                if (value < LOWER_BOUND) {
+                    return 0;
+                } else if (value == 0) {
+                    return 1;
+                } else if (value > LONG_UPPER_BOUND) {
                     return Long.MAX_VALUE;
-                } else if (value1 == 0 && value0 < 0) {
-                    return Long.MIN_VALUE;
                 } else {
-                    return (value0 / value1);
+                    return (long) (Math.exp(value) + 0.5);
                 }
             }
 
+            @Override
+            public boolean isUshortSupported() {
+                return true;
+            }
+        },
+        LOG(9, 0, false) {
+
+            private byte[] byteTable;
+
+            protected void initialization() {
+
+                if (byteTable != null)
+                    return;
+
+                byteTable = new byte[0x100];
+
+                byteTable[0] = 0; // minimum byte value
+                byteTable[1] = 0;
+
+                for (int i = 2; i < 0x100; i++) {
+                    byteTable[i] = (byte) (Math.log(i) + 0.5);
+                }
+            }
+
+            @Override
+            public byte calculate(byte... values) {
+                return byteTable[values[0] & ImageUtil.BYTE_MASK];
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                return (short) Math
+                        .log((isUshort ? values[0] & ImageUtil.USHORT_MASK : values[0]) + 0.5);
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                double value = values[0];
+                if (value > 0) {
+                    return (int) (Math.log(value) + 0.5);
+                } else if (value == 0) {
+                    return 0;
+                } else {
+                    return -1;
+                }
+            }
+
+            @Override
+            public float calculate(float... values) {
+                return (float) Math.log(values[0]);
+            }
+
+            @Override
+            public double calculate(double... values) {
+                return Math.log(values[0]);
+            }
+
+            @Override
+            public long calculate(long... values) {
+                double value = values[0];
+                if (value > 0) {
+                    return (long) (Math.log(value) + 0.5);
+                } else if (value == 0) {
+                    return 0;
+                } else {
+                    return -1;
+                }
+            }
+
+            @Override
+            public boolean isUshortSupported() {
+                return true;
+            }
+        },
+        ABSOLUTE(10, 0, false) {
+
+            @Override
+            public byte calculate(byte... values) {
+                return values[0];
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                if (isUshort) {
+                    return values[0];
+                }
+                short value = values[0];
+                if ((value != Short.MIN_VALUE) && (value & Short.MIN_VALUE) != 0) {
+                    // negative value
+                    return (short) -values[0];
+                } else {
+                    // It is either the minimum of short
+                    // or a positive number;
+                    return values[0];
+                }
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                int value = values[0];
+                if ((value != Integer.MIN_VALUE) && (value & Integer.MIN_VALUE) != 0) {
+                    // negative value
+                    return -values[0];
+                } else {
+                    // It is either the minimum of integer
+                    // or a positive number;
+                    return values[0];
+                }
+            }
+
+            @Override
+            public float calculate(float... values) {
+                if (values[0] <= 0.0f) {
+                    return 0.0f - values[0];
+                } else {
+                    return values[0];
+                }
+            }
+
+            @Override
+            public double calculate(double... values) {
+                if (values[0] <= 0.0d) {
+                    return 0.0d - values[0];
+                } else {
+                    return values[0];
+                }
+            }
+
+            @Override
+            public long calculate(long... values) {
+                long value = values[0];
+                if ((value != Long.MIN_VALUE) && (value & Long.MIN_VALUE) != 0) {
+                    // negative value
+                    return -values[0];
+                } else {
+                    // It is either the minimum of long
+                    // or a positive number;
+                    return values[0];
+                }
+            }
+
+            @Override
+            public boolean isUshortSupported() {
+                return true;
+            }
+        },
+        INVERT(11, 0, false) {
+
+            @Override
+            public byte calculate(byte... values) {
+                return (byte) (255 - (values[0] & 0xFF));
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                return (short) (isUshort ? USHORT_MAX_VALUE - values[0]
+                        : (Short.MAX_VALUE - values[0]));
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                return Integer.MAX_VALUE - values[0];
+            }
+
+            @Override
+            public float calculate(float... values) {
+                throw new UnsupportedOperationException(
+                        "Float data type is not supported for this operation");
+            }
+
+            @Override
+            public double calculate(double... values) {
+                throw new UnsupportedOperationException(
+                        "Double data type is not supported for this operation");
+            }
+
+            @Override
+            public long calculate(long... values) {
+                return Long.MAX_VALUE - values[0];
+            }
+
+            @Override
+            public boolean isUshortSupported() {
+                return true;
+            }
+
+            public boolean isDataTypeSupported(int dataType) {
+                return dataType != DataBuffer.TYPE_FLOAT && dataType != DataBuffer.TYPE_DOUBLE;
+            }
+        }, DIVIDE_INTO(12, 0, true) {
+            @Override
+            public byte calculate(byte... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        if (values[0] == 0 && values[1] >= 0) {
+                            return Byte.MAX_VALUE;
+                        } else if (values[0] == 0 && values[1] < 0) {
+                            return Byte.MIN_VALUE;
+                        } else {
+                            return (byte) (values[1] / values[0]);
+                        }
+                    } else {
+                        int result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return (byte) result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                if (values[i - 1] == 0 && values[i] >= 0) {
+                                    result = Byte.MAX_VALUE;
+                                } else if (values[i - 1] == 0 && values[i] < 0) {
+                                    result = Byte.MIN_VALUE;
+                                } else {
+                                    result = result / values[i - 1];
+                                }
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        if (values[0] == 0 && values[1] >= 0) {
+                            return (short) (isUshort ? USHORT_MAX_VALUE : Short.MAX_VALUE);
+                        } else if (values[0] == 0 && values[1] < 0) {
+                            return (short) (isUshort ? USHORT_MAX_VALUE : Short.MAX_VALUE);
+                        } else {
+                            return (short) (values[1] / values[0]);
+                        }
+                    } else {
+                        int result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return (short) result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                if (values[i - 1] == 0 && values[i] >= 0) {
+                                    result = (short) (isUshort ? USHORT_MAX_VALUE : Short.MAX_VALUE);
+                                } else if (values[i - 1] == 0 && values[i] < 0) {
+                                    result = (short) (isUshort ? USHORT_MAX_VALUE : Short.MAX_VALUE);
+                                } else {
+                                    result = result / values[i - 1];
+                                }
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        if (values[0] == 0 && values[1] >= 0) {
+                            return Integer.MAX_VALUE;
+                        } else if (values[0] == 0 && values[1] < 0) {
+                            return Integer.MIN_VALUE;
+                        } else {
+                            return (int) (values[1] / values[0]);
+                        }
+                    } else {
+                        long result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return (int) result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                if (values[i - 1] == 0 && values[i] >= 0) {
+                                    result = Integer.MAX_VALUE;
+                                } else if (values[i - 1] == 0 && values[i] < 0) {
+                                    result = Integer.MIN_VALUE;
+                                } else {
+                                    result = result / values[i - 1];
+                                }
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public float calculate(float... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        return values[1]/values[0];
+                    } else {
+                        double result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return (float) result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                result = result / values[i - 1];
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public double calculate(double... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        return values[1]/values[0];
+                    } else {
+                        double result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                result = result / values[i - 1];
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public long calculate(long... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        if (values[0] == 0 && values[1] >= 0) {
+                            return Long.MAX_VALUE;
+                        } else if (values[0] == 0 && values[1] < 0) {
+                            return Long.MIN_VALUE;
+                        } else {
+                            return (values[1] / values[0]);
+                        }
+                    } else {
+                        long result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return (int) result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                if (values[i - 1] == 0 && values[i] >= 0) {
+                                    result = Long.MAX_VALUE;
+                                } else if (values[i - 1] == 0 && values[i] < 0) {
+                                    result = Long.MIN_VALUE;
+                                } else {
+                                    result = result / values[i - 1];
+                                }
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
         };
 
-        protected final double nullValue;
+        private final double nullValue;
 
         private final int type;
 
-        private Operator(int type, double nullValue) {
+        private final boolean supportsMultipleValues;
+
+        private Operator(int type, double nullValue, boolean supportsMultipleValues) {
             this.nullValue = nullValue;
             this.type = type;
+            this.supportsMultipleValues = supportsMultipleValues;
+            initialization();
         }
 
-        public abstract byte calculate(byte value0, byte value1);
+        protected void initialization() {
+        }
 
-        public abstract short calculate(short value0, short value1);
+        /**
+         * The largest unsigned short to get a non-overflowed exponential result. i.e. cloeset to 65536. exp(11) = 59874.14171, exp(12) = 162754.7914
+         */
+        private static int USHORT_UPPER_BOUND = 11;
 
-        public abstract int calculate(int value0, int value1);
+        /**
+         * The largest short to get a non-overflowed exponential result. i.e. closest to 32767. exp(10) = 22026.46579, exp(11) = 59874.14171
+         */
+        public static int SHORT_UPPER_BOUND = 10;
 
-        public abstract float calculate(float value0, float value1);
+        /**
+         * The largest int to get a non-overflowed exponential result. i.e. closest to 2**31-1 = 2147483647. exp(21) = 1318815734, exp(22) =
+         * 3584912846.
+         */
+        public static int INT_UPPER_BOUND = 21;
 
-        public abstract double calculate(double value0, double value1);
+        /**
+         * The largest int to get a non-overflowed exponential result. i.e. closest to 2**63-1
+         */
+        public static int LONG_UPPER_BOUND = 43;
 
-        public abstract long calculate(long value0, long value1);
+        /**
+         * The smallest integer to get a non-zero exponential result is 0. i.e. exp(0) = 1; exp(-1) = 0.367879441, which will be stored as 0. all
+         * other negative values will result in 0.
+         */
+        public static int LOWER_BOUND = 0;
+
+        /**
+         * Ushort maximum allowed value
+         */
+        public static int USHORT_MAX_VALUE = Short.MAX_VALUE - Short.MIN_VALUE;
 
         public abstract byte calculate(byte... values);
 
         public abstract short calculate(short... values);
+
+        public abstract short calculate(boolean isUshort, short... values);
 
         public abstract int calculate(int... values);
 
@@ -564,7 +1156,21 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
 
         public abstract long calculate(long... values);
 
-        public abstract double getNullValue();
+        public boolean isDataTypeSupported(int dataType) {
+            return true;
+        }
+
+        public boolean supportsMultipleValues() {
+            return supportsMultipleValues;
+        }
+
+        public boolean isUshortSupported() {
+            return false;
+        }
+
+        public double getNullValue() {
+            return nullValue;
+        }
 
         public int getType() {
             return type;
@@ -620,7 +1226,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
     }
 
     /**
-     * Adds two images.
+     * Executes the selected operation on an image array.
      * 
      * <p>
      * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
@@ -630,12 +1236,14 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
      * @see ParameterBlockJAI
      * @see RenderedOp
      * 
-     * @param source0 <code>RenderedImage</code> source 0.
-     * @param source1 <code>RenderedImage</code> source 1.
+     * @param op operation to execute
+     * @param roi optional ROI object
+     * @param optional nodata range for checking nodata
+     * @param destinationNoData value to set for destination NoData
+     * @param sources <code>RenderedImage</code> sources.
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @return The <code>RenderedOp</code> destination.
-     * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.
-     * @throws IllegalArgumentException if <code>source1</code> is <code>null</code>.
+     * @throws IllegalArgumentException if <code>source</code> are <code>0</code>.
      */
     public static RenderedOp create(Operator op, ROI roi, Range noData, double destinationNoData,
             RenderingHints hints, RenderedImage... sources) {
@@ -664,7 +1272,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
     }
 
     /**
-     * Adds two images.
+     * Executes the selected operation on an image array.
      * 
      * <p>
      * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
@@ -674,12 +1282,14 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
      * @see ParameterBlockJAI
      * @see RenderableOp
      * 
-     * @param source0 <code>RenderableImage</code> source 0.
-     * @param source1 <code>RenderableImage</code> source 1.
+     * @param op operation to execute
+     * @param roi optional ROI object
+     * @param optional nodata range for checking nodata
+     * @param destinationNoData value to set for destination NoData
+     * @param sources <code>RenderableImage</code> sources.
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @return The <code>RenderableOp</code> destination.
-     * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.
-     * @throws IllegalArgumentException if <code>source1</code> is <code>null</code>.
+     * @throws IllegalArgumentException if <code>source</code> are <code>0</code>.
      */
     public static RenderableOp createRenderable(Operator op, ROI roi, Range noData,
             double destinationNoData, RenderingHints hints, RenderableImage... sources) {

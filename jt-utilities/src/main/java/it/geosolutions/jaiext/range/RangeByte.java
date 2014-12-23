@@ -17,73 +17,68 @@
 */
 package it.geosolutions.jaiext.range;
 
+import it.geosolutions.jaiext.utilities.ImageUtilities;
 /**
  * This class is a subclass of the {@link Range} class handling byte data.
  */
 public class RangeByte extends Range {
 
     /** Minimum range bound */
-    private final byte minValue;
+    private final int minValue;
 
     /** Maximum range bound */
-    private final byte maxValue;
-
-    /** Boolean indicating if the minimum bound is included */
-    private final boolean minIncluded;
-
-    /** Boolean indicating if the maximum bound is included */
-    private final boolean maxIncluded;
+    private final int maxValue;
 
     /** Boolean indicating if the maximum bound is included */
     private final boolean isPoint;
 
     RangeByte(byte minValue, boolean minIncluded, byte maxValue, boolean maxIncluded) {
-
-        if (minValue < maxValue) {
-            this.minValue = minValue;
-            this.maxValue = maxValue;
+    	super(minIncluded, maxIncluded);
+    	int minValueInt = minValue & 0xFF;
+    	int maxValueInt = maxValue & 0xFF;
+    	
+        if (minValueInt < maxValueInt) {
+            this.minValue = minValueInt;
+            this.maxValue = maxValueInt;
             this.isPoint = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
-        } else if (minValue > maxValue) {
-            this.minValue = maxValue;
-            this.maxValue = minValue;
+        } else if (minValueInt > maxValueInt) {
+            this.minValue = maxValueInt;
+            this.maxValue = minValueInt;
             this.isPoint = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
         } else {
-            this.minValue = minValue;
-            this.maxValue = minValue;
+            this.minValue = minValueInt;
+            this.maxValue = minValueInt;
             this.isPoint = true;
             if (!minIncluded && !maxIncluded) {
                 throw new IllegalArgumentException(
                         "Cannot create a single-point range without minimum and maximum "
                                 + "bounds included");
             } else {
-                this.minIncluded = true;
-                this.maxIncluded = true;
+                setMinIncluded(true);
+                setMaxIncluded(true);
             }
         }
     }
 
     @Override
-    public boolean contains(byte value) {        
+    public boolean contains(byte value) { 
+        int valueI = value & 0xFF;
         if (isPoint) {
-            return this.minValue == value;
+            return this.minValue == valueI;
         } else {
             final boolean lower;
             final boolean upper;
 
-            if (minIncluded) {
-                lower = value < minValue;
+            if (isMinIncluded()) {
+                lower = valueI < minValue;
             } else {
-                lower = value <= minValue;
+                lower = valueI <= minValue;
             }
 
-            if (maxIncluded) {
-                upper = value > maxValue;
+            if (isMaxIncluded()) {
+                upper = valueI > maxValue;
             } else {
-                upper = value >= maxValue;
+                upper = valueI >= maxValue;
             }
 
             return !lower && !upper;
@@ -104,9 +99,57 @@ public class RangeByte extends Range {
     public Number getMax() {
         return maxValue;
     }
+    
+    public Number getMax(boolean isMaxIncluded) {
+        int value = maxValue;
+        if (isMaxIncluded != isMaxIncluded()) {
+            value = (int) ImageUtilities.rool(getDataType().getClassValue(), value, isMaxIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Number getMin(boolean isMinIncluded) {
+        int value = minValue;
+        if (isMinIncluded != isMinIncluded()) {
+            value = (int) ImageUtilities.rool(getDataType().getClassValue(), value, isMinIncluded ? -1 : +1);
+        }
+        return value;
+    }
 
     @Override
     public Number getMin() {
         return minValue;
+    }
+    
+    public Range union(Range other){
+        if(this.contains(other)){
+            return this;
+        } else if(other.contains(this)){
+            return other;
+        }
+        
+        int min2 = other.getMin().intValue();
+        int max2 = other.getMax().intValue();
+        
+        int finalMin = minValue;
+        int finalMax = maxValue;
+        
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+        
+        if(min2 < minValue){
+            finalMin = min2;
+            minIncluded = other.isMinIncluded();
+        } else if(min2 == minValue){
+            minIncluded |= other.isMinIncluded();
+        }
+        if(max2 > maxValue){
+            finalMax = max2;
+            maxIncluded = other.isMaxIncluded();
+        } else if(max2 == maxValue){
+            maxIncluded |= other.isMaxIncluded();
+        }
+        
+        return new RangeByte((byte)finalMin, minIncluded, (byte)finalMax, maxIncluded);
     }
 }

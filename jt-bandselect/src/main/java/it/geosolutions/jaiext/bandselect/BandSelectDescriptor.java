@@ -86,8 +86,8 @@ public class BandSelectDescriptor extends OperationDescriptorImpl {
      * and specify the parameter list for this operation.
      */
     private static final String[][] resources = {
-        {"GlobalName",  "BandSelect2"},
-        {"LocalName",   "BandSelect2"},
+        {"GlobalName",  "BandSelect"},
+        {"LocalName",   "BandSelect"},
         {"Vendor",      "it.geosolutions.jaiext"},
         {"Description", JaiI18N.getString("BandSelectDescriptor0")},
         {"DocURL",      "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/BandSelectDescriptor.html"},
@@ -184,14 +184,14 @@ public class BandSelectDescriptor extends OperationDescriptorImpl {
                                     int[] bandIndices,
                                     RenderingHints hints)  {
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("BandSelect2",
+            new ParameterBlockJAI("BandSelect",
                                   RenderedRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
 
         pb.setParameter("bandIndices", bandIndices);
 
-        return JAI.create("BandSelect2", pb, hints);
+        return JAI.create("BandSelect", pb, hints);
     }
 
     /**
@@ -217,13 +217,13 @@ public class BandSelectDescriptor extends OperationDescriptorImpl {
                                                 int[] bandIndices,
                                                 RenderingHints hints)  {
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("BandSelect2",
+            new ParameterBlockJAI("BandSelect",
                                   RenderableRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
 
         pb.setParameter("bandIndices", bandIndices);
 
-        return JAI.createRenderable("BandSelect2", pb, hints);
+        return JAI.createRenderable("BandSelect", pb, hints);
     }
 }

@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.range;
 
+import it.geosolutions.jaiext.utilities.ImageUtilities;
+
 /**
  * This class is a subclass of the {@link Range} class handling Short data.
  */
@@ -26,30 +28,20 @@ public class RangeShort extends Range {
 
     /** Maximum range bound */
     private final short maxValue;
-
-    /** Boolean indicating if the minimum bound is included */
-    private final boolean minIncluded;
-
-    /** Boolean indicating if the maximum bound is included */
-    private final boolean maxIncluded;
     
     /** Boolean indicating if the maximum bound is included */
     private final boolean isPoint;
 
     RangeShort(short minValue, boolean minIncluded, short maxValue, boolean maxIncluded) {
-        
+        super(minIncluded, maxIncluded);
         if (minValue < maxValue) {
             this.minValue = minValue;
             this.maxValue = maxValue;
             this.isPoint = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
         } else if (minValue > maxValue) {
             this.minValue = maxValue;
             this.maxValue = minValue;
             this.isPoint = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
         } else {
             this.minValue = minValue;
             this.maxValue = minValue;
@@ -59,8 +51,8 @@ public class RangeShort extends Range {
                         "Cannot create a single-point range without minimum and maximum "
                                 + "bounds included");
             } else {
-                this.minIncluded = true;
-                this.maxIncluded = true;
+            	setMinIncluded(true);
+            	setMaxIncluded(true);
             }
         }
     }
@@ -73,13 +65,13 @@ public class RangeShort extends Range {
             final boolean lower;
             final boolean upper;
 
-            if (minIncluded) {
+            if (isMinIncluded()) {
                 lower = value < minValue;
             } else {
                 lower = value <= minValue;
             }
 
-            if (maxIncluded) {
+            if (isMaxIncluded()) {
                 upper = value > maxValue;
             } else {
                 upper = value >= maxValue;
@@ -109,4 +101,51 @@ public class RangeShort extends Range {
         return minValue;
     }
 
+    public Number getMax(boolean isMaxIncluded) {
+        short value = maxValue;
+        if (isMaxIncluded != isMaxIncluded()) {
+            value = (short) ImageUtilities.rool(getDataType().getClassValue(), value, isMaxIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Number getMin(boolean isMinIncluded) {
+        short value = minValue;
+        if (isMinIncluded != isMinIncluded()) {
+            value = (short) ImageUtilities.rool(getDataType().getClassValue(), value, isMinIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Range union(Range other){
+        if(this.contains(other)){
+            return this;
+        } else if(other.contains(this)){
+            return other;
+        }
+        
+        short min2 = other.getMin().shortValue();
+        short max2 = other.getMax().shortValue();
+        
+        short finalMin = minValue;
+        short finalMax = maxValue;
+        
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+        
+        if(min2 < minValue){
+            finalMin = min2;
+            minIncluded = other.isMinIncluded();
+        } else if(min2 == minValue){
+            minIncluded |= other.isMinIncluded();
+        }
+        if(max2 > maxValue){
+            finalMax = max2;
+            maxIncluded = other.isMaxIncluded();
+        } else if(max2 == maxValue){
+            maxIncluded |= other.isMaxIncluded();
+        }
+        
+        return new RangeShort(finalMin, minIncluded, finalMax, maxIncluded);
+    }
 }

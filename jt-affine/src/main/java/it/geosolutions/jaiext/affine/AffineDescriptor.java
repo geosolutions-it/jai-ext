@@ -16,6 +16,8 @@
 * limitations under the License.
 */
 package it.geosolutions.jaiext.affine;
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
@@ -215,8 +217,8 @@ class AffinePropertyGenerator extends PropertyGeneratorImpl {
  * <p><table border=1>
  * <caption>Resource List</caption>
  * <tr><th>Name</th>        <th>Value</th></tr>
- * <tr><td>GlobalName</td>  <td>AffineNoData</td></tr>
- * <tr><td>LocalName</td>   <td>AffineNoData</td></tr>
+ * <tr><td>GlobalName</td>  <td>Affine</td></tr>
+ * <tr><td>LocalName</td>   <td>Affine</td></tr>
  * <tr><td>Vendor</td>      <td>it.geosolutions.jaiext</td></tr>
  * <tr><td>Description</td> <td>Performs interpolated affine transform on
  *                              an image.</td></tr>
@@ -245,7 +247,9 @@ class AffinePropertyGenerator extends PropertyGeneratorImpl {
  * <tr><td>useROIAccessor</td><td>Boolean</td>
  *                            <td>False</td>    
  * <tr><td>setDestinationNoData</td> <td>Boolean</td>
- *                            <td>False</td>                                                                      
+ *                            <td>False</td>     
+ * <tr><td>nodata</td>        <td>it.geosolutions.jaiext.range.Range</td>
+ *                            <td>null</td>                                                                                               
  * </table></p>
  *
  * @see java.awt.geom.AffineTransform
@@ -263,8 +267,8 @@ public class AffineDescriptor extends OperationDescriptorImpl {
      * and specify the parameter list for this operation.
      */
     private static final String[][] resources = {
-        {"GlobalName",  "AffineNoData"},
-        {"LocalName",   "AffineNoData"},
+        {"GlobalName",  "Affine"},
+        {"LocalName",   "Affine"},
         {"Vendor",      "it.geosolutions.jaiext"},
         {"Description", JaiI18N.getString("AffineDescriptor0")},
         {"DocURL",      "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/AffineDescriptor.html"},
@@ -274,26 +278,28 @@ public class AffineDescriptor extends OperationDescriptorImpl {
         {"arg2Desc",    JaiI18N.getString("AffineDescriptor3")},
         {"arg3Desc",    JaiI18N.getString("AffineDescriptor4")},
         {"arg4Desc",    JaiI18N.getString("AffineDescriptor5")},
-        {"arg5Desc",    JaiI18N.getString("AffineDescriptor6")}
+        {"arg5Desc",    JaiI18N.getString("AffineDescriptor6")},
+        {"arg6Desc",    JaiI18N.getString("AffineDescriptor7")}
     };
 
     /** The parameter class list for this operation. */
     private static final Class[] paramClasses = {
         java.awt.geom.AffineTransform.class,
         javax.media.jai.Interpolation.class,
-        double[].class, ROI.class, java.lang.Boolean.class,java.lang.Boolean.class
+        double[].class, ROI.class, java.lang.Boolean.class,java.lang.Boolean.class,
+        it.geosolutions.jaiext.range.Range.class
     };
 
     /** The parameter name list for this operation. */
     private static final String[] paramNames = {
-        "transform", "interpolation", "backgroundValues", "ROI","useROIAccessor","setDestinationNoData"
+        "transform", "interpolation", "backgroundValues", "ROI","useROIAccessor","setDestinationNoData", "nodata"
     };
 
     /** The parameter default value list for this operation. */
     private static final Object[] paramDefaults = {
         new AffineTransform(),
         Interpolation.getInstance(Interpolation.INTERP_NEAREST),
-    null, null, false, false
+    null, null, false, false, null
     };
 
 
@@ -377,10 +383,11 @@ public class AffineDescriptor extends OperationDescriptorImpl {
                                     ROI roi,
                                     boolean useROIAccessor,
                                     boolean setDestinationNoData,
+                                    Range nodata,
                                     RenderingHints hints)  {
         // Creation of a parameterBlockJAI for containing the operation parameters
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("AffineNoData",
+            new ParameterBlockJAI("Affine",
                                   RenderedRegistryMode.MODE_NAME);
         // Set the source image
         pb.setSource("source0", source0);
@@ -389,13 +396,13 @@ public class AffineDescriptor extends OperationDescriptorImpl {
         pb.setParameter("interpolation", interpolation);
         pb.setParameter("backgroundValues", backgroundValues);
         pb.setParameter("setDestinationNoData", setDestinationNoData);
-        
+        pb.setParameter("nodata", nodata);
         if(roi!=null){
             pb.setParameter("ROI", roi);
             pb.setParameter("useROIAccessor", useROIAccessor);
         }
         // Creation of the transformated image
-        return JAI.create("AffineNoData", pb, hints);
+        return JAI.create("Affine", pb, hints);
     }
 
     /**
@@ -428,10 +435,11 @@ public class AffineDescriptor extends OperationDescriptorImpl {
                                                 ROI roi,
                                                 boolean useROIAccessor,
                                                 boolean setDestinationNoData,
+                                                Range nodata,
                                                 RenderingHints hints)  {
         // Creation of a parameterBlockJAI for containing the operation parameters
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("AffineNoData",
+            new ParameterBlockJAI("Affine",
                                   RenderableRegistryMode.MODE_NAME);
         // Set the source image
         pb.setSource("source0", source0);
@@ -440,12 +448,12 @@ public class AffineDescriptor extends OperationDescriptorImpl {
         pb.setParameter("interpolation", interpolation);
         pb.setParameter("backgroundValues", backgroundValues);
         pb.setParameter("setDestinationNoData", setDestinationNoData);
-        
+        pb.setParameter("nodata", nodata);
         if(roi!=null){
             pb.setParameter("ROI", roi);
             pb.setParameter("useROIAccessor", useROIAccessor);
         }
         // Creation of the transformated image
-        return JAI.createRenderable("AffineNoData", pb, hints);
+        return JAI.createRenderable("Affine", pb, hints);
     }
 }

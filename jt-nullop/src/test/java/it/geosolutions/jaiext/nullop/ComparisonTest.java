@@ -24,6 +24,8 @@ import javax.media.jai.PlanarImage;
 import javax.media.jai.RenderedOp;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 /**
@@ -155,6 +157,7 @@ public class ComparisonTest extends TestBase {
             // creation of the image with the selected descriptor
 
             if (OLD_DESCRIPTOR) {
+                JAIExt.registerJAIDescriptor("Null");
                 // Old descriptor calculations
                 imageNull = javax.media.jai.operator.NullDescriptor.create(testImage, null);
             } else {
