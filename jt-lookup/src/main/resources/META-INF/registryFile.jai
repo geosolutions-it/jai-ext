@@ -8,4 +8,4 @@ descriptor  it.geosolutions.jaiext.lookup.LookupDescriptor
 # RenderedImageFactories
 #
 
-rendered  it.geosolutions.jaiext.lookup.LookupCRIF  it.geosolutions.jaiext  LookupNoData LookupNoData 
+rendered  it.geosolutions.jaiext.lookup.LookupCRIF  it.geosolutions.jaiext  Lookup Lookup 

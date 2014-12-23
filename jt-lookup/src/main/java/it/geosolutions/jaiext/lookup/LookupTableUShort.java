@@ -906,7 +906,7 @@ public class LookupTableUShort extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = data.getElem(b, s[srcPixelOffset] & 0xFFFF);
+                            d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset] & 0xFFFF);
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -969,7 +969,7 @@ public class LookupTableUShort extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
-                                    d[dstPixelOffset] = data.getElem(b, s[srcPixelOffset] & 0xFFFF);
+                                    d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset] & 0xFFFF);
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -1039,7 +1039,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        d[dstPixelOffset] = data.getElem(b,
+                                        d[dstPixelOffset] = getData().getElem(b,
                                                 s[srcPixelOffset] & 0xFFFF);
                                     }
                                 } else {
@@ -1110,7 +1110,7 @@ public class LookupTableUShort extends LookupTable {
                             if (noData.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataInt;
                             } else {
-                                d[dstPixelOffset] = data.getElem(b, value);
+                                d[dstPixelOffset] = getData().getElem(b, value);
                             }
 
                             srcPixelOffset += srcPixelStride;
@@ -1183,7 +1183,7 @@ public class LookupTableUShort extends LookupTable {
                                     if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        d[dstPixelOffset] = data.getElem(b, value);
+                                        d[dstPixelOffset] = getData().getElem(b, value);
                                     }
                                 }
 
@@ -1262,7 +1262,7 @@ public class LookupTableUShort extends LookupTable {
                                         if (noData.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataInt;
                                         } else {
-                                            d[dstPixelOffset] = data.getElem(b, value);
+                                            d[dstPixelOffset] = getData().getElem(b, value);
                                         }
                                     }
                                 } else {

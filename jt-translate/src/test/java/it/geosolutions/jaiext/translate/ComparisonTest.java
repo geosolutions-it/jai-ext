@@ -124,7 +124,7 @@ public class ComparisonTest {
                 imageTranslate = javax.media.jai.operator.TranslateDescriptor.create(image, transX,
                         transY, interp, null);
             } else {
-                imageTranslate = TranslateDescriptor.create(image, transX, transY, null);
+                imageTranslate = TranslateDescriptor.create(image, transX, transY, null, null);
             }
 
             // Total calculation time

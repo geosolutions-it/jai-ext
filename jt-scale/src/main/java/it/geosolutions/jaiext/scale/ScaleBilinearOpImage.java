@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.scale;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
@@ -48,7 +49,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
     public ScaleBilinearOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
-            float transX, float transY, boolean useRoiAccessor) {
+            float transX, float transY, boolean useRoiAccessor, Range nodata) {
         super(source, layout, configuration, true, extender, interp, scaleX, scaleY, transX,
                 transY, useRoiAccessor);
         scaleOpInitialization(source, interp);

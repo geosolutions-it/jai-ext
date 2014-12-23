@@ -20,6 +20,7 @@ package it.geosolutions.jaiext.scale;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
@@ -70,7 +71,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
     // Simple constructor used for interpolators different from InterpolationNearest2, InterpolationBilinear2, InterpolationBicubic
     public ScaleGeneralOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
-            float transX, float transY, boolean useRoiAccessor) {
+            float transX, float transY, boolean useRoiAccessor, Range nodata) {
 
         super(source, layout, configuration, true, extender, interp, scaleX, scaleY, transX,
                 transY, useRoiAccessor);     

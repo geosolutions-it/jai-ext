@@ -66,7 +66,7 @@ public class CropDescriptor extends OperationDescriptorImpl {
             NO_PARAMETER_DEFAULT, NO_PARAMETER_DEFAULT,null,null, new double[]{0}};
 
     public CropDescriptor() {
-        super(new String[][] { { "GlobalName", "CropNoData" }, { "LocalName", "CropNoData" },
+        super(new String[][] { { "GlobalName", "Crop" }, { "LocalName", "Crop" },
                 { "Vendor", "it.geosolutions.jaiext" },
                 { "Description", "Crops the image to the specified bounds" },
                 { "DocURL", "Not Defined" }, { "Version", "1.0.0" },
@@ -138,7 +138,7 @@ public class CropDescriptor extends OperationDescriptorImpl {
                                     double[] destNoData,
                                     RenderingHints hints)  {
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("CropNoData",
+            new ParameterBlockJAI("Crop",
                                   RenderedRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
@@ -151,7 +151,7 @@ public class CropDescriptor extends OperationDescriptorImpl {
         pb.setParameter("NoData", noData);
         pb.setParameter("destNoData", destNoData);
 
-        return JAI.create("CropNoData", pb, hints);
+        return JAI.create("Crop", pb, hints);
     }
 
 }

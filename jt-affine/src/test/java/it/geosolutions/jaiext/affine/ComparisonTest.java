@@ -57,7 +57,7 @@ import org.junit.Test;
  * used is selected by passing the JVM integral parameter JAI.Ext.TransformationSelector, with 0 that indicates rotation, 1 scale, 2 combination of
  * them. If the user wants to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
-public class ComparisonTest {
+public class ComparisonTest extends TestAffine{
 
     /** Number of benchmark iterations (Default 1) */
     private final static int BENCHMARK_ITERATION = Integer.getInteger("JAI.Ext.BenchmarkCycles", 1);

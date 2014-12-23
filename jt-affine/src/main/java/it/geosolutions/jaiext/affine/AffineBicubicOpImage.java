@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.affine;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -90,8 +91,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
     public AffineBicubicOpImage(RenderedImage source, BorderExtender extender, Map config,
             ImageLayout layout, AffineTransform transform, Interpolation interp,
-            double[] backgroundValues, boolean setDestinationNoData, boolean useROIAccessor) {
-        super(source, extender, config, layout, transform, interp, null);
+            double[] backgroundValues, boolean setDestinationNoData, boolean useROIAccessor, Range nodata) {
+        super(source, extender, config, layout, transform, interp, backgroundValues);
         affineOpInitialization(source, interp, layout, useROIAccessor, setDestinationNoData);
     }
 

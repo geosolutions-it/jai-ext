@@ -1084,7 +1084,7 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
                 // Unregistering Descriptor and Factory
                 Object currentFactory = operationItem.getCurrentFactory();
                 boolean registerFactory = factory == null
-                        || !currentFactory.getClass().isAssignableFrom(factory.getClass());
+                        || (currentFactory != null && !currentFactory.getClass().isAssignableFrom(factory.getClass()));
                 if (currentFactory != null && registerFactory) {
                     registry.unregisterFactory(RenderedRegistryMode.MODE_NAME, operationItem
                             .getDescriptor().getName(), operationItem.getVendor(), currentFactory);

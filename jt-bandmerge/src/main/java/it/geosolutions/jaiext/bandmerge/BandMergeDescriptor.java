@@ -67,11 +67,11 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>GlobalName</td>
- * <td>BandMergeOp</td>
+ * <td>BandMerge</td>
  * </tr>
  * <tr>
  * <td>LocalName</td>
- * <td>BandMergeOp</td>
+ * <td>BandMerge</td>
  * </tr>
  * <tr>
  * <td>Vendor</td>
@@ -146,8 +146,8 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
     private static final String[][] resources = {
-            { "GlobalName", "BandMergeOp" },
-            { "LocalName", "BandMergeOp" },
+            { "GlobalName", "BandMerge" },
+            { "LocalName", "BandMerge" },
             { "Vendor", "it.geosolutions.jaiext" },
             { "Description",
                     "Operation used for merging multiple images into a single multibanded image" },
@@ -256,7 +256,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      */
     public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints, 
             List<AffineTransform> transform, ROI roi, RenderedImage... sources) {
-        ParameterBlockJAI pb = new ParameterBlockJAI("BandMergeOp", RenderedRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("BandMerge", RenderedRegistryMode.MODE_NAME);
         // Source number
         int numSources = sources.length;
         // Check on the source number
@@ -287,7 +287,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
         pb.setParameter("roi", roi);
 
         // Creation of the RenderedOp
-        return JAI.create("BandMergeOp", pb, hints);
+        return JAI.create("BandMerge", pb, hints);
     }
     
     /**
@@ -362,7 +362,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      */
     public static RenderableOp createRenderable(Range[] noData, double destinationNoData,
             RenderingHints hints, List<AffineTransform> transform, ROI roi, RenderableImage... sources) {
-        ParameterBlockJAI pb = new ParameterBlockJAI("BandMergeOp",
+        ParameterBlockJAI pb = new ParameterBlockJAI("BandMerge",
                 RenderableRegistryMode.MODE_NAME);
         // Source number
         int numSources = sources.length;
@@ -393,6 +393,6 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
         pb.setParameter("roi", roi);
         
         // Creation of the RenderedOp
-        return JAI.createRenderable("BandMergeOp", pb, hints);
+        return JAI.createRenderable("BandMerge", pb, hints);
     }
 }

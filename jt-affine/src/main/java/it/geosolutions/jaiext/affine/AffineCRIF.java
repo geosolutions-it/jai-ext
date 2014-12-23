@@ -1,25 +1,26 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.affine;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.scale.ScaleBicubicOpImage;
 import it.geosolutions.jaiext.scale.ScaleBilinearOpImage;
 import it.geosolutions.jaiext.scale.ScaleGeneralOpImage;
@@ -127,6 +128,9 @@ public class AffineCRIF extends CRIFImpl {
         Rectangle sourceBounds = new Rectangle(source.getMinX(), source.getMinY(),
                 source.getWidth(), source.getHeight());
 
+        // Get the Nodata Range
+        Range nodata = (Range) paramBlock.getObjectParameter(6);
+
         // For remember
         // tr[0] = scale on the X axis
         // tr[1] = shear on the Y axis
@@ -168,11 +172,19 @@ public class AffineCRIF extends CRIFImpl {
         // control if the image is binary
         SampleModel sm = source.getSampleModel();
 
-        boolean isBinary =  (sm instanceof MultiPixelPackedSampleModel)
+        boolean isBinary = (sm instanceof MultiPixelPackedSampleModel)
                 && (sm.getSampleSize(0) == 1)
                 && (sm.getDataType() == DataBuffer.TYPE_BYTE
                         || sm.getDataType() == DataBuffer.TYPE_USHORT || sm.getDataType() == DataBuffer.TYPE_INT);
-        
+
+        // Check which kind of interpolation we are using
+        boolean nearestInterp = interp instanceof InterpolationNearest
+                || interp instanceof javax.media.jai.InterpolationNearest;
+        boolean bilinearInterp = interp instanceof InterpolationBilinear
+                || interp instanceof javax.media.jai.InterpolationBilinear;
+        boolean bicubicInterp = interp instanceof InterpolationBicubic
+                || interp instanceof javax.media.jai.InterpolationBicubic
+                || interp instanceof javax.media.jai.InterpolationBicubic2;
         //
         // Check and see if the affine transform is in fact doing
         // a Scale operation. In which case call Scale which is more
@@ -180,88 +192,60 @@ public class AffineCRIF extends CRIFImpl {
         //
         if ((tr[0] > 0.0) && (tr[2] == 0.0) && (tr[1] == 0.0) && (tr[3] > 0.0)) {
             // It's a scale
-        	if (interp instanceof InterpolationNearest && !isBinary) {
+            if (nearestInterp && !isBinary) {
+                return new ScaleNearestOpImage(source, layout, renderHints, extender, interp,
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
 
-                InterpolationNearest interpN = (InterpolationNearest) interp;
+            } else if (nearestInterp && isBinary) {
+                return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp,
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
 
-                return new ScaleNearestOpImage(source, layout, renderHints, extender, interpN,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
+            } else if (bilinearInterp && !isBinary) {
+                return new ScaleBilinearOpImage(source, layout, renderHints, extender, interp,
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
 
-            } else if (interp instanceof InterpolationNearest  && isBinary) {
+            } else if (bilinearInterp && isBinary) {
+                return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp,
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
 
-                InterpolationNearest interpN = (InterpolationNearest) interp;
+            } else if (bicubicInterp && !isBinary) {
+                return new ScaleBicubicOpImage(source, layout, renderHints, extender, interp,
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
 
-                return new ScaleGeneralOpImage(source, layout, renderHints, extender, interpN,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
-
-            }else if (interp instanceof InterpolationBilinear && !isBinary) {
-
-                InterpolationBilinear interpB = (InterpolationBilinear) interp;
-
-                return new ScaleBilinearOpImage(source, layout, renderHints, extender, interpB,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
-            } else if (interp instanceof InterpolationBilinear && isBinary) {
-
-                InterpolationBilinear interpB = (InterpolationBilinear) interp;
-
-                return new ScaleGeneralOpImage(source, layout, renderHints, extender, interpB,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
-            }else if (interp instanceof InterpolationBicubic && !isBinary) {
-                InterpolationBicubic interpBN = (InterpolationBicubic) interp;
-
-                return new ScaleBicubicOpImage(source, layout, renderHints, extender, interpBN,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
-            } else if (interp instanceof InterpolationBicubic && isBinary) {
-                InterpolationBicubic interpBN = (InterpolationBicubic) interp;
-
-                return new ScaleGeneralOpImage(source, layout, renderHints, extender, interpBN,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
+            } else if (bicubicInterp && isBinary) {
+                return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp,
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
             } else {
                 return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor);
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
             }
         }
         // Have to do Affine
-        if (interp instanceof InterpolationNearest && !isBinary) {
+        if (nearestInterp && !isBinary) {
+            return new AffineNearestOpImage(source, extender, renderHints, layout, transform,
+                    interp, setDestinationNoData, useROIAccessor, nodata);
 
-            InterpolationNearest interpN = (InterpolationNearest) interp;
-
-            return new AffineNearestOpImage(source, extender, renderHints, layout, transform, interpN, setDestinationNoData, useROIAccessor);
-
-        } else if (interp instanceof InterpolationNearest && isBinary) {
-
-            InterpolationNearest interpN = (InterpolationNearest) interp;
-
+        } else if (nearestInterp && isBinary) {
             return new AffineGeneralOpImage(source, extender, renderHints, layout, transform,
-                    interpN, useROIAccessor, setDestinationNoData);
+                    interp, useROIAccessor, backgroundValues, setDestinationNoData, nodata);
 
-        } else if (interp instanceof InterpolationBilinear && !isBinary) {
+        } else if (bilinearInterp && !isBinary) {
+            return new AffineBilinearOpImage(source, extender, renderHints, layout, transform,
+                    interp, backgroundValues, setDestinationNoData, useROIAccessor, nodata);
 
-            InterpolationBilinear interpB = (InterpolationBilinear) interp;
-
-            return new AffineBilinearOpImage(source, extender, renderHints, layout, transform, interpB, backgroundValues, setDestinationNoData, useROIAccessor);
-
-        }else if (interp instanceof InterpolationBilinear && isBinary) {
-
-            InterpolationBilinear interpB = (InterpolationBilinear) interp;
-
+        } else if (bilinearInterp && isBinary) {
             return new AffineGeneralOpImage(source, extender, renderHints, layout, transform,
-                    interpB, useROIAccessor, setDestinationNoData);
+                    interp, useROIAccessor, backgroundValues, setDestinationNoData, nodata);
 
-        } else if (interp instanceof InterpolationBicubic && !isBinary ) {
-
-            InterpolationBicubic interpBN = (InterpolationBicubic) interp;
-
-            return new AffineBicubicOpImage(source, extender, renderHints, layout, transform, interpBN, backgroundValues, setDestinationNoData, useROIAccessor);
-        }else if (interp instanceof InterpolationBicubic && isBinary) {
-
-            InterpolationBicubic interpBN = (InterpolationBicubic) interp;
-
+        } else if (bicubicInterp && !isBinary) {
+            return new AffineBicubicOpImage(source, extender, renderHints, layout, transform,
+                    interp, backgroundValues, setDestinationNoData, useROIAccessor, nodata);
+        } else if (bicubicInterp && isBinary) {
             return new AffineGeneralOpImage(source, extender, renderHints, layout, transform,
-                    interpBN, useROIAccessor, setDestinationNoData);
+                    interp, useROIAccessor, backgroundValues, setDestinationNoData, nodata);
         } else {
             return new AffineGeneralOpImage(source, extender, renderHints, layout, transform,
-                    interp, backgroundValues, setDestinationNoData);
+                    interp, useROIAccessor, backgroundValues, setDestinationNoData, nodata);
         }
 
     }

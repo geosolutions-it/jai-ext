@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.affine;
 
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -54,7 +55,7 @@ public class AffineNearestOpImage extends AffineOpImage {
 
     public AffineNearestOpImage(RenderedImage source, BorderExtender extender, Map config,
             ImageLayout layout, AffineTransform transform, Interpolation interp,boolean setDestinationNoData,
-            boolean useROIAccessor) {
+            boolean useROIAccessor, Range nodata) {
         super(source, extender, config, layout, transform, interp, null);
         affineOpInitialization(source, interp, layout,useROIAccessor, setDestinationNoData);
     }

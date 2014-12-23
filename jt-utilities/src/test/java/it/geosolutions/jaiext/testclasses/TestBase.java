@@ -18,6 +18,9 @@
 package it.geosolutions.jaiext.testclasses;
 
 
+import it.geosolutions.jaiext.ConcurrentOperationRegistry;
+import it.geosolutions.jaiext.JAIExt;
+
 import java.awt.Rectangle;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
@@ -25,8 +28,11 @@ import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 
+import javax.media.jai.JAI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.TiledImage;
+
+import org.junit.BeforeClass;
 
 
 /**
@@ -415,5 +421,11 @@ public abstract class TestBase {
         }
         return used;
     }
-
+    
+    @BeforeClass
+    public static void setup(){
+        ConcurrentOperationRegistry registry = (ConcurrentOperationRegistry) ConcurrentOperationRegistry.initializeRegistry();
+        JAIExt.initJAIEXT(registry);
+        JAI.getDefaultInstance().setOperationRegistry(registry);
+    }
 }

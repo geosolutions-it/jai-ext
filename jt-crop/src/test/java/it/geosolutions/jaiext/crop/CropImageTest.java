@@ -80,7 +80,7 @@ public class CropImageTest extends TestBase {
 
         // Images creation
         RenderedOp cropped = JAI.create("crop", pb);
-        RenderedOp jaiextCropped = JAI.create("CropNoData", pbNew);
+        RenderedOp jaiextCropped = JAI.create("Crop", pbNew);
         // Test on the selected image
         assertImageEquals(cropped, jaiextCropped);
 
@@ -104,7 +104,7 @@ public class CropImageTest extends TestBase {
         ParameterBlock pbNew = buildParameterBlock(source, true, true, false);
         // Images creation
         RenderedOp cropped = JAI.create("crop", pb);
-        RenderedOp jaiextCropped = JAI.create("CropNoData", pbNew);
+        RenderedOp jaiextCropped = JAI.create("Crop", pbNew);
         // Check if the presence of the ROI reduces the image bounds
         Rectangle boundOld = cropped.getBounds();
 
@@ -136,7 +136,7 @@ public class CropImageTest extends TestBase {
         ParameterBlock pbNew = buildParameterBlock(source, true, true, true);
         // Images creation
         RenderedOp cropped = JAI.create("crop", pb);
-        RenderedOp jaiextCropped = JAI.create("CropNoData", pbNew);
+        RenderedOp jaiextCropped = JAI.create("Crop", pbNew);
 
         Rectangle boundOld = cropped.getBounds();
 
@@ -197,7 +197,7 @@ public class CropImageTest extends TestBase {
         // Parameterblock creation
         ParameterBlock pb = buildParameterBlock(source, true, false, false);
         // Crop operation
-        RenderedOp jaiextCropped = JAI.create("CropNoData", pb, hints);
+        RenderedOp jaiextCropped = JAI.create("Crop", pb, hints);
         // force to compute the image
         jaiextCropped.getColorModel();
         // Check if the Tile Cache used is the same
@@ -211,7 +211,7 @@ public class CropImageTest extends TestBase {
         // Parameterblock creation
         ParameterBlock pb = buildParameterBlock(source, true, false, false);
         // Crop operation
-        RenderedOp jaiCropped = JAI.create("CropNoData", pb, hints);
+        RenderedOp jaiCropped = JAI.create("Crop", pb, hints);
         // force to compute the image
         jaiCropped.getColorModel();
         // Check if the Tile Cache is not present
@@ -255,7 +255,7 @@ public class CropImageTest extends TestBase {
         // Creation of the parameterBlock associated with its operation
         ParameterBlockJAI pb;
         if (newDescriptor) {
-            pb = new ParameterBlockJAI("CropNoData");
+            pb = new ParameterBlockJAI("Crop");
         } else {
             pb = new ParameterBlockJAI("crop");
         }

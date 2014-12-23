@@ -64,15 +64,14 @@ public class WarpRIF implements RenderedImageFactory {
         RenderedImage source = paramBlock.getRenderedSource(0);
         Warp warp = (Warp) paramBlock.getObjectParameter(0);
         Interpolation interp = (Interpolation) paramBlock.getObjectParameter(1);
-        double[] backgroundValues = (double[]) paramBlock.getObjectParameter(3);
-        Range noData = (Range) paramBlock.getObjectParameter(4);
+        double[] backgroundValues = (double[]) paramBlock.getObjectParameter(2);
 
         ROI roi = null;
-        Object roi_ = paramBlock.getObjectParameter(2);
+        Object roi_ = paramBlock.getObjectParameter(3);
         if (roi_ instanceof ROI) {
             roi = (ROI) roi_;
         }
-
+        Range noData = (Range) paramBlock.getObjectParameter(4);
         if (interp instanceof InterpolationNearest) {
             return new WarpNearestOpImage(source, renderHints, layout, warp, interp, roi, noData);
         } else if (interp instanceof InterpolationBilinear) {

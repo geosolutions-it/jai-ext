@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.scale;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -191,7 +192,7 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
 						paramBlock.add(interp);
 					}
 				}
-				roiImage = JAI.create("ScaleNoData", paramBlock);
+				roiImage = JAI.create("Scale", paramBlock);
             }
             ROI dstROI = new ROI(roiImage, 1);
             
@@ -313,8 +314,8 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
  * <p><table border=1>
  * <caption>Resource List</caption>
  * <tr><th>Name</th>        <th>Value</th></tr>
- * <tr><td>GlobalName</td>  <td>ScaleNoData</td></tr>
- * <tr><td>LocalName</td>   <td>ScaleNoData</td></tr>
+ * <tr><td>GlobalName</td>  <td>Scale</td></tr>
+ * <tr><td>LocalName</td>   <td>Scale</td></tr>
  * <tr><td>Vendor</td>      <td>it.geosolutions.jaiext</td></tr>
  * <tr><td>Description</td> <td>Resizes an image.</td></tr>
  * <tr><td>DocURL</td>      <td> See this URL for the official description http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ScaleDescriptor.html</td></tr>
@@ -360,8 +361,8 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
      * and specify the parameter list for this operation.
      */
     private static final String[][] resources = {
-        {"GlobalName",  "ScaleNoData"},
-        {"LocalName",   "ScaleNoData"},
+        {"GlobalName",  "Scale"},
+        {"LocalName",   "Scale"},
         {"Vendor",      "it.geosolutions.jaiext"},
         {"Description", JaiI18N.getString("ScaleDescriptor0")},
         {"DocURL",      "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ScaleDescriptor.html"},
@@ -497,9 +498,10 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
                                     Interpolation interpolation,
                                     ROI roi,
                                     Boolean useRoiAccessor,
+                                    Range nodata,
                                     RenderingHints hints)  {
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("ScaleNoData",
+            new ParameterBlockJAI("Scale",
                                   RenderedRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
@@ -509,11 +511,12 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
         pb.setParameter("xTrans", xTrans);
         pb.setParameter("yTrans", yTrans);
         pb.setParameter("interpolation", interpolation);
+        pb.setParameter("nodata", nodata);
         if(roi!=null)
             pb.setParameter("ROI", roi);
         pb.setParameter("useRoiAccessor", useRoiAccessor);
 
-        return JAI.create("ScaleNoData", pb, hints);
+        return JAI.create("Scale", pb, hints);
     }
 
     /**
@@ -550,9 +553,10 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
                                                 Float yTrans,
                                                 Interpolation interpolation,
                                                 ROI roi,
+                                                Range nodata,
                                                 RenderingHints hints)  {
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("ScaleNoData",
+            new ParameterBlockJAI("Scale",
                                   RenderableRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
@@ -562,8 +566,9 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
         pb.setParameter("xTrans", xTrans);
         pb.setParameter("yTrans", yTrans);
         pb.setParameter("interpolation", interpolation);
+        pb.setParameter("nodata", nodata);
         if(roi!=null)
             pb.setParameter("ROI", roi);
-        return JAI.createRenderable("ScaleNoData", pb, hints);
+        return JAI.createRenderable("Scale", pb, hints);
     }
 }

@@ -167,11 +167,11 @@ class LookupPropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>GlobalName</td>
- * <td>LookupNoData</td>
+ * <td>Lookup</td>
  * </tr>
  * <tr>
  * <td>LocalName</td>
- * <td>LookupNoData</td>
+ * <td>Lookup</td>
  * </tr>
  * <tr>
  * <td>Vendor</td>
@@ -249,8 +249,8 @@ public class LookupDescriptor extends OperationDescriptorImpl {
     /**
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
-    private static final String[][] resources = { { "GlobalName", "LookupNoData" },
-            { "LocalName", "LookupNoData" }, { "Vendor", "it.geosolutions.jaiext" },
+    private static final String[][] resources = { { "GlobalName", "Lookup" },
+            { "LocalName", "Lookup" }, { "Vendor", "it.geosolutions.jaiext" },
             { "Description", "Lookup operation supporting ROI and No Data" },
             { "DocURL", "Not defined" }, { "Version", "1.0" },
             { "arg0Desc", "The lookup table to use" },
@@ -312,7 +312,7 @@ public class LookupDescriptor extends OperationDescriptorImpl {
             double destinationNoData, ROI roi, Range noData, boolean useRoiAccessor,
             RenderingHints hints) {
         // Creation of a parameterBlockJAI containing all the operation parameters
-        ParameterBlockJAI pb = new ParameterBlockJAI("LookupNoData", RenderedRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("Lookup", RenderedRegistryMode.MODE_NAME);
         // Source image
         pb.setSource("source0", source0);
         // Image parameters
@@ -322,7 +322,7 @@ public class LookupDescriptor extends OperationDescriptorImpl {
         pb.setParameter("NoData", noData);
         pb.setParameter("useRoiAccessor", useRoiAccessor);
         // RenderedImage creation
-        return JAI.create("LookupNoData", pb, hints);
+        return JAI.create("Lookup", pb, hints);
     }
 
 }
