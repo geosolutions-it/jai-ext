@@ -183,7 +183,7 @@ public class TestAffine extends TestBase {
 
             // Affine operation
             destinationIMG = AffineDescriptor.create(sourceImage, transform, interpN, null,
-                    (ROI) roi, useROIAccessor, setDestinationNoData, hints);
+                    (ROI) roi, useROIAccessor, setDestinationNoData, noDataRange, hints);
             // destinationIMG = AffineDescriptor.create(sourceImage, transform, new javax.media.jai.InterpolationNearest(), null,hints);
 
             break;
@@ -202,7 +202,7 @@ public class TestAffine extends TestBase {
 
             // Affine operation
             destinationIMG = AffineDescriptor.create(sourceImage, transform, interpB, null,
-                    (ROI) roi, useROIAccessor, setDestinationNoData, hints);
+                    (ROI) roi, useROIAccessor, setDestinationNoData, noDataRange, hints);
 
             break;
         case BICUBIC_INTERP:
@@ -221,7 +221,7 @@ public class TestAffine extends TestBase {
 
             // Affine operation
             destinationIMG = AffineDescriptor.create(sourceImage, transform, interpBN, null,
-                    (ROI) roi, useROIAccessor, setDestinationNoData, hints);
+                    (ROI) roi, useROIAccessor, setDestinationNoData, noDataRange, hints);
 
             break;
         default:

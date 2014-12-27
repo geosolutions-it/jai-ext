@@ -83,7 +83,7 @@ public class CoverageClassTest extends TestAffine {
         transform.concatenate(AffineTransform.getTranslateInstance(transX, transY));
                                  
         // Affine transformated images
-        RenderedOp affineImgNear = AffineDescriptor.create(testIMG, transform, interpNear, null, roi, useROIAccessor, setDestinationNoData, null); 
+        RenderedOp affineImgNear = AffineDescriptor.create(testIMG, transform, interpNear, null, roi, useROIAccessor, setDestinationNoData, null, null); 
 
         affineImgNear.getTile(0, 0);
 
@@ -163,7 +163,7 @@ public class CoverageClassTest extends TestAffine {
         AffineTransform transform = AffineTransform.getTranslateInstance(transX, transY);
       
         // Affine transformated images
-        PlanarImage  affineImgNear = AffineDescriptor.create(testIMG, transform, interpNear, null, null, useROIAccessor, setDestinationNoData, null); 
+        PlanarImage  affineImgNear = AffineDescriptor.create(testIMG, transform, interpNear, null, null, useROIAccessor, setDestinationNoData, null, null); 
 
         affineImgNear.getTiles();
         
@@ -216,7 +216,7 @@ public class CoverageClassTest extends TestAffine {
         AffineTransform transform = new AffineTransform();
       
         // Affine transformated images
-        PlanarImage  affineImgNear = AffineDescriptor.create(testIMG, transform, interpNear, null, null, useROIAccessor, setDestinationNoData, null); 
+        PlanarImage  affineImgNear = AffineDescriptor.create(testIMG, transform, interpNear, null, null, useROIAccessor, setDestinationNoData, null, null); 
 
         affineImgNear.getTiles();
         

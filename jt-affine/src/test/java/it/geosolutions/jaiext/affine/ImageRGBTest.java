@@ -230,7 +230,7 @@ public class ImageRGBTest extends TestAffine {
         }
         // Affine operation
         RenderedImage destinationIMG = AffineDescriptor.create(sourceImage, transform, interp,
-                null, (ROI) roi, useROIAccessor, setDestinationNoData, hints);
+                null, (ROI) roi, useROIAccessor, setDestinationNoData, null, hints);
 
         if (INTERACTIVE && TEST_SELECTOR == interpType.getType()
                 && INVERSE_SCALE == scaleValue.getType()) {

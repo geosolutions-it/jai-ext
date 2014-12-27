@@ -54,14 +54,14 @@ public class AffineNearestOpImage extends AffineOpImage {
     private boolean setDestinationNoData;
 
     public AffineNearestOpImage(RenderedImage source, BorderExtender extender, Map config,
-            ImageLayout layout, AffineTransform transform, Interpolation interp,boolean setDestinationNoData,
+            ImageLayout layout, AffineTransform transform, Interpolation interp,double[] backgroundValues, boolean setDestinationNoData,
             boolean useROIAccessor, Range nodata) {
-        super(source, extender, config, layout, transform, interp, null);
-        affineOpInitialization(source, interp, layout,useROIAccessor, setDestinationNoData);
+        super(source, extender, config, layout, transform, interp, backgroundValues);
+        affineOpInitialization(source, interp, layout,useROIAccessor, setDestinationNoData, backgroundValues, nodata);
     }
 
     private void affineOpInitialization(RenderedImage source, Interpolation interp,
-            ImageLayout layout, boolean useROIAccessor, boolean setDestinationNoData) {
+            ImageLayout layout, boolean useROIAccessor, boolean setDestinationNoData, double[] backgroundValues, Range nodata) {
 
         SampleModel sm = source.getSampleModel();
 
@@ -80,28 +80,47 @@ public class AffineNearestOpImage extends AffineOpImage {
         int srcDataType = sm.getDataType();
 
         // If both roiBounds and roiIter are not null, they are used in calculation
+        Range nod = nodata;
+        Double destNod = null;
+        if (backgroundValues != null && backgroundValues.length > 0){
+        	destNod = backgroundValues[0];
+		}
         if (interp instanceof InterpolationNearest) {
             interpN = (InterpolationNearest) interp;
             this.interp = interpN;
             interpN.setROIdata(roiBounds, roiIter);
-            noData = interpN.getNoDataRange();
-            this.useROIAccessor = false;
-            if (noData != null) {
-                hasNoData = true;
-                destinationNoDataDouble = interpN.getDestinationNoData();               
-            } else if (hasROI) {
-                destinationNoDataDouble = interpN.getDestinationNoData();
-                this.useROIAccessor = useROIAccessor;
+            if(nod == null){
+            	nod = interpN.getNoDataRange();
+            }
+            if(destNod == null){
+            	destNod = interpN.getDestinationNoData();
             }
         }
-
-        //Creation of the destination background values
-        int srcNumBands= source.getSampleModel().getNumBands();
-        double[] background=new double[srcNumBands];
-        for(int i = 0; i<srcNumBands;i++){
-            background[i]=destinationNoDataDouble;
-        }       
-        this.backgroundValues=background;
+        // Nodata definition
+		if (nod != null) {
+			hasNoData = true;
+			noData = nod;
+		}
+		if(destNod != null){
+			destinationNoDataDouble = destNod;
+		} else if (this.backgroundValues != null && this.backgroundValues.length > 0){
+			destinationNoDataDouble = this.backgroundValues[0];
+		}
+		// ROIAccessor definition
+		if (hasROI) {
+			this.useROIAccessor = useROIAccessor;
+		}
+//        //Creation of the destination background values(the value related to the first band)
+//        if(backgroundValues != null && backgroundValues.length > 0){
+//        	this.backgroundValues=backgroundValues;
+//        } else {
+//    		int srcNumBands= source.getSampleModel().getNumBands();
+//            double[] background=new double[srcNumBands];
+//            for(int i = 0; i<srcNumBands;i++){
+//                background[i]=destinationNoDataDouble;
+//            }       
+//            this.backgroundValues=background;
+//        }
         
         // destination No Data set
         this.setDestinationNoData = setDestinationNoData;

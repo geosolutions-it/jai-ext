@@ -147,7 +147,8 @@ public class AffineCRIF extends CRIFImpl {
         //
         if ((tr[0] == 1.0) && (tr[3] == 1.0) && (tr[2] == 0.0) && (tr[1] == 0.0) && (tr[4] == 0.0)
                 && (tr[5] == 0.0)
-                && (roi == null || (roi.getBounds().isEmpty() || roi.contains(sourceBounds)))) {
+                && (roi == null || (roi.getBounds().isEmpty() || roi.contains(sourceBounds)))
+                && (nodata == null)) {
             // It's a copy
             return new CopyOpImage(source, renderHints, layout);
         }
@@ -164,7 +165,8 @@ public class AffineCRIF extends CRIFImpl {
         if ((tr[0] == 1.0) && (tr[3] == 1.0) && (tr[2] == 0.0) && (tr[1] == 0.0)
                 && (Math.abs(tr[4] - (int) tr[4]) < TOLERANCE)
                 && (Math.abs(tr[5] - (int) tr[5]) < TOLERANCE) && layout == null
-                && (roi == null || (roi.getBounds().isEmpty() || roi.contains(sourceBounds)))) {
+                && (roi == null || (roi.getBounds().isEmpty() || roi.contains(sourceBounds))
+                && (nodata == null))) {
             // It's a integer translate
             return new TranslateIntOpImage(source, renderHints, (int) tr[4], (int) tr[5]);
         }
@@ -223,7 +225,7 @@ public class AffineCRIF extends CRIFImpl {
         // Have to do Affine
         if (nearestInterp && !isBinary) {
             return new AffineNearestOpImage(source, extender, renderHints, layout, transform,
-                    interp, setDestinationNoData, useROIAccessor, nodata);
+                    interp, backgroundValues, setDestinationNoData, useROIAccessor, nodata);
 
         } else if (nearestInterp && isBinary) {
             return new AffineGeneralOpImage(source, extender, renderHints, layout, transform,
@@ -247,7 +249,6 @@ public class AffineCRIF extends CRIFImpl {
             return new AffineGeneralOpImage(source, extender, renderHints, layout, transform,
                     interp, useROIAccessor, backgroundValues, setDestinationNoData, nodata);
         }
-
     }
 
     /**

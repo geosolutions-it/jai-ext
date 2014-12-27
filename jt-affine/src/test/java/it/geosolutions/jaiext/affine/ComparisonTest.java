@@ -534,7 +534,7 @@ public class ComparisonTest extends TestAffine{
                         interp, destinationNoDataArray, hints);
             } else {
                 imageAffine = AffineDescriptor.create(image, transform, interp,
-                        destinationNoDataArray, null, false, false, hints);
+                        destinationNoDataArray, null, false, false, null, hints);
             }
 
             // Total calculation time
