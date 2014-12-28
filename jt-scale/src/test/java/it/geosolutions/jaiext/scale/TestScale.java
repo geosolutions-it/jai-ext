@@ -218,9 +218,12 @@ public class TestScale extends TestBase {
             break;
         }
 
+        // Background
+        double[] bkg = new double[]{destinationNoData};
+        
         // Scale operation
         RenderedImage destinationIMG = ScaleDescriptor.create(sourceImage, scaleX, scaleY,
-                transX, transY, interp, roi, useROIAccessor, hints);
+                transX, transY, interp, roi, useROIAccessor, noDataRange, bkg, hints);
 
         if (INTERACTIVE && dataType == DataBuffer.TYPE_BYTE
                 && TEST_SELECTOR == testSelect.getType() && INVERSE_SCALE == scaleValue.getType()) {

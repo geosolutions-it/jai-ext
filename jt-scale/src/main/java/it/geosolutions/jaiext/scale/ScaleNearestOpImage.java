@@ -46,13 +46,13 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
     public ScaleNearestOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
-            float transX, float transY, boolean useRoiAccessor, Range nodata) {
+            float transX, float transY, boolean useRoiAccessor, Range nodata, double[] backgroundValues) {
         super(source, layout, configuration, true, extender, interp, scaleX, scaleY, transX,
-                transY, useRoiAccessor);
-        scaleOpInitialization(source, interp);
+                transY, useRoiAccessor, backgroundValues);
+        scaleOpInitialization(source, interp, nodata, backgroundValues, useRoiAccessor);
     }
 
-    private void scaleOpInitialization(RenderedImage source, Interpolation interp) {
+    private void scaleOpInitialization(RenderedImage source, Interpolation interp, Range nodata, double[] backgroundValues, boolean useRoiAccessor) {
         // If the source has an IndexColorModel, override the default setting
         // in OpImage. The dest shall have exactly the same SampleModel and
         // ColorModel as the source.
@@ -88,18 +88,37 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         // Interpolator settings
         interpolator = interp;
 
-        if (interpolator instanceof InterpolationNearest) {
-            interpN = (InterpolationNearest) interpolator;
+        // If both roiBounds and roiIter are not null, they are used in calculation
+        Range nod = nodata;
+        Double destNod = null;
+        if (backgroundValues != null && backgroundValues.length > 0){
+        	destNod = backgroundValues[0];
+		}
+        if (interp instanceof InterpolationNearest) {
+            interpN = (InterpolationNearest) interp;
             this.interp = interpN;
             interpN.setROIdata(roiBounds, roiIter);
-            noData = interpN.getNoDataRange();
-            if (noData != null) {
-                hasNoData = true;
-                destinationNoDataDouble = interpN.getDestinationNoData();
-            } else if (hasROI) {
-                destinationNoDataDouble = interpN.getDestinationNoData();
+            if(nod == null){
+            	nod = interpN.getNoDataRange();
+            }
+            if(destNod == null){
+            	destNod = interpN.getDestinationNoData();
             }
         }
+        // Nodata definition
+		if (nod != null) {
+			hasNoData = true;
+			noData = nod;
+		}
+		if(destNod != null){
+			destinationNoDataDouble = destNod;
+		} else if (this.backgroundValues != null && this.backgroundValues.length > 0){
+			destinationNoDataDouble = this.backgroundValues[0];
+		}
+		// ROIAccessor definition
+		if (hasROI) {
+			this.useRoiAccessor = useRoiAccessor;
+		}
         // subsample bits used for the bilinear and bicubic interpolation
         subsampleBits = interp.getSubsampleBitsH();
 

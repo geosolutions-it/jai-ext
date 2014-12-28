@@ -187,6 +187,29 @@ public class AffineCRIF extends CRIFImpl {
         boolean bicubicInterp = interp instanceof InterpolationBicubic
                 || interp instanceof javax.media.jai.InterpolationBicubic
                 || interp instanceof javax.media.jai.InterpolationBicubic2;
+        
+        // Transformation of the interpolators JAI-->JAI-EXT
+		int dataType = source.getSampleModel().getDataType();
+		double destinationNoData = (backgroundValues != null && backgroundValues.length > 0)?
+				backgroundValues[0] : 0;
+		if (interp instanceof javax.media.jai.InterpolationNearest) {
+			interp = new InterpolationNearest(nodata, useROIAccessor, destinationNoData,
+					dataType);
+		} else if (interp instanceof javax.media.jai.InterpolationBilinear) {
+			interp = new InterpolationBilinear(interp.getSubsampleBitsH(), nodata,
+					useROIAccessor, destinationNoData, dataType);
+		} else if (interp instanceof javax.media.jai.InterpolationBicubic ) {
+			javax.media.jai.InterpolationBicubic bic = (javax.media.jai.InterpolationBicubic) interp;
+			interp = new InterpolationBicubic(bic.getSubsampleBitsH(), nodata,
+					useROIAccessor, destinationNoData, dataType,true, bic.getPrecisionBits());
+		} else if (interp instanceof javax.media.jai.InterpolationBicubic2 ) {
+			javax.media.jai.InterpolationBicubic2 bic = (javax.media.jai.InterpolationBicubic2) interp;
+			interp = new InterpolationBicubic(bic.getSubsampleBitsH(), nodata,
+					useROIAccessor, destinationNoData, dataType,false, bic.getPrecisionBits());
+		}
+        
+        
+        
         //
         // Check and see if the affine transform is in fact doing
         // a Scale operation. In which case call Scale which is more
@@ -196,30 +219,30 @@ public class AffineCRIF extends CRIFImpl {
             // It's a scale
             if (nearestInterp && !isBinary) {
                 return new ScaleNearestOpImage(source, layout, renderHints, extender, interp,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata, backgroundValues);
 
             } else if (nearestInterp && isBinary) {
                 return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata, backgroundValues);
 
             } else if (bilinearInterp && !isBinary) {
                 return new ScaleBilinearOpImage(source, layout, renderHints, extender, interp,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata, backgroundValues);
 
             } else if (bilinearInterp && isBinary) {
                 return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata, backgroundValues);
 
             } else if (bicubicInterp && !isBinary) {
                 return new ScaleBicubicOpImage(source, layout, renderHints, extender, interp,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata, backgroundValues);
 
             } else if (bicubicInterp && isBinary) {
                 return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata, backgroundValues);
             } else {
                 return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp,
-                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata);
+                        (float) tr[0], (float) tr[3], (float) tr[4], (float) tr[5], useROIAccessor, nodata, backgroundValues);
             }
         }
         // Have to do Affine

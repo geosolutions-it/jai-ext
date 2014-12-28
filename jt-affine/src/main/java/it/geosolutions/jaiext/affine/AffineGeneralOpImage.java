@@ -20,6 +20,7 @@ package it.geosolutions.jaiext.affine;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.interpolators.InterpolationNoData;
 import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Point;
@@ -39,6 +40,7 @@ import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Map;
+
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
@@ -46,6 +48,7 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+
 import com.sun.media.jai.util.ImageUtil;
 
 public class AffineGeneralOpImage extends AffineOpImage {
@@ -115,16 +118,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
             boolean useROIAccessor, double[] destinationNoData, boolean setDestinationNoData,
             Range nodata) {
         super(source, extender, configHelper(config, source), layout, transform, interp, destinationNoData);
-        affineOpInitialization(source, interp, layout, useROIAccessor, setDestinationNoData);
-    }
-
-    /** Constructor used for any kind of Interpolation object */
-    public AffineGeneralOpImage(RenderedImage source, BorderExtender extender, Map config,
-            ImageLayout layout, AffineTransform transform, Interpolation interp,
-            double[] destinationNoData, boolean setDestinationNoData) {
-        super(source, extender, configHelper(config, source), layout, transform, interp,
-                destinationNoData);
-        affineOpInitialization(source, interp, layout, false, setDestinationNoData);
+        affineOpInitialization(source, interp, layout, useROIAccessor, setDestinationNoData, nodata, destinationNoData);
     }
 
     // Static method used only for binary images
@@ -163,7 +157,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     }
 
     private void affineOpInitialization(RenderedImage source, Interpolation interp,
-            ImageLayout layout, boolean useROIAccessor, boolean setDestinationNoData) {
+            ImageLayout layout, boolean useROIAccessor, boolean setDestinationNoData, Range nodata, double[] destNoData) {
 
         SampleModel sm = source.getSampleModel();
 
@@ -206,24 +200,48 @@ public class AffineGeneralOpImage extends AffineOpImage {
         // Interpolator settings
         interpolator = interp;
         // If both roiBounds and roiIter are not null, they are used in calculation
+        Double destNod = null;
+        if (destNoData != null && destNoData.length > 0){
+        	destNod = destNoData[0];
+		}
         if (interpolator instanceof InterpolationNearest) {
             interpN = (InterpolationNearest) interpolator;
             interpN.setROIdata(roiBounds, roiIter);
-            destinationNoData = interpN.getDestinationNoData();
+            if(destNod == null){
+            	destNod = interpN.getDestinationNoData();
+            }
         } else if (interpolator instanceof InterpolationBilinear) {
             interpB = (InterpolationBilinear) interpolator;
             interpB.setROIdata(roiBounds, roiIter);
-            destinationNoData = interpB.getDestinationNoData();
+            if(destNod == null){
+            	destNod = interpB.getDestinationNoData();
+            }
         } else if (interpolator instanceof InterpolationBicubic) {
             interpBN = (InterpolationBicubic) interpolator;
             interpBN.setROIdata(roiBounds, roiIter);
-            destinationNoData = interpBN.getDestinationNoData();
+            if(destNod == null){
+            	destNod = interpN.getDestinationNoData();
+            }
         } else if (backgroundValues != null) {
-            destinationNoData = backgroundValues[0];
+        	destNod = backgroundValues[0];
         }
 
+        if(destNod == null){
+        	destNod = 0d;
+        }
+        this.destinationNoData = destNod;
+        if(interpolator instanceof InterpolationNoData){
+        	InterpolationNoData interpolationNoData = (InterpolationNoData)interpolator;
+			interpolationNoData.setDestinationNoData(destNod);
+            if(nodata != null){
+            	hasNoData=true;
+            	interpolationNoData.setNoDataRange(nodata);
+            }
+            interpolationNoData.setUseROIAccessor(this.useROIAccessor);
+        }
+        
         // this value is used for binary images
-        black = ((int) destinationNoData) & 1;
+        black = ((int) this.destinationNoData) & 1;
 
         // subsample bits used for the bilinear and bicubic interpolation
         subsampleBits = interp.getSubsampleBitsH();

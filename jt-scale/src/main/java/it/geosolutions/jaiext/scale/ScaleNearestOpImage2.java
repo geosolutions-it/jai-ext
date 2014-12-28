@@ -58,7 +58,7 @@ public class ScaleNearestOpImage2 extends ScaleOpImage {
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
         super(source, layout, configuration, true, extender, interp, 
-                scaleX, scaleY, transX, transY, useRoiAccessor);
+                scaleX, scaleY, transX, transY, useRoiAccessor, null);
         
      // If the source has an IndexColorModel, override the default setting
         // in OpImage. The dest shall have exactly the same SampleModel and

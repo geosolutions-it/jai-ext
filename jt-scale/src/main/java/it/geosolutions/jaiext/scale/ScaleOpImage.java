@@ -840,10 +840,10 @@ public abstract class ScaleOpImage extends GeometricOpImage {
      */
     public ScaleOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             boolean cobbleSources, BorderExtender extender, Interpolation interp, float scaleX,
-            float scaleY, float transX, float transY, boolean useRoiAccessor) {
+            float scaleY, float transX, float transY, boolean useRoiAccessor, double[] backgroundValues) {
         super(vectorize(source), // vectorize() checks for null source.
                 layoutHelper(source, scaleX, scaleY, transX, transY, interp, layout), configHelper(
-                        source, configuration, interp), cobbleSources, extender, interp, null);
+                        source, configuration, interp), cobbleSources, extender, interp, backgroundValues);
 
         this.scaleX = scaleX;
         this.scaleY = scaleY;

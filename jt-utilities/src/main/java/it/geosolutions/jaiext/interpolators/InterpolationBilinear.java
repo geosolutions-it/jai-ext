@@ -134,6 +134,18 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
         return destinationNoData;
     }
 
+	public void setDestinationNoData(double destinationNoData) {
+		this.destinationNoData = destinationNoData;
+	}
+    
+    public boolean getUseROIAccessor() {
+    	return useROIAccessor;
+    }
+    
+    public void setUseROIAccessor(boolean useROIAccessor) {
+    	this.useROIAccessor = useROIAccessor;
+    }
+    
     public Range getNoDataRange() {
         return noDataRange;
     }

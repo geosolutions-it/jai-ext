@@ -267,7 +267,7 @@ public class ComparisonTest extends TestBase{
                         xTrans, yTrans, interp, hints);
             } else {
                 imageScale = ScaleDescriptor.create(image, scaleX, scaleY, xTrans, yTrans, interp,
-                        null, false, hints);
+                        null, false, null, null, hints);
             }
 
             // Total calculation time

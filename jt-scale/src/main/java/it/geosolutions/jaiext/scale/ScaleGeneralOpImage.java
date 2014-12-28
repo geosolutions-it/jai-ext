@@ -20,6 +20,7 @@ package it.geosolutions.jaiext.scale;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.interpolators.InterpolationNoData;
 import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
@@ -71,43 +72,14 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
     // Simple constructor used for interpolators different from InterpolationNearest2, InterpolationBilinear2, InterpolationBicubic
     public ScaleGeneralOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
-            float transX, float transY, boolean useRoiAccessor, Range nodata) {
+            float transX, float transY, boolean useRoiAccessor, Range nodata, double[] backgroundValues) {
 
         super(source, layout, configuration, true, extender, interp, scaleX, scaleY, transX,
-                transY, useRoiAccessor);     
-        scaleOpInitialization(source,interp);
+                transY, useRoiAccessor, backgroundValues);     
+        scaleOpInitialization(source,interp, nodata, backgroundValues);
     }
-
-    public ScaleGeneralOpImage(RenderedImage source, ImageLayout layout, Map configuration,
-            BorderExtender extender, InterpolationNearest interp, float scaleX, float scaleY,
-            float transX, float transY, boolean useRoiAccessor) {
-
-        super(source, layout, configuration, true, extender, interp, scaleX,
-                scaleY, transX, transY, useRoiAccessor);  
-        scaleOpInitialization(source,interp);
-    }
-
-    public ScaleGeneralOpImage(RenderedImage source, ImageLayout layout, Map configuration,
-            BorderExtender extender, InterpolationBilinear interp, float scaleX, float scaleY,
-            float transX, float transY, boolean useRoiAccessor) {
-
-        super(source, layout, configuration, true, extender, interp, scaleX,
-                scaleY, transX, transY, useRoiAccessor);
-        scaleOpInitialization(source,interp);
-    }
-
-    public ScaleGeneralOpImage(RenderedImage source, ImageLayout layout, Map configuration,
-            BorderExtender extender, InterpolationBicubic interp, float scaleX, float scaleY,
-            float transX, float transY, boolean useRoiAccessor) {
-
-        super(source, layout, configuration, true, extender, interp, scaleX,
-                scaleY, transX, transY, useRoiAccessor);
-        scaleOpInitialization(source,interp);
-    }
-
-
     
-    private void scaleOpInitialization(RenderedImage source, Interpolation interp) {
+    private void scaleOpInitialization(RenderedImage source, Interpolation interp, Range nodata, double[] backgroundValues) {
         // If the source has an IndexColorModel, override the default setting
         // in OpImage. The dest shall have exactly the same SampleModel and
         // ColorModel as the source.
@@ -138,43 +110,51 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
 
         // Interpolator settings
         interpolator = interp;
-
+        Double destNod = null;
+        if (backgroundValues != null && backgroundValues.length > 0){
+        	destNod = backgroundValues[0];
+		}
         if (interpolator instanceof InterpolationNearest) {
             isNearestNew=true;
             interpN = (InterpolationNearest) interpolator;
             this.interp=interpN;
             interpN.setROIdata(roiBounds, roiIter);
-            noData = interpN.getNoDataRange();
-            if (noData != null) {
-                hasNoData = true;
-                destinationNoDataDouble = interpN.getDestinationNoData();
-            } else if (hasROI) {
-                destinationNoDataDouble = interpN.getDestinationNoData();
+            if(destNod == null){
+            	destNod = interpN.getDestinationNoData();
             }
         } else if (interpolator instanceof InterpolationBilinear) {
             isBilinearNew=true;
             interpB = (InterpolationBilinear) interpolator;
             this.interp=interpB;
             interpB.setROIdata(roiBounds, roiIter);
-            noData = interpB.getNoDataRange();
-            if (noData != null) {
-                hasNoData = true;
-                destinationNoDataDouble = interpB.getDestinationNoData();
-            } else if (hasROI) {
-                destinationNoDataDouble = interpB.getDestinationNoData();
+            if(destNod == null){
+            	destNod = interpB.getDestinationNoData();
             }
         } else if (interpolator instanceof InterpolationBicubic) {
             isBicubicNew=true;
             interpBN = (InterpolationBicubic) interpolator;
             this.interp=interpBN;
             interpBN.setROIdata(roiBounds, roiIter);
-            noData = interpBN.getNoDataRange();
-            if (noData != null) {
-                hasNoData = true;
-                destinationNoDataDouble = interpBN.getDestinationNoData();
-            } else if (hasROI) {
-                destinationNoDataDouble = interpBN.getDestinationNoData();
+            if(destNod == null){
+            	destNod = interpBN.getDestinationNoData();
             }
+        } else if (this.backgroundValues != null) {
+        	destNod = backgroundValues[0];
+        }
+
+        if(destNod == null){
+        	destNod = 0d;
+        }
+
+        this.destinationNoDataDouble = destNod;
+        if(interpolator instanceof InterpolationNoData){
+        	InterpolationNoData interpolationNoData = (InterpolationNoData)interpolator;
+			interpolationNoData.setDestinationNoData(destNod);
+            if(nodata != null){
+            	hasNoData = true;
+            	interpolationNoData.setNoDataRange(nodata);
+            }
+            interpolationNoData.setUseROIAccessor(this.useRoiAccessor);
         }
 
         // subsample bits used for the bilinear and bicubic interpolation
