@@ -19,6 +19,7 @@ package it.geosolutions.jaiext.mosaic;
 
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
@@ -49,7 +50,7 @@ import org.junit.Test;
  * If the user wants to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
 
-public class ComparisonTest {
+public class ComparisonTest extends TestBase{
     /** Number of benchmark iterations (Default 1) */
     private final static Integer BENCHMARK_ITERATION = Integer.getInteger(
             "JAI.Ext.BenchmarkCycles", 1);
@@ -80,8 +81,8 @@ public class ComparisonTest {
 
     /** RenderingHints used for selecting the borderExtender */
     private static RenderingHints hints;
-    
-    private static ImageMosaicBean[] beanArray = new ImageMosaicBean[2];
+
+	private static Range[] rangeND;
 
     @BeforeClass
     public static void initialSetup() {
@@ -108,21 +109,11 @@ public class ComparisonTest {
         images[1] = image3;
         
         //Range creation if selected
-        Range rangeND= null;
+        rangeND= null;
         if(RANGE_USED){
-            rangeND = RangeFactory.create((byte)100,true,(byte)100,true);
+            Range range = RangeFactory.create((byte)100,true,(byte)100,true);
+            rangeND = new Range[]{range, range};
         }
-        
-        ImageMosaicBean bean0 = new ImageMosaicBean();
-        bean0.setImage(images[0]);
-        bean0.setSourceNoData(rangeND);
-        ImageMosaicBean bean1 = new ImageMosaicBean();
-        bean1.setImage(images[1]);
-        bean1.setSourceNoData(rangeND);
-        
-        beanArray[0] = bean0;
-        beanArray[1] = bean1;
-        
     }
 
     @Test
@@ -193,7 +184,7 @@ public class ComparisonTest {
 
                 double[] destnodata = { destinationNoData, destinationNoData };
 
-                imageMosaic = MosaicDescriptor.create(images, beanArray, mosaicType, destnodata, hints);
+                imageMosaic = MosaicDescriptor.create(images, mosaicType, null, null, null, destnodata, rangeND, hints);
             }
 
             // Total calculation time

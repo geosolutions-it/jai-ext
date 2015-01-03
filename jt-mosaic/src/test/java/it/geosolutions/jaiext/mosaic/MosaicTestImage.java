@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.mosaic;
 
+import it.geosolutions.jaiext.testclasses.TestBase;
 import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 import java.awt.RenderingHints;
@@ -41,7 +42,7 @@ import org.junit.Test;
  * parameter must be set to true.
  * 
  */
-public class MosaicTestImage {
+public class MosaicTestImage extends TestBase{
 
     private static final boolean INTERACTIVE = Boolean.getBoolean("JAI.Ext.Interactive");
 
@@ -95,17 +96,10 @@ public class MosaicTestImage {
         RenderedImage[] sources = { image4, image3 };
         RenderedImage image5;
         if (!oldDescriptor) {
-            ImageMosaicBean[] beanArray = new ImageMosaicBean[2];
-            ImageMosaicBean bean1 = new ImageMosaicBean();
-            bean1.setImage(image4);
-            ImageMosaicBean bean2 = new ImageMosaicBean();
-            bean2.setImage(image3);
 
-            beanArray[0] = bean1;
-            beanArray[1] = bean2;
-
-            image5 = MosaicDescriptor.create(sources, beanArray,
-                    javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY, background,
+            image5 = MosaicDescriptor.create(sources, 
+                    javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY, 
+                    null,null,null,background,null,
                     hints);
         } else {
             image5 = javax.media.jai.operator.MosaicDescriptor.create(sources,
