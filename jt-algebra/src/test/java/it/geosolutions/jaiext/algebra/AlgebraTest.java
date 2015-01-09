@@ -81,17 +81,17 @@ public class AlgebraTest extends TestBase {
         IMAGE_FILLER = true;
         for (int j = 0; j < NUM_IMAGES; j++) {
             testImages[DataBuffer.TYPE_BYTE][j] = createTestImage(DataBuffer.TYPE_BYTE,
-                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataB, false, j == 0 ? 1 : 3);
+                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataB, false, j == 0 ? 1 : 3, 64 + j);
             testImages[DataBuffer.TYPE_USHORT][j] = createTestImage(DataBuffer.TYPE_USHORT,
-                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataS, false, j == 0 ? 1 : 3);
+                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataS, false, j == 0 ? 1 : 3, Short.MAX_VALUE / 4 + j);
             testImages[DataBuffer.TYPE_SHORT][j] = createTestImage(DataBuffer.TYPE_SHORT,
-                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataS, false, j == 0 ? 1 : 3);
+                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataS, false, j == 0 ? 1 : 3, -50 + j);
             testImages[DataBuffer.TYPE_INT][j] = createTestImage(DataBuffer.TYPE_INT,
-                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataI, false, j == 0 ? 1 : 3);
+                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataI, false, j == 0 ? 1 : 3, 100 + j );
             testImages[DataBuffer.TYPE_FLOAT][j] = createTestImage(DataBuffer.TYPE_FLOAT,
-                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataF, false, j == 0 ? 1 : 3);
+                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataF, false, j == 0 ? 1 : 3, (255 / 2) * 5 + j);
             testImages[DataBuffer.TYPE_DOUBLE][j] = createTestImage(DataBuffer.TYPE_DOUBLE,
-                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataD, false, j == 0 ? 1 : 3);
+                    DEFAULT_WIDTH_REDUCED, DEFAULT_HEIGHT_REDUCED, noDataD, false, j == 0 ? 1 : 3, (255 / 1) * 4 + j);
         }
         IMAGE_FILLER = false;
 
@@ -120,42 +120,10 @@ public class AlgebraTest extends TestBase {
 
         boolean roiUsed = false;
         boolean noDataUsed = false;
-
-        int dataType = DataBuffer.TYPE_BYTE;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_USHORT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_SHORT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_INT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_FLOAT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_DOUBLE;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
+        
+        for(int i = 0; i < 6; i++){
+            runTests(i, noDataUsed, roiUsed);
+        }
     }
 
     @Test
@@ -163,42 +131,10 @@ public class AlgebraTest extends TestBase {
 
         boolean roiUsed = false;
         boolean noDataUsed = true;
-
-        int dataType = DataBuffer.TYPE_BYTE;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_USHORT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_SHORT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_INT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_FLOAT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_DOUBLE;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
+        
+        for(int i = 0; i < 6; i++){
+            runTests(i, noDataUsed, roiUsed);
+        }
     }
 
     @Test
@@ -206,42 +142,10 @@ public class AlgebraTest extends TestBase {
 
         boolean roiUsed = true;
         boolean noDataUsed = false;
-
-        int dataType = DataBuffer.TYPE_BYTE;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_USHORT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_SHORT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_INT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_FLOAT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_DOUBLE;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
+        
+        for(int i = 0; i < 6; i++){
+            runTests(i, noDataUsed, roiUsed);
+        }
     }
 
     @Test
@@ -249,42 +153,27 @@ public class AlgebraTest extends TestBase {
 
         boolean roiUsed = true;
         boolean noDataUsed = true;
-
-        int dataType = DataBuffer.TYPE_BYTE;
+        
+        for(int i = 0; i < 6; i++){
+            runTests(i, noDataUsed, roiUsed);
+        }
+    }
+    
+    private void runTests(int dataType, boolean noDataUsed, boolean roiUsed) {
         testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
         testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
         testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
         testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_USHORT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_SHORT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_INT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_FLOAT;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
-
-        dataType = DataBuffer.TYPE_DOUBLE;
-        testOperation(testImages[dataType], Operator.SUM, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
-        testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
+        testOperation(testImages[dataType], Operator.LOG, noDataUsed, roiUsed);
+        testOperation(testImages[dataType], Operator.EXP, noDataUsed, roiUsed);
+        if(dataType != DataBuffer.TYPE_FLOAT && dataType != DataBuffer.TYPE_DOUBLE){
+            testOperation(testImages[dataType], Operator.ABSOLUTE, noDataUsed, roiUsed);
+            testOperation(testImages[dataType], Operator.AND, noDataUsed, roiUsed);
+            testOperation(testImages[dataType], Operator.OR, noDataUsed, roiUsed);
+            testOperation(testImages[dataType], Operator.XOR, noDataUsed, roiUsed);
+            testOperation(testImages[dataType], Operator.INVERT, noDataUsed, roiUsed);
+            testOperation(testImages[dataType], Operator.NOT, noDataUsed, roiUsed);
+        }
     }
 
     private void testOperation(RenderedImage[] sources, Operator op, boolean noDataUsed,
@@ -360,12 +249,245 @@ public class AlgebraTest extends TestBase {
         case DIVIDE:
             testDivide(calculated, sources, roi, noData, minBandNumber);
             break;
+        case AND:
+        case OR:
+        case XOR:
+            testLogicalOp(calculated, sources, roi, noData, minBandNumber, op);
+            break;
+        case EXP:
+        case NOT:
+        case INVERT:
+        case ABSOLUTE:
+        case LOG:
+            testSingleImageOp(calculated, sources, roi, noData, minBandNumber, op);
+            break;
         }
+        
 
         // Disposal of the output image
         calculated.dispose();
     }
 
+    private void testLogicalOp(RenderedOp calculated, RenderedImage[] sources, ROI roi, Range noData,
+            int minBandNumber, Operator op) {
+
+        boolean roiUsed = roi != null;
+        boolean noDataUsed = noData != null;
+
+        // Upper-Left tile indexes
+        int minTileX = calculated.getMinTileX();
+        int minTileY = calculated.getMinTileY();
+        // Raster object
+        Raster upperLeftTile = calculated.getTile(minTileX, minTileY);
+        // Tile bounds
+        int minX = upperLeftTile.getMinX();
+        int minY = upperLeftTile.getMinY();
+        int maxX = upperLeftTile.getWidth() + minX;
+        int maxY = upperLeftTile.getHeight() + minY;
+
+        int numSrc = sources.length;
+
+        // Source Raster Array
+        Raster[] sourceRasters = new Raster[numSrc];
+
+        for (int i = 0; i < numSrc; i++) {
+            sourceRasters[i] = sources[i].getTile(minTileX, minTileY);
+        }
+
+        // Old band value
+        double valueOld = 0;
+
+        double value = 0;
+
+        double sample = 0;
+
+        boolean isValidData = false;
+
+        int dataType = calculated.getSampleModel().getDataType();
+
+        // Cycle on all the tile Bands
+        for (int b = 0; b < minBandNumber; b++) {
+            // Cycle on the y-axis
+            for (int x = minX; x < maxX; x++) {
+                // Cycle on the x-axis
+                for (int y = minY; y < maxY; y++) {
+                    // Calculated value
+                    value = upperLeftTile.getSampleDouble(x, y, b);
+
+                    valueOld = 0;
+
+                    isValidData = false;
+
+                    boolean isValidROI = !roiUsed || roiUsed && roi.contains(x, y);
+                    if(isValidROI){
+                        switch (dataType) {
+                        case DataBuffer.TYPE_BYTE:
+                            byte valueB = 0;
+                            for(int i = 0; i < numSrc; i++){
+                                sample = sourceRasters[i].getSampleDouble(x, y, b);
+                                if(!noDataUsed || noDataUsed && !noDataDouble.contains(sample)){
+                                    isValidData = true;
+                                    if(i == 0){
+                                        valueB = (byte) sample;
+                                    } else {
+                                        valueB = op.calculate(valueB, (byte) sample);
+                                    }
+                                }
+                            }
+                            valueOld = valueB;
+                            //valueOld = (byte) (((((int) valueOld << 23) >> 31) | (int) valueOld) & 0xFF);
+                            value = (byte) (((((int) value << 23) >> 31) | (int) value) & 0xFF);
+                            break;
+                        case DataBuffer.TYPE_USHORT:
+                            short valueU = 0;
+                            for(int i = 0; i < numSrc; i++){
+                                sample = sourceRasters[i].getSampleDouble(x, y, b);
+                                if(!noDataUsed || noDataUsed && !noDataDouble.contains(sample)){
+                                    isValidData = true;
+                                    if(i == 0){
+                                        valueU = (short) sample;
+                                    } else {
+                                        valueU = op.calculate(true, valueU, (short) sample);
+                                    }
+                                }
+                            }
+                            valueOld = valueU;
+                            //valueOld = ImageUtil.clampRoundUShort(valueOld)&0xFFFF;
+                            break;
+                        case DataBuffer.TYPE_SHORT:
+                            short valueS = 0;
+                            for(int i = 0; i < numSrc; i++){
+                                sample = sourceRasters[i].getSampleDouble(x, y, b);
+                                if(!noDataUsed || noDataUsed && !noDataDouble.contains(sample)){
+                                    isValidData = true;
+                                    if(i == 0){
+                                        valueS = (short) sample;
+                                    } else {
+                                        valueS = op.calculate(false, valueS, (short) sample);
+                                    }
+                                }
+                            }
+                            valueOld = valueS;
+                            //valueOld = ImageUtil.clampRoundShort(valueOld);
+                            break;
+                        case DataBuffer.TYPE_INT:
+                            int valueI = 0;
+                            for(int i = 0; i < numSrc; i++){
+                                sample = sourceRasters[i].getSampleDouble(x, y, b);
+                                if(!noDataUsed || noDataUsed && !noDataDouble.contains(sample)){
+                                    isValidData = true;
+                                    if(i == 0){
+                                        valueI = (int) sample;
+                                    } else {
+                                        valueI = op.calculate(valueI, (int) sample);
+                                    }
+                                }
+                            }
+                            valueOld = valueI;
+                            //valueOld = ImageUtil.clampRoundInt(valueOld);
+                            break;
+                        default:
+                            break;
+                        }
+                        
+                        if(!isValidData){
+                            assertEquals(value, destNoData, TOLERANCE);
+                        }else {
+                            assertEquals(value, valueOld, TOLERANCE);
+                        }
+                    }else{
+                        assertEquals(value, destNoData, TOLERANCE);
+                    }
+                }
+            }
+        }
+    }
+
+    private void testSingleImageOp(RenderedOp calculated, RenderedImage[] sources, ROI roi, Range noData,
+            int minBandNumber, Operator op) {
+
+        boolean roiUsed = roi != null;
+        boolean noDataUsed = noData != null;
+
+        // Upper-Left tile indexes
+        int minTileX = calculated.getMinTileX();
+        int minTileY = calculated.getMinTileY();
+        // Raster object
+        Raster upperLeftTile = calculated.getTile(minTileX, minTileY);
+        // Tile bounds
+        int minX = upperLeftTile.getMinX();
+        int minY = upperLeftTile.getMinY();
+        int maxX = upperLeftTile.getWidth() + minX;
+        int maxY = upperLeftTile.getHeight() + minY;
+
+        // Source Raster Array
+        Raster sourceRasters = sources[0].getTile(minTileX, minTileY);
+
+        // Old band value
+        double valueOld = 0;
+
+        double value = 0;
+
+        double sample = 0;
+
+        boolean isValidData = false;
+
+        int dataType = calculated.getSampleModel().getDataType();
+
+        // Cycle on all the tile Bands
+        for (int b = 0; b < minBandNumber; b++) {
+            // Cycle on the y-axis
+            for (int x = minX; x < maxX; x++) {
+                // Cycle on the x-axis
+                for (int y = minY; y < maxY; y++) {
+                    // Calculated value
+                    value = upperLeftTile.getSampleDouble(x, y, b);
+
+                    valueOld = 0;
+                    
+                    sample = sourceRasters.getSampleDouble(x, y, b);
+
+                    isValidData = (!roiUsed || roiUsed && roi.contains(x, y))
+                            && (!noDataUsed || noDataUsed && !noDataDouble.contains(sample));    
+                    
+                    if(isValidData){
+                        switch (dataType) {
+                        case DataBuffer.TYPE_BYTE:
+                            valueOld = op.calculate((byte)sample);
+                            //valueOld = (byte) (((((int) valueOld << 23) >> 31) | (int) valueOld) & 0xFF);
+                            value = (byte) (((((int) value << 23) >> 31) | (int) value) & 0xFF);
+                            break;
+                        case DataBuffer.TYPE_USHORT:
+                            valueOld = op.calculate(true, (short)sample)&0xFFFF;
+                            //valueOld = ImageUtil.clampRoundUShort(valueOld)&0xFFFF;
+                            break;
+                        case DataBuffer.TYPE_SHORT:
+                            valueOld = op.calculate(false, (short)sample);
+                            valueOld = ImageUtil.clampRoundShort(valueOld);
+                            break;
+                        case DataBuffer.TYPE_INT:
+                            valueOld = op.calculate((int)sample);
+                            valueOld = ImageUtil.clampRoundInt(valueOld);
+                            break;
+                        case DataBuffer.TYPE_FLOAT:
+                            valueOld = op.calculate((float)sample);
+                            //valueOld = (float) sample;
+                            break;
+                        case DataBuffer.TYPE_DOUBLE:
+                            valueOld = op.calculate(sample);
+                            break;
+                        default:
+                            break;
+                        }
+                        assertEquals(value, valueOld, TOLERANCE);
+                    } else {
+                        assertEquals(value, destNoData, TOLERANCE);
+                    }
+                }
+            }
+        }
+    }
+    
     private void testSum(RenderedOp calculated, RenderedImage[] sources, ROI roi, Range noData,
             int minBandNumber) {
 

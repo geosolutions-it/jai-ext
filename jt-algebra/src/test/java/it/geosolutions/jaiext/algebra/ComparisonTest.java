@@ -200,6 +200,30 @@ public class ComparisonTest extends TestBase {
         case DIVIDE:
             description = "Divide";
             break;
+        case OR:
+            description = "or";
+            break;
+        case XOR:
+            description = "Xor";
+            break;
+        case ABSOLUTE:
+            description = "Absolute";
+            break;
+        case AND:
+            description = "And";
+            break;
+        case EXP:
+            description = "Exp";
+            break;
+        case INVERT:
+            description = "Invert";
+            break;
+        case LOG:
+            description = "Log";
+            break;
+        case NOT:
+            description = "Not";
+            break;
         } 
 
         if (OLD_DESCRIPTOR) {

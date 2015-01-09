@@ -35,7 +35,7 @@ public class AlgebraCRIF extends CRIFImpl {
     }
 
     /**
-     * Creates a new instance of <code>AddOpImage</code> in the rendered layer. This method satisfies the implementation of RIF.
+     * Creates a new instance of <code>AlgebraOpImage</code> in the rendered layer. This method satisfies the implementation of RIF.
      * 
      * @param paramBlock The two source images to be added.
      * @param renderHints Optionally contains destination image layout.
