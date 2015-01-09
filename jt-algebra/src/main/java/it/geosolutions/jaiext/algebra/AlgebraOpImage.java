@@ -45,7 +45,8 @@ import com.sun.media.jai.util.JDKWorkarounds;
  * <p>
  * This <code>OpImage</code> executes the operation on the pixel values of N source images on a per-band basis. In case the N source images have different number of
  * bands, the number of bands for the destination image is the smaller band number of the N source images. That is
- * <code>dstNumBands = Math.min(src1NumBands, src2NumBands,...)</code>. In case the two source images have different data types, an exception is thrown.
+ * <code>dstNumBands = Math.min(src1NumBands, src2NumBands,...)</code>. In case the source images have different data types, the data type
+ * for the destination image is the bigger data type of the two source images.
  * 
  * <p>
  * The value of the pixel (x, y) in the destination image is defined as:
@@ -156,11 +157,11 @@ public final class AlgebraOpImage extends PointOpImage {
 
         int dataType = getSampleModel().getDataType();
 
-        for (RenderedImage img : sources) {
-            if (img.getSampleModel().getDataType() != srcDataType) {
-                throw new IllegalArgumentException("Images must have the same data type");
-            }
-        }
+//        for (RenderedImage img : sources) {
+//            if (img.getSampleModel().getDataType() != srcDataType) {
+//                throw new IllegalArgumentException("Images must have the same data type");
+//            }
+//        }
         
         // DataType check for the operation
         if(!op.isDataTypeSupported(srcDataType)){

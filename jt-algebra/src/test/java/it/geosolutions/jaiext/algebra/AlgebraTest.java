@@ -230,7 +230,7 @@ public class AlgebraTest extends TestBase {
             }
         }
 
-        // BandMerge operation
+        // operation
         RenderedOp calculated = AlgebraDescriptor
                 .create(op, roi, noData, destNoData, null, sources);
         // Check if the bands number is the same

@@ -176,8 +176,8 @@ public abstract class TestBase {
         short valueUS = validData != null ? validData.shortValue() : Short.MAX_VALUE / 4;
         short valueS = validData != null ? validData.shortValue() : -50;
         int valueI = validData != null ? validData.intValue() : 100;
-        float valueF = validData != null ? validData.floatValue() : (255 / 2) * 5;
-        double valueD = validData != null ? validData.doubleValue() : (255 / 1) * 4;
+        float valueF = validData != null ? validData.floatValue() : (255 / 2) * 5f;
+        double valueD = validData != null ? validData.doubleValue() : (255 / 1) * 4d;
 
         boolean fillImage = IMAGE_FILLER;
         
