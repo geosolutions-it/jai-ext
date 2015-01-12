@@ -226,6 +226,8 @@ public final class OperationConstOpImage extends ColormapOpImage {
 
         // Set flag to permit in-place operation.
         permitInPlaceOperation();
+        // Permit colormap operation
+        initializeColormapOperation();
 
         if (dataType == DataBuffer.TYPE_BYTE) {
             initByteTable();
