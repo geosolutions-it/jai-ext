@@ -214,7 +214,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -290,7 +290,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -394,7 +394,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -477,7 +477,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -586,7 +586,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -669,7 +669,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -777,7 +777,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -859,7 +859,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -967,7 +967,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -1050,7 +1050,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -1158,7 +1158,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
@@ -1241,7 +1241,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {

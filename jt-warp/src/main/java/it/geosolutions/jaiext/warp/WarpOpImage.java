@@ -279,7 +279,7 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
                     srcRectExpanded.getHeight() + bottomPad + topPad);
             roiTile = roi.intersect(new ROIShape(srcRectExpanded));
             
-            if(!roiBounds.contains(srcRectExpanded)) {
+            if(!roiBounds.intersects(srcRectExpanded)) {
                 roiDisjointTile = true;
             } else {
                 roiContainsTile = roiTile.contains(srcRectExpanded);

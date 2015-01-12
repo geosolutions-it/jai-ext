@@ -229,10 +229,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
-                            final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                            final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                            final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                            final boolean w00 = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                            final boolean w01 = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                            final boolean w10 = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                            final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00 && w01 && w10 && w11) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
@@ -342,10 +342,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
-                            final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                            final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                            final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                            final boolean w00Roi = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                            final boolean w01Roi = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                            final boolean w10Roi = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                            final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
@@ -458,10 +458,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
-                            final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                            final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                            final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                            final boolean w00 = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                            final boolean w01 = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                            final boolean w10 = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                            final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00 && w01 && w10 && w11) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
@@ -575,10 +575,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             // ROI
                             //
                             // checks with roi
-                            final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
-                            final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                            final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                            final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                            final boolean w00Roi = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                            final boolean w01Roi = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                            final boolean w10Roi = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                            final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
                                     data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
@@ -718,10 +718,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
-                        final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                        final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                        final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                        final boolean w00 = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01 = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10 = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
@@ -831,10 +831,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
-                        final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                        final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                        final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                        final boolean w00Roi = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01Roi = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10Roi = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
@@ -970,10 +970,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
-                        final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                        final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                        final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                        final boolean w00 = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01 = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10 = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
@@ -1083,10 +1083,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
-                        final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                        final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                        final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                        final boolean w00Roi = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01Roi = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10Roi = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
@@ -1222,10 +1222,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
-                        final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                        final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                        final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                        final boolean w00 = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01 = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10 = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
@@ -1335,10 +1335,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
-                        final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                        final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                        final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                        final boolean w00Roi = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01Roi = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10Roi = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
@@ -1474,10 +1474,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
-                        final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                        final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                        final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                        final boolean w00 = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01 = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10 = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
@@ -1587,10 +1587,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
-                        final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                        final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                        final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                        final boolean w00Roi = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01Roi = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10Roi = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
@@ -1725,10 +1725,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00 = !(roiIter.getSample(xint, yint, 0) > 0);
-                        final boolean w01 = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                        final boolean w10 = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                        final boolean w11 = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                        final boolean w00 = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01 = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10 = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
@@ -1838,10 +1838,10 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         // ROI
                         //
                         // checks with roi
-                        final boolean w00Roi = !(roiIter.getSample(xint, yint, 0) > 0);
-                        final boolean w01Roi = !(roiIter.getSample(xint + 1, yint, 0) > 0);
-                        final boolean w10Roi = !(roiIter.getSample(xint, yint + 1, 0) > 0);
-                        final boolean w11Roi = !(roiIter.getSample(xint + 1, yint + 1, 0) > 0);
+                        final boolean w00Roi = !(roiBounds.contains(xint, yint) && roiIter.getSample(xint, yint, 0) > 0);
+                        final boolean w01Roi = !(roiBounds.contains(xint + 1, yint) && roiIter.getSample(xint + 1, yint, 0) > 0);
+                        final boolean w10Roi = !(roiBounds.contains(xint, yint + 1) && roiIter.getSample(xint, yint + 1, 0) > 0);
+                        final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
                                 data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;

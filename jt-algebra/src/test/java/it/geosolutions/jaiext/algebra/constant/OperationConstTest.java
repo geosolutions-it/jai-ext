@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package it.geosolutions.jaiext.algebra;
+package it.geosolutions.jaiext.algebra.constant;
 
 import static org.junit.Assert.assertEquals;
 
@@ -165,6 +165,7 @@ public class OperationConstTest extends TestBase {
         testOperation(testImages[dataType], Operator.SUBTRACT, noDataUsed, roiUsed);
         testOperation(testImages[dataType], Operator.MULTIPLY, noDataUsed, roiUsed);
         testOperation(testImages[dataType], Operator.DIVIDE, noDataUsed, roiUsed);
+        testOperation(testImages[dataType], Operator.DIVIDE_INTO, noDataUsed, roiUsed);
         if (dataType != DataBuffer.TYPE_FLOAT && dataType != DataBuffer.TYPE_DOUBLE) {
             testOperation(testImages[dataType], Operator.AND, noDataUsed, roiUsed);
             testOperation(testImages[dataType], Operator.OR, noDataUsed, roiUsed);
@@ -217,7 +218,7 @@ public class OperationConstTest extends TestBase {
 
         // operation
         RenderedOp calculated = OperationConstDescriptor.create(source, doubleConsts, op, roi,
-                noData, dataType, null);
+                noData, destNoData, null);
         // Check
         testOperation(calculated, source, roi, noData, op);
 
@@ -252,6 +253,8 @@ public class OperationConstTest extends TestBase {
         double sample = 0;
 
         boolean isValidData = false;
+        
+        boolean supportsDouble = op.isDataTypeSupported(DataBuffer.TYPE_DOUBLE);
 
         int dataType = calculated.getSampleModel().getDataType();
         int numBands = calculated.getSampleModel().getNumBands();
@@ -269,32 +272,43 @@ public class OperationConstTest extends TestBase {
                     valueOld = 0;
 
                     isValidData = (!roiUsed || roiUsed && roi.contains(x, y))
-                            && (!noDataUsed || (noDataUsed && noDataDouble.contains(sample)));
+                            && (!noDataUsed || (noDataUsed && !noDataDouble.contains(sample)));
 
                     if (isValidData) {
+                        if(supportsDouble){
+                            valueOld = op.calculate(sample, doubleConsts[b]);
+                        } else {
+                            valueOld = op.calculate((int)sample, ImageUtil.clampRoundInt(doubleConsts[b]));
+                        }
+                        
                         switch (dataType) {
                         case DataBuffer.TYPE_BYTE:
-                            valueOld = op.calculate((byte) sample, (byte) doubleConsts[b]);
+                            //valueOld = op.calculate(sample, constB);
+                            valueOld = ImageUtil.clampRoundByte(valueOld);
                             value = (byte) (((((int) value << 23) >> 31) | (int) value) & 0xFF);
                             break;
                         case DataBuffer.TYPE_USHORT:
-                            valueOld = ImageUtil.clampUShort(op.calculate(((int) sample & 0xFFFF),
-                                    (int) doubleConsts[b]));
+                            valueOld = ImageUtil.clampRoundUShort(valueOld) & 0xFFFF;
+//                            valueOld = ImageUtil.clampUShort(op.calculate(((int) sample & 0xFFFF),
+//                                    (int) doubleConsts[b]));
                             break;
                         case DataBuffer.TYPE_SHORT:
-                            valueOld = ImageUtil.clampShort(op.calculate((short) sample,
-                                    (short) doubleConsts[b]));
+                            valueOld = ImageUtil.clampRoundShort(valueOld);
+//                            valueOld = ImageUtil.clampShort(op.calculate((short) sample,
+//                                    (short) doubleConsts[b]));
                             break;
                         case DataBuffer.TYPE_INT:
-                            valueOld = ImageUtil.clampInt(op.calculate((long) sample,
-                                    (long) doubleConsts[b]));
+                            valueOld = ImageUtil.clampRoundInt(valueOld);
+//                            valueOld = ImageUtil.clampInt(op.calculate((long) sample,
+//                                    (long) doubleConsts[b]));
                             break;
                         case DataBuffer.TYPE_FLOAT:
-                            valueOld = ImageUtil.clampFloat(op.calculate((float) sample,
-                                    (float) doubleConsts[b]));
+                            valueOld = ImageUtil.clampFloat(valueOld);
+//                            valueOld = ImageUtil.clampFloat(op.calculate((float) sample,
+//                                    (float) doubleConsts[b]));
                             break;
                         case DataBuffer.TYPE_DOUBLE:
-                            valueOld = op.calculate(sample, doubleConsts[b]);
+                            //valueOld = op.calculate(sample, doubleConsts[b]);
                             break;
                         default:
                             break;

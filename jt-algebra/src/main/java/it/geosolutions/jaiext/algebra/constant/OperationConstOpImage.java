@@ -173,6 +173,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
         }
 
         // Destination No Data value is clamped to the image data type
+        this.destNoDataDouble = destinationNoData;
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
             this.destNoDataByte = ImageUtil.clampRoundByte(destinationNoData);
@@ -190,7 +191,6 @@ public final class OperationConstOpImage extends ColormapOpImage {
             this.destNoDataFloat = ImageUtil.clampFloat(destinationNoData);
             break;
         case DataBuffer.TYPE_DOUBLE:
-            this.destNoDataDouble = destinationNoData;
             break;
         default:
             throw new IllegalArgumentException("Wrong image data type");
@@ -226,9 +226,6 @@ public final class OperationConstOpImage extends ColormapOpImage {
 
         // Set flag to permit in-place operation.
         permitInPlaceOperation();
-
-        // Initialize the colormap if necessary.
-        initializeColormapOperation();
 
         if (dataType == DataBuffer.TYPE_BYTE) {
             initByteTable();
@@ -298,7 +295,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                     srcRectExpanded.getWidth() + 2, srcRectExpanded.getHeight() + 2);
             roiTile = roi.intersect(new ROIShape(srcRectExpanded));
 
-            if (!roiBounds.contains(srcRectExpanded)) {
+            if (!roiBounds.intersects(srcRectExpanded)) {
                 roiDisjointTile = true;
             } else {
                 roiContainsTile = roiTile.contains(srcRectExpanded);
@@ -392,7 +389,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
                             d[dstPixelOffset] = destNoDataByte;
                             dstPixelOffset += dPixelStride;
                             srcPixelOffset += srcPixelStride;
@@ -522,7 +519,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
                             d[dstPixelOffset] = destNoDataShort;
                             dstPixelOffset += dPixelStride;
                             srcPixelOffset += srcPixelStride;
@@ -619,7 +616,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)
                                 || noData.contains(s[srcPixelOffset])) {
                             d[dstPixelOffset] = destNoDataShort;
                             dstPixelOffset += dPixelStride;
@@ -731,7 +728,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
                             d[dstPixelOffset] = destNoDataShort;
                             dstPixelOffset += dPixelStride;
                             srcPixelOffset += srcPixelStride;
@@ -812,7 +809,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)
                                 || noData.contains(s[srcPixelOffset])) {
                             d[dstPixelOffset] = destNoDataShort;
                             dstPixelOffset += dPixelStride;
@@ -914,7 +911,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
                             d[dstPixelOffset] = destNoDataInt;
                             dstPixelOffset += dPixelStride;
                             srcPixelOffset += srcPixelStride;
@@ -993,7 +990,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)
                                 || noData.contains(s[srcPixelOffset])) {
                             d[dstPixelOffset] = destNoDataInt;
                             dstPixelOffset += dPixelStride;
@@ -1086,7 +1083,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
                             d[dstPixelOffset] = destNoDataFloat;
                             dstPixelOffset += dPixelStride;
                             srcPixelOffset += srcPixelStride;
@@ -1153,7 +1150,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)
                                 || noData.contains(s[srcPixelOffset])) {
                             d[dstPixelOffset] = destNoDataFloat;
                             dstPixelOffset += dPixelStride;
@@ -1240,7 +1237,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
                             d[dstPixelOffset] = destNoDataDouble;
                             dstPixelOffset += dPixelStride;
                             srcPixelOffset += srcPixelStride;
@@ -1305,7 +1302,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                         x0 = srcX + w;
                         y0 = srcY + h;
 
-                        if (!(roiIter.getSample(x0, y0, 0) > 0)
+                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)
                                 || noData.contains(s[srcPixelOffset])) {
                             d[dstPixelOffset] = destNoDataDouble;
                             dstPixelOffset += dPixelStride;

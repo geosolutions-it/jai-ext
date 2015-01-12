@@ -907,6 +907,191 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             public boolean isDataTypeSupported(int dataType) {
                 return dataType != DataBuffer.TYPE_FLOAT && dataType != DataBuffer.TYPE_DOUBLE;
             }
+        }, DIVIDE_INTO(12, 0, true) {
+            @Override
+            public byte calculate(byte... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        if (values[0] == 0 && values[1] >= 0) {
+                            return Byte.MAX_VALUE;
+                        } else if (values[0] == 0 && values[1] < 0) {
+                            return Byte.MIN_VALUE;
+                        } else {
+                            return (byte) (values[1] / values[0]);
+                        }
+                    } else {
+                        int result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return (byte) result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                if (values[i - 1] == 0 && values[i] >= 0) {
+                                    result = Byte.MAX_VALUE;
+                                } else if (values[i - 1] == 0 && values[i] < 0) {
+                                    result = Byte.MIN_VALUE;
+                                } else {
+                                    result = result / values[i - 1];
+                                }
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        if (values[0] == 0 && values[1] >= 0) {
+                            return (short) (isUshort ? USHORT_MAX_VALUE : Short.MAX_VALUE);
+                        } else if (values[0] == 0 && values[1] < 0) {
+                            return (short) (isUshort ? USHORT_MAX_VALUE : Short.MAX_VALUE);
+                        } else {
+                            return (short) (values[1] / values[0]);
+                        }
+                    } else {
+                        int result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return (short) result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                if (values[i - 1] == 0 && values[i] >= 0) {
+                                    result = (short) (isUshort ? USHORT_MAX_VALUE : Short.MAX_VALUE);
+                                } else if (values[i - 1] == 0 && values[i] < 0) {
+                                    result = (short) (isUshort ? USHORT_MAX_VALUE : Short.MAX_VALUE);
+                                } else {
+                                    result = result / values[i - 1];
+                                }
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        if (values[0] == 0 && values[1] >= 0) {
+                            return Integer.MAX_VALUE;
+                        } else if (values[0] == 0 && values[1] < 0) {
+                            return Integer.MIN_VALUE;
+                        } else {
+                            return (int) (values[1] / values[0]);
+                        }
+                    } else {
+                        long result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return (int) result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                if (values[i - 1] == 0 && values[i] >= 0) {
+                                    result = Integer.MAX_VALUE;
+                                } else if (values[i - 1] == 0 && values[i] < 0) {
+                                    result = Integer.MIN_VALUE;
+                                } else {
+                                    result = result / values[i - 1];
+                                }
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public float calculate(float... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        return values[1]/values[0];
+                    } else {
+                        double result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return (float) result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                result = result / values[i - 1];
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public double calculate(double... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        return values[1]/values[0];
+                    } else {
+                        double result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                result = result / values[i - 1];
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
+
+            @Override
+            public long calculate(long... values) {
+                if (values.length > 1) {
+                    if(values.length == 2){
+                        if (values[0] == 0 && values[1] >= 0) {
+                            return Long.MAX_VALUE;
+                        } else if (values[0] == 0 && values[1] < 0) {
+                            return Long.MIN_VALUE;
+                        } else {
+                            return (values[1] / values[0]);
+                        }
+                    } else {
+                        long result = 0;
+                        int first = values.length - 1;
+                        for (int i = first; i <= 0; i--) {
+                            if(i == 0){
+                                return (int) result;
+                            } else if(i == first){
+                                result = values[i];
+                            }else{
+                                if (values[i - 1] == 0 && values[i] >= 0) {
+                                    result = Long.MAX_VALUE;
+                                } else if (values[i - 1] == 0 && values[i] < 0) {
+                                    result = Long.MIN_VALUE;
+                                } else {
+                                    result = result / values[i - 1];
+                                }
+                            }
+                        }
+                    }
+                }
+                return values[0];
+            }
         };
 
         private final double nullValue;

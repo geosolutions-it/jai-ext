@@ -599,5 +599,6 @@
     <module>jt-algebra</module>
     <module>jt-buffer</module>
     <module>jt-scheduler</module>
+    <module>jt-binarize</module>
   </modules>
 </project>
