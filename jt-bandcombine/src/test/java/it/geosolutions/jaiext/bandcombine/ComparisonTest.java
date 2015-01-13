@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package it.geosolutions.jaiext.binarize;
+package it.geosolutions.jaiext.bandcombine;
 
 import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
@@ -54,7 +54,7 @@ public class ComparisonTest extends TestBase {
     private final static boolean ROI_USED = Boolean.getBoolean("JAI.Ext.ROIUsed");
 
     /** Source band number */
-    private static final int NUM_BANDS = 1;
+    private static final int NUM_BANDS = 3;
 
     /** Image to elaborate */
     private static RenderedImage image;
@@ -64,7 +64,7 @@ public class ComparisonTest extends TestBase {
 
     private static ROIShape roi;
 
-    private static double[] thresholds;
+    private static double[][] matrix;
 
     @BeforeClass
     public static void initialSetup() {
@@ -78,16 +78,7 @@ public class ComparisonTest extends TestBase {
         int noDataI = 100;
         float noDataF = 100;
         double noDataD = 100;
-        
-        //Threshold definition
-        // thresholds
-        thresholds = new double[6];
-        thresholds[0] = 63;
-        thresholds[1] = Short.MAX_VALUE / 4;
-        thresholds[2] = -49;
-        thresholds[3] = 105;
-        thresholds[4] = (255 / 2) * 5;
-        thresholds[5] = (255 / 7) * 13;
+
         // Image creation
         image = null;
 
@@ -155,6 +146,13 @@ public class ComparisonTest extends TestBase {
         } else {
             roi = null;
         }
+        
+        // Matrix creation
+        matrix = new double[2][4];
+        for (int i = 0; i < matrix[0].length; i++) {
+            matrix[0][i] = i - 1;
+            matrix[1][i] = i + 1;
+        }
     }
 
     @Test
@@ -164,7 +162,7 @@ public class ComparisonTest extends TestBase {
         int dataType = TEST_SELECTOR;
 
         // Descriptor string definition
-        String description = "Binarize";
+        String description = "BandCombine";
 
         if (OLD_DESCRIPTOR) {
             description = "Old " + description;
@@ -201,7 +199,7 @@ public class ComparisonTest extends TestBase {
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image
-        PlanarImage imageCalculated = null;
+        PlanarImage finalImage = null;
 
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -213,14 +211,14 @@ public class ComparisonTest extends TestBase {
             // creation of the image
             if (OLD_DESCRIPTOR) {
                 JAIExt.registerJAIDescriptor("BandCombine");
-                imageCalculated = javax.media.jai.operator.BinarizeDescriptor.create(image, thresholds[dataType], null);
+                finalImage = javax.media.jai.operator.BandCombineDescriptor.create(image, matrix, null);
             } else {
-                imageCalculated = BinarizeDescriptor.create(image, thresholds[dataType], roi, range, null);
+                finalImage = BandCombineDescriptor.create(image, matrix, roi, range, destinationNoData, null);
             }
 
             // Total calculation time
             long start = System.nanoTime();
-            imageCalculated.getTiles();
+            finalImage.getTiles();
             long end = System.nanoTime() - start;
 
             // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
@@ -257,8 +255,8 @@ public class ComparisonTest extends TestBase {
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
 
         // Final Image disposal
-        if (imageCalculated instanceof RenderedOp) {
-            ((RenderedOp) imageCalculated).dispose();
+        if (finalImage instanceof RenderedOp) {
+            ((RenderedOp) finalImage).dispose();
         }
 
     }

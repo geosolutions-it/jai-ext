@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.translate;
 
+import it.geosolutions.jaiext.JAIExt;
+
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.FileNotFoundException;
@@ -77,6 +79,9 @@ public class ComparisonTest {
         // Interpolators instantiation
         interpNearOld = new javax.media.jai.InterpolationNearest();
 
+        if(OLD_DESCRIPTOR){
+            JAIExt.registerJAIDescriptor("Translate");
+        }
     }
 
     @Test

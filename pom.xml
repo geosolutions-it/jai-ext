@@ -600,5 +600,6 @@
     <module>jt-buffer</module>
     <module>jt-scheduler</module>
     <module>jt-binarize</module>
+    <module>jt-bandcombine</module>
   </modules>
 </project>

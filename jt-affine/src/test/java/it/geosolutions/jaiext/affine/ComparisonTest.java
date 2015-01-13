@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
@@ -194,6 +195,9 @@ public class ComparisonTest extends TestAffine{
                 weight[2][i] = 1;
                 weight[3][i] = 1;
             }
+        }
+        if(OLD_DESCRIPTOR){
+            JAIExt.registerJAIDescriptor("Affine");
         }
 
     }

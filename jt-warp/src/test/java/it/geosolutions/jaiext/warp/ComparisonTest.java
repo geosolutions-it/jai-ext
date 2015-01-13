@@ -284,6 +284,7 @@ public class ComparisonTest extends TestWarp {
 
             // creation of the image
             if (OLD_DESCRIPTOR) {
+                JAIExt.registerJAIDescriptor("Warp");
                 imageWarp = javax.media.jai.operator.WarpDescriptor.create(image, warpObj,
                         interpolation, backgroundValues, null);
             } else {

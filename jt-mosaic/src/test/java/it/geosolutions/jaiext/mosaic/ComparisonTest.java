@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.mosaic;
 
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
@@ -113,6 +114,9 @@ public class ComparisonTest extends TestBase{
         if(RANGE_USED){
             Range range = RangeFactory.create((byte)100,true,(byte)100,true);
             rangeND = new Range[]{range, range};
+        }
+        if(OLD_DESCRIPTOR){
+            JAIExt.registerJAIDescriptor("Mosaic");
         }
     }
 

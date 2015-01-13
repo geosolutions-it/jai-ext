@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
@@ -161,6 +162,10 @@ public class ComparisonTest extends TestBase{
         interpBicOld = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
         interpBicNew = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, rangeND, false, dataType,
                 dataType, false, DEFAULT_PRECISION_BITS);
+        
+        if(OLD_DESCRIPTOR){
+            JAIExt.registerJAIDescriptor("Scale");
+        }
     }
 
     @Test

@@ -27,6 +27,8 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
@@ -229,6 +231,7 @@ public class ComparisonTest extends TestBase {
 
             // creation of the image
             if (OLD_DESCRIPTOR) {
+                JAIExt.registerJAIDescriptor("Rescale");
                 imageRescale = javax.media.jai.operator.RescaleDescriptor.create(image, scales,
                         offsets, null);
             } else {
