@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.nullop;
 
 import java.awt.Rectangle;
+import java.awt.image.ColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.util.Hashtable;
@@ -26,6 +27,8 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.OpImage;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.PointOpImage;
+
+import com.sun.media.jai.util.JDKWorkarounds;
 
 /**
  * An<code>OpImage</code> subclass that simply transmits its
@@ -42,6 +45,28 @@ import javax.media.jai.PointOpImage;
  * @see PointOpImage
  */
 public class NullOpImage extends OpImage {
+    
+    /**
+     * Create a new ImageLayout from the source image optionally
+     * overriding a ColorModel supplied via the layout.
+     */
+    private static ImageLayout layoutHelper(RenderedImage source,
+                                            ImageLayout layout) {
+        // Create basic layout from the source.
+        ImageLayout il = new ImageLayout(source);
+
+        // If a layout containing a valid ColorModel field is supplied then
+        // reset the ColorModel if it is compatible with the SampleModel.
+        if(layout != null && layout.isValid(ImageLayout.COLOR_MODEL_MASK)) {
+            ColorModel colorModel = layout.getColorModel(null);
+            if(JDKWorkarounds.areCompatibleDataModels(source.getSampleModel(),
+                                                      colorModel)) {
+                il.setColorModel(colorModel);
+            }
+        }
+
+        return il;
+    }
 
     /**
      * Constructs a <code>NullOpImage</code>.  The superclass
@@ -69,7 +94,7 @@ public class NullOpImage extends OpImage {
     public NullOpImage(RenderedImage source,
                        ImageLayout layout,
                        Map configuration) {
-        super(vectorize(source),layout,configuration,true);
+        super(vectorize(source),layoutHelper(source, layout),configuration,true);
     }
 
     /**

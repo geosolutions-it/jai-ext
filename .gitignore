@@ -24,6 +24,7 @@ jt-buffer/target/*
 jt-scheduler/target/*
 jt-binarize/target/*
 jt-bandcombine/target/*
+jt-convolve/target/*
 changematrix/target/*
 jt-concurrent-tile-cache/src/test/resources/it/geosolutions/logfiles
 jt-concurrent-tile-cache/target/*
