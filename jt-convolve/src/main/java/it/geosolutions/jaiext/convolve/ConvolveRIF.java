@@ -16,10 +16,11 @@ import javax.media.jai.ROI;
 //import com.sun.media.jai.opimage.Convolve3x3OpImage;
 //import com.sun.media.jai.opimage.ConvolveOpImage;
 import com.sun.media.jai.opimage.RIFUtil;
+
 //import com.sun.media.jai.opimage.SeparableConvolveOpImage;
 
 public class ConvolveRIF implements RenderedImageFactory {
-    
+
     public ConvolveRIF() {
     }
 
@@ -33,39 +34,43 @@ public class ConvolveRIF implements RenderedImageFactory {
         // Getting parameters
         KernelJAI kernel = (KernelJAI) pb.getObjectParameter(0);
         ROI roi = (ROI) pb.getObjectParameter(1);
-        Range nodata = (Range)pb.getObjectParameter(2);
+        Range nodata = (Range) pb.getObjectParameter(2);
         double destinationNoData = pb.getDoubleParameter(3);
+        boolean skipNoData = (Boolean) pb.getObjectParameter(4);
 
         kernel = kernel.getRotatedKernel();
 
-        int dataType = 
-           pb.getRenderedSource(0).getSampleModel().getDataType();
-        boolean dataTypeOk = (dataType == DataBuffer.TYPE_BYTE ||
-                              dataType == DataBuffer.TYPE_SHORT ||
-                              dataType == DataBuffer.TYPE_INT);
-        return new ConvolveGeneralOpImage(img, extender, hints, l, kernel, roi, nodata, destinationNoData);
-//        if (kernel.getWidth() == 3 && kernel.getHeight() == 3 &&
-//            kernel.getXOrigin() == 1 && kernel.getYOrigin() == 1 &&
-//            dataTypeOk) {
-//            return new Convolve3x3OpImage(img,
-//                                          extender,
-//                                          hints,
-//                                          l,
-//                                          kernel);
-//        } else if (kernel.isSeparable()) {
-//           return new SeparableConvolveOpImage(img,
-//                                               extender,
-//                                               hints,
-//                                               l,
-//                                               kernel);
-//
-//        } else {
-//            return new ConvolveOpImage(img,
-//                                       extender,
-//                                       hints,
-//                                       l,
-//                                       kernel);
-//        }
-    }
+        int dataType = pb.getRenderedSource(0).getSampleModel().getDataType();
+        boolean dataTypeOk = (dataType == DataBuffer.TYPE_BYTE || dataType == DataBuffer.TYPE_SHORT || dataType == DataBuffer.TYPE_INT);
+        if (kernel.getWidth() == 3 && kernel.getHeight() == 3 && kernel.getXOrigin() == 1
+                && kernel.getYOrigin() == 1 && dataTypeOk) {
+            return new Convolve3x3OpImage(img, extender, hints, l, kernel, roi, nodata,
+                    destinationNoData, skipNoData);
+        }
 
+        return new ConvolveGeneralOpImage(img, extender, hints, l, kernel, roi, nodata,
+                destinationNoData, skipNoData);
+        // if (kernel.getWidth() == 3 && kernel.getHeight() == 3 &&
+        // kernel.getXOrigin() == 1 && kernel.getYOrigin() == 1 &&
+        // dataTypeOk) {
+        // return new Convolve3x3OpImage(img,
+        // extender,
+        // hints,
+        // l,
+        // kernel);
+        // } else if (kernel.isSeparable()) {
+        // return new SeparableConvolveOpImage(img,
+        // extender,
+        // hints,
+        // l,
+        // kernel);
+        //
+        // } else {
+        // return new ConvolveOpImage(img,
+        // extender,
+        // hints,
+        // l,
+        // kernel);
+        // }
+    }
 }

@@ -602,5 +602,7 @@
     <module>jt-binarize</module>
     <module>jt-bandcombine</module>
     <module>jt-convolve</module>
+    <module>jt-classifier</module>
+    <module>jt-piecewise</module>
   </modules>
 </project>

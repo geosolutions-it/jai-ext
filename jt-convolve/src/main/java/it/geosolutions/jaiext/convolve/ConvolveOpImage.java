@@ -79,6 +79,8 @@ public abstract class ConvolveOpImage extends AreaOpImage {
 
     /** Destination No Data value for Double sources */
     protected double destNoDataDouble;
+    
+    protected boolean skipNoData;
 
     protected RenderedImage extendedIMG;
 
@@ -95,7 +97,7 @@ public abstract class ConvolveOpImage extends AreaOpImage {
     protected int ky;
 
     public ConvolveOpImage(RenderedImage source, BorderExtender extender, RenderingHints hints,
-            ImageLayout l, KernelJAI kernel, ROI roi, Range noData, double destinationNoData) {
+            ImageLayout l, KernelJAI kernel, ROI roi, Range noData, double destinationNoData, boolean skipNoData) {
         super(source, l, hints, true, extender, kernel.getLeftPadding(), kernel.getRightPadding(),
                 kernel.getTopPadding(), kernel.getBottomPadding());
 
@@ -104,6 +106,7 @@ public abstract class ConvolveOpImage extends AreaOpImage {
         kh = kernel.getHeight();
         kx = kernel.getXOrigin();
         ky = kernel.getYOrigin();
+        
 
         // Check if ROI control must be done
         if (roi != null) {
@@ -121,8 +124,10 @@ public abstract class ConvolveOpImage extends AreaOpImage {
         if (noData != null) {
             hasNoData = true;
             this.noData = noData;
+            this.skipNoData = skipNoData;
         } else {
             hasNoData = false;
+            this.skipNoData = false;
         }
 
         // Getting datatype

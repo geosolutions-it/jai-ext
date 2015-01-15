@@ -109,6 +109,10 @@ import com.sun.media.jai.util.AreaOpPropertyGenerator;
  * <td>arg3Desc</td>
  * <td>Destination No Data value used when the computation cannot be performed.</td>
  * </tr>
+ * <tr>
+ * <td>arg4Desc</td>
+ * <td>Boolean indicating if kernels with NoData must be skipped from computation.</td>
+ * </tr>
  * </table>
  * </p>
  * 
@@ -136,6 +140,10 @@ import com.sun.media.jai.util.AreaOpPropertyGenerator;
  * <td>destNoData</td>
  * <td>Double</td>
  * <td>0</td>
+ * <tr>
+ * <td>skipNoData</td>
+ * <td>Boolean</td>
+ * <td>true</td>
  * </table>
  * </p>
  */
@@ -159,20 +167,21 @@ public class ConvolveDescriptor extends OperationDescriptorImpl {
             { "arg0Desc", JaiI18N.getString("ConvolveDescriptor1") },
             { "arg1Desc", JaiI18N.getString("ConvolveDescriptor2") },
             { "arg2Desc", JaiI18N.getString("ConvolveDescriptor3") },
-            { "arg3Desc", JaiI18N.getString("ConvolveDescriptor4") } };
+            { "arg3Desc", JaiI18N.getString("ConvolveDescriptor4") },
+            { "arg5Desc", JaiI18N.getString("ConvolveDescriptor5") }};
 
     /** The parameter names for the Convolve operation. */
-    private static final String[] paramNames = { "kernel", "roi", "nodata", "destNoData" };
+    private static final String[] paramNames = { "kernel", "roi", "nodata", "destNoData", "skipNoData" };
 
     /** The parameter class types for the Convolve operation. */
     private static final Class[] paramClasses = { javax.media.jai.KernelJAI.class,
             javax.media.jai.ROI.class, it.geosolutions.jaiext.range.Range.class,
-            Double.class
+            Double.class, Boolean.class
     };
 
     /** The parameter default values for the Convolve operation. */
     private static final Object[] paramDefaults = { NO_PARAMETER_DEFAULT, null,
-        null, 0d};
+        null, 0d, true};
 
     /** Constructor. */
     public ConvolveDescriptor() {
@@ -207,13 +216,14 @@ public class ConvolveDescriptor extends OperationDescriptorImpl {
      * @param nodata Optional nodata Range to check for NoData
      * @param destNoData Double value used for setting destination No Data value when it is not possible to 
      * calculate the convolved result
+     * @param skipNoData Boolean indicating if kernels with NoData must be skipped from computation
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @return The <code>RenderedOp</code> destination.
      * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.
      * @throws IllegalArgumentException if <code>kernel</code> is <code>null</code>.
      */
     public static RenderedOp create(RenderedImage source0, KernelJAI kernel, 
-            ROI roi, Range nodata, double destNoData, RenderingHints hints) {
+            ROI roi, Range nodata, double destNoData, boolean skipNoData, RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI("Convolve", RenderedRegistryMode.MODE_NAME);
         // Setting sources
         pb.setSource("source0", source0);
@@ -222,8 +232,8 @@ public class ConvolveDescriptor extends OperationDescriptorImpl {
         pb.setParameter("roi", roi);
         pb.setParameter("nodata", nodata);
         pb.setParameter("destNoData", destNoData);
+        pb.setParameter("skipNoData", skipNoData);
 
         return JAI.create("Convolve", pb, hints);
     }
-
 }
