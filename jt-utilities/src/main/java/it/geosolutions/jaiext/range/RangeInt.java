@@ -26,30 +26,20 @@ public class RangeInt extends Range {
 
     /** Maximum range bound */
     private final int maxValue;
-
-    /** Boolean indicating if the minimum bound is included */
-    private final boolean minIncluded;
-
-    /** Boolean indicating if the maximum bound is included */
-    private final boolean maxIncluded;
     
     /** Boolean indicating if the maximum bound is included */
     private final boolean isPoint;
 
     RangeInt(int minValue, boolean minIncluded, int maxValue, boolean maxIncluded) {
-        
+        super(minIncluded, maxIncluded);
         if (minValue < maxValue) {
             this.minValue = minValue;
             this.maxValue = maxValue;
             this.isPoint = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
         } else if (minValue > maxValue) {
             this.minValue = maxValue;
             this.maxValue = minValue;
             this.isPoint = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
         } else {
             this.minValue = minValue;
             this.maxValue = minValue;
@@ -59,8 +49,8 @@ public class RangeInt extends Range {
                         "Cannot create a single-point range without minimum and maximum "
                                 + "bounds included");
             } else {
-                this.minIncluded = true;
-                this.maxIncluded = true;
+                setMinIncluded(true);
+                setMaxIncluded(true);
             }
         }
     }
@@ -74,13 +64,13 @@ public class RangeInt extends Range {
             final boolean lower;
             final boolean upper;
 
-            if (minIncluded) {
+            if (isMinIncluded()) {
                 lower = value < minValue;
             } else {
                 lower = value <= minValue;
             }
 
-            if (maxIncluded) {
+            if (isMaxIncluded()) {
                 upper = value > maxValue;
             } else {
                 upper = value >= maxValue;

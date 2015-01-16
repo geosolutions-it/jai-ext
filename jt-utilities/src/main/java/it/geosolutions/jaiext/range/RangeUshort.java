@@ -28,31 +28,22 @@ public class RangeUshort extends Range {
     /** Maximum range bound */
     private final int maxValue;
 
-    /** Boolean indicating if the minimum bound is included */
-    private final boolean minIncluded;
-
-    /** Boolean indicating if the maximum bound is included */
-    private final boolean maxIncluded;
-
     /** Boolean indicating if the maximum bound is included */
     private final boolean isPoint;
 
     RangeUshort(short minValue, boolean minIncluded, short maxValue, boolean maxIncluded) {
-        int valueMin = minValue & 0xFFFF;
+        super(minIncluded, maxIncluded);
+    	int valueMin = minValue & 0xFFFF;
         int valueMax = maxValue & 0xFFFF;
         
         if (minValue < maxValue) {
             this.minValue = valueMin;
             this.maxValue = valueMax;
             this.isPoint = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
         } else if (minValue > maxValue) {
             this.minValue = valueMax;
             this.maxValue = valueMin;
             this.isPoint = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
         } else {
             this.minValue = valueMin;
             this.maxValue = valueMin;
@@ -62,8 +53,8 @@ public class RangeUshort extends Range {
                         "Cannot create a single-point range without minimum and maximum "
                                 + "bounds included");
             } else {
-                this.minIncluded = true;
-                this.maxIncluded = true;
+            	setMinIncluded(true);
+            	setMaxIncluded(true);
             }
         }
     }
@@ -79,13 +70,13 @@ public class RangeUshort extends Range {
             final boolean lower;
             final boolean upper;
 
-            if (minIncluded) {
+            if (isMinIncluded()) {
                 lower = valueUshort < minValue;
             } else {
                 lower = valueUshort <= minValue;
             }
 
-            if (maxIncluded) {
+            if (isMaxIncluded()) {
                 upper = valueUshort > maxValue;
             } else {
                 upper = valueUshort >= maxValue;

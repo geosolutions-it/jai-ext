@@ -96,13 +96,13 @@ public class DefaultLinearPiecewiseTransform1DElement extends DefaultPiecewiseTr
 		// the output class can only be integer
 		//
 		// //
-		final Class<? extends Number> type = outRange.getElementClass();
+		final Class<? extends Number> type = outRange.getDataType().getClassValue();
 		boolean minInc = outRange.isMinIncluded();
 		boolean maxInc = outRange.isMaxIncluded();
 		outputMinimum = PiecewiseUtilities.doubleValue(type, outRange
-				.getMinValue(), minInc ? 0 : +1);
+				.getMin(), minInc ? 0 : +1);
 		outputMaximum = PiecewiseUtilities.doubleValue(type, outRange
-				.getMaxValue(), maxInc ? 0 : -1);
+				.getMax(), maxInc ? 0 : -1);
 		outputMinimumNaN = Double.isNaN(outputMinimum);
 		outputMaximumNaN = Double.isNaN(outputMaximum);
 		outputMinimumInfinite = Double.isInfinite(outputMinimum);
@@ -183,12 +183,7 @@ public class DefaultLinearPiecewiseTransform1DElement extends DefaultPiecewiseTr
 			else
 				setInverse(null);
 		else
-			try {
-				setInverse((MathTransformation) transform.inverse());
-			} catch (NoninvertibleTransformException e) {
-				if (LOGGER.isLoggable(Level.WARNING))
-					LOGGER.log(Level.WARNING, e.getLocalizedMessage(), e);
-			}
+			setInverse((MathTransformation) transform.inverse());
 	}
 
 	/**

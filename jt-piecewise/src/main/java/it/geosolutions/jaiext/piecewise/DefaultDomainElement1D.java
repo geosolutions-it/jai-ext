@@ -205,23 +205,23 @@ public class DefaultDomainElement1D implements DomainElement1D {
 		// /////////////////////////////////////////////////////////////////////
 		this.name = name + "";
 		this.range = inputRange;
-		Class<? extends Number> type = inputRange.getElementClass();// TODO FIXME ADD ELEMENT CLASS FOR THE RANGE
+		Class<? extends Number> type = inputRange.getDataType().getClassValue();// TODO FIXME ADD ELEMENT CLASS FOR THE RANGE
 		boolean minInc = inputRange.isMinIncluded();// TODO FIXME isMinIncluded FOR THE RANGE
 		boolean maxInc = inputRange.isMaxIncluded();// TODO FIXME isMaxIncluded FOR THE RANGE
-		final double tempMin = inputRange.getMinimum();// TODO FIXME getMinimum() FOR THE RANGE
-		final double tempMax = inputRange.getMaximum();// TODO FIXME getMaximum() FOR THE RANGE
+		final double tempMin = inputRange.getMin().doubleValue();// TODO FIXME getMinimum() FOR THE RANGE
+		final double tempMax = inputRange.getMax().doubleValue();// TODO FIXME getMaximum() FOR THE RANGE
 		if (Double.isInfinite(tempMin)) {
 			this.inputMinimum = tempMin;
 			inputMinimumInf = true;
 		} else
 			this.inputMinimum = PiecewiseUtilities.doubleValue(type, inputRange
-					.getMinValue(), minInc ? 0 : +1);
+					.getMin().doubleValue(), minInc ? 0 : +1);
 		if (Double.isInfinite(tempMax)) {
 			this.inputMaximum = tempMax;
 			inputMaximumInf = true;
 		} else
 			this.inputMaximum = PiecewiseUtilities.doubleValue(type, inputRange
-					.getMaxValue(), maxInc ? 0 : -1);
+					.getMax().doubleValue(), maxInc ? 0 : -1);
 		// /////////////////////////////////////////////////////////////////////
 		//
 		// Checks
@@ -238,7 +238,7 @@ public class DefaultDomainElement1D implements DomainElement1D {
 		if ((inputMinimumNaN && !inputMaximumNaN)
 				|| (!inputMinimumNaN && inputMaximumNaN))
 			throw new IllegalArgumentException("Bad Range format: "
-					+ inputRange.getMinValue() + "/ " + inputRange.getMaxValue()));
+					+ inputRange.getMin() + "/ " + inputRange.getMax());
 
 	}
 
