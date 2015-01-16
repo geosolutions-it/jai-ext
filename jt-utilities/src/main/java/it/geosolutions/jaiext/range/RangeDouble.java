@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.range;
 
+import it.geosolutions.jaiext.utilities.ImageUtilities;
+
 
 /**
  * This class is a subclass of the {@link Range} class handling double data.
@@ -148,4 +150,61 @@ public class RangeDouble extends Range {
         return minValue;
     }
     
+    public Number getMax(boolean isMaxIncluded) {
+        double value = maxValue;
+        if (isMaxIncluded != isMaxIncluded()) {
+            value = ImageUtilities.rool(getDataType().getClassValue(), value, isMaxIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Number getMin(boolean isMinIncluded) {
+        double value = minValue;
+        if (isMinIncluded != isMinIncluded()) {
+            value = ImageUtilities.rool(getDataType().getClassValue(), value, isMinIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public boolean isNanIncluded() {
+        return nanIncluded;
+    }
+    
+    public boolean isNaN(){
+        return isNaN;
+    }
+    
+    public Range union(Range other){
+        if(this.contains(other)){
+            return this;
+        } else if(other.contains(this)){
+            return other;
+        }
+        
+        double min2 = other.getMin().doubleValue();
+        double max2 = other.getMax().doubleValue();
+        
+        double finalMin = minValue;
+        double finalMax = maxValue;
+        
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+        
+        if(min2 < minValue){
+            finalMin = min2;
+            minIncluded = other.isMinIncluded();
+        } else if(min2 == minValue){
+            minIncluded |= other.isMinIncluded();
+        }
+        if(max2 > maxValue){
+            finalMax = max2;
+            maxIncluded = other.isMaxIncluded();
+        } else if(max2 == maxValue){
+            maxIncluded |= other.isMaxIncluded();
+        }
+        
+        boolean isNaNIncluded = this.isNaN() || other.isNaN() || this.isNanIncluded() || other.isNanIncluded();
+        
+        return new RangeDouble(finalMin, minIncluded, finalMax, maxIncluded, isNaNIncluded);
+    }
 }

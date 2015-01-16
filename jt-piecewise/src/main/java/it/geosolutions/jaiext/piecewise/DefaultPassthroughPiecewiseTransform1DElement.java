@@ -89,30 +89,14 @@ class DefaultPassthroughPiecewiseTransform1DElement extends DefaultPiecewiseTran
 	}
 
 	/**
-	 * Gets the derivative of this function at a value.
-	 * 
-	 * @param value
-	 *            The value where to evaluate the derivative.
-	 * @return The derivative at the specified point.
-	 * @throws TransformationException
-	 *             if the derivative can't be evaluated at the specified point.
-	 */
-	public double derivative(double value)
-			throws TransformationException {
-		if(checkContainment(value))
-			return 1;
-		throw new IllegalArgumentException("Wrong value:" + value);
-	}
-
-	/**
 	 * Transforms the specified {@code ptSrc} and stores the result in
 	 * {@code ptDst}.
 	 */
-	public DirectPosition transform(final DirectPosition ptSrc,
-			DirectPosition ptDst) throws TransformationException {
+	public Position transform(final Position ptSrc,
+			Position ptDst) throws TransformationException {
 		PiecewiseUtilities.ensureNonNull("DirectPosition", ptSrc);
 		if (ptDst == null) {
-			ptDst = new DirectPosition();
+			ptDst = new Position();
 		}
 		final double value=ptSrc.getOrdinate();
 		checkContainment(value);

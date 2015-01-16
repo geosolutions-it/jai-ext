@@ -223,32 +223,13 @@ public class DefaultPiecewiseTransform1DElement extends DefaultDomainElement1D i
 	}
 
 	/**
-	 * Gets the derivative of this function at a value.
-	 * 
-	 * @param value
-	 *            The value where to evaluate the derivative.
-	 * @return The derivative at the specified point.
-	 * @throws TransformationException
-	 *             if the derivative can't be evaluated at the specified point.
-	 */
-	public synchronized double derivative(double value)
-			throws TransformationException {
-		if (transform == null)
-			//  @todo TODO
-			throw new IllegalStateException();
-		if (contains(value))
-			return transform.derivative(value);
-		throw new TransformationException("Unable to evaluate value: " + value);
-	}
-
-	/**
 	 * Transforms the specified {@code ptSrc} and stores the result in
 	 * {@code ptDst}.
 	 */
-	public DirectPosition transform(final DirectPosition ptSrc,
-			DirectPosition ptDst) throws TransformationException {
+	public Position transform(final Position ptSrc,
+			Position ptDst) throws TransformationException {
 		if (ptDst == null) {
-			ptDst = new DirectPosition();
+			ptDst = new Position();
 		}
 		ptDst.setOrdinate(transform(ptSrc.getOrdinate()));
 		return ptDst;

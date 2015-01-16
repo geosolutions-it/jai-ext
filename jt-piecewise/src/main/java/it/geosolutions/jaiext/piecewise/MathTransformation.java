@@ -13,5 +13,6 @@ public interface MathTransformation {
     MathTransformation inverse();
 
     boolean isIdentity();
-
+    
+    Position transform(Position ptSrc, Position ptDst);
 }

@@ -1,8 +1,14 @@
 package it.geosolutions.jaiext.piecewise;
 
-public class DirectPosition {
+public class Position {
 
     double ordinate;
+    
+    public Position() {}
+    
+    public Position(double ordinate){
+        this.ordinate = ordinate;
+    }
 
     public double getOrdinate() {
         return ordinate;

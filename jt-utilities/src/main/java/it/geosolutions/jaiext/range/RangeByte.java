@@ -17,16 +17,17 @@
 */
 package it.geosolutions.jaiext.range;
 
+import it.geosolutions.jaiext.utilities.ImageUtilities;
 /**
  * This class is a subclass of the {@link Range} class handling byte data.
  */
 public class RangeByte extends Range {
 
     /** Minimum range bound */
-    private final byte minValue;
+    private final int minValue;
 
     /** Maximum range bound */
-    private final byte maxValue;
+    private final int maxValue;
 
     /** Boolean indicating if the maximum bound is included */
     private final boolean isPoint;
@@ -34,16 +35,16 @@ public class RangeByte extends Range {
     RangeByte(byte minValue, boolean minIncluded, byte maxValue, boolean maxIncluded) {
     	super(minIncluded, maxIncluded);
         if (minValue < maxValue) {
-            this.minValue = minValue;
-            this.maxValue = maxValue;
+            this.minValue = minValue & 0xFF;
+            this.maxValue = maxValue & 0xFF;
             this.isPoint = false;
         } else if (minValue > maxValue) {
-            this.minValue = maxValue;
-            this.maxValue = minValue;
+            this.minValue = maxValue & 0xFF;
+            this.maxValue = minValue & 0xFF;
             this.isPoint = false;
         } else {
-            this.minValue = minValue;
-            this.maxValue = minValue;
+            this.minValue = minValue & 0xFF;
+            this.maxValue = minValue & 0xFF;
             this.isPoint = true;
             if (!minIncluded && !maxIncluded) {
                 throw new IllegalArgumentException(
@@ -94,9 +95,57 @@ public class RangeByte extends Range {
     public Number getMax() {
         return maxValue;
     }
+    
+    public Number getMax(boolean isMaxIncluded) {
+        int value = maxValue;
+        if (isMaxIncluded != isMaxIncluded()) {
+            value = (int) ImageUtilities.rool(getDataType().getClassValue(), value, isMaxIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Number getMin(boolean isMinIncluded) {
+        int value = minValue;
+        if (isMinIncluded != isMinIncluded()) {
+            value = (int) ImageUtilities.rool(getDataType().getClassValue(), value, isMinIncluded ? -1 : +1);
+        }
+        return value;
+    }
 
     @Override
     public Number getMin() {
         return minValue;
+    }
+    
+    public Range union(Range other){
+        if(this.contains(other)){
+            return this;
+        } else if(other.contains(this)){
+            return other;
+        }
+        
+        int min2 = other.getMin().intValue();
+        int max2 = other.getMax().intValue();
+        
+        int finalMin = minValue;
+        int finalMax = maxValue;
+        
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+        
+        if(min2 < minValue){
+            finalMin = min2;
+            minIncluded = other.isMinIncluded();
+        } else if(min2 == minValue){
+            minIncluded |= other.isMinIncluded();
+        }
+        if(max2 > maxValue){
+            finalMax = max2;
+            maxIncluded = other.isMaxIncluded();
+        } else if(max2 == maxValue){
+            maxIncluded |= other.isMaxIncluded();
+        }
+        
+        return new RangeByte((byte)finalMin, minIncluded, (byte)finalMax, maxIncluded);
     }
 }

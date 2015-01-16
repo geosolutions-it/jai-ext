@@ -69,19 +69,6 @@ public class DefaultPiecewiseTransform1D<T extends DefaultPiecewiseTransform1DEl
 		}
 		return piece.transform(value);
 	}
-	
-	       /**
-         * Gets the derivative of this function at a value.
-         * 
-         * @param value
-         *            The value where to evaluate the derivative.
-         * @return The derivative at the specified point.
-         * @throws TransformException
-         *             if the derivative can't be evaluated at the specified point.
-         */
-        public double derivative(final double value) {
-                throw new UnsupportedOperationException("derivate");
-        }
 
 	/**
 	 * Gets the dimension of input points, which is 1.
@@ -104,8 +91,8 @@ public class DefaultPiecewiseTransform1D<T extends DefaultPiecewiseTransform1DEl
 	 * @see org.opengis.referencing.operation.MathTransform#transform(org.opengis.spatialschema.geometry.DirectPosition,
 	 *      org.opengis.spatialschema.geometry.DirectPosition)
 	 */
-	public DirectPosition transform(final DirectPosition ptSrc,
-			DirectPosition ptDst) throws MismatchedDimensionException,
+	public Position transform(final Position ptSrc,
+			Position ptDst) throws
 			TransformationException {
 		// /////////////////////////////////////////////////////////////////////
 		//
@@ -114,7 +101,7 @@ public class DefaultPiecewiseTransform1D<T extends DefaultPiecewiseTransform1DEl
 		// /////////////////////////////////////////////////////////////////////
 		PiecewiseUtilities.ensureNonNull("ptSrc", ptSrc);
 		if (ptDst == null) {
-			ptDst = new DirectPosition();
+			ptDst = new Position();
 		}
 		ptDst.setOrdinate(transform(ptSrc.getOrdinate()));
 		return ptDst;

@@ -71,7 +71,7 @@ class DefaultConstantPiecewiseTransformElement extends DefaultLinearPiecewiseTra
 	 DefaultConstantPiecewiseTransformElement(CharSequence name,
 			final Range inRange, final int outVal)
 			throws IllegalArgumentException {
-		super(name, inRange, RangeFactory.create(outVal, true, outVal, true, true));
+		super(name, inRange, RangeFactory.create(outVal, true, outVal, true));
 	}
 
 
@@ -90,7 +90,7 @@ class DefaultConstantPiecewiseTransformElement extends DefaultLinearPiecewiseTra
 	DefaultConstantPiecewiseTransformElement(CharSequence name,
 			final Range inRange, final byte outVal)
 			throws IllegalArgumentException {
-		super(name, inRange, RangeFactory.create(outVal, true, outVal, true, true));
+		super(name, inRange, RangeFactory.create(outVal, true, outVal, true));
 	}
 
 	/**

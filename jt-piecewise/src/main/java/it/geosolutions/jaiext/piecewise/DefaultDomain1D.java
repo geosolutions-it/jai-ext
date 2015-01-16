@@ -70,7 +70,7 @@ public class DefaultDomain1D<E extends DefaultDomainElement1D>  extends Abstract
 					final Range extent =  element.getRange();
 					if (!Double.isNaN(extent.getMin().doubleValue())&& !Double.isNaN(extent.getMax().doubleValue())) {
 						if (range != null) {//TODO FIXME ADD RANGE UNION
-							range = new Range(range.union(extent));
+							range = range.union(extent);
 						} else {
 							range = extent;
 						}
@@ -191,7 +191,7 @@ public class DefaultDomain1D<E extends DefaultDomainElement1D>  extends Abstract
 				// Check if there is a gap between this domain element and the
 				// previous one.
 				if (!Double.isNaN(inMinimum)//TODO FIXME ADD POSSIBILITY TO GET THE MAXIMUM NOT INCLUDED/INCLUDED
-						&& inMinimum != ((Range) previous.getRange()).getMax(false)) {
+						&& inMinimum != ((Range) previous.getRange()).getMax(false).doubleValue()) {
 					hasGaps = true;
 				}
 			}

@@ -85,7 +85,7 @@ public class DefaultLinearPiecewiseTransform1DElement extends DefaultPiecewiseTr
 	public DefaultLinearPiecewiseTransform1DElement(CharSequence name, Range inRange,
 			Range outRange) {
 		super(name, inRange);
-		this.outputRange = outRange;
+		this.outputRange = RangeFactory.convertToDoubleRange(outRange);
 		// /////////////////////////////////////////////////////////////////////
 		//
 		// Checks
@@ -113,7 +113,7 @@ public class DefaultLinearPiecewiseTransform1DElement extends DefaultPiecewiseTr
 		// No open intervals for the output range
 		//
 		// //
-		if (outputMinimumInfinite || outputMinimumInfinite) {
+		if (outputMinimumInfinite || outputMaximumInfinite) {
 			throw new IllegalArgumentException("Bad range defined");
 		}
 

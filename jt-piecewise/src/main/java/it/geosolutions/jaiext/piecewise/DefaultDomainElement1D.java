@@ -17,6 +17,7 @@
 package it.geosolutions.jaiext.piecewise;
 
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 /**
  * This class implements the   {@link DomainElement1D}   interface in order to provide basic capabilities for   {@link DomainElement1D}   subclasses.
  * @author   Simone Giannecchini, GeoSolutions.
@@ -204,7 +205,7 @@ public class DefaultDomainElement1D implements DomainElement1D {
 		//
 		// /////////////////////////////////////////////////////////////////////
 		this.name = name + "";
-		this.range = inputRange;
+		this.range = RangeFactory.convertToDoubleRange(inputRange);
 		Class<? extends Number> type = inputRange.getDataType().getClassValue();// TODO FIXME ADD ELEMENT CLASS FOR THE RANGE
 		boolean minInc = inputRange.isMinIncluded();// TODO FIXME isMinIncluded FOR THE RANGE
 		boolean maxInc = inputRange.isMaxIncluded();// TODO FIXME isMaxIncluded FOR THE RANGE

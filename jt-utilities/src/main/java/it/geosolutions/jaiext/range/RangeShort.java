@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.range;
 
+import it.geosolutions.jaiext.utilities.ImageUtilities;
+
 /**
  * This class is a subclass of the {@link Range} class handling Short data.
  */
@@ -99,4 +101,51 @@ public class RangeShort extends Range {
         return minValue;
     }
 
+    public Number getMax(boolean isMaxIncluded) {
+        short value = maxValue;
+        if (isMaxIncluded != isMaxIncluded()) {
+            value = (short) ImageUtilities.rool(getDataType().getClassValue(), value, isMaxIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Number getMin(boolean isMinIncluded) {
+        short value = minValue;
+        if (isMinIncluded != isMinIncluded()) {
+            value = (short) ImageUtilities.rool(getDataType().getClassValue(), value, isMinIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Range union(Range other){
+        if(this.contains(other)){
+            return this;
+        } else if(other.contains(this)){
+            return other;
+        }
+        
+        short min2 = other.getMin().shortValue();
+        short max2 = other.getMax().shortValue();
+        
+        short finalMin = minValue;
+        short finalMax = maxValue;
+        
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+        
+        if(min2 < minValue){
+            finalMin = min2;
+            minIncluded = other.isMinIncluded();
+        } else if(min2 == minValue){
+            minIncluded |= other.isMinIncluded();
+        }
+        if(max2 > maxValue){
+            finalMax = max2;
+            maxIncluded = other.isMaxIncluded();
+        } else if(max2 == maxValue){
+            maxIncluded |= other.isMaxIncluded();
+        }
+        
+        return new RangeShort(finalMin, minIncluded, finalMax, maxIncluded);
+    }
 }

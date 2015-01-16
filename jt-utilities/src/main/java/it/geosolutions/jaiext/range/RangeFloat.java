@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.range;
 
+import it.geosolutions.jaiext.utilities.ImageUtilities;
+
 /**
  * This class is a subclass of the {@link Range} class handling float data.
  */
@@ -148,4 +150,61 @@ public class RangeFloat extends Range {
         return minValue;
     }
 
+    public Number getMax(boolean isMaxIncluded) {
+        float value = maxValue;
+        if (isMaxIncluded != isMaxIncluded()) {
+            value = (float) ImageUtilities.rool(getDataType().getClassValue(), value, isMaxIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Number getMin(boolean isMinIncluded) {
+        float value = minValue;
+        if (isMinIncluded != isMinIncluded()) {
+            value = (float) ImageUtilities.rool(getDataType().getClassValue(), value, isMinIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public boolean isNanIncluded() {
+        return nanIncluded;
+    }
+    
+    public boolean isNaN(){
+        return isNaN;
+    }
+    
+    public Range union(Range other){
+        if(this.contains(other)){
+            return this;
+        } else if(other.contains(this)){
+            return other;
+        }
+        
+        float min2 = other.getMin().floatValue();
+        float max2 = other.getMax().floatValue();
+        
+        float finalMin = minValue;
+        float finalMax = maxValue;
+        
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+        
+        if(min2 < minValue){
+            finalMin = min2;
+            minIncluded = other.isMinIncluded();
+        } else if(min2 == minValue){
+            minIncluded |= other.isMinIncluded();
+        }
+        if(max2 > maxValue){
+            finalMax = max2;
+            maxIncluded = other.isMaxIncluded();
+        } else if(max2 == maxValue){
+            maxIncluded |= other.isMaxIncluded();
+        }
+        
+        boolean isNaNIncluded = this.isNaN() || other.isNaN() || this.isNanIncluded() || other.isNanIncluded();
+        
+        return new RangeFloat(finalMin, minIncluded, finalMax, maxIncluded, isNaNIncluded);
+    }
 }
