@@ -34,17 +34,20 @@ public class RangeByte extends Range {
 
     RangeByte(byte minValue, boolean minIncluded, byte maxValue, boolean maxIncluded) {
     	super(minIncluded, maxIncluded);
-        if (minValue < maxValue) {
-            this.minValue = minValue & 0xFF;
-            this.maxValue = maxValue & 0xFF;
+    	int minValueInt = minValue & 0xFF;
+    	int maxValueInt = maxValue & 0xFF;
+    	
+        if (minValueInt < maxValueInt) {
+            this.minValue = minValueInt;
+            this.maxValue = maxValueInt;
             this.isPoint = false;
-        } else if (minValue > maxValue) {
-            this.minValue = maxValue & 0xFF;
-            this.maxValue = minValue & 0xFF;
+        } else if (minValueInt > maxValueInt) {
+            this.minValue = maxValueInt;
+            this.maxValue = minValueInt;
             this.isPoint = false;
         } else {
-            this.minValue = minValue & 0xFF;
-            this.maxValue = minValue & 0xFF;
+            this.minValue = minValueInt;
+            this.maxValue = minValueInt;
             this.isPoint = true;
             if (!minIncluded && !maxIncluded) {
                 throw new IllegalArgumentException(
@@ -58,23 +61,24 @@ public class RangeByte extends Range {
     }
 
     @Override
-    public boolean contains(byte value) {        
+    public boolean contains(byte value) { 
+        int valueI = value & 0xFF;
         if (isPoint) {
-            return this.minValue == value;
+            return this.minValue == valueI;
         } else {
             final boolean lower;
             final boolean upper;
 
             if (isMinIncluded()) {
-                lower = value < minValue;
+                lower = valueI < minValue;
             } else {
-                lower = value <= minValue;
+                lower = valueI <= minValue;
             }
 
             if (isMaxIncluded()) {
-                upper = value > maxValue;
+                upper = valueI > maxValue;
             } else {
-                upper = value >= maxValue;
+                upper = valueI >= maxValue;
             }
 
             return !lower && !upper;

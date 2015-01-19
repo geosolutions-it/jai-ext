@@ -27,16 +27,16 @@ public class GenericPiecewiseDescriptor extends OperationDescriptorImpl {
                 { "LocalName", GenericPiecewiseOpImage.OPERATION_NAME }, { "Vendor", "it.geosolutions.jaiext" },
                 { "Description", "Generic Piecewise Transformation" },
                 { "DocURL", "" }, { "Version", "1.0" } },
-                new String[] { RenderedRegistryMode.MODE_NAME }, 1, new String[] { "Domain1D",
+                new String[] { RenderedRegistryMode.MODE_NAME }, 1, new String[] { "Domain1D", "bandIndex",
                          "roi", "nodata" }, // Argument names
-                new Class[] { DefaultPiecewiseTransform1D.class,
+                new Class[] { DefaultPiecewiseTransform1D.class, Integer.class,
                         javax.media.jai.ROI.class, it.geosolutions.jaiext.range.Range.class }, // Argument classes
-                new Object[] { NO_PARAMETER_DEFAULT, null, null }, // Default values for parameters,
+                new Object[] { NO_PARAMETER_DEFAULT, new Integer(-1), null, null }, // Default values for parameters,
                 null // No restriction on valid parameter values.
         );
     }
 
-    public RenderedOp create(RenderedImage source0, DefaultPiecewiseTransform1D domain1D,
+    public RenderedOp create(RenderedImage source0, DefaultPiecewiseTransform1D domain1D, Integer bandIndex,
             ROI roi, Range nodata, RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI(GenericPiecewiseOpImage.OPERATION_NAME,
                 RenderedRegistryMode.MODE_NAME);
@@ -44,6 +44,7 @@ public class GenericPiecewiseDescriptor extends OperationDescriptorImpl {
         pb.setSource(source0, 0);
         // Setting parameters
         pb.setParameter("Domain1D", domain1D);
+        pb.setParameter("bandIndex", bandIndex);
         pb.setParameter("roi", roi);
         pb.setParameter("nodata", nodata);
 
@@ -70,6 +71,12 @@ public class GenericPiecewiseDescriptor extends OperationDescriptorImpl {
         if (lic == null)
             return false;
         final int numBands = source.getSampleModel().getNumBands();
+        final int bandIndex = param.getIntParameter(1);
+        if (bandIndex == -1)
+                return true;
+        if (bandIndex < 0 || bandIndex >= numBands) {
+                return false;
+        }
         return true;
     }
 }

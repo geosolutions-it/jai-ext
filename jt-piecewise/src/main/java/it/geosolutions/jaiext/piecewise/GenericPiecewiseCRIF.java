@@ -13,7 +13,7 @@ import javax.media.jai.ROI;
 import com.sun.media.jai.opimage.RIFUtil;
 
 public class GenericPiecewiseCRIF extends CRIFImpl {
-    
+
     public GenericPiecewiseCRIF() {
         super(GenericPiecewiseOpImage.OPERATION_NAME);
     }
@@ -25,10 +25,12 @@ public class GenericPiecewiseCRIF extends CRIFImpl {
         RenderedImage source = pb.getRenderedSource(0);
         // Extracting Parameters
         final PiecewiseTransform1D lic = (PiecewiseTransform1D) pb.getObjectParameter(0);
-        final ROI roi = (ROI)pb.getObjectParameter(1);
-        final Range nodata = (Range)pb.getObjectParameter(2);
-        
-        return null;
+        final Integer bandIndex = pb.getIntParameter(1);
+        final ROI roi = (ROI) pb.getObjectParameter(2);
+        final Range nodata = (Range) pb.getObjectParameter(3);
+
+        return new GenericPiecewiseOpImage<PiecewiseTransform1DElement>(source, lic, l, bandIndex, roi,
+                nodata, hints);
     }
 
 }

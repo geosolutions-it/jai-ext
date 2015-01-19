@@ -102,6 +102,10 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
     /** Boolean indicating that only No Data are used */
     private final boolean caseC;
 
+    private Integer bandIndex;
+
+    private boolean indexDefined;
+
     /**
      * Constructs a new {@code RasterClassifier}.
      * 
@@ -111,12 +115,18 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
      * @param hints The rendering hints.
      */
     public GenericPiecewiseOpImage(final RenderedImage image, final PiecewiseTransform1D<T> lic,
-            ImageLayout layout, ROI roi, Range nodata, final RenderingHints hints) {
-        super(image, layout, prepareHints(roi, hints), true);
+            ImageLayout layout, Integer bandIndex, ROI roi, Range nodata, final RenderingHints hints) {
+        super(image, layout, hints, true);
         this.piecewise = lic;
         // Ensure that the number of sets of breakpoints is either unity
         // or equal to the number of bands.
         final int numBands = sampleModel.getNumBands();
+        
+        // Check the bandIndex value
+        if(bandIndex != null){
+            this.bandIndex = bandIndex;
+            this.indexDefined = bandIndex != null && bandIndex !=-1;
+        }
 
         // Set the byte data flag.
         isByteData = sampleModel.getTransferType() == DataBuffer.TYPE_BYTE;
@@ -139,7 +149,8 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
             this.nodata = RangeFactory.convertToDoubleRange(nodata);
         }
 
-        // Handling ROI (Notice that ROI when ROI is used we the ColorModel is forced to ComponentColorModel)
+        // Handling ROI (Notice that ROI is not considered when the ColorModel is IndexColorModel, source
+        // image must have a component colormodel)
         hasROI = roi != null;
         if (hasROI) {
             this.roi = roi;
@@ -190,21 +201,6 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
         initializeColormapOperation();
     }
 
-    /**
-     * Private method used for expanding ColorModel if ROI is present in order to work on the pixel values and not on the indexes
-     */
-    private static RenderingHints prepareHints(ROI roi, RenderingHints hints) {
-        RenderingHints h;
-        if (roi == null) {
-            h = hints;
-        } else {
-            h = (RenderingHints) hints.clone();
-            h.put(JAI.KEY_REPLACE_INDEX_COLOR_MODEL, true);
-        }
-
-        return h;
-    }
-
     @Override
     protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
 
@@ -237,6 +233,20 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
                     }
                 }
             }
+        }
+        
+        // Check on the tile size
+        if (sources[0].getWidth() != dest.getWidth()) {
+            throw new IllegalArgumentException(
+                    "Sourc and Destination image must have the same width");
+        }
+        if (sources[0].getHeight() != dest.getHeight()) {
+            throw new IllegalArgumentException(
+                    "Sourc and Destination image must have the same Height");
+        }
+        if (sources[0].getNumBands() != dest.getNumBands()) {
+            throw new IllegalArgumentException(
+                    "Sourc and Destination image must have the same Bands");
         }
 
         // Creating the RasterAccessors
@@ -271,9 +281,10 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
         int srcX = source.getMinX();
         int srcY = source.getMinY();
 
-        int dstWidth = dest.getWidth();
-        int dstHeight = dest.getHeight();
-        int dstBands = dest.getNumBands();
+        int dstWidth = destRect.width;
+        int dstHeight = destRect.height;
+        int dstBands = indexDefined ? bandIndex + 1 : dest.getNumBands();
+        int startBand = indexDefined ? bandIndex : 0;
 
         WritableRandomIter dstIter = RandomIterFactory.createWritable(dest, destRect);
         RandomIter srcIter = RandomIterFactory.create(source, destRect, ARRAY_CALC, ARRAY_CALC);
@@ -288,13 +299,13 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
                     x0 = srcX + w;
 
                     if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
-                        for (int b = 0; b < dstBands; b++) {
+                        for (int b = startBand; b < dstBands; b++) {
                             dstIter.setSample(x0, y0, b, gapsValue);
                         }
                         continue;
                     }
 
-                    for (int b = 0; b < dstBands; b++) {
+                    for (int b = startBand; b < dstBands; b++) {
                         // //
                         //
                         // get the input value to be transformed
@@ -325,7 +336,7 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
 
                     x0 = srcX + w;
 
-                    for (int b = 0; b < dstBands; b++) {
+                    for (int b = startBand; b < dstBands; b++) {
                         // //
                         //
                         // get the input value to be transformed
@@ -360,9 +371,10 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
         int srcX = source.getMinX();
         int srcY = source.getMinY();
 
-        int dstWidth = dest.getWidth();
-        int dstHeight = dest.getHeight();
-        int dstBands = dest.getNumBands();
+        int dstWidth = destRect.width;
+        int dstHeight = destRect.height;
+        int dstBands = indexDefined ? bandIndex + 1 : dest.getNumBands();
+        int startBand = indexDefined ? bandIndex : 0;
 
         PiecewiseTransform1DElement element = null;
 
@@ -378,7 +390,7 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
 
                         x0 = srcX + w;
 
-                        for (int b = 0; b < dstBands; b++) {
+                        for (int b = startBand; b < dstBands; b++) {
                             // //
                             //
                             // get the input value to be transformed
@@ -433,13 +445,13 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
                         x0 = srcX + w;
 
                         if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
-                            for (int b = 0; b < dstBands; b++) {
+                            for (int b = startBand; b < dstBands; b++) {
                                 dstIter.setSample(x0, y0, b, gapsValue);
                             }
                             continue;
                         }
 
-                        for (int b = 0; b < dstBands; b++) {
+                        for (int b = startBand; b < dstBands; b++) {
                             // //
                             //
                             // get the input value to be transformed
@@ -493,7 +505,7 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
 
                         x0 = srcX + w;
 
-                        for (int b = 0; b < dstBands; b++) {
+                        for (int b = startBand; b < dstBands; b++) {
 
                             final double value = srcIter.getSampleDouble(x0, y0, b);
 
@@ -527,13 +539,13 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
                         x0 = srcX + w;
 
                         if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
-                            for (int b = 0; b < dstBands; b++) {
+                            for (int b = startBand; b < dstBands; b++) {
                                 dstIter.setSample(x0, y0, b, gapsValue);
                             }
                             continue;
                         }
 
-                        for (int b = 0; b < dstBands; b++) {
+                        for (int b = startBand; b < dstBands; b++) {
 
                             final double value = srcIter.getSampleDouble(x0, y0, b);
 
