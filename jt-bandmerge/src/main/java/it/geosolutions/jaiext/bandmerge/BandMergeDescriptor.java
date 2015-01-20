@@ -207,7 +207,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
             RenderedImage... sources) {
         return create(noData, destinationNoData, hints, null, sources);
     }
-    
+
     /**
      * Merge (possibly multi-banded)images into a multibanded image.
      * 
@@ -280,7 +280,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
         if(transform != null && !transform.isEmpty() && transform.get(0) instanceof AffineTransform){
             pb.setParameter("transformations", transform);
         }
-        
+
         // Setting of the parameters
         pb.setParameter("noData", noData);
         pb.setParameter("destinationNoData", destinationNoData);
@@ -289,7 +289,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
         // Creation of the RenderedOp
         return JAI.create("BandMerge", pb, hints);
     }
-    
+
     /**
      * Merge (possibly multi-banded)images into a multibanded image.
      * 
@@ -313,7 +313,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
             RenderingHints hints, RenderableImage... sources) {
         return createRenderable(noData, destinationNoData, hints, null, sources);
     }
-    
+
     /**
      * Merge (possibly multi-banded)images into a multibanded image.
      * 
@@ -338,7 +338,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
             RenderingHints hints, List<AffineTransform> transform, RenderableImage... sources) {
         return createRenderable(noData, destinationNoData, hints, transform, null, sources);
     }
-    
+
     /**
      * Merge (possibly multi-banded)images into a multibanded image.
      * 
@@ -381,17 +381,18 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
 
             pb.setSource(source, index);
         }
-        
+
         // Check if the transform object can be used
-        if(transform != null && !transform.isEmpty() && transform.get(0) instanceof AffineTransform){
+        if (transform != null && !transform.isEmpty()
+                && transform.get(0) instanceof AffineTransform) {
             pb.setParameter("transformations", transform);
         }
-        
+
         // Setting of the parameters
         pb.setParameter("noData", noData);
         pb.setParameter("destinationNoData", destinationNoData);
         pb.setParameter("roi", roi);
-        
+
         // Creation of the RenderedOp
         return JAI.createRenderable("BandMerge", pb, hints);
     }

@@ -82,46 +82,35 @@ public class AffineNearestOpImage extends AffineOpImage {
         // If both roiBounds and roiIter are not null, they are used in calculation
         Range nod = nodata;
         Double destNod = null;
-        if (backgroundValues != null && backgroundValues.length > 0){
-        	destNod = backgroundValues[0];
-		}
+        if (backgroundValues != null && backgroundValues.length > 0) {
+            destNod = backgroundValues[0];
+        }
         if (interp instanceof InterpolationNearest) {
             interpN = (InterpolationNearest) interp;
             this.interp = interpN;
             interpN.setROIdata(roiBounds, roiIter);
-            if(nod == null){
-            	nod = interpN.getNoDataRange();
+            if (nod == null) {
+                nod = interpN.getNoDataRange();
             }
-            if(destNod == null){
-            	destNod = interpN.getDestinationNoData();
+            if (destNod == null) {
+                destNod = interpN.getDestinationNoData();
             }
         }
         // Nodata definition
-		if (nod != null) {
-			hasNoData = true;
-			noData = nod;
-		}
-		if(destNod != null){
-			destinationNoDataDouble = destNod;
-		} else if (this.backgroundValues != null && this.backgroundValues.length > 0){
-			destinationNoDataDouble = this.backgroundValues[0];
-		}
-		// ROIAccessor definition
-		if (hasROI) {
-			this.useROIAccessor = useROIAccessor;
-		}
-//        //Creation of the destination background values(the value related to the first band)
-//        if(backgroundValues != null && backgroundValues.length > 0){
-//        	this.backgroundValues=backgroundValues;
-//        } else {
-//    		int srcNumBands= source.getSampleModel().getNumBands();
-//            double[] background=new double[srcNumBands];
-//            for(int i = 0; i<srcNumBands;i++){
-//                background[i]=destinationNoDataDouble;
-//            }       
-//            this.backgroundValues=background;
-//        }
-        
+        if (nod != null) {
+            hasNoData = true;
+            noData = nod;
+        }
+        if (destNod != null) {
+            destinationNoDataDouble = destNod;
+        } else if (this.backgroundValues != null && this.backgroundValues.length > 0) {
+            destinationNoDataDouble = this.backgroundValues[0];
+        }
+        // ROIAccessor definition
+        if (hasROI) {
+            this.useROIAccessor = useROIAccessor;
+        }
+
         // destination No Data set
         this.setDestinationNoData = setDestinationNoData;
         this.setBackground=setDestinationNoData;
@@ -135,10 +124,10 @@ public class AffineNearestOpImage extends AffineOpImage {
                 for (int i = 0; i < byteLookupTable.length; i++) {
                     byte value = (byte) i;
                     if (noData.contains(value)) {
-                        if(setDestinationNoData){
+                        if (setDestinationNoData) {
                             byteLookupTable[i] = destinationNoDataByte;
-                        }else{
-                            byteLookupTable[i]=0;
+                        } else {
+                            byteLookupTable[i] = 0;
                         }
                     } else {
                         byteLookupTable[i] = value;
@@ -172,7 +161,6 @@ public class AffineNearestOpImage extends AffineOpImage {
         caseA = !hasROI && !hasNoData;
         caseB = hasROI && !hasNoData;
         caseC = !hasROI && hasNoData;
-        
     }
 
     /** Method for evaluating the destination image tile without ROI */
@@ -330,8 +318,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -367,7 +355,6 @@ public class AffineNearestOpImage extends AffineOpImage {
                  // Advance to first pixel
                     dstPixelOffset += (clipMinX - dst_min_x) * dstPixelStride;
                 }
-                    
 
                 for (int x = clipMinX; x < clipMaxX; x++) {
                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
@@ -428,8 +415,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -468,9 +455,9 @@ public class AffineNearestOpImage extends AffineOpImage {
                         int posx = (s_ix - srcRectX) * srcPixelStride;
                         // If roiAccessor is present, the y position on the roi image is calculated
                         int posyROI = (s_iy - srcRectY) * roiScanlineStride;
-                        
-                        src_pos = posx+posy;
-                        
+
+                        src_pos = posx + posy;
+
                         int windex = (posx / dst_num_bands) + posyROI;
 
                         int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
@@ -503,7 +490,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             s_iy += incy1;
                             ifracy -= ifracdy1;
                         }
-                        
+
                         // Go to next pixel
                         dstPixelOffset += dstPixelStride;
                     }
@@ -540,8 +527,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -663,8 +650,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -760,8 +747,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -874,8 +861,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -1056,8 +1043,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -1154,8 +1141,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -1266,8 +1253,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -1389,8 +1376,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -1429,14 +1416,14 @@ public class AffineNearestOpImage extends AffineOpImage {
                 for (int x = clipMinX; x < clipMaxX; x++) {
                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
                         int value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                        if(noData.contains(value)){
-                            if(setDestinationNoData){
+                        if (noData.contains(value)) {
+                            if (setDestinationNoData) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                             }
-                        }else{
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] =value;
+                        } else {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
                         }
-                        
+
                     }
 
                     // walk
@@ -1493,8 +1480,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -1533,8 +1520,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                         // If roiAccessor is present, the y position on the roi image is calculated
                         int posyROI = (s_iy - srcRectY) * roiScanlineStride;
 
-                        src_pos = posx+posy;
-                        
+                        src_pos = posx + posy;
+
                         int windex = (posx / dst_num_bands) + posyROI;
 
                         int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
@@ -1549,12 +1536,12 @@ public class AffineNearestOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 // The interpolated value is saved in the destination array
                                 int value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                                if(noData.contains(value)){
-                                    if(setDestinationNoData){
+                                if (noData.contains(value)) {
+                                    if (setDestinationNoData) {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                                     }
-                                }else{
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] =value;
+                                } else {
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
                                 }
                             }
                         }
@@ -1610,8 +1597,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -1670,12 +1657,12 @@ public class AffineNearestOpImage extends AffineOpImage {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
                                     int value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                                    if(noData.contains(value)){
-                                        if(setDestinationNoData){
+                                    if (noData.contains(value)) {
+                                        if (setDestinationNoData) {
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
                                         }
-                                    }else{
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] =value;
+                                    } else {
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
                                     }
                                 }
                             }
@@ -1797,8 +1784,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -1895,8 +1882,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2007,8 +1994,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -2130,8 +2117,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -2170,14 +2157,14 @@ public class AffineNearestOpImage extends AffineOpImage {
                 for (int x = clipMinX; x < clipMaxX; x++) {
                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
                         short value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                        if(noData.contains(value)){
-                            if(setDestinationNoData){
+                        if (noData.contains(value)) {
+                            if (setDestinationNoData) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                             }
-                        }else{
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] =value;
+                        } else {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
                         }
-                        
+
                     }
 
                     // walk
@@ -2234,8 +2221,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -2293,12 +2280,12 @@ public class AffineNearestOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 // The interpolated value is saved in the destination array
                                 short value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                                if(noData.contains(value)){
-                                    if(setDestinationNoData){
+                                if (noData.contains(value)) {
+                                    if (setDestinationNoData) {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                                     }
-                                }else{
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] =value;
+                                } else {
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
                                 }
                             }
                         }
@@ -2354,8 +2341,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -2414,12 +2401,12 @@ public class AffineNearestOpImage extends AffineOpImage {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
                                     short value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                                    if(noData.contains(value)){
-                                        if(setDestinationNoData){
+                                    if (noData.contains(value)) {
+                                        if (setDestinationNoData) {
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
                                         }
-                                    }else{
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] =value;
+                                    } else {
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
                                     }
                                 }
                             }
@@ -2541,8 +2528,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -2639,8 +2626,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2751,8 +2738,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -2874,8 +2861,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -2914,14 +2901,14 @@ public class AffineNearestOpImage extends AffineOpImage {
                 for (int x = clipMinX; x < clipMaxX; x++) {
                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
                         short value = (short) (srcDataArrays[k2][src_pos + bandOffsets[k2]] & 0xffff);
-                        if(noData.contains(value)){
-                            if(setDestinationNoData){
+                        if (noData.contains(value)) {
+                            if (setDestinationNoData) {
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                             }
-                        }else{
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] =value;
+                        } else {
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
                         }
-                        
+
                     }
 
                     // walk
@@ -2978,8 +2965,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -3037,12 +3024,12 @@ public class AffineNearestOpImage extends AffineOpImage {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 // The interpolated value is saved in the destination array
                                 short value = (short) (srcDataArrays[k2][src_pos + bandOffsets[k2]] & 0xffff);
-                                if(noData.contains(value)){
-                                    if(setDestinationNoData){
+                                if (noData.contains(value)) {
+                                    if (setDestinationNoData) {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                                     }
-                                }else{
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] =value;
+                                } else {
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
                                 }
                             }
                         }
@@ -3098,8 +3085,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -3158,12 +3145,12 @@ public class AffineNearestOpImage extends AffineOpImage {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
                                     short value = (short) (srcDataArrays[k2][src_pos + bandOffsets[k2]] & 0xffff);
-                                    if(noData.contains(value)){
-                                        if(setDestinationNoData){
+                                    if (noData.contains(value)) {
+                                        if (setDestinationNoData) {
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
                                         }
-                                    }else{
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] =value;
+                                    } else {
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
                                     }
                                 }
                             }
@@ -3286,8 +3273,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -3384,8 +3371,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -3496,8 +3483,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -3619,8 +3606,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -3724,8 +3711,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -3845,8 +3832,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -4034,8 +4021,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -4132,8 +4119,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -4244,8 +4231,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -4367,8 +4354,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                 fracx = s_x - s_ix*1.0d;
                 fracy = s_y - s_iy*1.0d;
 
-                int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                 // Compute clipMinX, clipMinY
                 javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -4472,8 +4459,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(
@@ -4594,8 +4581,8 @@ public class AffineNearestOpImage extends AffineOpImage {
                     fracx = s_x - s_ix*1.0d;
                     fracy = s_y - s_iy*1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(

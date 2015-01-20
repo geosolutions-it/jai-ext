@@ -1705,9 +1705,9 @@ public final class AlgebraOpImage2 extends PointOpImage {
         }
     }
 
-    private static Vector vectorize(RenderedImage[] sources) {
+    private static Vector<RenderedImage> vectorize(RenderedImage[] sources) {
 
-        Vector vec = new Vector(sources.length);
+        Vector<RenderedImage> vec = new Vector<RenderedImage>(sources.length);
 
         for (RenderedImage image : sources) {
             if (image != null) {

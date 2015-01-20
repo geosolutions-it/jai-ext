@@ -58,8 +58,8 @@ public class CropSpi implements OperationRegistrySpi {
         // Check if the operation has already been registered
         String[] desc = registry.getOperationNames();
         boolean found = false;
-        for(int i = 0; i < desc.length; i++){
-            if(desc[i].equalsIgnoreCase(op.getName())){
+        for (int i = 0; i < desc.length; i++) {
+            if (desc[i].equalsIgnoreCase(op.getName())) {
                 found = true;
                 break;
             }

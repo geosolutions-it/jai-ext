@@ -241,38 +241,37 @@ public class MosaicOpImage extends OpImage {
      * This constructor takes the source images, the layout, the rendering hints, and the parameters and initialize variables.
      */
     public MosaicOpImage(List sources, ImageLayout layout, Map renderingHints,
-    		MosaicType mosaicTypeSelected,
-			PlanarImage[] alphaImgs, ROI[] rois,
-			double[][] thresholds, double[] destinationNoData,
-			Range[] noDatas) {
+            MosaicType mosaicTypeSelected, PlanarImage[] alphaImgs, ROI[] rois,
+            double[][] thresholds, double[] destinationNoData, Range[] noDatas) {
         // OpImage constructor
         super((Vector) sources, checkLayout(sources, layout), renderingHints, true);
-        
+
         // Stores the data passed by the parameterBlock
         this.numBands = sampleModel.getNumBands();
         int numSources = getNumSources();
         this.mosaicTypeSelected = mosaicTypeSelected;
         this.roiPresent = false;
         this.alphaPresent = false;
-        
+
         // boolean indicating if ROI, alpha bands and nodata are present
         boolean roiExists = rois != null;
         boolean alphaExists = alphaImgs != null;
         boolean nodataExists = noDatas != null;
-        
+
         // Checks on the size
-        if(roiExists && rois.length != numSources){
-        	throw new IllegalArgumentException("roi number is not equal to the source number");
+        if (roiExists && rois.length != numSources) {
+            throw new IllegalArgumentException("roi number is not equal to the source number");
         }
-        if(alphaExists && alphaImgs.length != numSources){
-        	throw new IllegalArgumentException("alpha bands number is not equal to the source number");
+        if (alphaExists && alphaImgs.length != numSources) {
+            throw new IllegalArgumentException(
+                    "alpha bands number is not equal to the source number");
         }
-        if(nodataExists && noDatas.length != numSources){
-        	throw new IllegalArgumentException("no data number is not equal to the source number");
-        }        
+        if (nodataExists && noDatas.length != numSources) {
+            throw new IllegalArgumentException("no data number is not equal to the source number");
+        }
         // Definition of the Bounds
         Rectangle totalBounds = getBounds();
-        
+
         // Type of data used for every image
         int dataType = sampleModel.getDataType();
 
@@ -376,15 +375,15 @@ public class MosaicOpImage extends OpImage {
         }
 
         // Value for filling the image border
-		double sourceExtensionBorder = (noDatas != null && noDatas.length > 0) ? noDatas[0]
-				.getMin().doubleValue() : destinationNoDataDouble[0];
+        double sourceExtensionBorder = (noDatas != null && noDatas.length > 0) ? noDatas[0]
+                .getMin().doubleValue() : destinationNoDataDouble[0];
 
         // BorderExtender used for filling the image border with the above
         // sourceExtensionBorder
         this.sourceBorderExtender = sourceExtensionBorder == 0.0 ? BorderExtender
                 .createInstance(BorderExtender.BORDER_ZERO) : new BorderExtenderConstant(
                 new double[] { sourceExtensionBorder });
-        
+
         hasNoData = new boolean[numSources];
 
         // This list contains the alpha channel for every source image (if present)
@@ -392,25 +391,25 @@ public class MosaicOpImage extends OpImage {
 
         // NoDataRangeByte initialization
         byteLookupTable = new byte[numSources][numBands][256];
-        
+
         // Init the imagemosaic bean
         imageBeans = new ImageMosaicBean[numSources];
-        for(int i = 0; i < numSources; i++){
-        	imageBeans[i] = new ImageMosaicBean();
+        for (int i = 0; i < numSources; i++) {
+            imageBeans[i] = new ImageMosaicBean();
         }
 
         // This cycle is used for checking if every alpha channel is single banded
         // and has the same sample model of the source images. Also wrap all the source,
         // Alpha and ROI images(if present) with a Border operator in order to avoid
         // the call of the getExtendedData() method.
-        
+
         for (int i = 0; i < numSources; i++) {
             // Selection of the i-th source.
             RenderedImage img = getSourceImage(i);
             // Calculation of the padding
             int[] padding = calculatePadding(img, totalBounds);
             // Extend the Source image if padding is defined
-            if(padding != null){
+            if (padding != null) {
                 ParameterBlock pb = new ParameterBlock();
                 pb.setSource(img, 0);
                 pb.set(padding[0], 0);
@@ -420,8 +419,8 @@ public class MosaicOpImage extends OpImage {
                 pb.set(sourceBorderExtender, 4);
                 // Setting of the padded source to the associated bean
                 imageBeans[i].setImage(JAI.create("border", pb));
-            } else{
-            	imageBeans[i].setImage(img);
+            } else {
+                imageBeans[i].setImage(img);
             }
             // Selection of the alpha channel
             PlanarImage alpha = alphaExists ? alphaImgs[i] : null;
@@ -434,7 +433,7 @@ public class MosaicOpImage extends OpImage {
                 // Calculate padding
                 int[] pads = calculatePadding(alpha, totalBounds);
                 // Extend the alpha image if padding is defined
-                if(pads != null){
+                if (pads != null) {
                     ParameterBlock pb = new ParameterBlock();
                     pb.setSource(alpha, 0);
                     pb.set(pads[0], 0);
@@ -445,7 +444,7 @@ public class MosaicOpImage extends OpImage {
                     // Setting of the padded alpha to the associated bean
                     imageBeans[i].setAlphaChannel(JAI.create("border", pb));
                 } else {
-                	imageBeans[i].setAlphaChannel(alpha);
+                    imageBeans[i].setAlphaChannel(alpha);
                 }
 
                 if (alphaSampleModel.getNumBands() != 1) {
@@ -468,7 +467,7 @@ public class MosaicOpImage extends OpImage {
                 // Calculate padding
                 int[] pads = calculatePadding(roiIMG, totalBounds);
                 // Extend the roi image if padding is defined
-                if(pads != null){
+                if (pads != null) {
                     ParameterBlock pb = new ParameterBlock();
                     pb.setSource(roiIMG, 0);
                     pb.set(pads[0], 0);
@@ -478,8 +477,8 @@ public class MosaicOpImage extends OpImage {
                     pb.set(zeroBorderExtender, 4);
                     // Setting of the padded ROI image to the associated bean
                     imageBeans[i].setRoiImage(JAI.create("border", pb));
-                } else{
-                	imageBeans[i].setRoiImage(roiIMG);
+                } else {
+                    imageBeans[i].setRoiImage(roiIMG);
                 }
                 imageBeans[i].setRoi(roi);
             }
@@ -491,9 +490,10 @@ public class MosaicOpImage extends OpImage {
                 hasNoData[i] = true;
                 imageBeans[i].setSourceNoData(noDataRange);
                 if(noDataRange.getDataType().getDataType()!=dataType){
-                    throw new IllegalArgumentException("Range data type is not the same of the source image");
+                    throw new IllegalArgumentException(
+                            "Range data type is not the same of the source image");
                 }
-                
+
                 if (dataType == DataBuffer.TYPE_BYTE) {
                     // selection of the no data range for byte values
                     Range noDataByte = noDataRange;
@@ -541,9 +541,9 @@ public class MosaicOpImage extends OpImage {
         int rightP = deltaX1 > 0 ? deltaX1 : 0;
         int deltaY1 = (totalBounds.y + totalBounds.height - src.getMinY() - src.getHeight());
         int bottomP = deltaY1 > 0 ? deltaY1 : 0;
-        if((leftP + rightP + topP + bottomP) == 0){
-        	// no padding return null
-        	return null;
+        if ((leftP + rightP + topP + bottomP) == 0) {
+            // no padding return null
+            return null;
         }
         return new int[]{leftP, rightP, topP, bottomP};
     }
@@ -572,11 +572,11 @@ public class MosaicOpImage extends OpImage {
             Rectangle srcRect = mapDestRect(destRectangle, i);
             Raster data = null;
             // First, check if the source mapped rectangle is not empty
-            if(!(srcRect != null && srcRect.isEmpty())){
+            if (!(srcRect != null && srcRect.isEmpty())) {
                 // Get the source data from the source or the padded image.
-                if(source.getBounds().contains(destRectangle)){
+                if (source.getBounds().contains(destRectangle)) {
                     data = source.getData(destRectangle);
-                }else{
+                } else {
                     data = imageBeans[i].getImage().getData(destRectangle);
                 }
             }
@@ -732,7 +732,6 @@ public class MosaicOpImage extends OpImage {
 
         // Source data creation with null values
         final byte[][][] srcDataByte = new byte[sourcesNumber][][];
-        ;
         // Alpha Channel creation
         final byte[][][] alfaDataByte;
         // Destination data creation
@@ -846,7 +845,6 @@ public class MosaicOpImage extends OpImage {
 
             // The destination data band are selected
             byte[] dBandDataByte = dstDataByte[b];
-            ;
             // the destination lineOffset is initialized
             int dLineOffset = dstBandOffsets[b];
 
@@ -1057,7 +1055,6 @@ public class MosaicOpImage extends OpImage {
 
         // Source data creation with null values
         final short[][][] srcDataUshort = new short[sourcesNumber][][];
-        ;
         // Alpha Channel creation
         final short[][][] alfaDataUshort;
         // Destination data creation
@@ -1322,7 +1319,6 @@ public class MosaicOpImage extends OpImage {
                             if (hasNoData[s]) {
                                 Range noDataRangeUShort = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
-                                ;
                                 isData = !noDataRangeUShort.contains(sourceValueUshort);
                             }
                             if (!isData) {
@@ -1388,7 +1384,6 @@ public class MosaicOpImage extends OpImage {
 
         // Source data creation with null values
         final short[][][] srcDataShort = new short[sourcesNumber][][];
-        ;
         // Alpha Channel creation
         final short[][][] alfaDataShort;
         // Destination data creation
@@ -1502,7 +1497,6 @@ public class MosaicOpImage extends OpImage {
 
             // The destination data band are selected
             short[] dBandDataShort = dstDataShort[b];
-            ;
             // the destination lineOffset is initialized
             int dLineOffset = dstBandOffsets[b];
 
@@ -1717,7 +1711,6 @@ public class MosaicOpImage extends OpImage {
 
         // Source data creation with null values
         final int[][][] srcDataInt = new int[sourcesNumber][][];
-        ;
         // Alpha Channel creation
         final int[][][] alfaDataInt;
         // Destination data creation
@@ -1831,7 +1824,6 @@ public class MosaicOpImage extends OpImage {
 
             // The destination data band are selected
             int[] dBandDataInt = dstDataInt[b];
-            ;
             // the destination lineOffset is initialized
             int dLineOffset = dstBandOffsets[b];
 
@@ -2046,7 +2038,6 @@ public class MosaicOpImage extends OpImage {
 
         // Source data creation with null values
         final float[][][] srcDataFloat = new float[sourcesNumber][][];
-        ;
         // Alpha Channel creation
         final float[][][] alfaDataFloat;
         // Destination data creation

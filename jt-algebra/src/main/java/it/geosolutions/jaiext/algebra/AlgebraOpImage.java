@@ -63,7 +63,7 @@ import com.sun.media.jai.util.JDKWorkarounds;
  * 
  * 
  */
-public final class AlgebraOpImage extends PointOpImage {
+public class AlgebraOpImage extends PointOpImage {
 
     private final static Logger LOGGER = Logger.getLogger(AlgebraOpImage.class.toString());
 
@@ -1982,9 +1982,9 @@ public final class AlgebraOpImage extends PointOpImage {
         }
     }
 
-    private static Vector vectorize(RenderedImage[] sources) {
+    private static Vector<RenderedImage> vectorize(RenderedImage[] sources) {
 
-        Vector vec = new Vector(sources.length);
+        Vector<RenderedImage> vec = new Vector<RenderedImage>(sources.length);
 
         for (RenderedImage image : sources) {
             if (image != null) {

@@ -77,37 +77,37 @@ public class CropDescriptor extends OperationDescriptorImpl {
 
                 { "arg2Desc", paramNames[2] + " (Integer) image width" },
 
-                { "arg3Desc", paramNames[3] + " (Integer) image height" }, 
-                
+                { "arg3Desc", paramNames[3] + " (Integer) image height" },
+
                 { "arg4Desc", paramNames[4] + " (ROI) eventual ROI object used" },
-                
+
                 { "arg5Desc", paramNames[5] + " (Range) eventual NoData Range used" },
-                
+
                 { "arg6Desc", paramNames[6] + " (double[]) eventual destination NoData values" },
-        
+
         },
                 new String[] { RenderedRegistryMode.MODE_NAME }, // supported modes
                 1, // number of sources
                 paramNames, paramClasses, paramDefaults, null);
     }
-    
+
     /**
      * Manually registers the operation in the registry in case it's not already there
      */
     public static void register() {
         try {
             final OperationRegistry opr = JAI.getDefaultInstance().getOperationRegistry();
-            if(opr.getDescriptor(RenderedRegistryMode.MODE_NAME, "Crop") == null) {
-                
+            if (opr.getDescriptor(RenderedRegistryMode.MODE_NAME, "Crop") == null) {
+
                 final OperationRegistry registry = JAI.getDefaultInstance().getOperationRegistry();
 
                 OperationDescriptorImpl descriptor = new CropDescriptor();
-                
+
                 final String descName = descriptor.getName();
-                
+
                 registry.registerDescriptor(descriptor);
-                registry.registerFactory(RenderedRegistryMode.MODE_NAME,
-                        descName, "it.geosolutions.jaiext",new CropCRIF());
+                registry.registerFactory(RenderedRegistryMode.MODE_NAME, descName,
+                        "it.geosolutions.jaiext", new CropCRIF());
             }
         } catch (Exception e) {
             if (LOGGER.isLoggable(Level.FINE)) {
@@ -115,10 +115,10 @@ public class CropDescriptor extends OperationDescriptorImpl {
             }
         }
     }
-    
+
     /**
      * Performs cropping to a specified bounding box.
-     *
+     * 
      * @param source <code>RenderedImage</code> source 0.
      * @param x The x origin of the cropping operation.
      * @param y The y origin of the cropping operation.
@@ -137,9 +137,7 @@ public class CropDescriptor extends OperationDescriptorImpl {
                                     Range noData,
                                     double[] destNoData,
                                     RenderingHints hints)  {
-        ParameterBlockJAI pb =
-            new ParameterBlockJAI("Crop",
-                                  RenderedRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("Crop", RenderedRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
 

@@ -136,13 +136,9 @@ public class AffineGeneralOpImage extends AffineOpImage {
             Map config;
 
             if (configuration == null) {
-
                 config = new RenderingHints(JAI.KEY_REPLACE_INDEX_COLOR_MODEL, Boolean.FALSE);
-
             } else {
-
                 config = configuration;
-
                 if (!(config.containsKey(JAI.KEY_REPLACE_INDEX_COLOR_MODEL))) {
                     RenderingHints hints = (RenderingHints) configuration;
                     config = (RenderingHints) hints.clone();
@@ -219,27 +215,27 @@ public class AffineGeneralOpImage extends AffineOpImage {
         } else if (interpolator instanceof InterpolationBicubic) {
             interpBN = (InterpolationBicubic) interpolator;
             interpBN.setROIdata(roiBounds, roiIter);
-            if(destNod == null){
-            	destNod = interpN.getDestinationNoData();
+            if (destNod == null) {
+                destNod = interpN.getDestinationNoData();
             }
         } else if (backgroundValues != null) {
-        	destNod = backgroundValues[0];
+            destNod = backgroundValues[0];
         }
 
-        if(destNod == null){
-        	destNod = 0d;
+        if (destNod == null) {
+            destNod = 0d;
         }
         this.destinationNoData = destNod;
-        if(interpolator instanceof InterpolationNoData){
-        	InterpolationNoData interpolationNoData = (InterpolationNoData)interpolator;
-			interpolationNoData.setDestinationNoData(destNod);
-            if(nodata != null){
-            	hasNoData=true;
-            	interpolationNoData.setNoDataRange(nodata);
+        if (interpolator instanceof InterpolationNoData) {
+            InterpolationNoData interpolationNoData = (InterpolationNoData) interpolator;
+            interpolationNoData.setDestinationNoData(destNod);
+            if (nodata != null) {
+                hasNoData = true;
+                interpolationNoData.setNoDataRange(nodata);
             }
             interpolationNoData.setUseROIAccessor(this.useROIAccessor);
         }
-        
+
         // this value is used for binary images
         black = ((int) this.destinationNoData) & 1;
 
@@ -584,8 +580,8 @@ public class AffineGeneralOpImage extends AffineOpImage {
             int posx = (s_ix - srcRectX) * srcPixelStride;
 
             // Conversion if the fractional values to integer ones for Nearest-Neighbor interpolation
-            int ifracx = (int) Math.floor(fracx * geom_frac_max);
-            int ifracy = (int) Math.floor(fracy * geom_frac_max);
+            int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+            int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
             // If roiAccessor is present, the y position on the roi image is calculated
             if (roiAccessor != null) {
@@ -833,8 +829,8 @@ public class AffineGeneralOpImage extends AffineOpImage {
             int xfrac = (int) (fracx * shiftvalue);
             int yfrac = (int) (fracy * shiftvalue);
 
-            int ifracx = (int) Math.floor(fracx * geom_frac_max);
-            int ifracy = (int) Math.floor(fracy * geom_frac_max);
+            int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+            int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
             int destYOffset = (y - destTransY) * destScanlineStride + destDBOffset;
             int destXOffset = destDataBitOffset + (dst_min_x - destTransX);
@@ -1048,8 +1044,8 @@ public class AffineGeneralOpImage extends AffineOpImage {
             int posx = (s_ix - srcRectX) * srcPixelStride;
 
             // Conversion if the fractional values to integer ones for Nearest-Neighbor interpolation
-            int ifracx = (int) Math.floor(fracx * geom_frac_max);
-            int ifracy = (int) Math.floor(fracy * geom_frac_max);
+            int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+            int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
             // If roiAccessor is present, the y position on the roi image is calculated
             if (roiAccessor != null) {
@@ -1296,8 +1292,8 @@ public class AffineGeneralOpImage extends AffineOpImage {
             int xfrac = (int) (fracx * shiftvalue);
             int yfrac = (int) (fracy * shiftvalue);
 
-            int ifracx = (int) Math.floor(fracx * geom_frac_max);
-            int ifracy = (int) Math.floor(fracy * geom_frac_max);
+            int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+            int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
             int destYOffset = (y - destTransY) * destScanlineStride + destDBOffset;
             int destXOffset = destDataBitOffset + (dst_min_x - destTransX);
@@ -1513,8 +1509,8 @@ public class AffineGeneralOpImage extends AffineOpImage {
             int posx = (s_ix - srcRectX) * srcPixelStride;
 
             // Conversion if the fractional values to integer ones for Nearest-Neighbor interpolation
-            int ifracx = (int) Math.floor(fracx * geom_frac_max);
-            int ifracy = (int) Math.floor(fracy * geom_frac_max);
+            int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+            int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
             // If roiAccessor is present, the y position on the roi image is calculated
             if (roiAccessor != null) {
@@ -1764,8 +1760,8 @@ public class AffineGeneralOpImage extends AffineOpImage {
             int posx = (s_ix - srcRectX) * srcPixelStride;
 
             // Conversion if the fractional values to integer ones for Nearest-Neighbor interpolation
-            int ifracx = (int) Math.floor(fracx * geom_frac_max);
-            int ifracy = (int) Math.floor(fracy * geom_frac_max);
+            int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+            int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
             // If roiAccessor is present, the y position on the roi image is calculated
             if (roiAccessor != null) {
@@ -2006,8 +2002,8 @@ public class AffineGeneralOpImage extends AffineOpImage {
             int xfrac = (int) (fracx * shiftvalue);
             int yfrac = (int) (fracy * shiftvalue);
 
-            int ifracx = (int) Math.floor(fracx * geom_frac_max);
-            int ifracy = (int) Math.floor(fracy * geom_frac_max);
+            int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+            int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
             int destYOffset = (y - destTransY) * destScanlineStride + destDBOffset;
             int destXOffset = destDataBitOffset + (dst_min_x - destTransX);
@@ -2224,8 +2220,8 @@ public class AffineGeneralOpImage extends AffineOpImage {
             int posx = (s_ix - srcRectX) * srcPixelStride;
 
             // Conversion if the fractional values to integer ones for Nearest-Neighbor interpolation
-            int ifracx = (int) Math.floor(fracx * geom_frac_max);
-            int ifracy = (int) Math.floor(fracy * geom_frac_max);
+            int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+            int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
             // If roiAccessor is present, the y position on the roi image is calculated
             if (roiAccessor != null) {
@@ -2461,8 +2457,8 @@ public class AffineGeneralOpImage extends AffineOpImage {
             int posx = (s_ix - srcRectX) * srcPixelStride;
 
             // Conversion if the fractional values to integer ones for Nearest-Neighbor interpolation
-            int ifracx = (int) Math.floor(fracx * geom_frac_max);
-            int ifracy = (int) Math.floor(fracy * geom_frac_max);
+            int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+            int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
             // If roiAccessor is present, the y position on the roi image is calculated
             if (roiAccessor != null) {
