@@ -11,7 +11,7 @@
     <extensive.tests>false</extensive.tests>
     <interactive.tests>false</interactive.tests>
     <test.maxHeapSize>512M</test.maxHeapSize>
-	<test.maxPermSize>128m</test.maxPermSize>
+	<test.maxPermSize>256m</test.maxPermSize>
     <jt.version>1.2.0</jt.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.8.1</junit.version>
@@ -604,5 +604,14 @@
     <module>jt-convolve</module>
     <module>jt-classifier</module>
     <module>jt-piecewise</module>
+    <module>jt-artifact</module>
+    <module>jt-format</module>
+    <module>jt-colorconvert</module>
+    <module>jt-errordiffusion</module>
+    <module>jt-orderdither</module>
+    <module>jt-colorindexer</module>
+    <module>jt-imagefunction</module>
+    <module>jt-rlookup</module>
+    <module>jt-vectorbin</module>
   </modules>
 </project>

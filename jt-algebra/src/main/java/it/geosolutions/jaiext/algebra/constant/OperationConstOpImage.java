@@ -25,27 +25,20 @@ import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
+import java.util.Map;
 
 import javax.media.jai.ColormapOpImage;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.PlanarImage;
-import javax.media.jai.PointOpImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
-import javax.media.jai.RasterFactory;
 import javax.media.jai.iterator.RandomIter;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Vector;
-import java.util.logging.Logger;
-
 import com.sun.media.jai.util.ImageUtil;
-import com.sun.media.jai.util.JDKWorkarounds;
 
 /**
  * An <code>OpImage</code> implementing any operation defined by the {@link Operator} enum on an image with a constant value array.
@@ -883,7 +876,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                             d[dstPixelOffset] = ImageUtil.clampRoundInt(op.calculate(
                                     s[srcPixelOffset], constants[b]));
                         } else {
-                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculate(s[srcPixelOffset],
+                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculateL(s[srcPixelOffset],
                                     c));
                         }
 
@@ -924,7 +917,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                             d[dstPixelOffset] = ImageUtil.clampRoundInt(op.calculate(
                                     s[srcPixelOffset], constants[b]));
                         } else {
-                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculate(s[srcPixelOffset],
+                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculateL(s[srcPixelOffset],
                                     c));
                         }
 
@@ -962,7 +955,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                             d[dstPixelOffset] = ImageUtil.clampRoundInt(op.calculate(
                                     s[srcPixelOffset], constants[b]));
                         } else {
-                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculate(s[srcPixelOffset],
+                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculateL(s[srcPixelOffset],
                                     c));
                         }
 
@@ -1004,7 +997,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                             d[dstPixelOffset] = ImageUtil.clampRoundInt(op.calculate(
                                     s[srcPixelOffset], constants[b]));
                         } else {
-                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculate(s[srcPixelOffset],
+                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculateL(s[srcPixelOffset],
                                     c));
                         }
 

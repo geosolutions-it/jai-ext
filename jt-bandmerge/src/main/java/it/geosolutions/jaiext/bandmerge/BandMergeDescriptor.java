@@ -154,25 +154,26 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
             { "DocURL", "Not Defined" }, { "Version", "1.0" }, { "arg0Desc", "NoData values" },
             { "arg1Desc", "Destination No Data value" },
             { "arg2Desc", "Transformations List" },
-            { "arg3Desc", "ROI object to use" }
+            { "arg3Desc", "ROI object to use" },
+            { "arg4Desc", "Boolean indicating if the last band is an alpha band" }
 
     };
 
     /**
      * Input Parameter name
      */
-    private static final String[] paramNames = { "noData", "destinationNoData", "transformations", "roi" };
+    private static final String[] paramNames = { "noData", "destinationNoData", "transformations", "roi", "setAlpha" };
 
     /**
      * Input Parameter class
      */
     private static final Class[] paramClasses = { it.geosolutions.jaiext.range.Range[].class,
-            Double.class, List.class, javax.media.jai.ROI.class };
+            Double.class, List.class, javax.media.jai.ROI.class, Boolean.class };
 
     /**
      * Input Parameter default values
      */
-    private static final Object[] paramDefaults = { null, 0d, null, null };
+    private static final Object[] paramDefaults = { null, 0d, null, null, false };
 
     /** Constructor. */
     public BandMergeDescriptor() {
@@ -197,15 +198,16 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      * 
      * @param noData Array of input No Data Ranges.
      * @param destinationNoData value used by the RenderedOp for setting the output no data value.
+     * @param setAlpha boolean used for setting the last band as alpha band
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @param sources Array of source <code>RenderedImage</code>.
      * @return The <code>RenderedOp</code> destination.
      * @throws IllegalArgumentException if <code>sources</code> is <code>null</code>.
      * @throws IllegalArgumentException if a <code>source</code> is <code>null</code>.
      */
-    public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints,
+    public static RenderedOp create(Range[] noData, double destinationNoData, boolean setAlpha, RenderingHints hints,
             RenderedImage... sources) {
-        return create(noData, destinationNoData, hints, null, sources);
+        return create(noData, destinationNoData, setAlpha, hints, null, sources);
     }
 
     /**
@@ -221,6 +223,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      * 
      * @param noData Array of input No Data Ranges.
      * @param destinationNoData value used by the RenderedOp for setting the output no data value.
+     * @param setAlpha boolean used for setting the last band as alpha band
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @param transform A List of AffineTransformation to use for backward mapping each source image. May be <code>null</code>.
      * @param sources Array of source <code>RenderedImage</code>.
@@ -228,9 +231,9 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      * @throws IllegalArgumentException if <code>sources</code> is <code>null</code>.
      * @throws IllegalArgumentException if a <code>source</code> is <code>null</code>.
      */
-    public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints, 
+    public static RenderedOp create(Range[] noData, double destinationNoData, boolean setAlpha, RenderingHints hints, 
             List<AffineTransform> transform, RenderedImage... sources) {
-        return create(noData, destinationNoData, hints, transform, null, sources);
+        return create(noData, destinationNoData, setAlpha, hints, transform, null, sources);
     }
 
     /**
@@ -254,7 +257,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      * @throws IllegalArgumentException if <code>sources</code> is <code>null</code>.
      * @throws IllegalArgumentException if a <code>source</code> is <code>null</code>.
      */
-    public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints, 
+    public static RenderedOp create(Range[] noData, double destinationNoData, boolean setAlpha, RenderingHints hints, 
             List<AffineTransform> transform, ROI roi, RenderedImage... sources) {
         ParameterBlockJAI pb = new ParameterBlockJAI("BandMerge", RenderedRegistryMode.MODE_NAME);
         // Source number
@@ -285,6 +288,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
         pb.setParameter("noData", noData);
         pb.setParameter("destinationNoData", destinationNoData);
         pb.setParameter("roi", roi);
+        pb.setParameter("setAlpha", setAlpha);
 
         // Creation of the RenderedOp
         return JAI.create("BandMerge", pb, hints);

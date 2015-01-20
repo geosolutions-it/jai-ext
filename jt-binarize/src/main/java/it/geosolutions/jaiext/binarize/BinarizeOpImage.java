@@ -51,24 +51,34 @@ public class BinarizeOpImage extends PointOpImage {
     /** Constant indicating that the inner random iterators must cache the current tile position */
     public static final boolean TILE_CACHED = true;
 
+    /** Boolean indicating whether Nodata check must be done or not */
     private final boolean hasNoData;
 
+    /** Input NoData Range */
     private Range noData;
 
+    /** Input LookupTable used for Byte data in order to increase performances on nodata check */
     private boolean[] lut;
 
+    /** Boolean indicating whether ROI check must be done or not */
     private final boolean hasROI;
 
+    /** ROI object used for reducing the image active area */
     private ROI roi;
 
+    /** Flag indicating that No ROI nor NoData are present */
     private final boolean caseA;
 
+    /** Flag indicating that only ROI is present */
     private final boolean caseB;
 
+    /** Flag indicating that only NoData range is present */
     private final boolean caseC;
 
+    /** Rectangle defining the bounds of the input ROI */
     private final Rectangle roiBounds;
 
+    /** {@link PlanarImage} representing ROI */
     private PlanarImage roiImage;
 
     /**
@@ -267,11 +277,11 @@ public class BinarizeOpImage extends PointOpImage {
 
                     x0 = srcX + b - ind0;
                     y0 = srcY + h;
-
+                    // Check on the ROI
                     if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
                         continue;
                     }
-
+                    // Using LUT in order to skip continuous NoData check
                     if (lut[(srcData[s] & 0xFF)]) {
                         pid.data[offset + (b >> 3)] |= byteTable[b % 8];
                     }
@@ -283,6 +293,7 @@ public class BinarizeOpImage extends PointOpImage {
             for (int h = 0; h < destRect.height; h++) {
                 int indE = ind0 + destRect.width;
                 for (int b = ind0, s = srcOffset; b < indE; b++, s += pixelStride) {
+                    // Using LUT in order to skip continuous NoData check
                     if (lut[(srcData[s] & 0xFF)]) {
                         pid.data[offset + (b >> 3)] |= byteTable[b % 8];
                     }

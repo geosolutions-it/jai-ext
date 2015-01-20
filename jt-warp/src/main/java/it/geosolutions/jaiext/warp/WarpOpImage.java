@@ -68,19 +68,19 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
     protected static final boolean TILE_CACHED = true;
 
     /** Destination No Data value associated to Byte data type */
-    protected byte destinationNoDataByte;
+    //protected byte destinationNoDataByte;
 
     /** Destination No Data value associated to UShort/Short data type */
-    protected short destinationNoDataShort;
+    //protected short destinationNoDataShort;
 
     /** Destination No Data value associated to Integer data type */
-    protected int destinationNoDataInt;
+    //protected int destinationNoDataInt;
 
     /** Destination No Data value associated to Float data type */
-    protected float destinationNoDataFloat;
+    //protected float destinationNoDataFloat;
 
     /** Destination No Data value associated to Double data type */
-    protected double destinationNoDataDouble;
+    //protected double destinationNoDataDouble;
 
     /** Current ROI object */
     protected final ROI roi;
@@ -483,7 +483,7 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
         RandomIter iterSource;
         if (extended) {
             RenderedOp op = BorderDescriptor.create(src, leftPad, rightPad, topPad, bottomPad,
-                    extender, noDataRange, destinationNoDataDouble, hints);
+                    extender, noDataRange, backgroundValues != null ? backgroundValues[0] : 0d, hints);
             iterSource = RandomIterFactory.create(op, op.getBounds(), TILE_CACHED, ARRAY_CALC);
         } else {
             iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);

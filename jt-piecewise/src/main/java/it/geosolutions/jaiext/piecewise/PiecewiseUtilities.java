@@ -1,25 +1,24 @@
-/*
- *    GeoTools - The Open Source Java GIS Toolkit
- *    http://geotools.org
- * 
- *    (C) 2005-2008, Open Source Geospatial Foundation (OSGeo)
- *
- *    This library is free software; you can redistribute it and/or
- *    modify it under the terms of the GNU Lesser General Public
- *    License as published by the Free Software Foundation;
- *    version 2.1 of the License.
- *
- *    This library is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *    Lesser General Public License for more details.
+/* JAI-Ext - OpenSource Java Advanced Image Extensions Library
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
+
+
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+
+ * http://www.apache.org/licenses/LICENSE-2.0
+
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package it.geosolutions.jaiext.piecewise;
 
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.utilities.ImageUtilities;
-
-import java.text.ChoiceFormat;
 import java.util.Arrays;
 
 /**
@@ -28,7 +27,7 @@ import java.util.Arrays;
  * @author Simone Giannecchini, GeoSolutions.
  * 
  */
-class PiecewiseUtilities {
+public class PiecewiseUtilities {
 
     /**
 	 * 
@@ -42,7 +41,7 @@ class PiecewiseUtilities {
      * @param domainElements to be checked
      * @param idx index to start with
      */
-    static void domainElementsOverlap(DomainElement1D[] domainElements, int idx) {
+    public static void domainElementsOverlap(DomainElement1D[] domainElements, int idx) {
         // Two domain elements have overlapping ranges;
         // Format an error message...............
         final Range range1 = domainElements[idx - 1].getRange();
@@ -71,7 +70,7 @@ class PiecewiseUtilities {
      * @param object User argument.
      * @throws IllegalArgumentException if {@code object} is null.
      */
-    static void ensureNonNull(final String name, final Object object)
+    public static void ensureNonNull(final String name, final Object object)
             throws IllegalArgumentException {
         if (object == null) {
             throw new IllegalArgumentException("Input object is null");
@@ -79,12 +78,11 @@ class PiecewiseUtilities {
     }
 
     /**
-     * Effectue une recherche bi-lin�aire de la valeur sp�cifi�e. Cette m�thode est semblable � {@link Arrays#binarySearch(double[],double)}
-     * , except� qu'elle peut distinguer diff�rentes valeurs de NaN.
+     * Array binary search taking into account the fact that the input value to search can be NaN
      * 
      * Note: This method is not private in order to allows testing by {@link }.
      */
-    static int binarySearch(final double[] array, final double val) {
+    public static int binarySearch(final double[] array, final double val) {
         int low = 0;
         int high = array.length - 1;
         final boolean keyIsNaN = Double.isNaN(val);
@@ -134,10 +132,9 @@ class PiecewiseUtilities {
     }
 
     /**
-     * Compare deux valeurs de type {@code double}. Cette m�thode est similaire � {@link Double#compare(double,double)}, except� qu'elle ordonne
-     * aussi les diff�rentes valeurs NaN.
+     * Comparison between two double values
      */
-    static int compare(final double v1, final double v2) {
+    public static int compare(final double v1, final double v2) {
         if (Double.isNaN(v1) && Double.isNaN(v2)) {
             final long bits1 = Double.doubleToRawLongBits(v1);
             final long bits2 = Double.doubleToRawLongBits(v2);
@@ -150,10 +147,9 @@ class PiecewiseUtilities {
     }
 
     /**
-     * V�rifie si le tableau de cat�gories sp�cifi� est bien en ordre croissant. La comparaison ne tient pas compte des valeurs {@code NaN}.
-     * Cette m�thode n'est utilis�e que pour les {@code assert}.
+     * Checks if the array is sorted
      */
-    static boolean isSorted(final DefaultDomainElement1D[] domains) {
+    public static boolean isSorted(final DefaultDomainElement1D[] domains) {
         if (domains == null)
             return true;
         for (int i = 1; i < domains.length; i++) {
@@ -177,7 +173,7 @@ class PiecewiseUtilities {
      * @param direction -1 to return the previous representable number, +1 to return the next representable number, or 0 to return the number with no
      *        change.
      */
-    static double doubleValue(final Class<? extends Number> type, final Number number,
+    public static double doubleValue(final Class<? extends Number> type, final Number number,
             final int direction) {
         assert (direction >= -1) && (direction <= +1) : direction;
         return ImageUtilities.rool(type, number.doubleValue(), direction);
@@ -189,14 +185,14 @@ class PiecewiseUtilities {
      * @param scale The scale factor. May be 0 for a constant transform.
      * @param offset The offset value. May be NaN.
      */
-    static MathTransformation createLinearTransform1D(final double scale, final double offset) {
+    public static MathTransformation createLinearTransform1D(final double scale, final double offset) {
         return SingleDimensionTransformation.create(scale, offset);
     }
 
     /**
      * Create a linear transform mapping values from {@code sampleValueRange} to {@code geophysicsValueRange}.
      */
-    static MathTransformation createLinearTransform1D(final Range sourceRange,
+    public static MathTransformation createLinearTransform1D(final Range sourceRange,
             final Range destinationRange) {
         final Class<? extends Number> sType = sourceRange.getDataType().getClassValue();
         final Class<? extends Number> dType = destinationRange.getDataType().getClassValue();
@@ -348,15 +344,14 @@ class PiecewiseUtilities {
     public static int hash(double value, int seed) {
         return hash(Double.doubleToLongBits(value), seed);
     }
-    
+
     /**
-     * Alters the given seed with the hash code value computed from the given value.
-     * {@code byte} and {@code short} primitive types are handled by this method as
-     * well through implicit widening conversion.
-     *
-     * @param  value The value whose hash code to compute.
-     * @param  seed  The hash code value computed so far. If this method is invoked for the first
-     *               field, then any arbitrary value (preferably different for each class) is okay.
+     * Alters the given seed with the hash code value computed from the given value. {@code byte} and {@code short} primitive types are handled by
+     * this method as well through implicit widening conversion.
+     * 
+     * @param value The value whose hash code to compute.
+     * @param seed The hash code value computed so far. If this method is invoked for the first field, then any arbitrary value (preferably different
+     *        for each class) is okay.
      * @return An updated hash code value.
      */
     public static int hash(long value, int seed) {

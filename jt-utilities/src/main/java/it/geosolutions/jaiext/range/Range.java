@@ -18,6 +18,8 @@
 package it.geosolutions.jaiext.range;
 
 import java.awt.image.DataBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Abstract class used for checking if a selected value is inside the selected Range. All the methods throw an {@link UnsupportedOperationException}
@@ -27,6 +29,10 @@ import java.awt.image.DataBuffer;
  * Range.
  */
 public abstract class Range {
+
+    private static final Logger LOGGER = Logger.getLogger(Range.class.toString());
+
+    private static final int PRIME_NUMBER = 37;
 
     public enum DataType {
         BYTE(Byte.class, DataBuffer.TYPE_BYTE), USHORT(Short.class, DataBuffer.TYPE_USHORT), SHORT(
@@ -53,17 +59,17 @@ public abstract class Range {
         }
 
         public static int dataTypeFromClass(Class<?> classType) {
-            if (classType == BYTE.getClass()) {
+            if (classType == BYTE.getClassValue()) {
                 return BYTE.getDataType();
-            } else if (classType == SHORT.getClass()) {
+            } else if (classType == SHORT.getClassValue()) {
                 return SHORT.getDataType();
-            } else if (classType == INTEGER.getClass()) {
+            } else if (classType == INTEGER.getClassValue()) {
                 return INTEGER.getDataType();
-            } else if (classType == FLOAT.getClass()) {
+            } else if (classType == FLOAT.getClassValue()) {
                 return FLOAT.getDataType();
-            } else if (classType == DOUBLE.getClass()) {
+            } else if (classType == DOUBLE.getClassValue()) {
                 return DOUBLE.getDataType();
-            } else if (classType == LONG.getClass()) {
+            } else if (classType == LONG.getClassValue()) {
                 return LONG.getDataType();
             } else {
                 throw new IllegalArgumentException(
@@ -71,6 +77,25 @@ public abstract class Range {
             }
         }
 
+        public static Class<? extends Number> classFromType(int dataType) {
+            switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+                return Byte.class;
+            case DataBuffer.TYPE_USHORT:
+            case DataBuffer.TYPE_SHORT:
+                return Short.class;
+            case DataBuffer.TYPE_INT:
+                return Integer.class;
+            case DataBuffer.TYPE_FLOAT:
+                return Float.class;
+            case DataBuffer.TYPE_DOUBLE:
+                return Double.class;
+            case DataBuffer.TYPE_DOUBLE + 1:
+                return Long.class;
+            default:
+                return null;
+            }
+        }
     }
 
     protected boolean isMinIncluded;
@@ -84,38 +109,42 @@ public abstract class Range {
 
     /** Method for checking if a byte value is contained inside the Range */
     public boolean contains(byte value) {
-        throw new UnsupportedOperationException("Wrong data type");
+        return containsN(value);
     }
 
     /**
      * Method for checking if a short/ushort value is contained inside the Range
      */
     public boolean contains(short value) {
-        throw new UnsupportedOperationException("Wrong data type");
+        return containsN(value);
     }
 
     /** Method for checking if an integer value is contained inside the Range */
     public boolean contains(int value) {
-        throw new UnsupportedOperationException("Wrong data type");
+        return containsN(value);
     }
 
     /** Method for checking if a float value is contained inside the Range */
     public boolean contains(float value) {
-        throw new UnsupportedOperationException("Wrong data type");
+        return containsN(value);
     }
 
     /** Method for checking if a double value is contained inside the Range */
     public boolean contains(double value) {
-        throw new UnsupportedOperationException("Wrong data type");
+        return containsN(value);
     }
 
     /** Method for checking if a long value is contained inside the Range */
     public boolean contains(long value) {
-        throw new UnsupportedOperationException("Wrong data type");
+        return containsN(value);
     }
 
     /** Method for checking if a Generic value is contained inside the Range */
-    public <T extends Number> boolean contains(T value) {
+    public <T extends Number> boolean containsN(T value) {
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Wrong data type tested: Input: " + value.getClass()
+                    + ", output: " + this.getDataType().getClassValue());
+        }
         int dataType = this.getDataType().getDataType();
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
@@ -181,6 +210,27 @@ public abstract class Range {
         return false;
     }
 
+    public boolean intersects(Range other) {
+        // Check if one of them is contained into the other
+        if (this.contains(other) || other.contains(this)) {
+            return true;
+        }
+
+        double min1 = this.getMin().doubleValue();
+        double max1 = this.getMax().doubleValue();
+
+        double min2 = other.getMin().doubleValue();
+        double max2 = other.getMax().doubleValue();
+
+        // Check the bounds
+        boolean minCheck = this.isMinIncluded() && other.isMaxIncluded() ? min1 <= max2
+                : min1 < max2;
+        boolean maxCheck = this.isMaxIncluded() && other.isMinIncluded() ? max1 >= min2
+                : max1 > min2;
+
+        return minCheck && maxCheck;
+    }
+
     public abstract Range union(Range other);
 
     /** Returns the Range data Type */
@@ -195,18 +245,24 @@ public abstract class Range {
     /** Returns the minimum bound of the Range */
     public abstract Number getMin();
 
-    /** Returns the maximum bound of the Range or the nearest one if not included */
+    /**
+     * Returns the maximum bound of the Range or the nearest one if not included
+     */
     public abstract Number getMax(boolean isMaxIncluded);
 
-    /** Returns the minimum bound of the Range or the nearest one if not included */
+    /**
+     * Returns the minimum bound of the Range or the nearest one if not included
+     */
     public abstract Number getMin(boolean isMinIncluded);
 
     /** Returns true if the current Range accepts NaN values */
     public boolean isNanIncluded() {
-        return false;
+        return true;
     }
 
-    /** Returns true if and only if the current Range is a point representing NaN */
+    /**
+     * Returns true if and only if the current Range is a point representing NaN
+     */
     public boolean isNaN() {
         return false;
     }
@@ -270,5 +326,75 @@ public abstract class Range {
         }
 
         return true;
+    }
+
+    public int compare(Range other) {
+        if (this.equals(other)) {
+            return 0;
+        }
+        double min1 = this.getMin().doubleValue();
+        double min2 = other.getMin().doubleValue();
+        double max1 = this.getMax().doubleValue();
+        double max2 = other.getMax().doubleValue();
+
+        // Different minimum
+        if (!RangeFactory.equals(min1, min2)) {
+            if (min1 < min2) {
+                return -1;
+            } else {
+                return 1;
+            }
+        } else {
+            // Check if they are included
+            if (this.isMinIncluded() && other.isMinIncluded()) {
+                // Equal max
+                if (RangeFactory.equals(max1, max2)) {
+                    if (this.isMaxIncluded() && other.isMaxIncluded()) {
+                        return 0;
+                    } else if (this.isMaxIncluded()) {
+                        return 1;
+                    } else {
+                        return -1;
+                    }
+                } else {
+                    if (max1 < max2) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                }
+            } else {
+                if (this.isMinIncluded()) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            }
+
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) 37;
+            result += getDataType().getClass().hashCode();
+            result = hash(isMaxIncluded, result);
+            result = hash(isMinIncluded, result);
+            result = hash(getMax().doubleValue(), result);
+            result = hash(getMin().doubleValue(), result);
+        return result;
+    }
+    
+    public static int hash(boolean value, int seed) {
+        // Use the same values than Boolean.hashCode()
+        return seed * PRIME_NUMBER + (value ? 1231 : 1237);
+    }
+    
+    public static int hash(double value, int seed) {
+        return hash(Double.doubleToLongBits(value), seed);
+    }
+    
+    public static int hash(long value, int seed) {
+        return seed * PRIME_NUMBER + (((int) value) ^ ((int) (value >>> 32)));
     }
 }

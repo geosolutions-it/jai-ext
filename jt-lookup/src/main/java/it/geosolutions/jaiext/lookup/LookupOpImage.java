@@ -155,7 +155,7 @@ public class LookupOpImage extends ColormapOpImage {
             }
             lookupTable.setNoDataRange(noData);
         } else {
-            // if no data range is not present the table no data range is set to nul.
+            // if no data range is not present the table no data range is set to null.
             lookupTable.unsetNoData();
         }
 
@@ -207,5 +207,4 @@ public class LookupOpImage extends ColormapOpImage {
             }
         }
     }
-
 }

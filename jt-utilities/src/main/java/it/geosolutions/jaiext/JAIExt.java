@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptor;
 import javax.media.jai.OperationRegistry;
 import javax.media.jai.registry.RenderedRegistryMode;
@@ -54,29 +55,42 @@ public class JAIExt {
     /** {@link Logger} used for Logging any excpetion or warning */
     private static final Logger LOGGER = Logger.getLogger(JAIExt.class.toString());
 
+    private static final String JAI_EXT_VENDOR = "it.geosolutions.jaiext";
+
     /** Initialization of the {@link JAIExt} instance */
-    public static void initJAIEXT(ConcurrentOperationRegistry registry) {
+    public synchronized static void initJAIEXT(ConcurrentOperationRegistry registry) {
         if (jaiext == null) {
             jaiext = new JAIExt(registry);
+            JAI.getDefaultInstance().setOperationRegistry(registry);
         }
     }
 
+    private synchronized static JAIExt getJAIEXT() {
+        if (jaiext == null) {
+            ConcurrentOperationRegistry initializeRegistry = (ConcurrentOperationRegistry) ConcurrentOperationRegistry.initializeRegistry();
+            jaiext = new JAIExt(
+                    initializeRegistry);
+            JAI.getDefaultInstance().setOperationRegistry(initializeRegistry);
+        }
+        return jaiext;
+    }
+    
     /**
      * This method unregister a JAI operation and register the related JAI-EXT one
      * 
      * @param descriptorName
      */
     public static void registerJAIEXTDescriptor(String descriptorName) {
-        jaiext.registerOp(descriptorName, true);
+        getJAIEXT().registerOp(descriptorName, true);
     }
 
-    /**
+	/**
      * This method unregister a JAI-EXT operation and register the related JAI one
      * 
      * @param descriptorName
      */
     public static void registerJAIDescriptor(String descriptorName) {
-        jaiext.registerOp(descriptorName, false);
+    	getJAIEXT().registerOp(descriptorName, false);
     }
 
     /**
@@ -86,7 +100,7 @@ public class JAIExt {
      * @param accelerated
      */
     public static void setJAIAcceleration(String descriptorName, boolean accelerated) {
-        jaiext.setAcceleration(descriptorName, accelerated);
+    	getJAIEXT().setAcceleration(descriptorName, accelerated);
     }
 
     /**
@@ -95,7 +109,7 @@ public class JAIExt {
      * @return
      */
     public static List<OperationItem> getOperations() {
-        return jaiext.getItems();
+        return getJAIEXT().getItems();
     }
 
     /**
@@ -104,7 +118,7 @@ public class JAIExt {
      * @return
      */
     public static List<OperationItem> getJAIEXTOperations() {
-        return jaiext.getJAIEXTAvailableOps();
+        return getJAIEXT().getJAIEXTAvailableOps();
     }
 
     /**
@@ -113,7 +127,17 @@ public class JAIExt {
      * @return
      */
     public static ConcurrentOperationRegistry getRegistry() {
-        return jaiext.registry;
+        return getJAIEXT().registry;
+    }
+    
+    /**
+     * Indicates if the operation is registered as JAI.
+     * 
+     * @param descriptorName
+     * @return
+     */
+    public static boolean isJAIExtOperation(String descriptorName){
+        return getJAIEXT().isJAIExtOp(descriptorName);
     }
 
     private JAIExt(ConcurrentOperationRegistry registry) {
@@ -298,6 +322,22 @@ public class JAIExt {
             return ops;
         } finally {
             writeLock.unlock();
+        }
+    }
+    
+
+    private boolean isJAIExtOp(String descriptorName) {
+        Lock readLock = lock.readLock();
+        try {
+            readLock.lock();
+            OperationCollection items = registry.getOperationCollection();
+            OperationItem operationItem = items.get(descriptorName);
+            if(operationItem == null){
+                return false;
+            }
+            return operationItem.getVendor().equalsIgnoreCase(JAI_EXT_VENDOR);
+        } finally {
+            readLock.unlock();
         }
     }
 }

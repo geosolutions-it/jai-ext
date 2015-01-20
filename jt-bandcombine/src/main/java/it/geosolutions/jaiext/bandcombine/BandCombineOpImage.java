@@ -53,7 +53,7 @@ import com.sun.media.jai.util.JDKWorkarounds;
  * The destination image is formed by performing a matrix- multiply operation between the bands of the source image and the specified matrix. The
  * extra column of values is a constant that is added after the matrix-multiply operation takes place.
  * 
- * If an input sample is outside ROI or it is a NoData, it will be skipped in computation.
+ * If an input sample is outside ROI or it is a NoData, it will be skipped during computation.
  * 
  */
 public class BandCombineOpImage extends PointOpImage {
@@ -230,7 +230,7 @@ public class BandCombineOpImage extends PointOpImage {
             srcRectExpanded.setRect(srcRectExpanded.getMinX() - 1, srcRectExpanded.getMinY() - 1,
                     srcRectExpanded.getWidth() + 2, srcRectExpanded.getHeight() + 2);
             roiTile = roi.intersect(new ROIShape(srcRectExpanded));
-
+            // Check if the Tile bounds intersects the roi otherwise, the computation is skipped
             if (!roiBounds.intersects(srcRectExpanded)) {
                 roiDisjointTile = true;
             } else {
@@ -247,7 +247,6 @@ public class BandCombineOpImage extends PointOpImage {
         }
 
         if (!hasROI || !roiDisjointTile) {
-
             switch (d.getDataType()) {
             case DataBuffer.TYPE_BYTE:
                 computeRectByte(s, d, roiIter, roiContainsTile);
@@ -1416,6 +1415,9 @@ public class BandCombineOpImage extends PointOpImage {
         }
     }
 
+    /**
+     * Private method used for generating the Boolean Lookup table used for checking if a Byte data is a NoData
+     */
     private void initBooleanNoDataTable() {
         // Initialization of the boolean lookup table
         lut = new boolean[256];

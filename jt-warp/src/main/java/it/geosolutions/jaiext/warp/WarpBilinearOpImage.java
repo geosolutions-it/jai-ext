@@ -76,8 +76,8 @@ final class WarpBilinearOpImage extends WarpOpImage {
      */
     public WarpBilinearOpImage(final RenderedImage source, final BorderExtender extender,
             final Map<?, ?> config, final ImageLayout layout, final Warp warp,
-            final Interpolation interp, final ROI sourceROI, Range noData) {
-        super(source, layout, config, false, extender, interp, warp, null, sourceROI, noData);
+            final Interpolation interp, final ROI sourceROI, Range noData, double[] bkg) {
+        super(source, layout, config, false, extender, interp, warp, bkg, sourceROI, noData);
 
         /*
          * If the source has IndexColorModel, get the RGB color table. Note, in this case, the source should have an integral data type. And dest
@@ -95,14 +95,14 @@ final class WarpBilinearOpImage extends WarpOpImage {
         /*
          * Selection of a destinationNoData value for each datatype
          */
-        destinationNoDataDouble = backgroundValues[0];
+        //backgroundValues[b] = backgroundValues[0];
         SampleModel sm = source.getSampleModel();
         // Source image data Type
         int srcDataType = sm.getDataType();
 
         switch (srcDataType) {
         case DataBuffer.TYPE_BYTE:
-            destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
+            //(byte)backgroundValues[b] = (byte) (((byte) backgroundValues[b]) & 0xff);
             // Creation of a lookuptable containing the values to use for no data
             if (hasNoData) {
                 booleanLookupTable = new boolean[256];
@@ -113,16 +113,16 @@ final class WarpBilinearOpImage extends WarpOpImage {
             }
             break;
         case DataBuffer.TYPE_USHORT:
-            destinationNoDataShort = (short) (((short) destinationNoDataDouble) & 0xffff);
+            //(short)backgroundValues[b] = (short) (((short) backgroundValues[b]) & 0xffff);
             break;
         case DataBuffer.TYPE_SHORT:
-            destinationNoDataShort = (short) destinationNoDataDouble;
+            //(short)backgroundValues[b] = (short) backgroundValues[b];
             break;
         case DataBuffer.TYPE_INT:
-            destinationNoDataInt = (int) destinationNoDataDouble;
+            //(int)backgroundValues[b] = (int) backgroundValues[b];
             break;
         case DataBuffer.TYPE_FLOAT:
-            destinationNoDataFloat = (float) destinationNoDataDouble;
+            //(float)backgroundValues[b] = (float) backgroundValues[b];
             break;
         case DataBuffer.TYPE_DOUBLE:
             break;
@@ -176,7 +176,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -221,7 +221,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -235,7 +235,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00 && w01 && w10 && w11) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             } else {
 
@@ -279,7 +279,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -301,7 +301,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 final boolean w11 = booleanLookupTable[s11];
 
                                 if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
                                             s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFF);
@@ -334,7 +334,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -348,7 +348,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
@@ -367,7 +367,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                     final boolean w11 = booleanLookupTable[s11];
 
                                     if (w00 && w01 && w10 && w11) {
-                                        data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                        data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                     } else {
                                         data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
                                                 s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10,
@@ -403,7 +403,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -450,7 +450,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -464,7 +464,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00 && w01 && w10 && w11) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             } else {
 
@@ -510,7 +510,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -534,7 +534,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 final boolean w11 = booleanLookupTable[s11];
 
                                 if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
                                             s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFF);
@@ -567,7 +567,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -581,7 +581,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                             if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
@@ -602,7 +602,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                     final boolean w11 = booleanLookupTable[s11];
 
                                     if (w00 && w01 && w10 && w11) {
-                                        data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                        data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                     } else {
                                         data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
                                                 s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10,
@@ -665,7 +665,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -710,7 +710,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -724,7 +724,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         } else {
 
@@ -768,7 +768,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -790,7 +790,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             final boolean w11 = noDataRange.contains((short) s11);
 
                             if (w00 && w01 && w10 && w11) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             } else {
                                 data[b][pixelOffset + bandOffsets[b]] = (short) ((int) computePoint(
                                         s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFFFF);
@@ -823,7 +823,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -837,7 +837,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
@@ -856,7 +856,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 final boolean w11 = noDataRange.contains((short) s11);
 
                                 if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = (short) ((int) computePoint(
                                             s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFFFF);
@@ -917,7 +917,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -962,7 +962,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -976,7 +976,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         } else {
 
@@ -1020,7 +1020,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1042,7 +1042,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             final boolean w11 = noDataRange.contains((short) s11);
 
                             if (w00 && w01 && w10 && w11) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             } else {
                                 data[b][pixelOffset + bandOffsets[b]] = (short) (computePoint(s00,
                                         s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
@@ -1075,7 +1075,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1089,7 +1089,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
@@ -1108,7 +1108,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 final boolean w11 = noDataRange.contains((short) s11);
 
                                 if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = (short) (computePoint(
                                             s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
@@ -1169,7 +1169,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1214,7 +1214,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1228,7 +1228,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         } else {
 
@@ -1272,7 +1272,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1294,7 +1294,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             final boolean w11 = noDataRange.contains(s11);
 
                             if (w00 && w01 && w10 && w11) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             } else {
                                 data[b][pixelOffset + bandOffsets[b]] = ((int) computePoint(s00,
                                         s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
@@ -1327,7 +1327,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1341,7 +1341,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
@@ -1360,7 +1360,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 final boolean w11 = noDataRange.contains(s11);
 
                                 if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                    data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = ((int) computePoint(
                                             s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
@@ -1421,7 +1421,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1466,7 +1466,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1480,7 +1480,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         } else {
 
@@ -1524,7 +1524,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1546,7 +1546,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             final boolean w11 = noDataRange.contains(s11);
 
                             if (w00 && w01 && w10 && w11) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             } else {
                                 data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(s00,
                                         s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
@@ -1579,7 +1579,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1593,7 +1593,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
@@ -1612,7 +1612,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 final boolean w11 = noDataRange.contains(s11);
 
                                 if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                    data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(
                                             s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
@@ -1672,7 +1672,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -1717,7 +1717,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -1731,7 +1731,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         final boolean w11 = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00 && w01 && w10 && w11) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         } else {
 
@@ -1775,7 +1775,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -1797,7 +1797,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             final boolean w11 = noDataRange.contains(s11);
 
                             if (w00 && w01 && w10 && w11) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             } else {
                                 data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(s00,
                                         s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
@@ -1830,7 +1830,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -1844,7 +1844,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                         final boolean w11Roi = !(roiBounds.contains(xint + 1, yint + 1) && roiIter.getSample(xint + 1, yint + 1, 0) > 0);
                         if (w00Roi && w01Roi && w10Roi && w11Roi) { // SG should not happen
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
@@ -1863,7 +1863,7 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 final boolean w11 = noDataRange.contains(s11);
 
                                 if (w00 && w01 && w10 && w11) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                    data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(
                                             s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));

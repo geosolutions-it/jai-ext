@@ -241,7 +241,7 @@ public class ComparisonTest extends TestBase {
                 imageMerged = JAI.create("bandmerge", pbj, null);
             } else {
                 // New descriptor calculations
-                imageMerged = BandMergeDescriptor.create(rangeND, destNoData, null, testImage);
+                imageMerged = BandMergeDescriptor.create(rangeND, destNoData, false, null, testImage);
             }
 
             // Total statistic calculation time

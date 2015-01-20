@@ -289,7 +289,7 @@ public class AffineDescriptor extends OperationDescriptorImpl {
 
     /** The parameter name list for this operation. */
     private static final String[] paramNames = {
-        "transform", "interpolation", "backgroundValues", "ROI","useROIAccessor","setDestinationNoData", "nodata"
+        "transform", "interpolation", "backgroundValues", "roi","useROIAccessor","setDestinationNoData", "nodata"
     };
 
     /** The parameter default value list for this operation. */
@@ -385,7 +385,7 @@ public class AffineDescriptor extends OperationDescriptorImpl {
         pb.setParameter("setDestinationNoData", setDestinationNoData);
         pb.setParameter("nodata", nodata);
         if(roi!=null){
-            pb.setParameter("ROI", roi);
+            pb.setParameter("roi", roi);
             pb.setParameter("useROIAccessor", useROIAccessor);
         }
         // Creation of the transformated image
@@ -437,7 +437,7 @@ public class AffineDescriptor extends OperationDescriptorImpl {
         pb.setParameter("setDestinationNoData", setDestinationNoData);
         pb.setParameter("nodata", nodata);
         if(roi!=null){
-            pb.setParameter("ROI", roi);
+            pb.setParameter("roi", roi);
             pb.setParameter("useROIAccessor", useROIAccessor);
         }
         // Creation of the transformated image

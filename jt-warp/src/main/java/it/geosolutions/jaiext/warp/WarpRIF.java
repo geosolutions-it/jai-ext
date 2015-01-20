@@ -30,6 +30,7 @@ import java.awt.image.renderable.RenderedImageFactory;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.Warp;
 
@@ -70,14 +71,18 @@ public class WarpRIF implements RenderedImageFactory {
         Object roi_ = paramBlock.getObjectParameter(3);
         if (roi_ instanceof ROI) {
             roi = (ROI) roi_;
+            PlanarImage temp = PlanarImage.wrapRenderedImage(source);
+            temp.setProperty("ROI", roi);
+            source = temp;
         }
         Range noData = (Range) paramBlock.getObjectParameter(4);
-        if (interp instanceof InterpolationNearest) {
-            return new WarpNearestOpImage(source, renderHints, layout, warp, interp, roi, noData);
-        } else if (interp instanceof InterpolationBilinear) {
-            return new WarpBilinearOpImage(source, extender, renderHints, layout, warp, interp, roi, noData);
-        } else if (interp instanceof InterpolationBicubic) {
-            return new WarpBicubicOpImage(source, extender, renderHints, layout, warp, interp, roi, noData);
+        if (interp instanceof InterpolationNearest || interp instanceof javax.media.jai.InterpolationNearest) {
+            return new WarpNearestOpImage(source, renderHints, layout, warp, interp, roi, noData, backgroundValues);
+        } else if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear) {
+            return new WarpBilinearOpImage(source, extender, renderHints, layout, warp, interp, roi, noData, backgroundValues);
+        } else if (interp instanceof InterpolationBicubic || interp instanceof javax.media.jai.InterpolationBicubic
+        		|| interp instanceof javax.media.jai.InterpolationBicubic2) {
+            return new WarpBicubicOpImage(source, extender, renderHints, layout, warp, interp, roi, noData, backgroundValues);
         } else {
             return new WarpGeneralOpImage(source, extender, renderHints, layout, warp, interp,
                     backgroundValues, roi, noData);

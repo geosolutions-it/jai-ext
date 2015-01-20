@@ -47,5 +47,11 @@
 			<version>${project.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>it.geosolutions.jaiext.algebra</groupId>
+			<artifactId>jt-algebra</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>

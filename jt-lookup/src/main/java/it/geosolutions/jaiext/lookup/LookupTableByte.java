@@ -407,7 +407,7 @@ public class LookupTableByte extends LookupTable {
                     // Cycle on all the x dimension
                     for (int w = 0; w < dstWidth; w++) {
                         // Output value is taken from the table array
-                        d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
                         // Update of the source and destination pixel offsets
                         srcPixelOffset += srcPixelStride;
                         dstPixelOffset += dstPixelStride;
@@ -453,7 +453,7 @@ public class LookupTableByte extends LookupTable {
                             if (w == 0) {
                                 d[dstPixelOffset] = destinationNoDataByte;
                             } else {
-                                d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
                             }
                             // Update of the source and destination pixel offsets
                             srcPixelOffset += srcPixelStride;
@@ -493,7 +493,7 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataByte;
                                 } else {
-                                    d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
                                 }
                             } else {
                                 d[dstPixelOffset] = destinationNoDataByte;
@@ -530,11 +530,11 @@ public class LookupTableByte extends LookupTable {
                     // Cycle on all the x dimension
                     for (int x = 0; x < dstWidth; x++) {
                         // If the value is a not a noData, the table value is stored
-                        byte value = s[srcPixelOffset];
+                        byte value = (s[srcPixelOffset]);
                         if (noData.contains(value)) {
                             d[dstPixelOffset] = destinationNoDataByte;
                         } else {
-                            d[dstPixelOffset] = t[value - tblOffset];
+                            d[dstPixelOffset] = t[value&0xFF - tblOffset];
                         }
                         // Update of the source and destination pixel offsets
                         srcPixelOffset += srcPixelStride;
@@ -581,11 +581,11 @@ public class LookupTableByte extends LookupTable {
                                 d[dstPixelOffset] = destinationNoDataByte;
                             } else {
                                 // If the value is a not a noData, the table value is stored
-                                byte value = s[srcPixelOffset];
+                                byte value = (s[srcPixelOffset]);
                                 if (noData.contains(value)) {
                                     d[dstPixelOffset] = destinationNoDataByte;
                                 } else {
-                                    d[dstPixelOffset] = t[value - tblOffset];
+                                    d[dstPixelOffset] = t[value&0xFF - tblOffset];
                                 }
                             }
                             // Update of the source and destination pixel offsets
@@ -626,11 +626,11 @@ public class LookupTableByte extends LookupTable {
                                     d[dstPixelOffset] = destinationNoDataByte;
                                 } else {
                                     // If the value is a not a noData, the table value is stored
-                                    byte value = s[srcPixelOffset];
+                                    byte value = (s[srcPixelOffset]);
                                     if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataByte;
                                     } else {
-                                        d[dstPixelOffset] = t[value - tblOffset];
+                                        d[dstPixelOffset] = t[value&0xFF - tblOffset];
                                     }
                                 }
                             } else {
@@ -689,7 +689,7 @@ public class LookupTableByte extends LookupTable {
                     dstLineOffset += dstLineStride;
 
                     for (int w = 0; w < dstWidth; w++) {
-                        d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
 
                         srcPixelOffset += srcPixelStride;
                         dstPixelOffset += dstPixelStride;
@@ -728,7 +728,7 @@ public class LookupTableByte extends LookupTable {
                             if (w == 0) {
                                 d[dstPixelOffset] = destinationNoDataShort;
                             } else {
-                                d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
                             }
 
                             srcPixelOffset += srcPixelStride;
@@ -760,7 +760,7 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataShort;
                                 } else {
-                                    d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
                                 }
                             } else {
                                 d[dstPixelOffset] = destinationNoDataShort;
@@ -790,11 +790,11 @@ public class LookupTableByte extends LookupTable {
                     dstLineOffset += dstLineStride;
 
                     for (int x = 0; x < dstWidth; x++) {
-                        byte value = s[srcPixelOffset];
+                        byte value = (s[srcPixelOffset]);
                         if (noData.contains(value)) {
                             d[dstPixelOffset] = destinationNoDataShort;
                         } else {
-                            d[dstPixelOffset] = t[value - tblOffset];
+                            d[dstPixelOffset] = t[value&0xFF - tblOffset];
                         }
 
                         srcPixelOffset += srcPixelStride;
@@ -834,11 +834,11 @@ public class LookupTableByte extends LookupTable {
                             if (w == 0) {
                                 d[dstPixelOffset] = destinationNoDataShort;
                             } else {
-                                byte value = s[srcPixelOffset];
+                                byte value = (s[srcPixelOffset]);
                                 if (noData.contains(value)) {
                                     d[dstPixelOffset] = destinationNoDataShort;
                                 } else {
-                                    d[dstPixelOffset] = t[value - tblOffset];
+                                    d[dstPixelOffset] = t[value&0xFF - tblOffset];
                                 }
                             }
                             srcPixelOffset += srcPixelStride;
@@ -870,11 +870,11 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataShort;
                                 } else {
-                                    byte value = s[srcPixelOffset];
+                                    byte value = (s[srcPixelOffset]);
                                     if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataShort;
                                     } else {
-                                        d[dstPixelOffset] = t[value - tblOffset];
+                                        d[dstPixelOffset] = t[value&0xFF - tblOffset];
                                     }
                                 }
                             } else {
@@ -931,7 +931,7 @@ public class LookupTableByte extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset] & 0xFF);
+                            d[dstPixelOffset] = getData().getElem(b, (s[srcPixelOffset]&0xFF));
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -956,7 +956,7 @@ public class LookupTableByte extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int w = 0; w < dstWidth; w++) {
-                            d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                            d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
 
                             srcPixelOffset += srcPixelStride;
                             dstPixelOffset += dstPixelStride;
@@ -994,7 +994,7 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
-                                    d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset] & 0xFF);
+                                    d[dstPixelOffset] = getData().getElem(b, (s[srcPixelOffset]&0xFF));
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -1032,7 +1032,7 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
-                                    d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
                                 }
 
                                 srcPixelOffset += srcPixelStride;
@@ -1065,7 +1065,7 @@ public class LookupTableByte extends LookupTable {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
                                         d[dstPixelOffset] = getData().getElem(b,
-                                                s[srcPixelOffset] & 0xFF);
+                                                (s[srcPixelOffset]&0xFF));
                                     }
                                 } else {
                                     d[dstPixelOffset] = destinationNoDataInt;
@@ -1099,7 +1099,7 @@ public class LookupTableByte extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        d[dstPixelOffset] = t[s[srcPixelOffset]
+                                        d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF)
                                                 - tblOffset];
                                     }
                                 } else {
@@ -1131,11 +1131,11 @@ public class LookupTableByte extends LookupTable {
 
                         for (int x = 0; x < dstWidth; x++) {
 
-                            byte value = s[srcPixelOffset];
+                            byte value = (s[srcPixelOffset]);
                             if (noData.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataInt;
                             } else {
-                                d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset] & 0xFF);
+                                d[dstPixelOffset] = getData().getElem(b, (s[srcPixelOffset]&0xFF));
                             }
 
                             srcPixelOffset += srcPixelStride;
@@ -1161,11 +1161,11 @@ public class LookupTableByte extends LookupTable {
                         dstLineOffset += dstLineStride;
 
                         for (int x = 0; x < dstWidth; x++) {
-                            byte value = s[srcPixelOffset];
+                            byte value = (s[srcPixelOffset]);
                             if (noData.contains(value)) {
                                 d[dstPixelOffset] = destinationNoDataInt;
                             } else {
-                                d[dstPixelOffset] = t[value - tblOffset];
+                                d[dstPixelOffset] = t[value&0xFF - tblOffset];
                             }
 
                             srcPixelOffset += srcPixelStride;
@@ -1204,12 +1204,12 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
-                                    byte value = s[srcPixelOffset];
+                                    byte value = (s[srcPixelOffset]);
                                     if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
                                         d[dstPixelOffset] = getData().getElem(b,
-                                                s[srcPixelOffset] & 0xFF);
+                                                (s[srcPixelOffset]&0xFF));
                                     }
                                 }
 
@@ -1248,11 +1248,11 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataInt;
                                 } else {
-                                    byte value = s[srcPixelOffset];
+                                    byte value = (s[srcPixelOffset]);
                                     if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        d[dstPixelOffset] = t[value - tblOffset];
+                                        d[dstPixelOffset] = t[value&0xFF - tblOffset];
                                     }
                                 }
                                 srcPixelOffset += srcPixelStride;
@@ -1284,12 +1284,12 @@ public class LookupTableByte extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        byte value = s[srcPixelOffset];
+                                        byte value = (s[srcPixelOffset]);
                                         if (noData.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataInt;
                                         } else {
                                             d[dstPixelOffset] = getData().getElem(b,
-                                                    s[srcPixelOffset] & 0xFF);
+                                                    (s[srcPixelOffset]) & 0xFF);
                                         }
                                     }
                                 } else {
@@ -1324,11 +1324,11 @@ public class LookupTableByte extends LookupTable {
                                     if (w == 0) {
                                         d[dstPixelOffset] = destinationNoDataInt;
                                     } else {
-                                        byte value = s[srcPixelOffset];
+                                        byte value = (s[srcPixelOffset]);
                                         if (noData.contains(value)) {
                                             d[dstPixelOffset] = destinationNoDataInt;
                                         } else {
-                                            d[dstPixelOffset] = t[value - tblOffset];
+                                            d[dstPixelOffset] = t[value&0xFF - tblOffset];
                                         }
                                     }
                                 } else {
@@ -1386,7 +1386,7 @@ public class LookupTableByte extends LookupTable {
                     dstLineOffset += dstLineStride;
 
                     for (int w = 0; w < dstWidth; w++) {
-                        d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
 
                         srcPixelOffset += srcPixelStride;
                         dstPixelOffset += dstPixelStride;
@@ -1425,7 +1425,7 @@ public class LookupTableByte extends LookupTable {
                             if (w == 0) {
                                 d[dstPixelOffset] = destinationNoDataFloat;
                             } else {
-                                d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
                             }
 
                             srcPixelOffset += srcPixelStride;
@@ -1457,7 +1457,7 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
-                                    d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
                                 }
                             } else {
                                 d[dstPixelOffset] = destinationNoDataFloat;
@@ -1488,11 +1488,11 @@ public class LookupTableByte extends LookupTable {
                     dstLineOffset += dstLineStride;
 
                     for (int x = 0; x < dstWidth; x++) {
-                        byte value = s[srcPixelOffset];
+                        byte value = (s[srcPixelOffset]);
                         if (noData.contains(value)) {
                             d[dstPixelOffset] = destinationNoDataFloat;
                         } else {
-                            d[dstPixelOffset] = t[value - tblOffset];
+                            d[dstPixelOffset] = t[value&0xFF - tblOffset];
                         }
 
                         srcPixelOffset += srcPixelStride;
@@ -1532,11 +1532,11 @@ public class LookupTableByte extends LookupTable {
                             if (w == 0) {
                                 d[dstPixelOffset] = destinationNoDataFloat;
                             } else {
-                                byte value = s[srcPixelOffset];
+                                byte value = (s[srcPixelOffset]);
                                 if (noData.contains(value)) {
                                     d[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
-                                    d[dstPixelOffset] = t[value - tblOffset];
+                                    d[dstPixelOffset] = t[value&0xFF - tblOffset];
                                 }
                             }
                             srcPixelOffset += srcPixelStride;
@@ -1569,11 +1569,11 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataFloat;
                                 } else {
-                                    byte value = s[srcPixelOffset];
+                                    byte value = (s[srcPixelOffset]);
                                     if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataFloat;
                                     } else {
-                                        d[dstPixelOffset] = t[value - tblOffset];
+                                        d[dstPixelOffset] = t[value&0xFF - tblOffset];
                                     }
                                 }
                             } else {
@@ -1630,7 +1630,7 @@ public class LookupTableByte extends LookupTable {
                     dstLineOffset += dstLineStride;
 
                     for (int w = 0; w < dstWidth; w++) {
-                        d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
 
                         srcPixelOffset += srcPixelStride;
                         dstPixelOffset += dstPixelStride;
@@ -1669,7 +1669,7 @@ public class LookupTableByte extends LookupTable {
                             if (w == 0) {
                                 d[dstPixelOffset] = destinationNoDataDouble;
                             } else {
-                                d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
                             }
 
                             srcPixelOffset += srcPixelStride;
@@ -1701,7 +1701,7 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
-                                    d[dstPixelOffset] = t[s[srcPixelOffset] - tblOffset];
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
                                 }
                             } else {
                                 d[dstPixelOffset] = destinationNoDataDouble;
@@ -1732,11 +1732,11 @@ public class LookupTableByte extends LookupTable {
                     dstLineOffset += dstLineStride;
 
                     for (int x = 0; x < dstWidth; x++) {
-                        byte value = s[srcPixelOffset];
+                        byte value = (s[srcPixelOffset]);
                         if (noData.contains(value)) {
                             d[dstPixelOffset] = destinationNoDataDouble;
                         } else {
-                            d[dstPixelOffset] = t[value - tblOffset];
+                            d[dstPixelOffset] = t[value&0xFF - tblOffset];
                         }
 
                         srcPixelOffset += srcPixelStride;
@@ -1776,11 +1776,11 @@ public class LookupTableByte extends LookupTable {
                             if (w == 0) {
                                 d[dstPixelOffset] = destinationNoDataDouble;
                             } else {
-                                byte value = s[srcPixelOffset];
+                                byte value = (s[srcPixelOffset]);
                                 if (noData.contains(value)) {
                                     d[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
-                                    d[dstPixelOffset] = t[value - tblOffset];
+                                    d[dstPixelOffset] = t[value&0xFF - tblOffset];
                                 }
                             }
                             srcPixelOffset += srcPixelStride;
@@ -1813,11 +1813,11 @@ public class LookupTableByte extends LookupTable {
                                 if (w == 0) {
                                     d[dstPixelOffset] = destinationNoDataDouble;
                                 } else {
-                                    byte value = s[srcPixelOffset];
+                                    byte value = (s[srcPixelOffset]);
                                     if (noData.contains(value)) {
                                         d[dstPixelOffset] = destinationNoDataDouble;
                                     } else {
-                                        d[dstPixelOffset] = t[value - tblOffset];
+                                        d[dstPixelOffset] = t[value&0xFF - tblOffset];
                                     }
                                 }
                             } else {

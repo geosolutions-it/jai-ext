@@ -1,3 +1,20 @@
+/* JAI-Ext - OpenSource Java Advanced Image Extensions Library
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
+
+
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+
+ * http://www.apache.org/licenses/LICENSE-2.0
+
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.piecewise;
 
 import it.geosolutions.jaiext.range.Range;
@@ -13,10 +30,15 @@ import javax.media.jai.ROI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderedRegistryMode;
 
+/**
+ * {@link OperationDescriptorImpl} for the GenericPiecewise operation.
+ * 
+ * @author Nicola Lagomarsini geosolutions
+ */
 public class GenericPiecewiseDescriptor extends OperationDescriptorImpl {
     /**
-                 * 
-                 */
+     * UID
+     */
     private static final long serialVersionUID = 7954257625240335874L;
 
     /**
@@ -24,20 +46,33 @@ public class GenericPiecewiseDescriptor extends OperationDescriptorImpl {
      */
     public GenericPiecewiseDescriptor() {
         super(new String[][] { { "GlobalName", GenericPiecewiseOpImage.OPERATION_NAME },
-                { "LocalName", GenericPiecewiseOpImage.OPERATION_NAME }, { "Vendor", "it.geosolutions.jaiext" },
-                { "Description", "Generic Piecewise Transformation" },
-                { "DocURL", "" }, { "Version", "1.0" } },
-                new String[] { RenderedRegistryMode.MODE_NAME }, 1, new String[] { "Domain1D", "bandIndex",
-                         "roi", "nodata" }, // Argument names
-                new Class[] { DefaultPiecewiseTransform1D.class, Integer.class,
-                        javax.media.jai.ROI.class, it.geosolutions.jaiext.range.Range.class }, // Argument classes
+                { "LocalName", GenericPiecewiseOpImage.OPERATION_NAME },
+                { "Vendor", "it.geosolutions.jaiext" },
+                { "Description", "Generic Piecewise Transformation" }, { "DocURL", "" },
+                { "Version", "1.0" } }, new String[] { RenderedRegistryMode.MODE_NAME }, 1,
+                new String[] { "Domain1D", "bandIndex", "roi", "nodata" }, // Argument
+                                                                           // names
+                new Class[] { PiecewiseTransform1D.class, Integer.class,
+                        javax.media.jai.ROI.class, it.geosolutions.jaiext.range.Range.class }, // Argument
+                                                                                               // classes
                 new Object[] { NO_PARAMETER_DEFAULT, new Integer(-1), null, null }, // Default values for parameters,
                 null // No restriction on valid parameter values.
         );
     }
 
-    public RenderedOp create(RenderedImage source0, DefaultPiecewiseTransform1D domain1D, Integer bandIndex,
-            ROI roi, Range nodata, RenderingHints hints) {
+    /**
+     * Static create method returning a new image passed by the GenericPiecewise operation
+     * 
+     * @param source0
+     * @param domain1D
+     * @param bandIndex
+     * @param roi
+     * @param nodata
+     * @param hints
+     * @return
+     */
+    public RenderedOp create(RenderedImage source0, PiecewiseTransform1D domain1D,
+            Integer bandIndex, ROI roi, Range nodata, RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI(GenericPiecewiseOpImage.OPERATION_NAME,
                 RenderedRegistryMode.MODE_NAME);
         // Setting source
@@ -73,9 +108,9 @@ public class GenericPiecewiseDescriptor extends OperationDescriptorImpl {
         final int numBands = source.getSampleModel().getNumBands();
         final int bandIndex = param.getIntParameter(1);
         if (bandIndex == -1)
-                return true;
+            return true;
         if (bandIndex < 0 || bandIndex >= numBands) {
-                return false;
+            return false;
         }
         return true;
     }

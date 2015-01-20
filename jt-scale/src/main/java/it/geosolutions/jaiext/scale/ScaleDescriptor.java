@@ -395,7 +395,7 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
     private static final Object[] paramDefaults = {
         new Float(1.0F), new Float(1.0F),
         new Float(0.0F), new Float(0.0F),
-        null,null, false, null, null
+        Interpolation.getInstance(Interpolation.INTERP_NEAREST),null, false, null, null
     };
 
     /** Constructor. */

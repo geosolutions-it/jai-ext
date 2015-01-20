@@ -75,7 +75,7 @@ public abstract class LookupTable extends LookupTableJAI implements Serializable
 
     /** Boolean indicating if the image contains a ROI */
     protected boolean hasROI;
-
+    
     /**
      * Constructs a single-banded byte lookup table. The index offset is 0.
      * 

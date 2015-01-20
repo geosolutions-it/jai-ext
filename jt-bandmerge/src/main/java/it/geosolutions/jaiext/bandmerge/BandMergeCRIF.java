@@ -70,12 +70,14 @@ public class BandMergeCRIF extends CRIFImpl {
         List<AffineTransform> transform = (List<AffineTransform>) paramBlock.getObjectParameter(2);
         // ROI object
         ROI roi = (ROI) paramBlock.getObjectParameter(3);
+        // Last band is an alpha band?
+        boolean setAlpha = (Boolean) paramBlock.getObjectParameter(4);
         // If the transformations are present, then they are used with the ExtendedBandMergeOpImage
         if (transform != null && !transform.isEmpty()) {
             return new ExtendedBandMergeOpImage(sources, transform, renderHints, nodata, roi,
-                    destinationNoData, layout);
+                    destinationNoData, setAlpha, layout);
         } else {
-            return new BandMergeOpImage(sources, renderHints, nodata, roi, destinationNoData, layout);
+            return new BandMergeOpImage(sources, renderHints, nodata, roi, destinationNoData, setAlpha, layout);
         }
     }
 }

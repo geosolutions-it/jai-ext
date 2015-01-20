@@ -21,8 +21,8 @@ import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
 import it.geosolutions.jaiext.range.Range;
 
 import java.awt.RenderingHints;
-import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderableImage;
 
 import javax.media.jai.JAI;
@@ -34,8 +34,12 @@ import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderableRegistryMode;
 import javax.media.jai.registry.RenderedRegistryMode;
 
-import com.sun.media.jai.util.ImageUtil;
-
+/**
+ * {@link OperationDescriptorImpl} describing the OperationConst operation
+ * 
+ * @author Nicola Lagomarsini geosolutions
+ *
+ */
 public class OperationConstDescriptor extends OperationDescriptorImpl {
 
     public final static int OPERATION_INDEX = 0;
@@ -65,23 +69,23 @@ public class OperationConstDescriptor extends OperationDescriptorImpl {
     /**
      * Input Parameter name
      */
-    private static final String[] paramNames = { "operation", "constants", "roi", "noData",
+    private static final String[] paramNames = {"constants",  "operation", "roi", "noData",
             "destinationNoData" };
 
     /**
      * Input Parameter class
      */
-    private static final Class[] paramClasses = { Operator.class, double[].class,
+    private static final Class[] paramClasses = { double[].class, Operator.class,
             javax.media.jai.ROI.class, it.geosolutions.jaiext.range.Range.class, Double.class };
 
     /**
      * Input Parameter default values
      */
-    private static final Object[] paramDefaults = { null, null, null, null, 0d };
+    private static final Object[] paramDefaults = { NO_PARAMETER_DEFAULT, NO_PARAMETER_DEFAULT, null, null, 0d };
 
     /** Constructor. */
     public OperationConstDescriptor() {
-        super(resources, paramClasses, paramNames, paramDefaults);
+        super(resources, 1, paramClasses, paramNames, paramDefaults);
     }
 
     /** Returns <code>true</code> since renderable operation is supported. */
@@ -89,6 +93,30 @@ public class OperationConstDescriptor extends OperationDescriptorImpl {
         return true;
     }
 
+    @Override
+    protected boolean validateParameters(String modeName, ParameterBlock args, StringBuffer msg) {
+        if(modeName.equalsIgnoreCase(RenderedRegistryMode.MODE_NAME)){
+            // Check for the constants
+            double[] constants = null;
+            Object param = args.getObjectParameter(0);
+            if (param != null) {
+                if (param instanceof double[]) {
+                    return true;
+                } else if (param instanceof int[]) {
+                    int[] paramInt = (int[]) param;
+                    constants = new double[paramInt.length];
+                    for (int i = 0; i < paramInt.length; i++) {
+                        constants[i] = paramInt[i];
+                    }
+                    args.set(constants, 0);
+                    return true;
+                }
+            }
+            return false;
+            
+        }
+        return true;
+    }
     /**
      * Executes the selected operation with a constant on the input image.
      * 

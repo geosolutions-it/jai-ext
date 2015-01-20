@@ -28,6 +28,7 @@ import java.awt.image.RenderedImage;
 
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 
@@ -62,8 +63,10 @@ public class ComparisonTest extends TestBase {
     /** No Data Range parameter */
     private static Range range;
 
-    private static ROIShape roi;
+    /** Input ROI used for reducing image active area*/
+    private static ROI roi;
 
+    /** Matrix used for the band combination*/
     private static double[][] matrix;
 
     @BeforeClass
@@ -146,7 +149,7 @@ public class ComparisonTest extends TestBase {
         } else {
             roi = null;
         }
-        
+
         // Matrix creation
         matrix = new double[2][4];
         for (int i = 0; i < matrix[0].length; i++) {
@@ -211,9 +214,11 @@ public class ComparisonTest extends TestBase {
             // creation of the image
             if (OLD_DESCRIPTOR) {
                 JAIExt.registerJAIDescriptor("BandCombine");
-                finalImage = javax.media.jai.operator.BandCombineDescriptor.create(image, matrix, null);
+                finalImage = javax.media.jai.operator.BandCombineDescriptor.create(image, matrix,
+                        null);
             } else {
-                finalImage = BandCombineDescriptor.create(image, matrix, roi, range, destinationNoData, null);
+                finalImage = BandCombineDescriptor.create(image, matrix, roi, range,
+                        destinationNoData, null);
             }
 
             // Total calculation time
