@@ -61,6 +61,8 @@ import com.sun.media.jai.util.ImageUtil;
  */
 abstract class AffineOpImage extends GeometricOpImage {
 
+    protected static final double HALF_PIXEL = 0.5d;
+
     /** ROI extender */
     final static BorderExtender roiExtender = BorderExtender
             .createInstance(BorderExtender.BORDER_ZERO);
@@ -132,7 +134,7 @@ abstract class AffineOpImage extends GeometricOpImage {
      */
 
     /** The fixed-point denominator of the fractional offsets. */
-    protected static final int geom_frac_max = 0x100000;
+    protected static final int GEOM_FRAC_MAX = 0x100000;
 
     double m00, m10, flr_m00, flr_m10;
 
@@ -452,8 +454,8 @@ abstract class AffineOpImage extends GeometricOpImage {
         fracdx1 = 1.0F - fracdx;
         incx = (int) flr_m00; // Movement
         incx1 = incx + 1; // along x
-        ifracdx = (int) Math.round(fracdx * geom_frac_max);
-        ifracdx1 = geom_frac_max - ifracdx;
+        ifracdx = (int) Math.round(fracdx * GEOM_FRAC_MAX);
+        ifracdx1 = GEOM_FRAC_MAX - ifracdx;
 
         m10 = i_transform.getShearY(); // get m10
         flr_m10 = Math.floor(m10);
@@ -461,8 +463,8 @@ abstract class AffineOpImage extends GeometricOpImage {
         fracdy1 = 1.0F - fracdy;
         incy = (int) flr_m10; // Movement
         incy1 = incy + 1; // along y
-        ifracdy = (int) Math.round(fracdy * geom_frac_max);
-        ifracdy1 = geom_frac_max - ifracdy;
+        ifracdy = (int) Math.round(fracdy * GEOM_FRAC_MAX);
+        ifracdy1 = GEOM_FRAC_MAX - ifracdy;
         
         // SG Retrieve the rendered source image and its ROI.
         Object property = source.getProperty("ROI");
@@ -766,13 +768,13 @@ abstract class AffineOpImage extends GeometricOpImage {
         int clipMinX = dst_min_x;
         int clipMaxX = dst_max_x;
 
-        long xdenom = incx * geom_frac_max + ifracdx;
+        long xdenom = incx * GEOM_FRAC_MAX + ifracdx;
         if (xdenom != 0) {
             long clipx1 = (long) src_rect_x1 + lpad;
             long clipx2 = (long) src_rect_x2 - rpad;
 
-            long x1 = ((clipx1 - s_ix) * geom_frac_max - ifracx) + dst_min_x * xdenom;
-            long x2 = ((clipx2 - s_ix) * geom_frac_max - ifracx) + dst_min_x * xdenom;
+            long x1 = ((clipx1 - s_ix) * GEOM_FRAC_MAX - ifracx) + dst_min_x * xdenom;
+            long x2 = ((clipx2 - s_ix) * GEOM_FRAC_MAX - ifracx) + dst_min_x * xdenom;
 
             // Moving backwards, switch roles of left and right edges
             if (xdenom < 0) {
@@ -795,13 +797,13 @@ abstract class AffineOpImage extends GeometricOpImage {
             }
         }
 
-        long ydenom = incy * geom_frac_max + ifracdy;
+        long ydenom = incy * GEOM_FRAC_MAX + ifracdy;
         if (ydenom != 0) {
             long clipy1 = (long) src_rect_y1 + tpad;
             long clipy2 = (long) src_rect_y2 - bpad;
 
-            long y1 = ((clipy1 - s_iy) * geom_frac_max - ifracy) + dst_min_x * ydenom;
-            long y2 = ((clipy2 - s_iy) * geom_frac_max - ifracy) + dst_min_x * ydenom;
+            long y1 = ((clipy1 - s_iy) * GEOM_FRAC_MAX - ifracy) + dst_min_x * ydenom;
+            long y2 = ((clipy2 - s_iy) * GEOM_FRAC_MAX - ifracy) + dst_min_x * ydenom;
 
             // Moving backwards, switch roles of top and bottom edges
             if (ydenom < 0) {
@@ -842,23 +844,23 @@ abstract class AffineOpImage extends GeometricOpImage {
             int ifracx, int ifracy) {
         // Skip output up to clipMinX
         long skip = clipMinX - dst_min_x;
-        long dx = ((long) ifracx + skip * ifracdx) / geom_frac_max;
-        long dy = ((long) ifracy + skip * ifracdy) / geom_frac_max;
+        long dx = ((long) ifracx + skip * ifracdx) / GEOM_FRAC_MAX;
+        long dy = ((long) ifracy + skip * ifracdy) / GEOM_FRAC_MAX;
         s_ix += skip * incx + (int) dx;
         s_iy += skip * incy + (int) dy;
 
         long lfracx = ifracx + skip * ifracdx;
         if (lfracx >= 0) {
-            ifracx = (int) (lfracx % geom_frac_max);
+            ifracx = (int) (lfracx % GEOM_FRAC_MAX);
         } else {
-            ifracx = (int) (-(-lfracx % geom_frac_max));
+            ifracx = (int) (-(-lfracx % GEOM_FRAC_MAX));
         }
 
         long lfracy = ifracy + skip * ifracdy;
         if (lfracy >= 0) {
-            ifracy = (int) (lfracy % geom_frac_max);
+            ifracy = (int) (lfracy % GEOM_FRAC_MAX);
         } else {
-            ifracy = (int) (-(-lfracy % geom_frac_max));
+            ifracy = (int) (-(-lfracy % GEOM_FRAC_MAX));
         }
 
         return new Point[] { new Point(s_ix, s_iy), new Point(ifracx, ifracy) };

@@ -50,8 +50,7 @@ public class BandSelectCRIF extends CRIFImpl {
                                 RenderingHints renderHints) {
         // Get ImageLayout from renderHints if any.
         ImageLayout layout = RIFUtil.getImageLayoutHint(renderHints);
-        
-        
+
         return new BandSelectOpImage(args.getRenderedSource(0),
                                      renderHints,
                                      layout,

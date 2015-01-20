@@ -45,10 +45,9 @@ import com.sun.media.jai.util.JDKWorkarounds;
  * @see PointOpImage
  */
 public class NullOpImage extends OpImage {
-    
+
     /**
-     * Create a new ImageLayout from the source image optionally
-     * overriding a ColorModel supplied via the layout.
+     * Create a new ImageLayout from the source image optionally overriding a ColorModel supplied via the layout.
      */
     private static ImageLayout layoutHelper(RenderedImage source,
                                             ImageLayout layout) {

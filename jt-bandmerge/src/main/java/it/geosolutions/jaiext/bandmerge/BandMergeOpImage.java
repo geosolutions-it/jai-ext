@@ -60,7 +60,7 @@ import com.sun.media.jai.util.JDKWorkarounds;
  * If No Data are present, they can be handled if the user provides an array of No Data Range objects and a double value for the destination No Data.
  * 
  */
-class BandMergeOpImage extends PointOpImage {
+public class BandMergeOpImage extends PointOpImage {
 
     public static final int TILE_EXTENDER = 1;
 
@@ -307,8 +307,8 @@ class BandMergeOpImage extends PointOpImage {
     }
 
     /**
-     * Create a colormodel without an alpha band in the case that no alpha band is present. Otherwise JAI set an alpha band by default for an image
-     * with 2 or 4 bands.
+     * Create a colormodel without an alpha band in the case that no alpha band is present. 
+     * Otherwise JAI set an alpha band by default for an image with 2 or 4 bands.
      * 
      * @param sm
      * @return

@@ -65,7 +65,7 @@ import java.util.Map;
  * No Data.
  * 
  */
-final class BorderOpImage extends OpImage {
+public class BorderOpImage extends OpImage {
     /**
      * The <code>BorderExtender</code> object used to extend the source data.
      */

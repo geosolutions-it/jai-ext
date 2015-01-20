@@ -71,9 +71,10 @@ public class BandMergeCRIF extends CRIFImpl {
         // ROI object
         ROI roi = (ROI) paramBlock.getObjectParameter(3);
         // If the transformations are present, then they are used with the ExtendedBandMergeOpImage
-        if(transform != null && !transform.isEmpty()){
-            return new ExtendedBandMergeOpImage(sources, transform, renderHints, nodata, roi, destinationNoData, layout);
-        }else{
+        if (transform != null && !transform.isEmpty()) {
+            return new ExtendedBandMergeOpImage(sources, transform, renderHints, nodata, roi,
+                    destinationNoData, layout);
+        } else {
             return new BandMergeOpImage(sources, renderHints, nodata, roi, destinationNoData, layout);
         }
     }

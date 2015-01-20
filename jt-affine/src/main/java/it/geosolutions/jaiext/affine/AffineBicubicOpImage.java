@@ -46,8 +46,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
     private static final float OVERFLOW = 1.0F;
 
-    private static final double HALF_PIXEL = 0.5d;
-
     private static final float AVOID_OVERFLOW = 0.999999F;
 
     /** Nearest-Neighbor interpolator */
@@ -119,9 +117,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
         // If both roiBounds and roiIter are not null, they are used in calculation
         Range nod = nodata;
         Double destNod = null;
-        if (backgroundValues != null && backgroundValues.length > 0){
-        	destNod = backgroundValues[0];
-		}
+        if (backgroundValues != null && backgroundValues.length > 0) {
+            destNod = backgroundValues[0];
+        }
         if (interp instanceof InterpolationBicubic) {
             interpBN = (InterpolationBicubic) interp;
             this.interp = interpBN;
@@ -156,39 +154,28 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 round = 1 << (precisionBits - 1);
             }
 
-            if(nod == null){
-            	nod = interpBN.getNoDataRange();
+            if (nod == null) {
+                nod = interpBN.getNoDataRange();
             }
-            if(destNod == null){
-            	destNod = interpBN.getDestinationNoData();
+            if (destNod == null) {
+                destNod = interpBN.getDestinationNoData();
             }
         }
 
         // Nodata definition
-		if (nod != null) {
-			hasNoData = true;
-			noData = nod;
-		}
-		if(destNod != null){
-			destinationNoDataDouble = destNod;
-		} else if (this.backgroundValues != null && this.backgroundValues.length > 0){
-			destinationNoDataDouble = this.backgroundValues[0];
-		}
-		// ROIAccessor definition
-		if (hasROI) {
-			this.useROIAccessor = useROIAccessor;
-		}
-//        //Creation of the destination background values(the value related to the first band)
-//        if(backgroundValues != null && backgroundValues.length > 0){
-//        	this.backgroundValues=backgroundValues;
-//        } else {
-//    		int srcNumBands= source.getSampleModel().getNumBands();
-//            double[] background=new double[srcNumBands];
-//            for(int i = 0; i<srcNumBands;i++){
-//                background[i]=destinationNoDataDouble;
-//            }       
-//            this.backgroundValues=background;
-//        }
+        if (nod != null) {
+            hasNoData = true;
+            noData = nod;
+        }
+        if (destNod != null) {
+            destinationNoDataDouble = destNod;
+        } else if (this.backgroundValues != null && this.backgroundValues.length > 0) {
+            destinationNoDataDouble = this.backgroundValues[0];
+        }
+        // ROIAccessor definition
+        if (hasROI) {
+            this.useROIAccessor = useROIAccessor;
+        }
 
         // destination No Data set
         this.setDestinationNoData = setDestinationNoData;
@@ -264,7 +251,6 @@ public class AffineBicubicOpImage extends AffineOpImage {
         int srcRectX = srcRect.x;
         int srcRectY = srcRect.y;
 
-        //
         // Get data for the source rectangle & the destination rectangle
         // In the first version source Rectangle is the whole source
         // image always.
@@ -507,8 +493,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -674,8 +660,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -1000,8 +986,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -1198,8 +1184,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -1542,8 +1528,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -1710,8 +1696,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2030,8 +2016,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2225,8 +2211,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2570,8 +2556,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2738,8 +2724,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -3059,8 +3045,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -3254,8 +3240,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -3592,8 +3578,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -3753,8 +3739,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -4059,8 +4045,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -4247,8 +4233,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -4575,8 +4561,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -4730,8 +4716,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -5031,8 +5017,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -5215,8 +5201,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -5540,8 +5526,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -5695,8 +5681,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -5995,8 +5981,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -6179,8 +6165,8 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,

@@ -67,7 +67,7 @@ import com.sun.media.jai.util.JDKWorkarounds;
  * If No Data are present, they can be handled if the user provides an array of No Data Range objects and a double value for the destination No Data.
  * 
  */
-class ExtendedBandMergeOpImage extends GeometricOpImage {
+public class ExtendedBandMergeOpImage extends GeometricOpImage {
 
     /** Quantity used for extending the input tile dimensions */
     public static final int TILE_EXTENDER = 1;
@@ -101,7 +101,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
 
     private List<AffineTransform> transforms;
 
-    private List<TRANSFORM> transformObj;
+    private List<Transform> transformObj;
 
     /** Boolean indicating if No Data and ROI are not used */
     protected boolean caseA;
@@ -120,7 +120,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
      * @author Nicola Lagomarsini GeoSolutions S.A.S.
      * 
      */
-    public enum TRANSFORM {
+    public enum Transform {
         AFFINE {
             @Override
             public void transform(AffineTransform tr, Point2D src, Point2D dst) {
@@ -150,7 +150,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
          */
         public abstract void transform(AffineTransform tr, Point2D src, Point2D dst);
 
-        public static TRANSFORM getTransform(AffineTransform tr) {
+        public static Transform getTransform(AffineTransform tr) {
             if (tr.isIdentity() || Math.abs(tr.getScaleX() - 1) == 0
                     && Math.abs(tr.getScaleY() - 1) == 0 && Math.abs(tr.getShearX()) == 0
                     && Math.abs(tr.getShearY()) == 0 && Math.abs(tr.getTranslateX()) <= 1E-3
@@ -275,8 +275,8 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
         }
     }
 
-    private List<TRANSFORM> optimize(List<AffineTransform> transforms) {
-        final List<TRANSFORM> result = new ArrayList<TRANSFORM>();
+    private List<Transform> optimize(List<AffineTransform> transforms) {
+        final List<Transform> result = new ArrayList<Transform>();
         for (AffineTransform tr : transforms) {
             /**
              * Returns {@code true} if the specified affine transform is an identity transform up to the specified tolerance. This method is
@@ -302,7 +302,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
              * 
              * @since 2.3.1
              */
-            result.add(TRANSFORM.getTransform(tr));
+            result.add(Transform.getTransform(tr));
         }
         return result;
     }
@@ -627,7 +627,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -686,7 +686,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -759,7 +759,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -823,7 +823,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -943,7 +943,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1002,7 +1002,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1075,7 +1075,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1139,7 +1139,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1259,7 +1259,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1318,7 +1318,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1391,7 +1391,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1455,7 +1455,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1574,7 +1574,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1633,7 +1633,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1706,7 +1706,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1770,7 +1770,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1890,7 +1890,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -1949,7 +1949,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -2022,7 +2022,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -2086,7 +2086,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -2206,7 +2206,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -2265,7 +2265,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -2338,7 +2338,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();
@@ -2402,7 +2402,7 @@ class ExtendedBandMergeOpImage extends GeometricOpImage {
                 iter = RandomIterFactory.create(sources[sindex], sources[sindex].getBounds());
                 // Affine transformation for the selected source
                 AffineTransform trans = transforms.get(sindex);
-                TRANSFORM transObj = transformObj.get(sindex);
+                Transform transObj = transformObj.get(sindex);
                 // Source corners
                 final int srcMinX = sources[sindex].getMinX();
                 final int srcMinY = sources[sindex].getMinY();

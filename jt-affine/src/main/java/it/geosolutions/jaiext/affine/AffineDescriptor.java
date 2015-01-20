@@ -94,10 +94,8 @@ class AffinePropertyGenerator extends PropertyGeneratorImpl {
                                   src.getWidth() - interp.getWidth() + 1,
                                   src.getHeight() - interp.getHeight() + 1);
             } else {
-                srcBounds = new Rectangle(src.getMinX(),
-					  src.getMinY(),
-					  src.getWidth(),
-					  src.getHeight());
+                srcBounds = new Rectangle(src.getMinX(), src.getMinY(), src.getWidth(),
+                        src.getHeight());
             }
 
             // If necessary, clip the ROI to the effective source bounds.
@@ -258,9 +256,8 @@ class AffinePropertyGenerator extends PropertyGeneratorImpl {
  */
 @SuppressWarnings("serial")
 public class AffineDescriptor extends OperationDescriptorImpl {
-    
+
     private final static Logger LOGGER = Logger.getLogger(AffineDescriptor.class.toString());
-    
 
     /**
      * The resource strings that provide the general documentation
@@ -302,7 +299,6 @@ public class AffineDescriptor extends OperationDescriptorImpl {
     null, null, false, false, null
     };
 
-
     /** Constructor. */
     public AffineDescriptor() {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
@@ -327,52 +323,43 @@ public class AffineDescriptor extends OperationDescriptorImpl {
 
     /**
      * Validates the input parameters.
-     *
-     * <p> In addition to the standard checks performed by the
-     * superclass method, this method checks that "transform" is
-     * invertible.
+     * 
+     * <p>
+     * In addition to the standard checks performed by the superclass method, this method checks that "transform" is invertible.
      */
-    protected boolean validateParameters(ParameterBlock args,
-                                         StringBuffer message) {
+    protected boolean validateParameters(ParameterBlock args, StringBuffer message) {
         if (!super.validateParameters(args, message)) {
             return false;
         }
         // Get the transform
-        AffineTransform transform =
-                        (AffineTransform)args.getObjectParameter(0);
+        AffineTransform transform = (AffineTransform) args.getObjectParameter(0);
         try {
             // Try to create the inverse transform
             AffineTransform itransform = transform.createInverse();
         } catch (java.awt.geom.NoninvertibleTransformException e) {
-            message.append(getName() + " " +
-                           JaiI18N.getString("AffineDescriptor7"));
+            message.append(getName() + " " + JaiI18N.getString("AffineDescriptor7"));
             return false;
         }
 
         return true;
     }
 
-
     /**
      * Performs interpolated affine transform on an image.
-     *
-     * <p>Creates a <code>ParameterBlockJAI</code> from all
-     * supplied arguments except <code>hints</code> and invokes
+     * 
+     * <p>
+     * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
      * {@link JAI#create(String,ParameterBlock,RenderingHints)}.
-     *
+     * 
      * @see JAI
      * @see ParameterBlockJAI
      * @see RenderedOp
-     *
+     * 
      * @param source0 <code>RenderedImage</code> source 0.
-     * @param transform The affine transform matrix.
-     * May be <code>null</code>.
-     * @param interpolation The interpolation method.
-     * May be <code>null</code>.
-     * @param backgroundValues The user-specified background values.
-     * May be <code>null</code>.
-     * @param hints The <code>RenderingHints</code> to use.
-     * May be <code>null</code>.
+     * @param transform The affine transform matrix. May be <code>null</code>.
+     * @param interpolation The interpolation method. May be <code>null</code>.
+     * @param backgroundValues The user-specified background values. May be <code>null</code>.
+     * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @return The <code>RenderedOp</code> destination.
      * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.
      */

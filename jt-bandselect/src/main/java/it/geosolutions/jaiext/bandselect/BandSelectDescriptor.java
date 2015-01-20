@@ -110,15 +110,12 @@ public class BandSelectDescriptor extends OperationDescriptorImpl {
         NO_PARAMETER_DEFAULT
     };
 
-    private static final String[] supportedModes = {
-	"rendered",
-	"renderable"
-    };
+    private static final String[] supportedModes = { "rendered", "renderable" };
 
     /** Constructor. */
     public BandSelectDescriptor() {
-        super(resources, supportedModes, 1,
-		parametersNames, parametersClasses, parametersDefaults, null);
+        super(resources, supportedModes, 1, parametersNames, parametersClasses, parametersDefaults,
+                null);
     }
 
     /**
@@ -129,15 +126,14 @@ public class BandSelectDescriptor extends OperationDescriptorImpl {
      * length of at least 1 and does not contain any values less than
      * 0 or greater than the number of source bands minus 1.
      */
-    public boolean validateArguments(String modeName,
-				     ParameterBlock args,
-                                     StringBuffer message) {
+    public boolean validateArguments(String modeName, ParameterBlock args, StringBuffer message) {
         if (!super.validateArguments(modeName, args, message)) {
             return false;
         }
 
-	if (!modeName.equalsIgnoreCase("rendered"))
-	    return true;
+        if (!modeName.equalsIgnoreCase("rendered")) {
+            return true;
+        }
 
         int[] indices = (int[])args.getObjectParameter(0);
         if (indices.length < 1) {
@@ -146,7 +142,7 @@ public class BandSelectDescriptor extends OperationDescriptorImpl {
             return false;
         }
 
-	RenderedImage src = args.getRenderedSource(0);
+        RenderedImage src = args.getRenderedSource(0);
 
         int bands = src.getSampleModel().getNumBands();
         for (int i = 0; i < indices.length; i++) {

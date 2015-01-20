@@ -40,12 +40,6 @@ import javax.media.jai.iterator.RandomIter;
 
 public abstract class LookupTable extends LookupTableJAI implements Serializable {
 
-    /** The table data. */
-    //protected transient DataBuffer data;
-
-    /** The band offset values */
-    //protected int[] tableOffsets;
-
     /** Destination no data for Byte images */
     protected byte destinationNoDataByte;
 

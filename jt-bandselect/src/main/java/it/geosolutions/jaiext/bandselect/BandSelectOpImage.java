@@ -45,7 +45,7 @@ import com.sun.media.jai.util.JDKWorkarounds;
  * @since 1.0
  */
 @SuppressWarnings("unchecked")
-final class BandSelectOpImage extends PointOpImage {
+public class BandSelectOpImage extends PointOpImage {
 
     // Set if the source has a SinglePixelPackedSampleModel and
     // bands.length < 3.
@@ -126,7 +126,7 @@ final class BandSelectOpImage extends PointOpImage {
     public Raster computeTile(int tileX, int tileY) {
         Raster tile = getSourceImage(0).getTile(tileX, tileY);
 
-        if(triggerCopyOperation) {
+        if (triggerCopyOperation) {
             // Copy the data as there is no concrete ColorModel for
             // a SinglePixelPackedSampleModel with numBands < 3.
             tile = tile.createChild(tile.getMinX(), tile.getMinY(),
@@ -147,9 +147,9 @@ final class BandSelectOpImage extends PointOpImage {
     }
 
     public Raster getTile(int tileX, int tileY) {
-        
+
         // if we have to perform a copy, caching is needed!
-        if(triggerCopyOperation){
+        if (triggerCopyOperation) {
             return super.getTile(tileX, tileY);
         }
         // Just to return computeTile() result so as to avoid caching.
