@@ -24,6 +24,7 @@ public class RasterClassifierOpImage<T extends ColorMapTransformElement> extends
             ROI roi, Range nodata, RenderingHints hints) {
         super(image, lic, prepareLayout(image, layout, lic), bandIndex, roi, nodata,
                 prepareHints(hints));
+        this.isByteData = false;
     }
 
     /**

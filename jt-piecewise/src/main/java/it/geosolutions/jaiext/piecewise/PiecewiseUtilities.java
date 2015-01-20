@@ -28,7 +28,7 @@ import java.util.Arrays;
  * @author Simone Giannecchini, GeoSolutions.
  * 
  */
-class PiecewiseUtilities {
+public class PiecewiseUtilities {
 
     /**
 	 * 

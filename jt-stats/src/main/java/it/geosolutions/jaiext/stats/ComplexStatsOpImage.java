@@ -98,7 +98,7 @@ public class ComplexStatsOpImage extends StatisticsOpImage {
             return source;
         }
 
-        Rectangle srcRect = source.getBounds();
+        Rectangle srcRect = getSourceImage(0).getBounds().intersection(source.getBounds());
         // creation of the RasterAccessor
         RasterAccessor src = new RasterAccessor(source, srcRect, formatTags[0], getSourceImage(0)
                 .getColorModel());

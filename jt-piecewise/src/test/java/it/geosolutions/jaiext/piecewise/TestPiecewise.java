@@ -16,6 +16,9 @@
  */
 package it.geosolutions.jaiext.piecewise;
 
+import it.geosolutions.jaiext.algebra.AlgebraDescriptor;
+import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
+import it.geosolutions.jaiext.algebra.constant.OperationConstDescriptor;
 import it.geosolutions.jaiext.bandselect.BandSelectDescriptor;
 import it.geosolutions.jaiext.binarize.BinarizeDescriptor;
 import it.geosolutions.jaiext.range.Range;
@@ -590,6 +593,13 @@ public class TestPiecewise extends TestBase {
         // /////////////////////////////////////////////////////////////////////
         RenderedOp image = JAI.create("ImageRead", TestData.file(this, "test.tif"));
         image = BandSelectDescriptor.create(image, new int[] { 0 }, null);
+        image = FormatDescriptor.create(image, DataBuffer.TYPE_DOUBLE, null);
+        image = AlgebraDescriptor.create(Operator.ABSOLUTE, null, null, 0, null, image);
+        image = OperationConstDescriptor.create(image, new double[]{10}, Operator.SUM, null, null, 0, null);
+        
+        RenderedImageBrowser.showChain(image);
+        System.in.read();
+        
         StatsType[] stats = new StatsType[] { StatsType.EXTREMA };
         image = StatisticsDescriptor.create(image, 1, 1, null, null, false, new int[] { 0 }, stats,
                 null);
@@ -597,7 +607,7 @@ public class TestPiecewise extends TestBase {
         double[] result = (double[]) stat.getResult();
         final double minimum = result[0];
         final double maximum = result[1];
-
+        
         final DefaultPiecewiseTransform1DElement mainElement = new DefaultPiecewiseTransform1DElement(
                 "natural logarithm", RangeFactory.create(minimum, true, maximum, true),
                 new MathTransformation() {

@@ -180,6 +180,25 @@ public abstract class Range {
 
         return false;
     }
+    
+    public boolean intersects(Range other){
+        // Check if one of them is contained into the other
+        if(this.contains(other) || other.contains(this)){
+            return true;
+        }
+        
+        double min1 = this.getMin().doubleValue();
+        double max1 = this.getMax().doubleValue();
+
+        double min2 = other.getMin().doubleValue();
+        double max2 = other.getMax().doubleValue();
+        
+        // Check the bounds
+        boolean minCheck = this.isMinIncluded() && other.isMaxIncluded() ? min1 <= max2 : min1 < max2;
+        boolean maxCheck = this.isMaxIncluded() && other.isMinIncluded() ? max1 >= min2 : max1 > min2;
+        
+        return minCheck && maxCheck;
+    }
 
     public abstract Range union(Range other);
 

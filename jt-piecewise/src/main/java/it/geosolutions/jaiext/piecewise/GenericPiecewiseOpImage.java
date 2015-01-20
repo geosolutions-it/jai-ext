@@ -31,7 +31,6 @@ import java.util.Arrays;
 
 import javax.media.jai.ColormapOpImage;
 import javax.media.jai.ImageLayout;
-import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
@@ -69,7 +68,7 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
      */
     private final PiecewiseTransform1D<T> piecewise;
 
-    private final boolean isByteData;
+    protected boolean isByteData;
 
     private byte[][] lut;
 
