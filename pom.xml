@@ -604,5 +604,6 @@
     <module>jt-convolve</module>
     <module>jt-classifier</module>
     <module>jt-piecewise</module>
+    <module>jt-artifact</module>
   </modules>
 </project>
