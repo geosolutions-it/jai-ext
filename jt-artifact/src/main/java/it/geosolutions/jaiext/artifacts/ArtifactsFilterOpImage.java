@@ -672,7 +672,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                         for (int k = 0; k < dnumBands; k++) {
                             val[k] = (int) iter.getSample(x + i, y + j, k) & 0xff;
                             if (nodata.contains((byte) val[k])) {
-                                dstDataArrays[k][dstPixelOffset[k]] = Byte.MIN_VALUE;
+                                dstDataArrays[k][dstPixelOffset[k]] = 0;
                             } else {
                                 dstDataArrays[k][dstPixelOffset[k]] = (byte) val[k];
                             }
@@ -931,7 +931,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                     }
                     if (readOriginalValues) {
                         for (int k = 0; k < dnumBands; k++) {
-                            val[k] = (int) iter.getSample(x + i, y + j, k) & 0xff;
+                            val[k] = (int) iter.getSample(x + i, y + j, k);
                             if (nodata.contains((short) val[k])) {
                                 dstDataArrays[k][dstPixelOffset[k]] = nodataValue;
                             } else {
@@ -1154,7 +1154,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                     }
                     if (readOriginalValues) {
                         for (int k = 0; k < dnumBands; k++) {
-                            val[k] = (int) iter.getSample(x + i, y + j, k) & 0xff;
+                            val[k] = (int) iter.getSample(x + i, y + j, k);
                             if (nodata.contains(val[k])) {
                                 dstDataArrays[k][dstPixelOffset[k]] = Integer.MIN_VALUE;
                             } else {
@@ -1378,7 +1378,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                     }
                     if (readOriginalValues) {
                         for (int k = 0; k < dnumBands; k++) {
-                            val[k] = (int) iter.getSample(x + i, y + j, k) & 0xff;
+                            val[k] = iter.getSampleFloat(x + i, y + j, k);
                             if (nodata.contains(val[k])) {
                                 dstDataArrays[k][dstPixelOffset[k]] = -Float.MAX_VALUE;
                             } else {
@@ -1462,7 +1462,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                     }
                     if (readOriginalValues) {
                         for (int k = 0; k < dnumBands; k++) {
-                            val[k] = iter.getSample(x + i, y + j, k);
+                            val[k] = iter.getSampleFloat(x + i, y + j, k);
                             dstDataArrays[k][dstPixelOffset[k]] = val[k];
                         }
                     }
@@ -1601,7 +1601,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                     }
                     if (readOriginalValues) {
                         for (int k = 0; k < dnumBands; k++) {
-                            val[k] = (int) iter.getSample(x + i, y + j, k) & 0xff;
+                            val[k] = iter.getSampleDouble(x + i, y + j, k);
                             if (nodata.contains(val[k])) {
                                 dstDataArrays[k][dstPixelOffset[k]] = -Double.MAX_VALUE;
                             } else {
@@ -1685,7 +1685,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                     }
                     if (readOriginalValues) {
                         for (int k = 0; k < dnumBands; k++) {
-                            val[k] = iter.getSample(x + i, y + j, k);
+                            val[k] = iter.getSampleDouble(x + i, y + j, k);
                             dstDataArrays[k][dstPixelOffset[k]] = val[k];
                         }
                     }

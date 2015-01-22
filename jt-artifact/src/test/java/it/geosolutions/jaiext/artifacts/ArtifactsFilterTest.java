@@ -1,10 +1,13 @@
 package it.geosolutions.jaiext.artifacts;
 
 import static org.junit.Assert.assertEquals;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
 import it.geosolutions.jaiext.testclasses.TestData;
 
 import java.awt.Rectangle;
+import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -18,6 +21,7 @@ import javax.media.jai.operator.FormatDescriptor;
 import javax.media.jai.operator.HistogramDescriptor;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -29,23 +33,46 @@ public class ArtifactsFilterTest extends TestBase {
 
     private static RenderedOp image;
 
+    private static Range[] nodata;
+
     @BeforeClass
     public static void setupData() throws FileNotFoundException, IOException {
         image = JAI.create("ImageRead", TestData.file(ArtifactsFilterTest.class, "filter.tif"));
+
+        // Creation of a NoData Array
+        nodata = new Range[6];
+        nodata[0] = RangeFactory.create((byte) 200, (byte) 200);
+        nodata[1] = RangeFactory.createU((short) 200, (short) 200);
+        nodata[2] = RangeFactory.create((short) 200, (short) 200);
+        nodata[3] = RangeFactory.create(200, 200);
+        nodata[4] = RangeFactory.create(200f, 200f);
+        nodata[5] = RangeFactory.create(200d, 200d);
+
     }
 
     @Test
-    public void testData() {
+    public void testValidData() {
         for (int i = 0; i < 6; i++) {
             if (i == 2) {
                 // No ColorModel for Short data
                 continue;
             }
-            testArtifact(i, image);
+            testArtifact(i, image, null);
         }
     }
 
-    private void testArtifact(int dataType, RenderedImage image) {
+    @Test
+    public void testNoData() {
+        for (int i = 0; i < 6; i++) {
+            if (i == 2) {
+                // No ColorModel for Short data
+                continue;
+            }
+            testArtifact(i, image, nodata[i]);
+        }
+    }
+
+    private void testArtifact(int dataType, RenderedImage image, Range nodata) {
         image.getWidth();
         image = FormatDescriptor.create(image, dataType, null);
         RenderedOp histogramOp = HistogramDescriptor.create(image, null, Integer.valueOf(1),
@@ -71,22 +98,36 @@ public class ArtifactsFilterTest extends TestBase {
         ROI roi = new ROIShape(new Rectangle(14, 11, 75, 75));
         double[] backgroundValues = new double[] { 0.0d, 0.0d, 0.0d };
         RenderedImage filtered = ArtifactsFilterDescriptor.create(image, roi, backgroundValues, 30,
-                3, null, null);
+                3, nodata, null);
         histogramOp = HistogramDescriptor.create(filtered, null, Integer.valueOf(1),
                 Integer.valueOf(1), new int[] { 256 }, null, null, null);
         histogram = (Histogram) histogramOp.getProperty("histogram");
 
         bins = histogram.getBins();
 
-        assertEquals(bins[0][0], 4261);
-        assertEquals(bins[1][0], 4261);
-        assertEquals(bins[2][0], 4845);
-        assertEquals(bins[0][180], 584);
-        assertEquals(bins[0][200], 5041);
-        assertEquals(bins[2][200], 5041);
-        assertEquals(bins[1][255], 5625);
+        if (nodata != null) {
 
-        assertEquals(bins[0][0] + bins[1][0] + bins[2][0] + bins[0][20] + bins[1][20] + bins[2][20]
-                + bins[0][180] + bins[0][200] + bins[2][200] + bins[1][255], 100 * 100 * 3);
+            assertEquals(bins[0][0], dataType < DataBuffer.TYPE_SHORT ? 9302 : 4261);
+            assertEquals(bins[1][0], 4261);
+            assertEquals(bins[2][0], dataType < DataBuffer.TYPE_SHORT ? 9886 : 4845);
+            assertEquals(bins[0][180], 584);
+            assertEquals(bins[0][200], 0);
+            assertEquals(bins[2][200], 0);
+            assertEquals(bins[1][255], 5625);
+
+        } else {
+
+            assertEquals(bins[0][0], 4261);
+            assertEquals(bins[1][0], 4261);
+            assertEquals(bins[2][0], 4845);
+            assertEquals(bins[0][180], 584);
+            assertEquals(bins[0][200], 5041);
+            assertEquals(bins[2][200], 5041);
+            assertEquals(bins[1][255], 5625);
+
+            assertEquals(bins[0][0] + bins[1][0] + bins[2][0] + bins[0][20] + bins[1][20]
+                    + bins[2][20] + bins[0][180] + bins[0][200] + bins[2][200] + bins[1][255],
+                    100 * 100 * 3);
+        }
     }
 }
