@@ -606,5 +606,6 @@
     <module>jt-piecewise</module>
     <module>jt-artifact</module>
     <module>jt-format</module>
+    <module>jt-colorconvert</module>
   </modules>
 </project>
