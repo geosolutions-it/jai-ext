@@ -118,8 +118,8 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>destNoData</td>
- * <td>Double</td>
- * <td>0d</td>
+ * <td>double[]</td>
+ * <td>new doulbe[]{0.0}</td>
  * </tr>
  * </table>
  * </p>
@@ -140,7 +140,8 @@ public class ColorConvertDescriptor extends OperationDescriptorImpl {
                         { "GlobalName", "ColorConvert" },
                         { "LocalName", "ColorConvert" },
                         { "Vendor", "it.geosolutions.jaiext" },
-                        { "Description", "Converts the colorspace of an Image taking into account ROI and NoData" },
+                        { "Description",
+                                "Converts the colorspace of an Image taking into account ROI and NoData" },
                         {
                                 "DocURL",
                                 "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ColorConvertDescriptor.html" },
@@ -148,12 +149,11 @@ public class ColorConvertDescriptor extends OperationDescriptorImpl {
                         { "arg0Desc", "Destination ColorModel" },
                         { "arg1Desc", "Input ROI used in calculations" },
                         { "arg2Desc", "No data range used for checking if the a pixel is a nodata" },
-                        { "arg3Desc", "Output value for nodata" } }, 
-                        1, 
-                        new Class[] { java.awt.image.ColorModel.class, javax.media.jai.ROI.class,
-                        it.geosolutions.jaiext.range.Range.class, Double.class }, 
-                        new String[] { "colorModel", "roi", "nodata", "destNoData" }, 
-                        new Object[] { NO_PARAMETER_DEFAULT, null, null, 0d });
+                        { "arg3Desc", "Output value for nodata" } }, 1, new Class[] {
+                        java.awt.image.ColorModel.class, javax.media.jai.ROI.class,
+                        it.geosolutions.jaiext.range.Range.class, double[].class }, new String[] {
+                        "colorModel", "roi", "nodata", "destNoData" }, new Object[] {
+                        NO_PARAMETER_DEFAULT, null, null, new double[] { 0.0d } });
     }
 
     /** Returns <code>true</code> since renderable operation is supported. */
@@ -180,8 +180,8 @@ public class ColorConvertDescriptor extends OperationDescriptorImpl {
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @return The <code>RenderedOp</code> destination.
      */
-    public static RenderedOp create(RenderedImage source0, ColorModel colorModel,
-            ROI roi, Range nodata, double destinationNoData, RenderingHints hints) {
+    public static RenderedOp create(RenderedImage source0, ColorModel colorModel, ROI roi,
+            Range nodata, double[] destinationNoData, RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI("ColorConvert", RenderedRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
@@ -214,7 +214,7 @@ public class ColorConvertDescriptor extends OperationDescriptorImpl {
      * @return The <code>RenderableOp</code> destination.
      */
     public static RenderableOp createRenderable(RenderableImage source0, ColorModel colorModel,
-            ROI roi, Range nodata, double destinationNoData, RenderingHints hints) {
+            ROI roi, Range nodata, double[] destinationNoData, RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI("ColorConvert",
                 RenderableRegistryMode.MODE_NAME);
 
