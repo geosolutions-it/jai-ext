@@ -1104,7 +1104,7 @@ public final class AlgebraOpImage2 extends PointOpImage {
                             inputData[i] = srcData[i][srcPixelOffset[i]];
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        result = op.calculate(inputData);
+                        result = op.calculateL(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampInt(result);
 
@@ -1146,7 +1146,7 @@ public final class AlgebraOpImage2 extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        result = op.calculate(inputData);
+                        result = op.calculateL(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampInt(result);
 
@@ -1195,7 +1195,7 @@ public final class AlgebraOpImage2 extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        result = op.calculate(inputData);
+                        result = op.calculateL(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampInt(result);
 
@@ -1256,7 +1256,7 @@ public final class AlgebraOpImage2 extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        result = op.calculate(inputData);
+                        result = op.calculateL(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampInt(result);
 

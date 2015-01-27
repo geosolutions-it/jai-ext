@@ -95,7 +95,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 if (values.length > 1) {
                     for (int i = 1; i < values.length; i++) {
                         values[0] += values[i];
@@ -161,7 +161,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 if (values.length > 1) {
                     for (int i = 1; i < values.length; i++) {
                         values[0] -= values[i];
@@ -269,7 +269,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 if (values.length > 1) {
                     for (int i = 1; i < values.length; i++) {
                         values[0] *= values[i];
@@ -353,7 +353,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 if (values.length > 1) {
                     for (int i = 1; i < values.length; i++) {
                         if (values[i] == 0 && values[0] >= 0) {
@@ -418,7 +418,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 if (values.length > 1) {
                     for (int i = 1; i < values.length; i++) {
                         values[0] &= values[i];
@@ -483,7 +483,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 if (values.length > 1) {
                     for (int i = 1; i < values.length; i++) {
                         values[0] |= values[i];
@@ -532,7 +532,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 return ~values[0];
             }
 
@@ -592,7 +592,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 if (values.length > 1) {
                     for (int i = 1; i < values.length; i++) {
                         values[0] ^= values[i];
@@ -690,7 +690,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 double value = values[0];
                 if (value < LOWER_BOUND) {
                     return 0;
@@ -766,7 +766,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 double value = values[0];
                 if (value > 0) {
                     return (long) (Math.log(value) + 0.5);
@@ -842,7 +842,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 long value = values[0];
                 if ((value != Long.MIN_VALUE) && (value & Long.MIN_VALUE) != 0) {
                     // negative value
@@ -895,7 +895,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 return Long.MAX_VALUE - values[0];
             }
 
@@ -1060,7 +1060,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
             }
 
             @Override
-            public long calculate(long... values) {
+            public long calculateL(long... values) {
                 if (values.length > 1) {
                     if(values.length == 2){
                         if (values[0] == 0 && values[1] >= 0) {
@@ -1154,7 +1154,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
 
         public abstract double calculate(double... values);
 
-        public abstract long calculate(long... values);
+        public abstract long calculateL(long... values);
 
         public boolean isDataTypeSupported(int dataType) {
             return true;

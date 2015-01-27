@@ -1258,7 +1258,7 @@ public class AlgebraOpImage extends PointOpImage {
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
                             inputData = srcData[i][srcPixelOffset[i]];
-                            result = op.calculate(result, inputData);
+                            result = op.calculateL(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
                         // result = op.calculate(inputData);
@@ -1307,7 +1307,7 @@ public class AlgebraOpImage extends PointOpImage {
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
                             inputData = srcData[i][srcPixelOffset[i]];
-                            result = op.calculate(result, inputData);
+                            result = op.calculateL(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
                         // result = op.calculate(inputData);
@@ -1362,7 +1362,7 @@ public class AlgebraOpImage extends PointOpImage {
                                 inputData = nullValueInt;
                             }
 
-                            result = op.calculate(result, inputData);
+                            result = op.calculateL(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -1435,7 +1435,7 @@ public class AlgebraOpImage extends PointOpImage {
                                 inputData = nullValueInt;
                             }
 
-                            result = op.calculate(result, inputData);
+                            result = op.calculateL(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 

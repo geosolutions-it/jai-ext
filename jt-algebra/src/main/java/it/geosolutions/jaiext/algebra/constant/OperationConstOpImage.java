@@ -883,7 +883,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                             d[dstPixelOffset] = ImageUtil.clampRoundInt(op.calculate(
                                     s[srcPixelOffset], constants[b]));
                         } else {
-                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculate(s[srcPixelOffset],
+                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculateL(s[srcPixelOffset],
                                     c));
                         }
 
@@ -924,7 +924,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                             d[dstPixelOffset] = ImageUtil.clampRoundInt(op.calculate(
                                     s[srcPixelOffset], constants[b]));
                         } else {
-                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculate(s[srcPixelOffset],
+                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculateL(s[srcPixelOffset],
                                     c));
                         }
 
@@ -962,7 +962,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                             d[dstPixelOffset] = ImageUtil.clampRoundInt(op.calculate(
                                     s[srcPixelOffset], constants[b]));
                         } else {
-                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculate(s[srcPixelOffset],
+                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculateL(s[srcPixelOffset],
                                     c));
                         }
 
@@ -1004,7 +1004,7 @@ public final class OperationConstOpImage extends ColormapOpImage {
                             d[dstPixelOffset] = ImageUtil.clampRoundInt(op.calculate(
                                     s[srcPixelOffset], constants[b]));
                         } else {
-                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculate(s[srcPixelOffset],
+                            d[dstPixelOffset] = ImageUtil.clampInt(op.calculateL(s[srcPixelOffset],
                                     c));
                         }
 
