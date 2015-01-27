@@ -98,6 +98,8 @@ public class ColorConvertOpImage extends PointOpImage {
 
     private float[] destinationNoData;
 
+    private float[] destinationNoDataNoJAI;
+
     private double[] background;
 
     /**
@@ -276,6 +278,8 @@ public class ColorConvertOpImage extends PointOpImage {
         float minValue = getMinValue(dataType);
         float range = getRange(dataType);
 
+        destinationNoDataNoJAI = new float[numComponents];
+        destinationNoData = new float[numComponents];
         if (numComponents != numNoData) {
             if (numNoData <= 0) {
                 throw new IllegalArgumentException("Input NoData have not been defined");
@@ -285,22 +289,22 @@ public class ColorConvertOpImage extends PointOpImage {
             if (!isFloat) {
                 nod = (nod - minValue) / range;
             }
-            destinationNoData = new float[numComponents];
 
             for (int i = 0; i < numComponents; i++) {
-                destinationNoData[i] = nod;
+                destinationNoDataNoJAI[i] = nod;
+                destinationNoData[i] = (float) destNoData[0];
             }
         } else {
-            destinationNoData = new float[numComponents];
             for (int i = 0; i < numComponents; i++) {
-                float nod = (float) destNoData[0];
+                float nod = (float) destNoData[i];
                 nod = (nod - minValue) / range;
-                destinationNoData[i] = nod;
+                destinationNoDataNoJAI[i] = nod;
+                destinationNoData[i] = (float) destNoData[i];
             }
         }
         // Convert src to dst via CIEXYZ.
-        destinationNoData = srcColorSpace.toCIEXYZ(destinationNoData);
-        destinationNoData = dstColorSpace.fromCIEXYZ(destinationNoData);
+        destinationNoDataNoJAI = srcColorSpace.toCIEXYZ(destinationNoDataNoJAI);
+        destinationNoDataNoJAI = dstColorSpace.fromCIEXYZ(destinationNoDataNoJAI);
 
         // BackgroundValues
         background = new double[numComponents];
@@ -309,13 +313,15 @@ public class ColorConvertOpImage extends PointOpImage {
             minValue = getMinValue(dataType);
             range = getRange(dataType);
             for (int i = 0; i < numComponents; i++) {
-                double bkg = destinationNoData[0];
+                double bkg = destinationNoDataNoJAI[0];
                 bkg = (bkg * range) + minValue;
                 background[i] = bkg;
-                destinationNoData[i] = (float) bkg;
+                destinationNoDataNoJAI[i] = (float) bkg;
             }
         } else {
-            System.arraycopy(destinationNoData, 0, background, 0, numComponents);
+            for (int i = 0; i < numComponents; i++) {
+                background[i] = destinationNoDataNoJAI[i];
+            }
         }
 
         // Set flag to permit in-place operation.
@@ -425,9 +431,14 @@ public class ColorConvertOpImage extends PointOpImage {
         if (colorSpaceJAI instanceof ColorSpaceJAIExt) {
             colorSpaceJAIExt = (ColorSpaceJAIExt) colorSpaceJAI;
         } else {
-            colorSpaceJAIExt = new ColorSpaceJAIExtWrapper(colorSpaceJAI);
-            LOGGER.log(Level.SEVERE,
-                    "Input colorspace is not an instance of ColorSpaceJAIExt, No ROI/NoData support provided");
+            if (colorSpaceJAI instanceof IHSColorSpace) {
+                colorSpaceJAIExt = ColorSpaceJAIExt.getIHSColorSpace();
+            } else {
+                colorSpaceJAIExt = new ColorSpaceJAIExtWrapper(colorSpaceJAI);
+                LOGGER.log(Level.SEVERE,
+                        "Input colorspace is not an instance of ColorSpaceJAIExt, No ROI/NoData support provided");
+
+            }
         }
         dest = colorSpaceJAIExt.toRGB(src, srcParam.getComponentSize(), dest,
                 dstParam.getComponentSize(), roi, nodata, destinationNoData);
@@ -449,9 +460,14 @@ public class ColorConvertOpImage extends PointOpImage {
         if (colorSpaceJAI instanceof ColorSpaceJAIExt) {
             colorSpaceJAIExt = (ColorSpaceJAIExt) colorSpaceJAI;
         } else {
-            colorSpaceJAIExt = new ColorSpaceJAIExtWrapper(colorSpaceJAI);
-            LOGGER.log(Level.SEVERE,
-                    "Input colorspace is not an instance of ColorSpaceJAIExt, No ROI/NoData support provided");
+            if (colorSpaceJAI instanceof IHSColorSpace) {
+                colorSpaceJAIExt = ColorSpaceJAIExt.getIHSColorSpace();
+            } else {
+                colorSpaceJAIExt = new ColorSpaceJAIExtWrapper(colorSpaceJAI);
+                LOGGER.log(Level.SEVERE,
+                        "Input colorspace is not an instance of ColorSpaceJAIExt, No ROI/NoData support provided");
+
+            }
         }
         dest = colorSpaceJAIExt.fromRGB(src, srcParam.getComponentSize(), dest,
                 dstParam.getComponentSize(), roi, nodata, destinationNoData);
@@ -520,7 +536,7 @@ public class ColorConvertOpImage extends PointOpImage {
         float[] xyzPixel;
         float[] dstPixel;
         // Conversion from input value to Double range in order to check the input values
-        Range noData = RangeFactory.convertToDoubleRange(nodata);
+        Range noData = hasNoData ? RangeFactory.convertToDoubleRange(nodata) : null;
 
         if (roiDisjointTile) {
             // Setting all as NoData;
@@ -557,7 +573,7 @@ public class ColorConvertOpImage extends PointOpImage {
                 for (int x = destRect.x; x < rectXMax; x++) {
 
                     if (!(roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0)) {
-                        dstPixel = destinationNoData;
+                        dstPixel = destinationNoDataNoJAI;
                     } else {
                         srcPixel = src.getPixel(x, y, srcPixel);
                         if (!srcFloat) {
@@ -594,7 +610,7 @@ public class ColorConvertOpImage extends PointOpImage {
                     }
 
                     if (!valid) {
-                        dstPixel = destinationNoData;
+                        dstPixel = destinationNoDataNoJAI;
                     } else {
                         if (!srcFloat) {
                             // Normalize the source samples.
@@ -623,7 +639,7 @@ public class ColorConvertOpImage extends PointOpImage {
                 for (int x = destRect.x; x < rectXMax; x++) {
 
                     if (!(roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0)) {
-                        dstPixel = destinationNoData;
+                        dstPixel = destinationNoDataNoJAI;
                     } else {
                         srcPixel = src.getPixel(x, y, srcPixel);
                         // NoData Check
@@ -633,7 +649,7 @@ public class ColorConvertOpImage extends PointOpImage {
                         }
 
                         if (!valid) {
-                            dstPixel = destinationNoData;
+                            dstPixel = destinationNoDataNoJAI;
                         } else {
                             if (!srcFloat) {
                                 // Normalize the source samples.

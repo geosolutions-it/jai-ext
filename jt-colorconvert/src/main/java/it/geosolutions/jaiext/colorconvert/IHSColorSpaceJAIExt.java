@@ -11,9 +11,12 @@
  */
 package it.geosolutions.jaiext.colorconvert;
 
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.color.ColorSpace;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
@@ -23,9 +26,14 @@ import java.lang.ref.SoftReference;
 
 import javax.media.jai.ColorSpaceJAI;
 import javax.media.jai.PixelAccessor;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
+import javax.media.jai.ROIShape;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.UnpackedImageData;
+import javax.media.jai.iterator.RandomIter;
+
+import com.sun.media.jai.util.ImageUtil;
 
 /**
  * Singleton class representing the IHS (<i>I</i>ntensity, <i>H</i>ue, <i>S</i>aturation) color space (also known as HSI or HIS).
@@ -118,6 +126,13 @@ import javax.media.jai.UnpackedImageData;
 // Refer to <i>Digital Image Processing</i>, Second Edition, William K. Pratt
 // (Wiley, 1991), pages 71-72, for more information.
 public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
+
+    /** Constant indicating that the inner random iterators must pre-calculate an array of the image positions */
+    public static final boolean ARRAY_CALC = true;
+
+    /** Constant indicating that the inner random iterators must cache the current tile position */
+    public static final boolean TILE_CACHED = true;
+
     // Constant for rgb-to-ihs
     private static final double PI2 = Math.PI * 2.0;
 
@@ -392,7 +407,8 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
      */
     public WritableRaster fromCIEXYZ(Raster src, int[] srcComponentSize, WritableRaster dest,
             int[] destComponentSize, ROI roi, Range nodata, float[] destNodata) {
-        WritableRaster tempRas = CIEXYZToRGB(src, srcComponentSize, null, null);
+        WritableRaster tempRas = CIEXYZToRGB(src, srcComponentSize, null, null, roi, nodata,
+                destNodata);
         return fromRGB(tempRas, tempRas.getSampleModel().getSampleSize(), dest, destComponentSize,
                 roi, nodata, destNodata);
     }
@@ -404,6 +420,39 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
             int[] destComponentSize, ROI roi, Range nodata, float[] destNodata) {
         // Validate the parameters
         checkParameters(src, srcComponentSize, dest, destComponentSize);
+
+        // ROI check
+        ROI roiTile = null;
+
+        RandomIter roiIter = null;
+
+        boolean roiContainsTile = false;
+        boolean roiDisjointTile = false;
+
+        // If a ROI is present, then only the part contained inside the current tile bounds is taken.
+        Rectangle bounds = null;
+        if (roi != null) {
+            bounds = roi.getBounds();
+            Rectangle srcRectExpanded = src.getBounds();
+            // The tile dimension is extended for avoiding border errors
+            srcRectExpanded.setRect(srcRectExpanded.getMinX() - 1, srcRectExpanded.getMinY() - 1,
+                    srcRectExpanded.getWidth() + 2, srcRectExpanded.getHeight() + 2);
+            roiTile = roi.intersect(new ROIShape(srcRectExpanded));
+
+            if (!bounds.intersects(srcRectExpanded)) {
+                roiDisjointTile = true;
+            } else {
+                roiContainsTile = roiTile.contains(srcRectExpanded);
+                if (!roiContainsTile) {
+                    if (!roiTile.intersects(srcRectExpanded)) {
+                        roiDisjointTile = true;
+                    } else {
+                        PlanarImage roiIMG = roi.getAsImage();
+                        roiIter = RandomIterFactory.create(roiIMG, null, TILE_CACHED, ARRAY_CALC);
+                    }
+                }
+            }
+        }
 
         SampleModel srcSampleModel = src.getSampleModel();
 
@@ -429,20 +478,25 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         switch (srcSampleModel.getDataType()) {
 
         case DataBuffer.TYPE_BYTE:
-            fromRGBByte(srcUid, srcComponentSize, dest, destComponentSize);
+            fromRGBByte(srcUid, srcComponentSize, dest, destComponentSize, roiContainsTile,
+                    roiDisjointTile, roiIter, bounds, nodata, destNodata);
             break;
         case DataBuffer.TYPE_USHORT:
         case DataBuffer.TYPE_SHORT:
-            fromRGBShort(srcUid, srcComponentSize, dest, destComponentSize);
+            fromRGBShort(srcUid, srcComponentSize, dest, destComponentSize, roiContainsTile,
+                    roiDisjointTile, roiIter, bounds, nodata, destNodata);
             break;
         case DataBuffer.TYPE_INT:
-            fromRGBInt(srcUid, srcComponentSize, dest, destComponentSize);
+            fromRGBInt(srcUid, srcComponentSize, dest, destComponentSize, roiContainsTile,
+                    roiDisjointTile, roiIter, bounds, nodata, destNodata);
             break;
         case DataBuffer.TYPE_FLOAT:
-            fromRGBFloat(srcUid, srcComponentSize, dest, destComponentSize);
+            fromRGBFloat(srcUid, srcComponentSize, dest, destComponentSize, roiContainsTile,
+                    roiDisjointTile, roiIter, bounds, nodata, destNodata);
             break;
         case DataBuffer.TYPE_DOUBLE:
-            fromRGBDouble(srcUid, srcComponentSize, dest, destComponentSize);
+            fromRGBDouble(srcUid, srcComponentSize, dest, destComponentSize, roiContainsTile,
+                    roiDisjointTile, roiIter, bounds, nodata, destNodata);
             break;
         }
         return dest;
@@ -450,7 +504,8 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
 
     // convert a byte type raster from RGB to IHS
     private void fromRGBByte(UnpackedImageData src, int[] srcComponentSize, WritableRaster dest,
-            int[] destComponentSize) {
+            int[] destComponentSize, boolean roiContainsTile, boolean roiDisjointTile,
+            RandomIter roiIter, Rectangle roiBounds, Range nodata, float[] destNodata) {
         byte[] rBuf = src.getByteData(0);
         byte[] gBuf = src.getByteData(1);
         byte[] bBuf = src.getByteData(2);
@@ -496,62 +551,325 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         int srcLineStride = src.lineStride;
 
         int dIndex = 0;
-        for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
-            for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
-                short R = (short) ((rBuf[rIndex] & 0xFF) << normr);
-                short G = (short) ((gBuf[gIndex] & 0xFF) << normg);
-                short B = (short) ((bBuf[bIndex] & 0xFF) << normb);
 
-                if (isByte) {
-                    float intensity = (R + G + B) / 3.0f;
-                    dstIntPixels[dIndex++] = ((short) (intensity + 0.5f)) >> bnormi;
+        if (destNodata == null) {
+            destNodata = new float[3];
+        }
 
-                    short drg = (short) (R - G);
-                    short drb = (short) (R - B);
+        boolean hasROI = roiIter != null && roiBounds != null;
+        boolean hasNodata = nodata != null;
 
-                    int tint = drg * drg + drb * (drb - drg);
+        int destX = dest.getMinX();
+        int destY = dest.getMinY();
 
-                    short sum = (short) (drg + drb);
-                    double temp;
-                    if (tint != 0)
-                        temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
-                    else
-                        temp = -1.0;
+        double[] destNoDataFinal = getConvertedNodataBfromRGB(isByte, destNodata, normr, normg,
+                normb, bnormi, bnormh, bnorms, normi, normh, norms);
 
-                    int hue;
-                    if (sum > 0)
-                        hue = acosTable[(int) (500 * temp + 0.5) + 500];
-                    else
-                        hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+        if (roiDisjointTile) {
+            ImageUtil.fillBackground(dest, dest.getBounds(), destNoDataFinal);
+            return;
+        }
 
-                    if (B >= G)
-                        dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
-                    else
-                        dstIntPixels[dIndex++] = hue >> bnormh;
+        if (!hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    short R = (short) ((rBuf[rIndex] & 0xFF) << normr);
+                    short G = (short) ((gBuf[gIndex] & 0xFF) << normg);
+                    short B = (short) ((bBuf[bIndex] & 0xFF) << normb);
 
-                    short min = (G > B) ? B : G;
-                    min = (R > min) ? min : R;
-                    dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
-                } else {
-                    float intensity = (R + G + B) / 3.0f;
-                    dstPixels[dIndex++] = normi * intensity;
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = ((short) (intensity + 0.5f)) >> bnormi;
 
-                    double drg = R - G;
-                    double drb = R - B;
-                    double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+                        short drg = (short) (R - G);
+                        short drb = (short) (R - B);
 
-                    if (temp != 0) {
-                        temp = Math.acos((drg + drb) / temp / 2);
+                        int tint = drg * drg + drb * (drb - drg);
+
+                        short sum = (short) (drg + drb);
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
                         if (B >= G)
-                            temp = PI2 - temp;
-                    } else
-                        temp = PI2;
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
 
-                    dstPixels[dIndex++] = normh * temp;
+                        short min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
 
-                    double min = (G > B) ? B : G;
-                    min = (R > min) ? min : R;
-                    dstPixels[dIndex++] = norms * (1 - min / intensity);
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else if (hasROI && !hasNodata) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                int y0 = j + destY;
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    short R = (short) ((rBuf[rIndex] & 0xFF) << normr);
+                    short G = (short) ((gBuf[gIndex] & 0xFF) << normg);
+                    short B = (short) ((bBuf[bIndex] & 0xFF) << normb);
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = ((short) (intensity + 0.5f)) >> bnormi;
+
+                        short drg = (short) (R - G);
+                        short drb = (short) (R - B);
+
+                        int tint = drg * drg + drb * (drb - drg);
+
+                        short sum = (short) (drg + drb);
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        short min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else if (hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+
+                    byte r = rBuf[rIndex];
+                    byte g = gBuf[gIndex];
+                    byte b = bBuf[bIndex];
+
+                    boolean notValid = nodata.contains(r) || nodata.contains(g)
+                            || nodata.contains(b);
+
+                    if (notValid) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    short R = (short) ((r & 0xFF) << normr);
+                    short G = (short) ((g & 0xFF) << normg);
+                    short B = (short) ((b & 0xFF) << normb);
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = ((short) (intensity + 0.5f)) >> bnormi;
+
+                        short drg = (short) (R - G);
+                        short drb = (short) (R - B);
+
+                        int tint = drg * drg + drb * (drb - drg);
+
+                        short sum = (short) (drg + drb);
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        short min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                int y0 = j + destY;
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    byte r = rBuf[rIndex];
+                    byte g = gBuf[gIndex];
+                    byte b = bBuf[bIndex];
+
+                    boolean notValid = nodata.contains(r) || nodata.contains(g)
+                            || nodata.contains(b);
+
+                    if (notValid
+                            || !(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+
+                        continue;
+                    }
+
+                    short R = (short) ((r & 0xFF) << normr);
+                    short G = (short) ((g & 0xFF) << normg);
+                    short B = (short) ((b & 0xFF) << normb);
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = ((short) (intensity + 0.5f)) >> bnormi;
+
+                        short drg = (short) (R - G);
+                        short drb = (short) (R - B);
+
+                        int tint = drg * drg + drb * (drb - drg);
+
+                        short sum = (short) (drg + drb);
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        short min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
                 }
             }
         }
@@ -561,11 +879,13 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
             convertToSigned(dstPixels, dstType);
             dest.setPixels(dest.getMinX(), dest.getMinY(), width, height, dstPixels);
         }
+
     }
 
     // convert a short type ratser from RGB to IHS
     private void fromRGBShort(UnpackedImageData src, int[] srcComponentSize, WritableRaster dest,
-            int[] destComponentSize) {
+            int[] destComponentSize, boolean roiContainsTile, boolean roiDisjointTile,
+            RandomIter roiIter, Rectangle roiBounds, Range nodata, float[] destNodata) {
         short[] rBuf = src.getShortData(0);
         short[] gBuf = src.getShortData(1);
         short[] bBuf = src.getShortData(2);
@@ -614,63 +934,324 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         int srcLineStride = src.lineStride;
 
         int dIndex = 0;
-        for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
-            for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
-                int R = (rBuf[rIndex] & 0xFFFF) << normr;
-                int G = (gBuf[gIndex] & 0xFFFF) << normg;
-                int B = (bBuf[bIndex] & 0xFFFF) << normb;
 
-                if (isByte) {
-                    float intensity = (R + G + B) / 3.0f;
-                    dstIntPixels[dIndex++] = ((int) (intensity + 0.5f)) >> bnormi;
+        boolean hasROI = roiIter != null && roiBounds != null;
+        boolean hasNodata = nodata != null;
 
-                    int drg = R - G;
-                    int drb = R - B;
+        int destX = dest.getMinX();
+        int destY = dest.getMinY();
 
-                    double tint = drg * (double) drg + drb * (double) (drb - drg);
+        double[] destNoDataFinal = getConvertedNodataIfromRGB(isByte, destNodata, normr, normg,
+                normb, bnormi, bnormh, bnorms, normi, normh, norms, false);
 
-                    double sum = drg + drb;
-                    double temp;
-                    if (tint != 0)
-                        temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
-                    else
-                        temp = -1.0;
+        if (roiDisjointTile) {
+            ImageUtil.fillBackground(dest, dest.getBounds(), destNoDataFinal);
+            return;
+        }
 
-                    int hue;
-                    if (sum > 0)
-                        hue = acosTable[(int) (500 * temp + 0.5) + 500];
-                    else
-                        hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+        if (!hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    int R = (rBuf[rIndex] & 0xFFFF) << normr;
+                    int G = (gBuf[gIndex] & 0xFFFF) << normg;
+                    int B = (bBuf[bIndex] & 0xFFFF) << normb;
 
-                    if (B >= G)
-                        dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
-                    else
-                        dstIntPixels[dIndex++] = hue >> bnormh;
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = ((int) (intensity + 0.5f)) >> bnormi;
 
-                    int min = (G > B) ? B : G;
-                    min = (R > min) ? min : R;
-                    dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                        int drg = R - G;
+                        int drb = R - B;
 
-                } else {
-                    float intensity = (R + G + B) / 3.0f;
-                    dstPixels[dIndex++] = normi * intensity;
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
 
-                    double drg = R - G;
-                    double drb = R - B;
-                    double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
 
-                    if (temp != 0) {
-                        temp = Math.acos((drg + drb) / temp / 2);
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
                         if (B >= G)
-                            temp = PI2 - temp;
-                    } else
-                        temp = PI2;
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
 
-                    dstPixels[dIndex++] = normh * temp;
+                        int min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
 
-                    double min = (G > B) ? B : G;
-                    min = (R > min) ? min : R;
-                    dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else if (hasROI && !hasNodata) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                int y0 = j + destY;
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    int R = (rBuf[rIndex] & 0xFFFF) << normr;
+                    int G = (gBuf[gIndex] & 0xFFFF) << normg;
+                    int B = (bBuf[bIndex] & 0xFFFF) << normb;
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = ((int) (intensity + 0.5f)) >> bnormi;
+
+                        int drg = R - G;
+                        int drb = R - B;
+
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        int min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else if (hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+
+                    short r = rBuf[rIndex];
+                    short g = gBuf[gIndex];
+                    short b = bBuf[bIndex];
+
+                    boolean notValid = nodata.contains(r) || nodata.contains(g)
+                            || nodata.contains(b);
+
+                    if (notValid) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    int R = (r & 0xFFFF) << normr;
+                    int G = (g & 0xFFFF) << normg;
+                    int B = (b & 0xFFFF) << normb;
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = ((int) (intensity + 0.5f)) >> bnormi;
+
+                        int drg = R - G;
+                        int drb = R - B;
+
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        int min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                int y0 = j + destY;
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    short r = rBuf[rIndex];
+                    short g = gBuf[gIndex];
+                    short b = bBuf[bIndex];
+
+                    boolean notValid = nodata.contains(r) || nodata.contains(g)
+                            || nodata.contains(b);
+
+                    if (notValid
+                            || !(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    int R = (r & 0xFFFF) << normr;
+                    int G = (g & 0xFFFF) << normg;
+                    int B = (b & 0xFFFF) << normb;
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = ((int) (intensity + 0.5f)) >> bnormi;
+
+                        int drg = R - G;
+                        int drb = R - B;
+
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        int min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
                 }
             }
         }
@@ -685,7 +1266,8 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
 
     // convert an int type raster from RGB to IHS
     private void fromRGBInt(UnpackedImageData src, int[] srcComponentSize, WritableRaster dest,
-            int[] destComponentSize) {
+            int[] destComponentSize, boolean roiContainsTile, boolean roiDisjointTile,
+            RandomIter roiIter, Rectangle roiBounds, Range nodata, float[] destNodata) {
         int[] rBuf = src.getIntData(0);
         int[] gBuf = src.getIntData(1);
         int[] bBuf = src.getIntData(2);
@@ -732,62 +1314,320 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         int srcLineStride = src.lineStride;
 
         int dIndex = 0;
-        for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
-            for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
-                long R = (rBuf[rIndex] & 0xFFFFFFFFl) << normr;
-                long G = (gBuf[gIndex] & 0xFFFFFFFFl) << normg;
-                long B = (bBuf[bIndex] & 0xFFFFFFFFl) << normb;
 
-                if (isByte) {
-                    float intensity = (R + G + B) / 3.0f;
-                    dstIntPixels[dIndex++] = (int) (((long) (intensity + 0.5f)) >> bnormi);
+        boolean hasROI = roiIter != null && roiBounds != null;
+        boolean hasNodata = nodata != null;
 
-                    long drg = R - G;
-                    long drb = R - B;
+        int destX = dest.getMinX();
+        int destY = dest.getMinY();
 
-                    double tint = drg * (double) drg + drb * (double) (drb - drg);
+        double[] destNoDataFinal = getConvertedNodataIfromRGB(isByte, destNodata, normr, normg,
+                normb, bnormi, bnormh, bnorms, normi, normh, norms, true);
 
-                    double sum = drg + drb;
-                    double temp;
-                    if (tint != 0)
-                        temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
-                    else
-                        temp = -1.0;
+        if (roiDisjointTile) {
+            ImageUtil.fillBackground(dest, dest.getBounds(), destNoDataFinal);
+            return;
+        }
 
-                    int hue;
-                    if (sum > 0)
-                        hue = acosTable[(int) (500 * temp + 0.5) + 500];
-                    else
-                        hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+        if (!hasNodata && (!hasROI || (hasROI && roiContainsTile))) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    long R = (rBuf[rIndex] & 0xFFFFFFFFl) << normr;
+                    long G = (gBuf[gIndex] & 0xFFFFFFFFl) << normg;
+                    long B = (bBuf[bIndex] & 0xFFFFFFFFl) << normb;
 
-                    if (B >= G)
-                        dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
-                    else
-                        dstIntPixels[dIndex++] = hue >> bnormh;
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (((long) (intensity + 0.5f)) >> bnormi);
 
-                    long min = (G > B) ? B : G;
-                    min = (R > min) ? min : R;
-                    dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
-                } else {
-                    float intensity = (R + G + B) / 3.0f;
-                    dstPixels[dIndex++] = normi * intensity;
+                        long drg = R - G;
+                        long drb = R - B;
 
-                    double drg = R - G;
-                    double drb = R - B;
-                    double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
 
-                    if (temp != 0) {
-                        temp = Math.acos((drg + drb) / temp / 2);
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
                         if (B >= G)
-                            temp = PI2 - temp;
-                    } else
-                        temp = PI2;
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
 
-                    dstPixels[dIndex++] = normh * temp;
+                        long min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
 
-                    double min = (G > B) ? B : G;
-                    min = (R > min) ? min : R;
-                    dstPixels[dIndex++] = norms * (1 - min / intensity);
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else if (hasROI && !hasNodata) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                int y0 = j + destY;
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    long R = (rBuf[rIndex] & 0xFFFFFFFFl) << normr;
+                    long G = (gBuf[gIndex] & 0xFFFFFFFFl) << normg;
+                    long B = (bBuf[bIndex] & 0xFFFFFFFFl) << normb;
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (((long) (intensity + 0.5f)) >> bnormi);
+
+                        long drg = R - G;
+                        long drb = R - B;
+
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        long min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else if (hasNodata && (!hasROI || (hasROI && roiContainsTile))) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+
+                    int r = rBuf[rIndex];
+                    int g = gBuf[gIndex];
+                    int b = bBuf[bIndex];
+
+                    boolean notValid = nodata.contains(r) || nodata.contains(g)
+                            || nodata.contains(b);
+
+                    if (notValid) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    long R = (r & 0xFFFFFFFFl) << normr;
+                    long G = (g & 0xFFFFFFFFl) << normg;
+                    long B = (b & 0xFFFFFFFFl) << normb;
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (((long) (intensity + 0.5f)) >> bnormi);
+
+                        long drg = R - G;
+                        long drb = R - B;
+
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        long min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                int y0 = j + destY;
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    int r = rBuf[rIndex];
+                    int g = gBuf[gIndex];
+                    int b = bBuf[bIndex];
+
+                    boolean notValid = nodata.contains(r) || nodata.contains(g)
+                            || nodata.contains(b);
+
+                    if (notValid
+                            || !(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    long R = (r & 0xFFFFFFFFl) << normr;
+                    long G = (g & 0xFFFFFFFFl) << normg;
+                    long B = (b & 0xFFFFFFFFl) << normb;
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (((long) (intensity + 0.5f)) >> bnormi);
+
+                        long drg = R - G;
+                        long drb = R - B;
+
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        long min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
                 }
             }
         }
@@ -802,7 +1642,8 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
 
     // convert a float type raster from RGB to IHS
     private void fromRGBFloat(UnpackedImageData src, int[] srcComponentSize, WritableRaster dest,
-            int[] destComponentSize) {
+            int[] destComponentSize, boolean roiContainsTile, boolean roiDisjointTile,
+            RandomIter roiIter, Rectangle roiBounds, Range nodata, float[] destNodata) {
         float[] rBuf = src.getFloatData(0);
         float[] gBuf = src.getFloatData(1);
         float[] bBuf = src.getFloatData(2);
@@ -844,62 +1685,312 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         int srcLineStride = src.lineStride;
 
         int dIndex = 0;
-        for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
-            for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
-                float R = rBuf[rIndex];
-                float G = gBuf[gIndex];
-                float B = bBuf[bIndex];
 
-                if (isByte) {
-                    float intensity = (R + G + B) / 3.0f;
-                    dstIntPixels[dIndex++] = (int) (intensity * bnormi + 0.5f);
+        boolean hasROI = roiIter != null && roiBounds != null;
+        boolean hasNodata = nodata != null;
 
-                    float drg = R - G;
-                    float drb = R - B;
+        int destX = dest.getMinX();
+        int destY = dest.getMinY();
 
-                    double tint = drg * (double) drg + drb * (double) (drb - drg);
+        double[] destNoDataFinal = getConvertedNodataDfromRGB(isByte, destNodata, bnormi, bnormh,
+                bnorms, normi, normh, norms);
 
-                    double sum = drg + drb;
-                    double temp;
-                    if (tint != 0)
-                        temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
-                    else
-                        temp = -1.0;
+        if (roiDisjointTile) {
+            ImageUtil.fillBackground(dest, dest.getBounds(), destNoDataFinal);
+            return;
+        }
 
-                    int hue;
-                    if (sum > 0)
-                        hue = acosTable[(int) (500 * temp + 0.5) + 500];
-                    else
-                        hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+        if (!hasNodata && (!hasROI || (hasROI && roiContainsTile))) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    float R = rBuf[rIndex];
+                    float G = gBuf[gIndex];
+                    float B = bBuf[bIndex];
 
-                    if (B >= G)
-                        dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
-                    else
-                        dstIntPixels[dIndex++] = hue >> bnormh;
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (intensity * bnormi + 0.5f);
 
-                    float min = (G > B) ? B : G;
-                    min = (R > min) ? min : R;
-                    dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
-                } else {
-                    float intensity = (R + G + B) / 3.0f;
-                    dstPixels[dIndex++] = normi * intensity;
+                        float drg = R - G;
+                        float drb = R - B;
 
-                    double drg = R - G;
-                    double drb = R - B;
-                    double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
 
-                    if (temp != 0) {
-                        temp = Math.acos((drg + drb) / temp / 2);
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
                         if (B >= G)
-                            temp = PI2 - temp;
-                    } else
-                        temp = PI2;
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
 
-                    dstPixels[dIndex++] = normh * temp;
+                        float min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
 
-                    double min = (G > B) ? B : G;
-                    min = (R > min) ? min : R;
-                    dstPixels[dIndex++] = norms * (1 - min / intensity);
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else if (hasROI && !hasNodata) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                int y0 = j + destY;
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    float R = rBuf[rIndex];
+                    float G = gBuf[gIndex];
+                    float B = bBuf[bIndex];
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (intensity * bnormi + 0.5f);
+
+                        float drg = R - G;
+                        float drb = R - B;
+
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        float min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else if (hasNodata && (!hasROI || (hasROI && roiContainsTile))) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+
+                    float R = rBuf[rIndex];
+                    float G = gBuf[gIndex];
+                    float B = bBuf[bIndex];
+
+                    boolean notValid = nodata.contains(R) || nodata.contains(G)
+                            || nodata.contains(B);
+
+                    if (notValid) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (intensity * bnormi + 0.5f);
+
+                        float drg = R - G;
+                        float drb = R - B;
+
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        float min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                int y0 = j + destY;
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    float R = rBuf[rIndex];
+                    float G = gBuf[gIndex];
+                    float B = bBuf[bIndex];
+
+                    boolean notValid = nodata.contains(R) || nodata.contains(G)
+                            || nodata.contains(B);
+
+                    if (notValid
+                            || !(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    if (isByte) {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (intensity * bnormi + 0.5f);
+
+                        float drg = R - G;
+                        float drb = R - B;
+
+                        double tint = drg * (double) drg + drb * (double) (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        float min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        float intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
                 }
             }
         }
@@ -914,7 +2005,8 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
 
     // convert a double type raster from RGB to IHS
     private void fromRGBDouble(UnpackedImageData src, int[] srcComponentSize, WritableRaster dest,
-            int[] destComponentSize) {
+            int[] destComponentSize, boolean roiContainsTile, boolean roiDisjointTile,
+            RandomIter roiIter, Rectangle roiBounds, Range nodata, float[] destNodata) {
         double[] rBuf = src.getDoubleData(0);
         double[] gBuf = src.getDoubleData(1);
         double[] bBuf = src.getDoubleData(2);
@@ -956,65 +2048,318 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         int srcLineStride = src.lineStride;
 
         int dIndex = 0;
-        for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
-            for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
-                double R = rBuf[rIndex];
-                double G = gBuf[gIndex];
-                double B = bBuf[bIndex];
 
-                if (isByte) {
-                    double intensity = (R + G + B) / 3.0f;
-                    dstIntPixels[dIndex++] = (int) (intensity * bnormi + 0.5);
+        boolean hasROI = roiIter != null && roiBounds != null;
+        boolean hasNodata = nodata != null;
 
-                    double drg = R - G;
-                    double drb = R - B;
+        int destX = dest.getMinX();
+        int destY = dest.getMinY();
 
-                    double tint = drg * drg + drb * (drb - drg);
+        double[] destNoDataFinal = getConvertedNodataDfromRGB(isByte, destNodata, bnormi, bnormh,
+                bnorms, normi, normh, norms);
 
-                    double sum = drg + drb;
-                    double temp;
-                    if (tint != 0.0)
-                        temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
-                    else
-                        temp = -1.0;
+        if (roiDisjointTile) {
+            ImageUtil.fillBackground(dest, dest.getBounds(), destNoDataFinal);
+            return;
+        }
 
-                    int hue;
-                    if (sum > 0)
-                        hue = acosTable[(int) (500 * temp + 0.5) + 500];
-                    else
-                        hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+        if (!hasNodata && (!hasROI || (hasROI && roiContainsTile))) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+                    double R = rBuf[rIndex];
+                    double G = gBuf[gIndex];
+                    double B = bBuf[bIndex];
 
-                    if (B >= G)
-                        dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
-                    else
-                        dstIntPixels[dIndex++] = hue >> bnormh;
+                    if (isByte) {
+                        double intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (intensity * bnormi + 0.5);
 
-                    double min = (G > B) ? B : G;
-                    min = (R > min) ? min : R;
-                    dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
-                } else {
-                    double intensity = (R + G + B) / 3.0f;
-                    dstPixels[dIndex++] = normi * intensity;
+                        double drg = R - G;
+                        double drb = R - B;
 
-                    double drg = R - G;
-                    double drb = R - B;
-                    double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+                        double tint = drg * drg + drb * (drb - drg);
 
-                    if (temp != 0) {
-                        temp = Math.acos((drg + drb) / temp / 2);
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0.0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
                         if (B >= G)
-                            temp = PI2 - temp;
-                    } else
-                        temp = PI2;
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
 
-                    dstPixels[dIndex++] = normh * temp;
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        double intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
 
-                    double min = (G > B) ? B : G;
-                    min = (R > min) ? min : R;
-                    dstPixels[dIndex++] = norms * (1 - min / intensity);
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else if (!hasNodata && hasROI) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                int y0 = j + destY;
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+
+                    int x0 = i + destX;
+
+                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    double R = rBuf[rIndex];
+                    double G = gBuf[gIndex];
+                    double B = bBuf[bIndex];
+
+                    if (isByte) {
+                        double intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (intensity * bnormi + 0.5);
+
+                        double drg = R - G;
+                        double drb = R - B;
+
+                        double tint = drg * drg + drb * (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0.0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        double intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else if (hasNodata && (!hasROI || (hasROI && roiContainsTile))) {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+
+                    double R = rBuf[rIndex];
+                    double G = gBuf[gIndex];
+                    double B = bBuf[bIndex];
+
+                    boolean notValid = nodata.contains(R) || nodata.contains(G)
+                            || nodata.contains(B);
+
+                    if (notValid) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    if (isByte) {
+                        double intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (intensity * bnormi + 0.5);
+
+                        double drg = R - G;
+                        double drb = R - B;
+
+                        double tint = drg * drg + drb * (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0.0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        double intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
+                }
+            }
+        } else {
+            for (int j = 0; j < height; j++, rStart += srcLineStride, gStart += srcLineStride, bStart += srcLineStride) {
+                int y0 = j + destY;
+                for (int i = 0, rIndex = rStart, gIndex = gStart, bIndex = bStart; i < width; i++, rIndex += srcPixelStride, gIndex += srcPixelStride, bIndex += srcPixelStride) {
+
+                    int x0 = i + destX;
+
+                    double R = rBuf[rIndex];
+                    double G = gBuf[gIndex];
+                    double B = bBuf[bIndex];
+
+                    boolean notValid = nodata.contains(R) || nodata.contains(G)
+                            || nodata.contains(B);
+
+                    if (notValid
+                            && !(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    if (isByte) {
+                        double intensity = (R + G + B) / 3.0f;
+                        dstIntPixels[dIndex++] = (int) (intensity * bnormi + 0.5);
+
+                        double drg = R - G;
+                        double drb = R - B;
+
+                        double tint = drg * drg + drb * (drb - drg);
+
+                        double sum = drg + drb;
+                        double temp;
+                        if (tint != 0.0)
+                            temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+                        else
+                            temp = -1.0;
+
+                        int hue;
+                        if (sum > 0)
+                            hue = acosTable[(int) (500 * temp + 0.5) + 500];
+                        else
+                            hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+                        if (B >= G)
+                            dstIntPixels[dIndex++] = (255 - hue) >> bnormh;
+                        else
+                            dstIntPixels[dIndex++] = hue >> bnormh;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstIntPixels[dIndex++] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+                    } else {
+                        double intensity = (R + G + B) / 3.0f;
+                        dstPixels[dIndex++] = normi * intensity;
+
+                        double drg = R - G;
+                        double drb = R - B;
+                        double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+                        if (temp != 0) {
+                            temp = Math.acos((drg + drb) / temp / 2);
+                            if (B >= G)
+                                temp = PI2 - temp;
+                        } else
+                            temp = PI2;
+
+                        dstPixels[dIndex++] = normh * temp;
+
+                        double min = (G > B) ? B : G;
+                        min = (R > min) ? min : R;
+                        dstPixels[dIndex++] = norms * (1 - min / intensity);
+                    }
                 }
             }
         }
+
         if (isByte)
             dest.setPixels(dest.getMinX(), dest.getMinY(), width, height, dstIntPixels);
         else {
@@ -1030,7 +2375,7 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
             int[] destComponentSize, ROI roi, Range nodata, float[] destNodata) {
         WritableRaster tempRas = toRGB(src, srcComponentSize, null, null, roi, nodata, destNodata);
         return RGBToCIEXYZ(tempRas, tempRas.getSampleModel().getSampleSize(), dest,
-                destComponentSize);
+                destComponentSize, roi, nodata, destNodata);
     }
 
     /**
@@ -1040,6 +2385,39 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
             int[] destComponentSize, ROI roi, Range nodata, float[] destNodata) {
 
         checkParameters(src, srcComponentSize, dest, destComponentSize);
+
+        // ROI check
+        ROI roiTile = null;
+
+        RandomIter roiIter = null;
+
+        boolean roiContainsTile = false;
+        boolean roiDisjointTile = false;
+
+        // If a ROI is present, then only the part contained inside the current tile bounds is taken.
+        Rectangle bounds = null;
+        if (roi != null) {
+            bounds = roi.getBounds();
+            Rectangle srcRectExpanded = src.getBounds();
+            // The tile dimension is extended for avoiding border errors
+            srcRectExpanded.setRect(srcRectExpanded.getMinX() - 1, srcRectExpanded.getMinY() - 1,
+                    srcRectExpanded.getWidth() + 2, srcRectExpanded.getHeight() + 2);
+            roiTile = roi.intersect(new ROIShape(srcRectExpanded));
+
+            if (!bounds.intersects(srcRectExpanded)) {
+                roiDisjointTile = true;
+            } else {
+                roiContainsTile = roiTile.contains(srcRectExpanded);
+                if (!roiContainsTile) {
+                    if (!roiTile.intersects(srcRectExpanded)) {
+                        roiDisjointTile = true;
+                    } else {
+                        PlanarImage roiIMG = roi.getAsImage();
+                        roiIter = RandomIterFactory.create(roiIMG, null, TILE_CACHED, ARRAY_CALC);
+                    }
+                }
+            }
+        }
 
         SampleModel srcSampleModel = src.getSampleModel();
 
@@ -1062,20 +2440,25 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         switch (srcSampleModel.getDataType()) {
 
         case DataBuffer.TYPE_BYTE:
-            toRGBByte(srcUid, srcComponentSize, dest, destComponentSize);
+            toRGBByte(srcUid, srcComponentSize, dest, destComponentSize, roiContainsTile,
+                    roiDisjointTile, roiIter, bounds, nodata, destNodata);
             break;
         case DataBuffer.TYPE_USHORT:
         case DataBuffer.TYPE_SHORT:
-            toRGBShort(srcUid, srcComponentSize, dest, destComponentSize);
+            toRGBShort(srcUid, srcComponentSize, dest, destComponentSize, roiContainsTile,
+                    roiDisjointTile, roiIter, bounds, nodata, destNodata);
             break;
         case DataBuffer.TYPE_INT:
-            toRGBInt(srcUid, srcComponentSize, dest, destComponentSize);
+            toRGBInt(srcUid, srcComponentSize, dest, destComponentSize, roiContainsTile,
+                    roiDisjointTile, roiIter, bounds, nodata, destNodata);
             break;
         case DataBuffer.TYPE_FLOAT:
-            toRGBFloat(srcUid, srcComponentSize, dest, destComponentSize);
+            toRGBFloat(srcUid, srcComponentSize, dest, destComponentSize, roiContainsTile,
+                    roiDisjointTile, roiIter, bounds, nodata, destNodata);
             break;
         case DataBuffer.TYPE_DOUBLE:
-            toRGBDouble(srcUid, srcComponentSize, dest, destComponentSize);
+            toRGBDouble(srcUid, srcComponentSize, dest, destComponentSize, roiContainsTile,
+                    roiDisjointTile, roiIter, bounds, nodata, destNodata);
             break;
         }
         return dest;
@@ -1083,7 +2466,8 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
 
     // convert a byte type raster from IHS to RGB
     private void toRGBByte(UnpackedImageData src, int[] srcComponentSize, WritableRaster dest,
-            int[] destComponentSize) {
+            int[] destComponentSize, boolean roiContainsTile, boolean roiDisjointTile,
+            RandomIter roiIter, Rectangle roiBounds, Range nodata, float[] destNodata) {
         byte[] iBuf = src.getByteData(0);
         byte[] hBuf = src.getByteData(1);
         byte[] sBuf = src.getByteData(2);
@@ -1124,73 +2508,369 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         int srcLineStride = src.lineStride;
 
         int dIndex = 0;
-        for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
-            for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
-                double I = (iBuf[iIndex] & 0xFF) * normi;
-                int h = hBuf[hIndex] & 0xFF;
-                double S = (sBuf[sIndex] & 0xFF) * norms;
 
-                if (isByte) {
-                    float r, g, b;
+        boolean hasROI = roiIter != null && roiBounds != null;
+        boolean hasNodata = nodata != null;
 
-                    r = g = b = (float) I;
+        int destX = dest.getMinX();
+        int destY = dest.getMinY();
 
-                    if (S != 0.0) {
-                        if (h >= 85 && h <= 170) {
-                            r = (float) ((1 - S) * I);
-                            float c1 = (float) (3 * I - r);
-                            float c2 = (float) (SQRT3 * (r - I) * tanTable[h]);
-                            g = (float) ((c1 + c2) / 2);
-                            b = (float) ((c1 - c2) / 2);
-                        } else if (h > 170) {
-                            g = (float) ((1 - S) * I);
-                            float c1 = (float) (3 * I - g);
-                            float c2 = (float) (SQRT3 * (g - I) * tanTable[h - 85]);
-                            b = (c1 + c2) / 2;
-                            r = (c1 - c2) / 2;
-                        } else if (h < 85) {
-                            b = (float) ((1 - S) * I);
-                            float c1 = (float) (3 * I - b);
-                            float c2 = (float) (SQRT3 * (b - I) * tanTable[h + 85]);
-                            r = (c1 + c2) / 2;
-                            g = (c1 - c2) / 2;
+        double[] destNoDataFinal = getConvertedNodataBToRGB(isByte, destNodata, normi, norms,
+                normr, normg, normb, normh);
+
+        if (roiDisjointTile) {
+            ImageUtil.fillBackground(dest, dest.getBounds(), destNoDataFinal);
+            return;
+        }
+
+        if (!hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+
+                    double I = (iBuf[iIndex] & 0xFF) * normi;
+                    int h = hBuf[hIndex] & 0xFF;
+                    double S = (sBuf[sIndex] & 0xFF) * norms;
+
+                    if (isByte) {
+                        float r, g, b;
+
+                        r = g = b = (float) I;
+
+                        if (S != 0.0) {
+                            if (h >= 85 && h <= 170) {
+                                r = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - r);
+                                float c2 = (float) (SQRT3 * (r - I) * tanTable[h]);
+                                g = (float) ((c1 + c2) / 2);
+                                b = (float) ((c1 - c2) / 2);
+                            } else if (h > 170) {
+                                g = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - g);
+                                float c2 = (float) (SQRT3 * (g - I) * tanTable[h - 85]);
+                                b = (c1 + c2) / 2;
+                                r = (c1 - c2) / 2;
+                            } else if (h < 85) {
+                                b = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - b);
+                                float c2 = (float) (SQRT3 * (b - I) * tanTable[h + 85]);
+                                r = (c1 + c2) / 2;
+                                g = (c1 - c2) / 2;
+                            }
                         }
-                    }
-                    dstIntPixels[dIndex++] = (int) (((r < 0.0f) ? 0.0f : ((r > 1.0f) ? 1.0f : r))
-                            * normr + 0.5);
-                    dstIntPixels[dIndex++] = (int) (((g < 0.0f) ? 0.0f : ((g > 1.0f) ? 1.0f : g))
-                            * normg + 0.5);
-                    dstIntPixels[dIndex++] = (int) (((b < 0.0f) ? 0.0f : ((b > 1.0f) ? 1.0f : b))
-                            * normb + 0.5);
-                } else {
-                    double R, G, B;
+                        dstIntPixels[dIndex++] = (int) (((r < 0.0f) ? 0.0f
+                                : ((r > 1.0f) ? 1.0f : r)) * normr + 0.5);
+                        dstIntPixels[dIndex++] = (int) (((g < 0.0f) ? 0.0f
+                                : ((g > 1.0f) ? 1.0f : g)) * normg + 0.5);
+                        dstIntPixels[dIndex++] = (int) (((b < 0.0f) ? 0.0f
+                                : ((b > 1.0f) ? 1.0f : b)) * normb + 0.5);
+                    } else {
+                        double R, G, B;
 
-                    R = G = B = I;
-                    if (S != 0) {
-                        double H = h * normh;
-                        if (H >= PI23 && H <= PI43) {
-                            R = (1 - S) * I;
-                            double c1 = 3 * I - R;
-                            double c2 = SQRT3 * (R - I) * Math.tan(H);
-                            G = (c1 + c2) / 2;
-                            B = (c1 - c2) / 2;
-                        } else if (H > PI43) {
-                            G = (1 - S) * I;
-                            double c1 = 3 * I - G;
-                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
-                            B = (c1 + c2) / 2;
-                            R = (c1 - c2) / 2;
-                        } else if (H < PI23) {
-                            B = (1 - S) * I;
-                            double c1 = 3 * I - B;
-                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
-                            R = (c1 + c2) / 2;
-                            G = (c1 - c2) / 2;
+                        R = G = B = I;
+                        if (S != 0) {
+                            double H = h * normh;
+                            if (H >= PI23 && H <= PI43) {
+                                R = (1 - S) * I;
+                                double c1 = 3 * I - R;
+                                double c2 = SQRT3 * (R - I) * Math.tan(H);
+                                G = (c1 + c2) / 2;
+                                B = (c1 - c2) / 2;
+                            } else if (H > PI43) {
+                                G = (1 - S) * I;
+                                double c1 = 3 * I - G;
+                                double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                                B = (c1 + c2) / 2;
+                                R = (c1 - c2) / 2;
+                            } else if (H < PI23) {
+                                B = (1 - S) * I;
+                                double c1 = 3 * I - B;
+                                double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                                R = (c1 + c2) / 2;
+                                G = (c1 - c2) / 2;
+                            }
                         }
+                        dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                        dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                        dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
                     }
-                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
-                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
-                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else if (!hasNodata && hasROI) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+
+                int y0 = j + destY;
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+
+                    int x0 = i + destX;
+
+                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    double I = (iBuf[iIndex] & 0xFF) * normi;
+                    int h = hBuf[hIndex] & 0xFF;
+                    double S = (sBuf[sIndex] & 0xFF) * norms;
+
+                    if (isByte) {
+                        float r, g, b;
+
+                        r = g = b = (float) I;
+
+                        if (S != 0.0) {
+                            if (h >= 85 && h <= 170) {
+                                r = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - r);
+                                float c2 = (float) (SQRT3 * (r - I) * tanTable[h]);
+                                g = (float) ((c1 + c2) / 2);
+                                b = (float) ((c1 - c2) / 2);
+                            } else if (h > 170) {
+                                g = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - g);
+                                float c2 = (float) (SQRT3 * (g - I) * tanTable[h - 85]);
+                                b = (c1 + c2) / 2;
+                                r = (c1 - c2) / 2;
+                            } else if (h < 85) {
+                                b = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - b);
+                                float c2 = (float) (SQRT3 * (b - I) * tanTable[h + 85]);
+                                r = (c1 + c2) / 2;
+                                g = (c1 - c2) / 2;
+                            }
+                        }
+                        dstIntPixels[dIndex++] = (int) (((r < 0.0f) ? 0.0f
+                                : ((r > 1.0f) ? 1.0f : r)) * normr + 0.5);
+                        dstIntPixels[dIndex++] = (int) (((g < 0.0f) ? 0.0f
+                                : ((g > 1.0f) ? 1.0f : g)) * normg + 0.5);
+                        dstIntPixels[dIndex++] = (int) (((b < 0.0f) ? 0.0f
+                                : ((b > 1.0f) ? 1.0f : b)) * normb + 0.5);
+                    } else {
+                        double R, G, B;
+
+                        R = G = B = I;
+                        if (S != 0) {
+                            double H = h * normh;
+                            if (H >= PI23 && H <= PI43) {
+                                R = (1 - S) * I;
+                                double c1 = 3 * I - R;
+                                double c2 = SQRT3 * (R - I) * Math.tan(H);
+                                G = (c1 + c2) / 2;
+                                B = (c1 - c2) / 2;
+                            } else if (H > PI43) {
+                                G = (1 - S) * I;
+                                double c1 = 3 * I - G;
+                                double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                                B = (c1 + c2) / 2;
+                                R = (c1 - c2) / 2;
+                            } else if (H < PI23) {
+                                B = (1 - S) * I;
+                                double c1 = 3 * I - B;
+                                double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                                R = (c1 + c2) / 2;
+                                G = (c1 - c2) / 2;
+                            }
+                        }
+                        dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                        dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                        dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                    }
+                }
+            }
+        } else if (hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+
+                    byte iB = iBuf[iIndex];
+                    byte hB = hBuf[hIndex];
+                    byte sB = sBuf[sIndex];
+
+                    boolean notValid = nodata.contains(iB) || nodata.contains(hB)
+                            || nodata.contains(sB);
+
+                    if (notValid) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    double I = (iB & 0xFF) * normi;
+                    int h = hB & 0xFF;
+                    double S = (sB & 0xFF) * norms;
+
+                    if (isByte) {
+                        float r, g, b;
+
+                        r = g = b = (float) I;
+
+                        if (S != 0.0) {
+                            if (h >= 85 && h <= 170) {
+                                r = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - r);
+                                float c2 = (float) (SQRT3 * (r - I) * tanTable[h]);
+                                g = (float) ((c1 + c2) / 2);
+                                b = (float) ((c1 - c2) / 2);
+                            } else if (h > 170) {
+                                g = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - g);
+                                float c2 = (float) (SQRT3 * (g - I) * tanTable[h - 85]);
+                                b = (c1 + c2) / 2;
+                                r = (c1 - c2) / 2;
+                            } else if (h < 85) {
+                                b = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - b);
+                                float c2 = (float) (SQRT3 * (b - I) * tanTable[h + 85]);
+                                r = (c1 + c2) / 2;
+                                g = (c1 - c2) / 2;
+                            }
+                        }
+                        dstIntPixels[dIndex++] = (int) (((r < 0.0f) ? 0.0f
+                                : ((r > 1.0f) ? 1.0f : r)) * normr + 0.5);
+                        dstIntPixels[dIndex++] = (int) (((g < 0.0f) ? 0.0f
+                                : ((g > 1.0f) ? 1.0f : g)) * normg + 0.5);
+                        dstIntPixels[dIndex++] = (int) (((b < 0.0f) ? 0.0f
+                                : ((b > 1.0f) ? 1.0f : b)) * normb + 0.5);
+                    } else {
+                        double R, G, B;
+
+                        R = G = B = I;
+                        if (S != 0) {
+                            double H = h * normh;
+                            if (H >= PI23 && H <= PI43) {
+                                R = (1 - S) * I;
+                                double c1 = 3 * I - R;
+                                double c2 = SQRT3 * (R - I) * Math.tan(H);
+                                G = (c1 + c2) / 2;
+                                B = (c1 - c2) / 2;
+                            } else if (H > PI43) {
+                                G = (1 - S) * I;
+                                double c1 = 3 * I - G;
+                                double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                                B = (c1 + c2) / 2;
+                                R = (c1 - c2) / 2;
+                            } else if (H < PI23) {
+                                B = (1 - S) * I;
+                                double c1 = 3 * I - B;
+                                double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                                R = (c1 + c2) / 2;
+                                G = (c1 - c2) / 2;
+                            }
+                        }
+                        dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                        dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                        dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                    }
+                }
+            }
+        } else {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+
+                int y0 = j + destY;
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+
+                    int x0 = i + destX;
+
+                    byte iB = iBuf[iIndex];
+                    byte hB = hBuf[hIndex];
+                    byte sB = sBuf[sIndex];
+
+                    boolean notValid = nodata.contains(iB) || nodata.contains(hB)
+                            || nodata.contains(sB);
+
+                    if (notValid
+                            || !(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        if (isByte) {
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[0];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[1];
+                            dstIntPixels[dIndex++] = (int) destNoDataFinal[2];
+                        } else {
+                            dstPixels[dIndex++] = destNoDataFinal[0];
+                            dstPixels[dIndex++] = destNoDataFinal[1];
+                            dstPixels[dIndex++] = destNoDataFinal[2];
+                        }
+                        continue;
+                    }
+
+                    double I = (iB & 0xFF) * normi;
+                    int h = hB & 0xFF;
+                    double S = (sB & 0xFF) * norms;
+
+                    if (isByte) {
+                        float r, g, b;
+
+                        r = g = b = (float) I;
+
+                        if (S != 0.0) {
+                            if (h >= 85 && h <= 170) {
+                                r = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - r);
+                                float c2 = (float) (SQRT3 * (r - I) * tanTable[h]);
+                                g = (float) ((c1 + c2) / 2);
+                                b = (float) ((c1 - c2) / 2);
+                            } else if (h > 170) {
+                                g = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - g);
+                                float c2 = (float) (SQRT3 * (g - I) * tanTable[h - 85]);
+                                b = (c1 + c2) / 2;
+                                r = (c1 - c2) / 2;
+                            } else if (h < 85) {
+                                b = (float) ((1 - S) * I);
+                                float c1 = (float) (3 * I - b);
+                                float c2 = (float) (SQRT3 * (b - I) * tanTable[h + 85]);
+                                r = (c1 + c2) / 2;
+                                g = (c1 - c2) / 2;
+                            }
+                        }
+                        dstIntPixels[dIndex++] = (int) (((r < 0.0f) ? 0.0f
+                                : ((r > 1.0f) ? 1.0f : r)) * normr + 0.5);
+                        dstIntPixels[dIndex++] = (int) (((g < 0.0f) ? 0.0f
+                                : ((g > 1.0f) ? 1.0f : g)) * normg + 0.5);
+                        dstIntPixels[dIndex++] = (int) (((b < 0.0f) ? 0.0f
+                                : ((b > 1.0f) ? 1.0f : b)) * normb + 0.5);
+                    } else {
+                        double R, G, B;
+
+                        R = G = B = I;
+                        if (S != 0) {
+                            double H = h * normh;
+                            if (H >= PI23 && H <= PI43) {
+                                R = (1 - S) * I;
+                                double c1 = 3 * I - R;
+                                double c2 = SQRT3 * (R - I) * Math.tan(H);
+                                G = (c1 + c2) / 2;
+                                B = (c1 - c2) / 2;
+                            } else if (H > PI43) {
+                                G = (1 - S) * I;
+                                double c1 = 3 * I - G;
+                                double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                                B = (c1 + c2) / 2;
+                                R = (c1 - c2) / 2;
+                            } else if (H < PI23) {
+                                B = (1 - S) * I;
+                                double c1 = 3 * I - B;
+                                double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                                R = (c1 + c2) / 2;
+                                G = (c1 - c2) / 2;
+                            }
+                        }
+                        dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                        dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                        dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                    }
                 }
             }
         }
@@ -1206,7 +2886,8 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
 
     // convert a short type ratser from IHS to RGB
     private void toRGBShort(UnpackedImageData src, int[] srcComponentSize, WritableRaster dest,
-            int[] destComponentSize) {
+            int[] destComponentSize, boolean roiContainsTile, boolean roiDisjointTile,
+            RandomIter roiIter, Rectangle roiBounds, Range nodata, float[] destNodata) {
         short[] iBuf = src.getShortData(0);
         short[] hBuf = src.getShortData(1);
         short[] sBuf = src.getShortData(2);
@@ -1237,39 +2918,209 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         int srcLineStride = src.lineStride;
 
         int dIndex = 0;
-        for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
-            for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
-                double I = (iBuf[iIndex] & 0xFFFF) * normi;
-                double H = (hBuf[hIndex] & 0xFFFF) * normh;
-                double S = (sBuf[sIndex] & 0xFFFF) * norms;
-                double R, G, B;
 
-                R = G = B = I;
-                if (S != 0.0) {
-                    if (H >= PI23 && H <= PI43) {
-                        R = (1 - S) * I;
-                        double c1 = 3 * I - R;
-                        double c2 = SQRT3 * (R - I) * Math.tan(H);
-                        G = (c1 + c2) / 2;
-                        B = (c1 - c2) / 2;
-                    } else if (H > PI43) {
-                        G = (1 - S) * I;
-                        double c1 = 3 * I - G;
-                        double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
-                        B = (c1 + c2) / 2;
-                        R = (c1 - c2) / 2;
-                    } else if (H < PI23) {
-                        B = (1 - S) * I;
-                        double c1 = 3 * I - B;
-                        double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
-                        R = (c1 + c2) / 2;
-                        G = (c1 - c2) / 2;
+        boolean hasROI = roiIter != null && roiBounds != null;
+        boolean hasNodata = nodata != null;
+
+        int destX = dest.getMinX();
+        int destY = dest.getMinY();
+
+        double[] destNoDataFinal = getConvertedNodataToRGB(destNodata, DataBuffer.TYPE_SHORT,
+                normi, normh, norms, normr, normg, normb);
+
+        if (roiDisjointTile) {
+            ImageUtil.fillBackground(dest, dest.getBounds(), destNoDataFinal);
+            return;
+        }
+
+        if (!hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    double I = (iBuf[iIndex] & 0xFFFF) * normi;
+                    double H = (hBuf[hIndex] & 0xFFFF) * normh;
+                    double S = (sBuf[sIndex] & 0xFFFF) * norms;
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
                     }
-                }
 
-                dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
-                dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
-                dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else if (!hasNodata && hasROI) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+
+                int y0 = j + destY;
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double I = (iBuf[iIndex] & 0xFFFF) * normi;
+                    double H = (hBuf[hIndex] & 0xFFFF) * normh;
+                    double S = (sBuf[sIndex] & 0xFFFF) * norms;
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else if (hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+
+                    short iB = iBuf[iIndex];
+                    short hB = hBuf[hIndex];
+                    short sB = sBuf[sIndex];
+
+                    boolean notValid = nodata.contains(iB) || nodata.contains(hB)
+                            || nodata.contains(sB);
+
+                    if (notValid) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double I = (iB & 0xFFFF) * normi;
+                    double H = (hB & 0xFFFF) * normh;
+                    double S = (sB & 0xFFFF) * norms;
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+
+                int y0 = j + destY;
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    short iB = iBuf[iIndex];
+                    short hB = hBuf[hIndex];
+                    short sB = sBuf[sIndex];
+
+                    boolean notValid = nodata.contains(iB) || nodata.contains(hB)
+                            || nodata.contains(sB);
+
+                    if (notValid
+                            || !(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double I = (iB & 0xFFFF) * normi;
+                    double H = (hB & 0xFFFF) * normh;
+                    double S = (sB & 0xFFFF) * norms;
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
             }
         }
 
@@ -1278,7 +3129,8 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
     }
 
     private void toRGBInt(UnpackedImageData src, int[] srcComponentSize, WritableRaster dest,
-            int[] destComponentSize) {
+            int[] destComponentSize, boolean roiContainsTile, boolean roiDisjointTile,
+            RandomIter roiIter, Rectangle roiBounds, Range nodata, float[] destNodata) {
         int[] iBuf = src.getIntData(0);
         int[] hBuf = src.getIntData(1);
         int[] sBuf = src.getIntData(2);
@@ -1309,48 +3161,219 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         int srcLineStride = src.lineStride;
 
         int dIndex = 0;
-        for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
-            for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
-                double I = (iBuf[iIndex] & 0xFFFFFFFFl) * normi;
-                double H = (hBuf[hIndex] & 0xFFFFFFFFl) * normh;
-                double S = (sBuf[sIndex] & 0xFFFFFFFFl) * norms;
 
-                double R, G, B;
+        boolean hasROI = roiIter != null && roiBounds != null;
+        boolean hasNodata = nodata != null;
 
-                R = G = B = I;
-                if (S != 0) {
-                    if (H >= PI23 && H <= PI43) {
-                        R = (1 - S) * I;
-                        double c1 = 3 * I - R;
-                        double c2 = SQRT3 * (R - I) * Math.tan(H);
-                        G = (c1 + c2) / 2;
-                        B = (c1 - c2) / 2;
-                    } else if (H > PI43) {
-                        G = (1 - S) * I;
-                        double c1 = 3 * I - G;
-                        double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
-                        B = (c1 + c2) / 2;
-                        R = (c1 - c2) / 2;
-                    } else if (H < PI23) {
-                        B = (1 - S) * I;
-                        double c1 = 3 * I - B;
-                        double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
-                        R = (c1 + c2) / 2;
-                        G = (c1 - c2) / 2;
+        int destX = dest.getMinX();
+        int destY = dest.getMinY();
+
+        double[] destNoDataFinal = getConvertedNodataToRGB(destNodata, DataBuffer.TYPE_INT, normi,
+                normh, norms, normr, normg, normb);
+
+        if (roiDisjointTile) {
+            ImageUtil.fillBackground(dest, dest.getBounds(), destNoDataFinal);
+            return;
+        }
+
+        if (!hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    double I = (iBuf[iIndex] & 0xFFFFFFFFl) * normi;
+                    double H = (hBuf[hIndex] & 0xFFFFFFFFl) * normh;
+                    double S = (sBuf[sIndex] & 0xFFFFFFFFl) * norms;
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
                     }
-                }
 
-                dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
-                dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
-                dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else if (!hasNodata && hasROI) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+
+                int y0 = j + destY;
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double I = (iBuf[iIndex] & 0xFFFFFFFFl) * normi;
+                    double H = (hBuf[hIndex] & 0xFFFFFFFFl) * normh;
+                    double S = (sBuf[sIndex] & 0xFFFFFFFFl) * norms;
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else if (hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+
+                    int iB = iBuf[iIndex];
+                    int hB = hBuf[hIndex];
+                    int sB = sBuf[sIndex];
+
+                    boolean notValid = nodata.contains(iB) || nodata.contains(hB)
+                            || nodata.contains(sB);
+
+                    if (notValid) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double I = (iB & 0xFFFFFFFFl) * normi;
+                    double H = (hB & 0xFFFFFFFFl) * normh;
+                    double S = (sB & 0xFFFFFFFFl) * norms;
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+
+                int y0 = j + destY;
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    int iB = iBuf[iIndex];
+                    int hB = hBuf[hIndex];
+                    int sB = sBuf[sIndex];
+
+                    boolean notValid = nodata.contains(iB) || nodata.contains(hB)
+                            || nodata.contains(sB);
+
+                    if (notValid
+                            || !(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double I = (iB & 0xFFFFFFFFl) * normi;
+                    double H = (hB & 0xFFFFFFFFl) * normh;
+                    double S = (sB & 0xFFFFFFFFl) * norms;
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
             }
         }
+
         convertToSigned(dstPixels, dstType);
         dest.setPixels(dest.getMinX(), dest.getMinY(), width, height, dstPixels);
     }
 
     private void toRGBFloat(UnpackedImageData src, int[] srcComponentSize, WritableRaster dest,
-            int[] destComponentSize) {
+            int[] destComponentSize, boolean roiContainsTile, boolean roiDisjointTile,
+            RandomIter roiIter, Rectangle roiBounds, Range nodata, float[] destNodata) {
         float[] iBuf = src.getFloatData(0);
         float[] hBuf = src.getFloatData(1);
         float[] sBuf = src.getFloatData(2);
@@ -1377,47 +3400,216 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         int srcLineStride = src.lineStride;
 
         int dIndex = 0;
-        for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
-            for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
-                double I = iBuf[iIndex];
-                double H = hBuf[hIndex];
-                double S = sBuf[sIndex];
-                double R, G, B;
 
-                R = G = B = I;
-                if (S != 0) {
-                    if (H >= PI23 && H <= PI43) {
-                        R = (1 - S) * I;
-                        double c1 = 3 * I - R;
-                        double c2 = SQRT3 * (R - I) * Math.tan(H);
-                        G = (c1 + c2) / 2;
-                        B = (c1 - c2) / 2;
-                    } else if (H > PI43) {
-                        G = (1 - S) * I;
-                        double c1 = 3 * I - G;
-                        double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
-                        B = (c1 + c2) / 2;
-                        R = (c1 - c2) / 2;
-                    } else if (H < PI23) {
-                        B = (1 - S) * I;
-                        double c1 = 3 * I - B;
-                        double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
-                        R = (c1 + c2) / 2;
-                        G = (c1 - c2) / 2;
+        boolean hasROI = roiIter != null && roiBounds != null;
+        boolean hasNodata = nodata != null;
+        if (hasNodata) {
+            nodata = RangeFactory.convertToDoubleRange(nodata);
+        }
+
+        int destX = dest.getMinX();
+        int destY = dest.getMinY();
+
+        double[] destNoDataFinal = getConvertedNodataToRGB(destNodata, DataBuffer.TYPE_FLOAT, 0, 0,
+                0, normr, normg, normb);
+
+        if (roiDisjointTile) {
+            ImageUtil.fillBackground(dest, dest.getBounds(), destNoDataFinal);
+            return;
+        }
+
+        if (!hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    double I = iBuf[iIndex];
+                    double H = hBuf[hIndex];
+                    double S = sBuf[sIndex];
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
                     }
-                }
 
-                dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
-                dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
-                dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else if (!hasNodata && hasROI) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+
+                int y0 = j + destY;
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double I = iBuf[iIndex];
+                    double H = hBuf[hIndex];
+                    double S = sBuf[sIndex];
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else if (hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+
+                    double I = iBuf[iIndex];
+                    double H = hBuf[hIndex];
+                    double S = sBuf[sIndex];
+
+                    boolean notValid = nodata.contains(I) || nodata.contains(H)
+                            || nodata.contains(S);
+
+                    if (notValid) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+
+                int y0 = j + destY;
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    double I = iBuf[iIndex];
+                    double H = hBuf[hIndex];
+                    double S = sBuf[sIndex];
+
+                    boolean notValid = nodata.contains(I) || nodata.contains(H)
+                            || nodata.contains(S);
+
+                    if (notValid
+                            || !(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
             }
         }
+
         convertToSigned(dstPixels, dstType);
         dest.setPixels(dest.getMinX(), dest.getMinY(), width, height, dstPixels);
     }
 
     private void toRGBDouble(UnpackedImageData src, int[] srcComponentSize, WritableRaster dest,
-            int[] destComponentSize) {
+            int[] destComponentSize, boolean roiContainsTile, boolean roiDisjointTile,
+            RandomIter roiIter, Rectangle roiBounds, Range nodata, float[] destNodata) {
         double[] iBuf = src.getDoubleData(0);
         double[] hBuf = src.getDoubleData(1);
         double[] sBuf = src.getDoubleData(2);
@@ -1444,43 +3636,535 @@ public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
         int srcLineStride = src.lineStride;
 
         int dIndex = 0;
-        for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
-            for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
-                double I = iBuf[iIndex];
-                double H = hBuf[hIndex];
-                double S = sBuf[sIndex];
 
-                double R, G, B;
+        boolean hasROI = roiIter != null && roiBounds != null;
+        boolean hasNodata = nodata != null;
 
-                R = G = B = I;
-                if (S != 0) {
-                    if (H >= PI23 && H <= PI43) {
-                        R = (1 - S) * I;
-                        double c1 = 3 * I - R;
-                        double c2 = SQRT3 * (R - I) * Math.tan(H);
-                        G = (c1 + c2) / 2;
-                        B = (c1 - c2) / 2;
-                    } else if (H > PI43) {
-                        G = (1 - S) * I;
-                        double c1 = 3 * I - G;
-                        double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
-                        B = (c1 + c2) / 2;
-                        R = (c1 - c2) / 2;
-                    } else if (H < PI23) {
-                        B = (1 - S) * I;
-                        double c1 = 3 * I - B;
-                        double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
-                        R = (c1 + c2) / 2;
-                        G = (c1 - c2) / 2;
+        int destX = dest.getMinX();
+        int destY = dest.getMinY();
+
+        double[] destNoDataFinal = getConvertedNodataToRGB(destNodata, DataBuffer.TYPE_DOUBLE, 0,
+                0, 0, normr, normg, normb);
+
+        if (roiDisjointTile) {
+            ImageUtil.fillBackground(dest, dest.getBounds(), destNoDataFinal);
+            return;
+        }
+
+        if (!hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    double I = iBuf[iIndex];
+                    double H = hBuf[hIndex];
+                    double S = sBuf[sIndex];
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
                     }
-                }
 
-                dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
-                dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
-                dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else if (!hasNodata && hasROI) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+
+                int y0 = j + destY;
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double I = iBuf[iIndex];
+                    double H = hBuf[hIndex];
+                    double S = sBuf[sIndex];
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else if (hasNodata && (!hasROI || hasROI && roiContainsTile)) {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+
+                    double I = iBuf[iIndex];
+                    double H = hBuf[hIndex];
+                    double S = sBuf[sIndex];
+
+                    boolean notValid = nodata.contains(I) || nodata.contains(H)
+                            || nodata.contains(S);
+
+                    if (notValid) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
+            }
+        } else {
+            for (int j = 0; j < height; j++, iStart += srcLineStride, hStart += srcLineStride, sStart += srcLineStride) {
+
+                int y0 = j + destY;
+                for (int i = 0, iIndex = iStart, hIndex = hStart, sIndex = sStart; i < width; i++, iIndex += srcPixelStride, hIndex += srcPixelStride, sIndex += srcPixelStride) {
+                    int x0 = i + destX;
+
+                    double I = iBuf[iIndex];
+                    double H = hBuf[hIndex];
+                    double S = sBuf[sIndex];
+
+                    boolean notValid = nodata.contains(I) || nodata.contains(H)
+                            || nodata.contains(S);
+
+                    if (notValid
+                            || !(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
+                        dstPixels[dIndex++] = destNoDataFinal[0];
+                        dstPixels[dIndex++] = destNoDataFinal[1];
+                        dstPixels[dIndex++] = destNoDataFinal[2];
+                        continue;
+                    }
+
+                    double R, G, B;
+
+                    R = G = B = I;
+                    if (S != 0.0) {
+                        if (H >= PI23 && H <= PI43) {
+                            R = (1 - S) * I;
+                            double c1 = 3 * I - R;
+                            double c2 = SQRT3 * (R - I) * Math.tan(H);
+                            G = (c1 + c2) / 2;
+                            B = (c1 - c2) / 2;
+                        } else if (H > PI43) {
+                            G = (1 - S) * I;
+                            double c1 = 3 * I - G;
+                            double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                            B = (c1 + c2) / 2;
+                            R = (c1 - c2) / 2;
+                        } else if (H < PI23) {
+                            B = (1 - S) * I;
+                            double c1 = 3 * I - B;
+                            double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                            R = (c1 + c2) / 2;
+                            G = (c1 - c2) / 2;
+                        }
+                    }
+
+                    dstPixels[dIndex++] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+                    dstPixels[dIndex++] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+                    dstPixels[dIndex++] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+                }
             }
         }
+
         convertToSigned(dstPixels, dstType);
         dest.setPixels(dest.getMinX(), dest.getMinY(), width, height, dstPixels);
+    }
+
+    private double[] getConvertedNodataBfromRGB(boolean isByte, float[] destNodata, int normr,
+            int normg, int normb, int bnormi, int bnormh, int bnorms, double normi, double normh,
+            double norms) {
+        short R = (short) (((int) destNodata[0] & 0xFF) << normr);
+        short G = (short) (((int) destNodata[1] & 0xFF) << normg);
+        short B = (short) (((int) destNodata[2] & 0xFF) << normb);
+
+        double[] result = new double[3];
+
+        if (isByte) {
+            float intensity = (R + G + B) / 3.0f;
+            result[0] = ((short) (intensity + 0.5f)) >> bnormi;
+
+            short drg = (short) (R - G);
+            short drb = (short) (R - B);
+
+            int tint = drg * drg + drb * (drb - drg);
+
+            short sum = (short) (drg + drb);
+            double temp;
+            if (tint != 0)
+                temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+            else
+                temp = -1.0;
+
+            int hue;
+            if (sum > 0)
+                hue = acosTable[(int) (500 * temp + 0.5) + 500];
+            else
+                hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+            if (B >= G)
+                result[1] = (255 - hue) >> bnormh;
+            else
+                result[1] = hue >> bnormh;
+
+            short min = (G > B) ? B : G;
+            min = (R > min) ? min : R;
+            result[2] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+        } else {
+            float intensity = (R + G + B) / 3.0f;
+            result[0] = normi * intensity;
+
+            double drg = R - G;
+            double drb = R - B;
+            double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+            if (temp != 0) {
+                temp = Math.acos((drg + drb) / temp / 2);
+                if (B >= G)
+                    temp = PI2 - temp;
+            } else
+                temp = PI2;
+
+            result[1] = normh * temp;
+
+            double min = (G > B) ? B : G;
+            min = (R > min) ? min : R;
+            result[2] = norms * (1 - min / intensity);
+        }
+        return result;
+    }
+
+    private double[] getConvertedNodataIfromRGB(boolean isByte, float[] destNodata, int normr,
+            int normg, int normb, int bnormi, int bnormh, int bnorms, double normi, double normh,
+            double norms, boolean isInteger) {
+
+        long and = isInteger ? 0xFFFFFFFFl : 0xFFFF;
+
+        long R = ((int) destNodata[0] & and) << normr;
+        long G = ((int) destNodata[1] & and) << normg;
+        long B = ((int) destNodata[2] & and) << normb;
+
+        double[] result = new double[3];
+
+        if (isByte) {
+            float intensity = (R + G + B) / 3.0f;
+            result[0] = ((long) (intensity + 0.5f)) >> bnormi;
+
+            long drg = R - G;
+            long drb = R - B;
+
+            double tint = drg * (double) drg + drb * (double) (drb - drg);
+
+            double sum = drg + drb;
+            double temp;
+            if (tint != 0)
+                temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+            else
+                temp = -1.0;
+
+            int hue;
+            if (sum > 0)
+                hue = acosTable[(int) (500 * temp + 0.5) + 500];
+            else
+                hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+            if (B >= G)
+                result[1] = (255 - hue) >> bnormh;
+            else
+                result[1] = hue >> bnormh;
+
+            long min = (G > B) ? B : G;
+            min = (R > min) ? min : R;
+            result[2] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+
+        } else {
+            float intensity = (R + G + B) / 3.0f;
+            result[0] = normi * intensity;
+
+            double drg = R - G;
+            double drb = R - B;
+            double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+            if (temp != 0) {
+                temp = Math.acos((drg + drb) / temp / 2);
+                if (B >= G)
+                    temp = PI2 - temp;
+            } else
+                temp = PI2;
+
+            result[1] = normh * temp;
+
+            double min = (G > B) ? B : G;
+            min = (R > min) ? min : R;
+            result[2] = norms * (1 - min / intensity);
+        }
+
+        return result;
+    }
+
+    private double[] getConvertedNodataDfromRGB(boolean isByte, float[] destNodata, int bnormi,
+            int bnormh, int bnorms, double normi, double normh, double norms) {
+
+        double R = destNodata[0];
+        double G = destNodata[1];
+        double B = destNodata[2];
+
+        double[] result = new double[3];
+
+        if (isByte) {
+            double intensity = (R + G + B) / 3.0f;
+            result[0] = (int) (intensity * bnormi + 0.5);
+
+            double drg = R - G;
+            double drb = R - B;
+
+            double tint = drg * drg + drb * (drb - drg);
+
+            double sum = drg + drb;
+            double temp;
+            if (tint != 0.0)
+                temp = sqrtTable[(int) (250.0 * sum * sum / tint + 0.5)];
+            else
+                temp = -1.0;
+
+            int hue;
+            if (sum > 0)
+                hue = acosTable[(int) (500 * temp + 0.5) + 500];
+            else
+                hue = acosTable[(int) (-500 * temp - 0.5) + 500];
+
+            if (B >= G)
+                result[1] = (255 - hue) >> bnormh;
+            else
+                result[1] = hue >> bnormh;
+
+            double min = (G > B) ? B : G;
+            min = (R > min) ? min : R;
+            result[2] = (255 - (int) (255 * min / intensity + 0.5f)) >> bnorms;
+        } else {
+            double intensity = (R + G + B) / 3.0f;
+            result[0] = normi * intensity;
+
+            double drg = R - G;
+            double drb = R - B;
+            double temp = Math.sqrt(drg * drg + drb * (drb - drg));
+
+            if (temp != 0) {
+                temp = Math.acos((drg + drb) / temp / 2);
+                if (B >= G)
+                    temp = PI2 - temp;
+            } else
+                temp = PI2;
+
+            result[1] = normh * temp;
+
+            double min = (G > B) ? B : G;
+            min = (R > min) ? min : R;
+            result[2] = norms * (1 - min / intensity);
+        }
+
+        return result;
+    }
+
+    private double[] getConvertedNodataBToRGB(boolean isByte, float[] destNodata, double normi,
+            double norms, double normr, double normg, double normb, double normh) {
+
+        double[] result = new double[3];
+
+        double I = ((int) destNodata[0] & 0xFF) * normi;
+        int h = (int) destNodata[1] & 0xFF;
+        double S = ((int) destNodata[2] & 0xFF) * norms;
+
+        if (isByte) {
+            float r, g, b;
+
+            r = g = b = (float) I;
+
+            if (S != 0.0) {
+                if (h >= 85 && h <= 170) {
+                    r = (float) ((1 - S) * I);
+                    float c1 = (float) (3 * I - r);
+                    float c2 = (float) (SQRT3 * (r - I) * tanTable[h]);
+                    g = (float) ((c1 + c2) / 2);
+                    b = (float) ((c1 - c2) / 2);
+                } else if (h > 170) {
+                    g = (float) ((1 - S) * I);
+                    float c1 = (float) (3 * I - g);
+                    float c2 = (float) (SQRT3 * (g - I) * tanTable[h - 85]);
+                    b = (c1 + c2) / 2;
+                    r = (c1 - c2) / 2;
+                } else if (h < 85) {
+                    b = (float) ((1 - S) * I);
+                    float c1 = (float) (3 * I - b);
+                    float c2 = (float) (SQRT3 * (b - I) * tanTable[h + 85]);
+                    r = (c1 + c2) / 2;
+                    g = (c1 - c2) / 2;
+                }
+            }
+            result[0] = (int) (((r < 0.0f) ? 0.0f : ((r > 1.0f) ? 1.0f : r)) * normr + 0.5);
+            result[1] = (int) (((g < 0.0f) ? 0.0f : ((g > 1.0f) ? 1.0f : g)) * normg + 0.5);
+            result[2] = (int) (((b < 0.0f) ? 0.0f : ((b > 1.0f) ? 1.0f : b)) * normb + 0.5);
+        } else {
+            double R, G, B;
+
+            R = G = B = I;
+            if (S != 0) {
+                double H = h * normh;
+                if (H >= PI23 && H <= PI43) {
+                    R = (1 - S) * I;
+                    double c1 = 3 * I - R;
+                    double c2 = SQRT3 * (R - I) * Math.tan(H);
+                    G = (c1 + c2) / 2;
+                    B = (c1 - c2) / 2;
+                } else if (H > PI43) {
+                    G = (1 - S) * I;
+                    double c1 = 3 * I - G;
+                    double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                    B = (c1 + c2) / 2;
+                    R = (c1 - c2) / 2;
+                } else if (H < PI23) {
+                    B = (1 - S) * I;
+                    double c1 = 3 * I - B;
+                    double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                    R = (c1 + c2) / 2;
+                    G = (c1 - c2) / 2;
+                }
+            }
+            result[0] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+            result[1] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+            result[2] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+        }
+
+        return result;
+    }
+
+    private double[] getConvertedNodataToRGB(float[] destNodata, int dataType, double normi,
+            double normh, double norms, double normr, double normg, double normb) {
+
+        double[] result = new double[3];
+
+        double I, H, S;
+
+        switch (dataType) {
+        case DataBuffer.TYPE_SHORT:
+        case DataBuffer.TYPE_USHORT:
+            I = ((int) destNodata[0] & 0xFFFF) * normi;
+            H = ((int) destNodata[1] & 0xFFFF) * normh;
+            S = ((int) destNodata[2] & 0xFFFF) * norms;
+            break;
+        case DataBuffer.TYPE_INT:
+            I = ((int) destNodata[0] & 0xFFFFFFFFl) * normi;
+            H = ((int) destNodata[1] & 0xFFFFFFFFl) * normh;
+            S = ((int) destNodata[2] & 0xFFFFFFFFl) * norms;
+            break;
+        case DataBuffer.TYPE_FLOAT:
+        case DataBuffer.TYPE_DOUBLE:
+            I = destNodata[0];
+            H = destNodata[1];
+            S = destNodata[2];
+            break;
+        default:
+            throw new IllegalArgumentException("Wrong data type defined");
+        }
+
+        double R, G, B;
+
+        R = G = B = I;
+        if (S != 0.0) {
+            if (H >= PI23 && H <= PI43) {
+                R = (1 - S) * I;
+                double c1 = 3 * I - R;
+                double c2 = SQRT3 * (R - I) * Math.tan(H);
+                G = (c1 + c2) / 2;
+                B = (c1 - c2) / 2;
+            } else if (H > PI43) {
+                G = (1 - S) * I;
+                double c1 = 3 * I - G;
+                double c2 = SQRT3 * (G - I) * Math.tan(H - PI23);
+                B = (c1 + c2) / 2;
+                R = (c1 - c2) / 2;
+            } else if (H < PI23) {
+                B = (1 - S) * I;
+                double c1 = 3 * I - B;
+                double c2 = SQRT3 * (B - I) * Math.tan(H - PI43);
+                R = (c1 + c2) / 2;
+                G = (c1 - c2) / 2;
+            }
+        }
+
+        result[0] = ((R < 0) ? 0 : ((R > 1.0) ? 1.0 : R)) * normr;
+        result[1] = ((G < 0) ? 0 : ((G > 1.0) ? 1.0 : G)) * normg;
+        result[2] = ((B < 0) ? 0 : ((B > 1.0) ? 1.0 : B)) * normb;
+
+        return result;
     }
 }

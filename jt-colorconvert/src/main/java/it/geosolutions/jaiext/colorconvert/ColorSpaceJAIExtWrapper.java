@@ -87,5 +87,4 @@ public class ColorSpaceJAIExtWrapper extends ColorSpaceJAIExt {
     public float[] toRGB(float[] src) {
         return cs.toRGB(src);
     }
-
 }

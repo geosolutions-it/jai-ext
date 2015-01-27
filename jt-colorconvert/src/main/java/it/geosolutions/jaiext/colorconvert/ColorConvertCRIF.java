@@ -21,27 +21,25 @@ public class ColorConvertCRIF extends CRIFImpl {
     }
 
     /**
-     * Creates a new instance of <code>ColorConvertOpImage</code> in the
-     * rendered layer.
-     *
-     * @param args   The source image and the destination ColorModel.
-     * @param hints  Optionally contains destination image layout.
+     * Creates a new instance of <code>ColorConvertOpImage</code> in the rendered layer.
+     * 
+     * @param args The source image and the destination ColorModel.
+     * @param hints Optionally contains destination image layout.
      */
-    public RenderedImage create(ParameterBlock pb,
-                                RenderingHints renderingHints){
+    public RenderedImage create(ParameterBlock pb, RenderingHints renderingHints) {
         // Get ImageLayout from renderHints if any.
-        ImageLayout layout = RIFUtil.getImageLayoutHint(renderingHints);      
+        ImageLayout layout = RIFUtil.getImageLayoutHint(renderingHints);
         // Getting source
         RenderedImage source = (RenderedImage) pb.getSource(0);
-        
+
         // Getting Parameters
         ColorModel cm = (ColorModel) pb.getObjectParameter(0);
         ROI roi = (ROI) pb.getObjectParameter(1);
         Range nodata = (Range) pb.getObjectParameter(2);
         double[] destNoData = (double[]) pb.getObjectParameter(3);
-        
 
-        return null;
+        // Generating the source image
+        return new ColorConvertOpImage(source, renderingHints, layout, cm, nodata, roi, destNoData);
     }
 
 }
