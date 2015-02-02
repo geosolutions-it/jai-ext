@@ -30,6 +30,7 @@ jt-piecewise/target/*
 jt-artifact/target/*
 jt-format/target/*
 jt-colorconvert/target/*
+jt-errordiffusion/target/*
 changematrix/target/*
 jt-concurrent-tile-cache/src/test/resources/it/geosolutions/logfiles
 jt-concurrent-tile-cache/target/*

@@ -607,5 +607,6 @@
     <module>jt-artifact</module>
     <module>jt-format</module>
     <module>jt-colorconvert</module>
+    <module>jt-errordiffusion</module>
   </modules>
 </project>
