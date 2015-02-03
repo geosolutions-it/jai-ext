@@ -608,5 +608,6 @@
     <module>jt-format</module>
     <module>jt-colorconvert</module>
     <module>jt-errordiffusion</module>
+    <module>jt-orderdither</module>
   </modules>
 </project>

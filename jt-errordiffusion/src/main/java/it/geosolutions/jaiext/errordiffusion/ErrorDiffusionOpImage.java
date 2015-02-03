@@ -422,6 +422,8 @@ public class ErrorDiffusionOpImage extends UntiledOpImage {
         // Check if the nodata is defined in the ColorMap before setting it
         if (colorMap.getNumEntries() <= destNoData || destNoData < 0) {
             throw new IllegalArgumentException("Wrong index defined");
+        } else {
+            this.destNoData = destNoData;
         }
 
         // Determine whether this is an (read "the") optimized case.
