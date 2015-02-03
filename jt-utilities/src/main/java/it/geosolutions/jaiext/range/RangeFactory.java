@@ -128,4 +128,38 @@ public class RangeFactory {
         // New Double range
         return new RangeDouble(min, minIncluded, max, maxIncluded, nanIncluded);
     }
+    
+    public static Range convertToFloatRange(Range input) {
+        // If already double do nothing
+        if (input instanceof RangeFloat) {
+            return input;
+        }
+        // Otherwise get minimum and maximum values and convert it
+        float min = input.getMin().floatValue();
+        float max = input.getMax().floatValue();
+
+        boolean minIncluded = input.isMinIncluded();
+        boolean maxIncluded = input.isMaxIncluded();
+
+        boolean nanIncluded = input.isNanIncluded();
+
+        // New Double range
+        return new RangeFloat(min, minIncluded, max, maxIncluded, nanIncluded);
+    }
+    
+    public static Range convertToByteRange(Range input) {
+        // If already double do nothing
+        if (input instanceof RangeByte) {
+            return input;
+        }
+        // Otherwise get minimum and maximum values and convert it
+        byte min = input.getMin().byteValue();
+        byte max = input.getMax().byteValue();
+
+        boolean minIncluded = input.isMinIncluded();
+        boolean maxIncluded = input.isMaxIncluded();
+
+        // New Double range
+        return new RangeByte(min, minIncluded, max, maxIncluded);
+    }
 }
