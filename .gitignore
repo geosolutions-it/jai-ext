@@ -32,6 +32,7 @@ jt-format/target/*
 jt-colorconvert/target/*
 jt-errordiffusion/target/*
 jt-orderdither/target/*
+jt-colorindexer/target/*
 changematrix/target/*
 jt-concurrent-tile-cache/src/test/resources/it/geosolutions/logfiles
 jt-concurrent-tile-cache/target/*

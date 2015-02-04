@@ -609,5 +609,6 @@
     <module>jt-colorconvert</module>
     <module>jt-errordiffusion</module>
     <module>jt-orderdither</module>
+    <module>jt-colorindexer</module>
   </modules>
 </project>
