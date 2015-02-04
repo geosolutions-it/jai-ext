@@ -268,7 +268,7 @@ public class OrderedDitherOpImage extends PointOpImage {
     public OrderedDitherOpImage(RenderedImage source, Map config, ImageLayout layout,
             ColorCube colorMap, KernelJAI[] ditherMask, ROI roi, Range nodata, double destNoData) {
         // Construct as a PointOpImage.
-        super(source, layoutHelper(layout, source, colorMap), prepareHints(config), true);
+        super(source, layoutHelper(layout, source, colorMap), config, true);
 
         // Initialize the instance variables derived from the color map.
         numBands = colorMap.getNumBands();
@@ -791,7 +791,7 @@ public class OrderedDitherOpImage extends PointOpImage {
         } else if (caseB) {
             for (int count = dwidth; count > 0; count--) {
 
-                int x = x0 + count - 1;
+                int x = x0 + dwidth -count;
                 // ROI check
                 if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
                     int idx = (ditherLUT[pDtab0 + (sData0[sPixelOffsets[0]] & 0xff)] & 0xff)
@@ -859,7 +859,7 @@ public class OrderedDitherOpImage extends PointOpImage {
         } else {
             for (int count = dwidth; count > 0; count--) {
 
-                int x = x0 + count - 1;
+                int x = x0 + dwidth -count;
 
                 int src0 = sData0[sPixelOffsets[0]] & 0xff;
                 int src1 = sData1[sPixelOffsets[1]] & 0xff;
@@ -942,7 +942,7 @@ public class OrderedDitherOpImage extends PointOpImage {
             }
         } else if (caseB) {
             for (int count = dwidth; count > 0; count--) {
-                int x = x0 + count - 1;
+                int x = x0 + dwidth -count;
 
                 if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
                     int dlutBand = dlutCol;
@@ -955,6 +955,9 @@ public class OrderedDitherOpImage extends PointOpImage {
 
                     dData[dPixelOffset] = (byte) (idx & 0xff);
                 } else {
+                    for (int i = 0; i < numBands; i++) {
+                        sPixelOffsets[i] += sPixelStride;
+                    }
                     dData[dPixelOffset] = (byte) ((int) destNoData & 0xff);
                 }
 
@@ -971,7 +974,7 @@ public class OrderedDitherOpImage extends PointOpImage {
                 int dlutBand = dlutCol;
                 int idx = base;
                 boolean valid = true;
-                for (int i = 0; i < numBands && valid; i++) {
+                for (int i = 0; i < numBands; i++) {
                     int b = sData[i][sPixelOffsets[i]] & 0xff;
                     valid &= lut[b];
                     idx += (ditherLUT[dlutBand + b] & 0xff);
@@ -995,13 +998,13 @@ public class OrderedDitherOpImage extends PointOpImage {
             }
         } else {
             for (int count = dwidth; count > 0; count--) {
-                int x = x0 + count - 1;
+                int x = x0 + dwidth -count;
 
                 if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
                     int dlutBand = dlutCol;
                     int idx = base;
                     boolean valid = true;
-                    for (int i = 0; i < numBands && valid; i++) {
+                    for (int i = 0; i < numBands; i++) {
                         int b = sData[i][sPixelOffsets[i]] & 0xff;
                         valid &= lut[b];
                         idx += (ditherLUT[dlutBand + b] & 0xff);
@@ -1015,6 +1018,9 @@ public class OrderedDitherOpImage extends PointOpImage {
                         dData[dPixelOffset] = (byte) ((int) destNoData & 0xff);
                     }
                 } else {
+                    for (int i = 0; i < numBands; i++) {
+                        sPixelOffsets[i] += sPixelStride;
+                    }
                     dData[dPixelOffset] = (byte) ((int) destNoData & 0xff);
                 }
 

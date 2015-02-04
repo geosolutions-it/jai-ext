@@ -9,10 +9,12 @@ import it.geosolutions.jaiext.stats.Statistics;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import it.geosolutions.jaiext.stats.StatisticsDescriptor;
 import it.geosolutions.jaiext.testclasses.TestBase;
+import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+import java.io.IOException;
 import java.util.Arrays;
 
 import javax.media.jai.ColorCube;
@@ -98,7 +100,6 @@ public class OrderedDitherTest extends TestBase {
     }
 
     @Test
-    @Ignore
     public void testValidData() {
         boolean roiUsed = false;
         boolean noDataUsed = false;
@@ -122,12 +123,11 @@ public class OrderedDitherTest extends TestBase {
                 testType(testImages[i], noDataUsed, roiUsed, true, true);
                 testType(testImages[i], noDataUsed, roiUsed, true, false);
             }
-            //testType(testImages[i], noDataUsed, roiUsed, false, false);
+            testType(testImages[i], noDataUsed, roiUsed, false, false);
         }
     }
 
     @Test
-    @Ignore
     public void testNoData() {
         boolean roiUsed = false;
         boolean noDataUsed = true;
@@ -142,7 +142,6 @@ public class OrderedDitherTest extends TestBase {
     }
 
     @Test
-    @Ignore
     public void testRoiNoData() {
         boolean roiUsed = true;
         boolean noDataUsed = true;
@@ -238,7 +237,7 @@ public class OrderedDitherTest extends TestBase {
         // Ordered Dither operation
         RenderedOp orderedDither = OrderedDitherDescriptor.create(src, colorMap, k, null, roi,
                 noData, destNoData + colorMap.getAdjustedOffset());
-
+        
         checkNoDataROI(orderedDither, src, roi, noData, colorMap);
 
         // Disposal of the output image
@@ -255,6 +254,10 @@ public class OrderedDitherTest extends TestBase {
 
         boolean roiExists = roi != null;
         boolean nodataExists = nodata != null;
+        // Simply ensure no exception is thrown
+        if (!nodataExists && !roiExists) {
+            finalimage.getTiles();
+        }
 
         if (nodataExists) {
             nodata = RangeFactory.convertToDoubleRange(nodata);
