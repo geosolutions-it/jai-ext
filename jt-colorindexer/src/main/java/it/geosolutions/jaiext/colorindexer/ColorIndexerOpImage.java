@@ -22,6 +22,7 @@ import it.geosolutions.jaiext.range.RangeFactory;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
@@ -185,7 +186,8 @@ public class ColorIndexerOpImage extends PointOpImage {
         if (src == null) {
             return null;
         }
-        final WritableRaster dest = icm.createCompatibleWritableRaster(src.getWidth(),
+        
+        WritableRaster dest = icm.createCompatibleWritableRaster(src.getWidth(),
                 src.getHeight()).createWritableTranslatedChild(src.getMinX(), src.getMinY());
 
         // ROI check
@@ -196,11 +198,11 @@ public class ColorIndexerOpImage extends PointOpImage {
         boolean roiContainsTile = false;
         boolean roiDisjointTile = false;
 
-        Rectangle destRect = dest.getBounds();
+        Rectangle srcRect = src.getBounds();
         // If a ROI is present, then only the part contained inside the current
         // tile bounds is taken.
         if (hasROI) {
-            Rectangle srcRectExpanded = mapDestRect(destRect, 0);
+            Rectangle srcRectExpanded = mapDestRect(srcRect, 0);
             // The tile dimension is extended for avoiding border errors
             srcRectExpanded.setRect(srcRectExpanded.getMinX() - 1, srcRectExpanded.getMinY() - 1,
                     srcRectExpanded.getWidth() + 2, srcRectExpanded.getHeight() + 2);
@@ -221,10 +223,7 @@ public class ColorIndexerOpImage extends PointOpImage {
             }
         }
 
-        if (roiDisjointTile) {
-            ImageUtil.fillBackground(dest, destRect, new double[] { destNoData });
-            return dest;
-        }
+
 
         final int w = dest.getWidth();
         final int h = dest.getHeight();
@@ -297,7 +296,7 @@ public class ColorIndexerOpImage extends PointOpImage {
                 for (int x = srcMinX, x_ = dstMinX; x < srcMaxX; x++, x_++) {
                     src.getPixel(x, y, pixel);
                     boolean valid = true;
-                    for (int i = 0; i < srcBands && valid; i++) {
+                    for (int i = 0; i < srcBands; i++) {
                         int b = pixel[i] & 0xFF;
                         valid &= lut[b];
                         bytes[i] = (byte) (b);

@@ -207,5 +207,4 @@ public class LookupOpImage extends ColormapOpImage {
             }
         }
     }
-
 }

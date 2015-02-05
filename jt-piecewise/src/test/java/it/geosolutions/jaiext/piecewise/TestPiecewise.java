@@ -597,9 +597,6 @@ public class TestPiecewise extends TestBase {
         image = AlgebraDescriptor.create(Operator.ABSOLUTE, null, null, 0, null, image);
         image = OperationConstDescriptor.create(image, new double[]{10}, Operator.SUM, null, null, 0, null);
         
-        RenderedImageBrowser.showChain(image);
-        System.in.read();
-        
         StatsType[] stats = new StatsType[] { StatsType.EXTREMA };
         image = StatisticsDescriptor.create(image, 1, 1, null, null, false, new int[] { 0 }, stats,
                 null);
