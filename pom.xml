@@ -610,5 +610,6 @@
     <module>jt-errordiffusion</module>
     <module>jt-orderdither</module>
     <module>jt-colorindexer</module>
+    <module>jt-imagefunction</module>
   </modules>
 </project>
