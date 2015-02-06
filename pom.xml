@@ -611,5 +611,6 @@
     <module>jt-orderdither</module>
     <module>jt-colorindexer</module>
     <module>jt-imagefunction</module>
+    <module>jt-rlookup</module>
   </modules>
 </project>

@@ -71,6 +71,25 @@ public abstract class Range {
             }
         }
 
+        public static Class<? extends Number> classFromType(int dataType) {
+            switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+                return Byte.class;
+            case DataBuffer.TYPE_USHORT:
+            case DataBuffer.TYPE_SHORT:
+                return Short.class;
+            case DataBuffer.TYPE_INT:
+                return Integer.class;
+            case DataBuffer.TYPE_FLOAT:
+                return Float.class;
+            case DataBuffer.TYPE_DOUBLE:
+                return Double.class;
+            case DataBuffer.TYPE_DOUBLE + 1:
+                return Long.class;
+            default:
+                return null;
+            }
+        }
     }
 
     protected boolean isMinIncluded;
@@ -180,23 +199,25 @@ public abstract class Range {
 
         return false;
     }
-    
-    public boolean intersects(Range other){
+
+    public boolean intersects(Range other) {
         // Check if one of them is contained into the other
-        if(this.contains(other) || other.contains(this)){
+        if (this.contains(other) || other.contains(this)) {
             return true;
         }
-        
+
         double min1 = this.getMin().doubleValue();
         double max1 = this.getMax().doubleValue();
 
         double min2 = other.getMin().doubleValue();
         double max2 = other.getMax().doubleValue();
-        
+
         // Check the bounds
-        boolean minCheck = this.isMinIncluded() && other.isMaxIncluded() ? min1 <= max2 : min1 < max2;
-        boolean maxCheck = this.isMaxIncluded() && other.isMinIncluded() ? max1 >= min2 : max1 > min2;
-        
+        boolean minCheck = this.isMinIncluded() && other.isMaxIncluded() ? min1 <= max2
+                : min1 < max2;
+        boolean maxCheck = this.isMaxIncluded() && other.isMinIncluded() ? max1 >= min2
+                : max1 > min2;
+
         return minCheck && maxCheck;
     }
 
@@ -289,5 +310,51 @@ public abstract class Range {
         }
 
         return true;
+    }
+
+    public int compare(Range other) {
+        if (this.equals(other)) {
+            return 0;
+        }
+        double min1 = this.getMin().doubleValue();
+        double min2 = other.getMin().doubleValue();
+        double max1 = this.getMax().doubleValue();
+        double max2 = other.getMax().doubleValue();
+
+        // Different minimum
+        if (!RangeFactory.equals(min1, min2)) {
+            if (min1 < min2) {
+                return -1;
+            } else {
+                return 1;
+            }
+        } else {
+            // Check if they are included
+            if (this.isMinIncluded() && other.isMinIncluded()) {
+                // Equal max
+                if (RangeFactory.equals(max1, max2)) {
+                    if (this.isMaxIncluded() && other.isMaxIncluded()) {
+                        return 0;
+                    } else if (this.isMaxIncluded()) {
+                        return 1;
+                    } else {
+                        return -1;
+                    }
+                } else {
+                    if (max1 < max2) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                }
+            } else {
+                if (this.isMinIncluded()) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            }
+
+        }
     }
 }

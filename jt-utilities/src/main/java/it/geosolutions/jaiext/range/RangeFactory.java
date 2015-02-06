@@ -17,12 +17,17 @@
  */
 package it.geosolutions.jaiext.range;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * This class is a factory class which creates a {@link Range} object for the specific data type. This Range can have 2 bounds or be a single-point
  * range. If the 2 bound values are equal and almost one of them is included, then a single-point range is created, else an exception is thrown. If
  * the minimum bound value is bigger than the maximum value, then the 2 numbers are inverted at the Range creation time.
  */
 public class RangeFactory {
+
+    private static final double TOLERANCE = 1E-6;
 
     // Private Constructor for avoiding a new factory instantiation
     private RangeFactory() {
@@ -128,7 +133,7 @@ public class RangeFactory {
         // New Double range
         return new RangeDouble(min, minIncluded, max, maxIncluded, nanIncluded);
     }
-    
+
     public static Range convertToFloatRange(Range input) {
         // If already double do nothing
         if (input instanceof RangeFloat) {
@@ -146,7 +151,7 @@ public class RangeFactory {
         // New Double range
         return new RangeFloat(min, minIncluded, max, maxIncluded, nanIncluded);
     }
-    
+
     public static Range convertToByteRange(Range input) {
         // If already double do nothing
         if (input instanceof RangeByte) {
@@ -161,5 +166,160 @@ public class RangeFactory {
 
         // New Double range
         return new RangeByte(min, minIncluded, max, maxIncluded);
+    }
+
+    public static List<Range> subtract(Range r1, Range r2) {
+        // Creation of the Range List
+        List<Range> list = new ArrayList<Range>();
+
+        // Populating the list
+        /*
+         * Check for equality between inputs
+         */
+        if (r1.equals(r2)) {
+            return list; // empty list
+        }
+
+        Range common = intersect(r1, r2);
+
+        /*
+         * Check for no overlap between inputs
+         */
+        if (common == null) {
+            list.add(r2);
+            return list;
+        }
+
+        /*
+         * Check if r1 enclosed r2
+         */
+        if (common.equals(r2)) {
+            return list; // empty list
+        }
+
+        // Checks on the minimum/maximum
+        double min1 = r1.getMin().doubleValue();
+        double min2 = r2.getMin().doubleValue();
+        double max1 = r1.getMax().doubleValue();
+        double max2 = r2.getMax().doubleValue();
+
+        // Checks on the comparison between the min and max
+        boolean minmin = equals(min1, min2);
+        boolean maxmax = equals(max1, max2);
+        boolean minmax = equals(min1, max2);
+        boolean maxmin = equals(max1, min2);
+
+        // Case 0a) min1 equals to max2
+        if (minmax) {
+            if (r1.isMinIncluded()) {
+                Range r = RangeFactory.create(min2, r2.isMinIncluded(), max2, false);
+                list.add(r);
+                return list;
+            } else {
+                list.add(r2);
+                return list;
+            }
+        }
+        // Case 0b) min2 equals to max1
+        if (maxmin) {
+            if (r1.isMaxIncluded()) {
+                Range r = RangeFactory.create(min2, false, max2, r2.isMinIncluded());
+                list.add(r);
+                return list;
+            } else {
+                list.add(r2);
+                return list;
+            }
+        }
+
+        // Case 1) equal minimums and different max values
+        if (minmin && max2 > max1 && !maxmax) {
+            Range r = RangeFactory.create(max1, !r1.isMaxIncluded(), max2, r2.isMaxIncluded());
+            list.add(r);
+            return list;
+        }
+        // Case 2) equal maximum and different min values
+        if (maxmax && min2 < min1 && !minmin) {
+            Range r = RangeFactory.create(min2, r2.isMinIncluded(), min1, !r1.isMinIncluded());
+            list.add(r);
+            return list;
+        }
+        // Case 3) r2 on the left and r1 on the right
+        if (min2 < min1 && max2 < max1) {
+            Range r = RangeFactory.create(min2, r2.isMinIncluded(), min1, !r1.isMinIncluded());
+            list.add(r);
+            return list;
+        }
+
+        // Case 4) r1 on the left and r2 on the right
+        if (min2 > min1 && max2 > max1) {
+            Range r = RangeFactory.create(max1, !r1.isMaxIncluded(), max2, r2.isMaxIncluded());
+            list.add(r);
+            return list;
+        }
+
+        // Case 5) r1 contained in r2 (two ranges)
+        if (min2 < min1 && max2 > max1) {
+            Range r1New = RangeFactory.create(min2, r2.isMinIncluded(), min1, !r1.isMinIncluded());
+            Range r2New = RangeFactory.create(max1, !r1.isMaxIncluded(), max2, r2.isMaxIncluded());
+            list.add(r1New);
+            list.add(r2New);
+            return list;
+        }
+
+        return list;
+    }
+
+    public static Range intersect(Range r1, Range r2) {
+        // Initial checks
+        if (r1.contains(r2)) {
+            return r2;
+        }
+
+        if (r2.contains(r1)) {
+            return r1;
+        }
+        // Checks on the bounds
+
+        double min1 = r1.getMin().doubleValue();
+        double min2 = r2.getMin().doubleValue();
+        double max1 = r1.getMax().doubleValue();
+        double max2 = r2.getMax().doubleValue();
+
+        // Checks on the comparison between the min and max
+        boolean minmin = equals(min1, min2);
+        boolean maxmax = equals(max1, max2);
+        boolean minmax = equals(min1, max2);
+        boolean maxmin = equals(max1, min2);
+
+        // Check on the single point comparison
+        if (minmax && r1.isMinIncluded() && r2.isMaxIncluded()) {
+            return RangeFactory.create(min1, min1);
+        }
+        if (maxmin && r1.isMaxIncluded() && r2.isMinIncluded()) {
+            return RangeFactory.create(min2, min2);
+        }
+
+        if ((min1 > max2 || min2 > max1)) {
+            return null;
+        }
+        // More precise checks
+        boolean min1Used = min1 > min2;
+        boolean max1Used = max1 < max2;
+
+        double minN = min1Used || minmin ? min1 : min2;
+        double maxN = max1Used || maxmax ? max1 : max2;
+
+        boolean minIncluded = (minmin && r1.isMinIncluded() && r2.isMinIncluded())
+                || (min1Used ? r1.isMinIncluded() : r2.isMinIncluded());
+
+        boolean maxIncluded = (maxmax && r1.isMaxIncluded() && r2.isMaxIncluded())
+                || (max1Used ? r1.isMaxIncluded() : r2.isMaxIncluded());
+
+        return RangeFactory.create(minN, minIncluded, maxN, maxIncluded);
+    }
+
+    public static boolean equals(double d1, double d2) {
+        return Math.abs(d1 - d2) < TOLERANCE;
     }
 }
