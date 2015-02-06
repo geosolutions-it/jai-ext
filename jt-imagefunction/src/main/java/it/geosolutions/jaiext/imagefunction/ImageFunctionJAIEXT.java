@@ -1,5 +1,7 @@
 package it.geosolutions.jaiext.imagefunction;
 
+import java.awt.Rectangle;
+
 import it.geosolutions.jaiext.range.Range;
 
 import javax.media.jai.ImageFunction;
@@ -32,13 +34,21 @@ public interface ImageFunctionJAIEXT extends ImageFunction {
 	 *            in which the imaginary parts of all elements will be returned;
 	 *            may be null for real data, i.e., when <code>isComplex()</code>
 	 *            returns false.
+         * @param destRect 
+         *            Destination Rectangle where the results must be calculated            
+         * @param roi 
+         *            Optional ROI used for reducing calculations to a defined region
+         * @param nodata
+         *            Optional NoData range to use for masking particular values
+         * @param destNoData
+         *            Value to set for pixels which are not accepted or are outside ROI              
 	 * 
 	 * @throws ArrayIndexOutOfBoundsException
 	 *             if the length of the supplied array(s) is insufficient.
 	 */
 	void getElements(float startX, float startY, float deltaX, float deltaY,
 			int countX, int countY, int element, float[] real, float[] imag,
-			ROI roi, Range nodata, float destNoData);
+			Rectangle destRect, ROI roi, Range nodata, float destNoData);
 
 	/**
 	 * Returns all values of a given element for a specified set of coordinates.
@@ -65,12 +75,20 @@ public interface ImageFunctionJAIEXT extends ImageFunction {
 	 *            in which the imaginary parts of all elements will be returned;
 	 *            may be null for real data, i.e., when <code>isComplex()</code>
 	 *            returns false.
+	 * @param destRect 
+	 *            Destination Rectangle where the results must be calculated
+	 * @param roi 
+	 *            Optional ROI used for reducing calculations to a defined region
+	 * @param nodata
+	 *            Optional NoData range to use for masking particular values
+	 * @param destNoData
+	 *            Value to set for pixels which are not accepted or are outside ROI           
 	 * 
 	 * @throws ArrayIndexOutOfBoundsException
 	 *             if the length of the supplied array(s) is insufficient.
 	 */
 	void getElements(double startX, double startY, double deltaX,
 			double deltaY, int countX, int countY, int element, double[] real,
-			double[] imag, ROI roi, Range nodata, float destNoData);
+			double[] imag, Rectangle destRect, ROI roi, Range nodata, float destNoData);
 
 }
