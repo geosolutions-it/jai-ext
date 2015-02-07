@@ -35,6 +35,7 @@ jt-orderdither/target/*
 jt-colorindexer/target/*
 jt-imagefunction/target/*
 jt-rlookup/target/*
+jt-vectorbin/target/*
 changematrix/target/*
 jt-concurrent-tile-cache/src/test/resources/it/geosolutions/logfiles
 jt-concurrent-tile-cache/target/*
