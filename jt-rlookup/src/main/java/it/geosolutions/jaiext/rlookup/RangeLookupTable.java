@@ -70,7 +70,7 @@ public class RangeLookupTable<T extends Number & Comparable<? super T>, U extend
                 LookupItem<T, U> item = items.get(mid);
                 Range r = item.getRange();
 
-                if (r.contains(srcValue)) {
+                if (r.containsN(srcValue)) {
                     return item;
                     
                 } else if (!Double.isInfinite(r.getMin().doubleValue()) &&

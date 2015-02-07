@@ -102,7 +102,7 @@ public class DefaultDomainElement1D implements DomainElement1D {
 	 */
 	public boolean contains(Number value) {
 	  //TODO FIXME RANGE CONTAINS NUMBER
-		return range.contains(value);
+		return range.containsN(value);
 	}
 
 	/**

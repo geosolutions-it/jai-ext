@@ -211,7 +211,7 @@ public class RangeLookupOpImage extends PointOpImage {
 
                 for (int i = 0, destX = destAcc.getX(); i < destWidth; i++, destX++) {
 
-                    if (roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0) {
+                    if (!(roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0)) {
                         for (int k = 0; k < destBands; k++) {
                             // input value
                             byte val = hasDefault ? typedDefaultValue
@@ -323,7 +323,7 @@ public class RangeLookupOpImage extends PointOpImage {
 
                 for (int i = 0, destX = destAcc.getX(); i < destWidth; i++, destX++) {
 
-                    if (roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0) {
+                    if (!(roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0)) {
                         for (int k = 0; k < destBands; k++) {
                             // input value
                             short val = hasDefault ? typedDefaultValue : (srcData[k][srcPixelOffset
@@ -435,7 +435,7 @@ public class RangeLookupOpImage extends PointOpImage {
 
                 for (int i = 0, destX = destAcc.getX(); i < destWidth; i++, destX++) {
 
-                    if (roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0) {
+                    if (!(roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0)) {
                         for (int k = 0; k < destBands; k++) {
                             // input value
                             int val = hasDefault ? typedDefaultValue
@@ -548,7 +548,7 @@ public class RangeLookupOpImage extends PointOpImage {
 
                 for (int i = 0, destX = destAcc.getX(); i < destWidth; i++, destX++) {
 
-                    if (roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0) {
+                    if (!(roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0)) {
                         for (int k = 0; k < destBands; k++) {
                             // input value
                             int val = hasDefault ? typedDefaultValue : (srcData[k][srcPixelOffset
@@ -660,7 +660,7 @@ public class RangeLookupOpImage extends PointOpImage {
 
                 for (int i = 0, destX = destAcc.getX(); i < destWidth; i++, destX++) {
 
-                    if (roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0) {
+                    if (!(roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0)) {
                         for (int k = 0; k < destBands; k++) {
                             // input value
                             float val = hasDefault ? typedDefaultValue : (srcData[k][srcPixelOffset
@@ -773,7 +773,7 @@ public class RangeLookupOpImage extends PointOpImage {
 
                 for (int i = 0, destX = destAcc.getX(); i < destWidth; i++, destX++) {
 
-                    if (roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0) {
+                    if (!(roiBounds.contains(destX, destY) && roiIter.getSample(destX, destY, 0) > 0)) {
                         for (int k = 0; k < destBands; k++) {
                             // input value
                             double val = hasDefault ? typedDefaultValue
