@@ -19,41 +19,54 @@ package it.geosolutions.jaiext.algebra.constant;
 
 import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
 import it.geosolutions.jaiext.range.Range;
+
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
+import java.awt.image.renderable.RenderedImageFactory;
+
 import javax.media.jai.CRIFImpl;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.ROI;
+
 import com.sun.media.jai.opimage.RIFUtil;
 
+/**
+ * {@link RenderedImageFactory} implementation for the OperationConst operation
+ * 
+ * @author Nicola Lagomarsini geosolutions
+ * 
+ */
 public class OperationConstCRIF extends CRIFImpl {
 
-    /** Constructor. */
-    public OperationConstCRIF() {
-        super("operationConst");
-    }
+	/** Constructor. */
+	public OperationConstCRIF() {
+		super("operationConst");
+	}
 
-    /**
-     * Creates a new instance of <code>OperationConstOpImage</code> in the rendered layer. This method satisfies the implementation of RIF.
-     * 
-     * @param paramBlock The two source images to be added.
-     * @param renderHints Optionally contains destination image layout.
-     */
-    public RenderedImage create(ParameterBlock pb, RenderingHints renderHints) {
-        // Get ImageLayout from renderHints if any.
-        ImageLayout layout = RIFUtil.getImageLayoutHint(renderHints);
-        // Getting the source
-        RenderedImage source = pb.getRenderedSource(0);
-        // Getting the parameters
-        Operator op = (Operator) pb.getObjectParameter(0);
-        double[] constants = (double[]) pb.getObjectParameter(1);
-        ROI roi = (ROI) pb.getObjectParameter(2);
-        Range noData = (Range) pb.getObjectParameter(3);
-        double destinationNoData = pb.getDoubleParameter(4);
+	/**
+	 * Creates a new instance of <code>OperationConstOpImage</code> in the
+	 * rendered layer. This method satisfies the implementation of RIF.
+	 * 
+	 * @param paramBlock
+	 *            The two source images to be added.
+	 * @param renderHints
+	 *            Optionally contains destination image layout.
+	 */
+	public RenderedImage create(ParameterBlock pb, RenderingHints renderHints) {
+		// Get ImageLayout from renderHints if any.
+		ImageLayout layout = RIFUtil.getImageLayoutHint(renderHints);
+		// Getting the source
+		RenderedImage source = pb.getRenderedSource(0);
+		// Getting the parameters
+		Operator op = (Operator) pb.getObjectParameter(0);
+		double[] constants = (double[]) pb.getObjectParameter(1);
+		ROI roi = (ROI) pb.getObjectParameter(2);
+		Range noData = (Range) pb.getObjectParameter(3);
+		double destinationNoData = pb.getDoubleParameter(4);
 
-        return new OperationConstOpImage(source, renderHints, layout, op, constants, roi, noData,
-                destinationNoData);
-    }
+		return new OperationConstOpImage(source, renderHints, layout, op,
+				constants, roi, noData, destinationNoData);
+	}
 
 }

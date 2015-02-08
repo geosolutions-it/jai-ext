@@ -1,14 +1,20 @@
-/*
- * $RCSfile: IHSColorSpace.java,v $
- *
- * Copyright (c) 2005 Sun Microsystems, Inc. All rights reserved.
- *
- * Use is subject to license terms.
- *
- * $Revision: 1.2 $
- * $Date: 2005/11/16 22:58:16 $
- * $State: Exp $
- */
+/* JAI-Ext - OpenSource Java Advanced Image Extensions Library
+*    http://www.geo-solutions.it/
+*    Copyright 2014 GeoSolutions
+
+
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+
+* http://www.apache.org/licenses/LICENSE-2.0
+
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package it.geosolutions.jaiext.colorconvert;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
@@ -86,45 +92,7 @@ import com.sun.media.jai.util.ImageUtil;
  * <p>
  * Methods defined in the superclasses are not commented extensively.
  * 
- * @see ColorSpaceJAI
- * 
- * @since JAI 1.1
  */
-// Old RGB-to-IHS equations ("Practical Algorithms for Image Analysis",
-// Seul, et. al., Cambridge, 2000):
-//
-// <ul>
-// <li> I = (R+G+B)/3</li>
-// <li> S = 1-min(R, G, B)/I </li>
-// <li> H = G > B ? h : 2*<code>PI</code> - h, where <br>
-// h = cos<sup>-1</sup>{[(R-G)+(R-B)]/2[(R-G)<sup>2</sup>+
-// (R-G)(G-B)]<sup>1/2</sup>}</li>
-// </ul>
-// where the R, G, B values have been normalized to the range [0.0,&nbsp;1.0].
-// <p> The RGB-to-IHS transformation is defined by the equations:
-// <ul>
-// <li><pre>
-// [ I ] [ 1/3 1/3 1/3 ] [ R ]
-// [ U ] = [ -1/sqrt(6) -1/sqrt(6) 2/sqrt(6) ] [ G ]
-// [ V ] [ 1/sqrt(6) -2/sqrt(6) 0 ] [ B ]
-// </pre></li>
-// <li> H = atan(V/U) </li>
-// <li> S = sqrt(U<sup>2</sup> + V<sup>2</sup>) </li>
-// </ul>
-//
-// The inverse IHS-to-RGB transformation is defined by:
-// <ul>
-// <li> U = S*cos(H) </li>
-// <li> V = S*sin(H) </li>
-// <li><pre>
-// [ R ] = [ 4/3 -2*sqrt(6)/9 sqrt(6)/3 ] [ I ]
-// [ G ] = [ 2/3 sqrt(6)/9 -sqrt(6)/3 ] [ U ]
-// [ B ] [ 1 sqrt(6)/3 0 ] [ V ]
-// </pre></li>
-// </ul>
-//
-// Refer to <i>Digital Image Processing</i>, Second Edition, William K. Pratt
-// (Wiley, 1991), pages 71-72, for more information.
 public class IHSColorSpaceJAIExt extends ColorSpaceJAIExt {
 
     /** Constant indicating that the inner random iterators must pre-calculate an array of the image positions */

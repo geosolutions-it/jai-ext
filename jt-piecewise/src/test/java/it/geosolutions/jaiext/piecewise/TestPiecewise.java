@@ -1,26 +1,26 @@
-/*
- *    GeoTools - The Open Source Java GIS Toolkit
- *    http://geotools.org
- * 
- *    (C) 2002-2008, Open Source Geospatial Foundation (OSGeo)
- *
- *    This library is free software; you can redistribute it and/or
- *    modify it under the terms of the GNU Lesser General Public
- *    License as published by the Free Software Foundation;
- *    version 2.1 of the License.
- *
- *    This library is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *    Lesser General Public License for more details.
- */
+/* JAI-Ext - OpenSource Java Advanced Image Extensions Library
+*    http://www.geo-solutions.it/
+*    Copyright 2014 GeoSolutions
+
+
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+
+* http://www.apache.org/licenses/LICENSE-2.0
+
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package it.geosolutions.jaiext.piecewise;
 
 import it.geosolutions.jaiext.algebra.AlgebraDescriptor;
 import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
 import it.geosolutions.jaiext.algebra.constant.OperationConstDescriptor;
 import it.geosolutions.jaiext.bandselect.BandSelectDescriptor;
-import it.geosolutions.jaiext.binarize.BinarizeDescriptor;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.stats.Statistics;
@@ -31,7 +31,6 @@ import it.geosolutions.jaiext.testclasses.TestData;
 import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 import java.awt.Rectangle;
-import java.awt.RenderingHints;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.io.File;
@@ -50,6 +49,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
+ * Class for testing the Generic Piecewise operation
+ * 
  * @author Simone Giannecchini, GeoSolutions.
  * 
  * 

@@ -21,8 +21,8 @@ import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
 import it.geosolutions.jaiext.range.Range;
 
 import java.awt.RenderingHints;
-import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderableImage;
 
 import javax.media.jai.JAI;
@@ -34,8 +34,12 @@ import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderableRegistryMode;
 import javax.media.jai.registry.RenderedRegistryMode;
 
-import com.sun.media.jai.util.ImageUtil;
-
+/**
+ * {@link OperationDescriptorImpl} describing the OperationConst operation
+ * 
+ * @author Nicola Lagomarsini geosolutions
+ *
+ */
 public class OperationConstDescriptor extends OperationDescriptorImpl {
 
     public final static int OPERATION_INDEX = 0;
