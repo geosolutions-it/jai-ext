@@ -25,7 +25,7 @@ import javax.media.jai.ImageFunction;
 import javax.media.jai.ROI;
 
 /**
- * Extension of the {@link ImageFunction} class used for handling NoData and ROI
+ * Extension of the {@link ImageFunction} class for handling NoData and ROI
  * 
  * @author Nicola Lagomarsini
  * 

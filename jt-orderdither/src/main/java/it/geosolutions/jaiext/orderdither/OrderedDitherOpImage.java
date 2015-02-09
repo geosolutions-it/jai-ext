@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.orderdither;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
@@ -161,14 +161,19 @@ public class OrderedDitherOpImage extends PointOpImage {
      */
     protected DitherLUT odLUT = null;
 
+    /** Boolean parameter indicating whether NoData range is present */
     private final boolean hasNoData;
 
+    /** Boolean parameter indicating whether ROI is present */
     private final boolean hasROI;
 
+    /** Nodata Range used for checking if input nodata are present */
     private Range nodata;
 
+    /** ROI object used for reducing computation area */
     private ROI roi;
 
+    /** Rectangle containing ROI bounds */
     private Rectangle roiBounds;
 
     /** Boolean indicating if No Data and ROI are not used */
@@ -180,10 +185,13 @@ public class OrderedDitherOpImage extends PointOpImage {
     /** Boolean indicating if only the No Data are used */
     private boolean caseC;
 
+    /** {@link PlanarImage} containg ROI data */
     private PlanarImage roiImage;
 
+    /** Output value for NoData */
     private double destNoData;
 
+    /** LookupTable used for a quick check on the input NoData */
     private boolean[] lut;
 
     /**
@@ -710,6 +718,7 @@ public class OrderedDitherOpImage extends PointOpImage {
         switch (odType) {
         case TYPE_OD_BYTE_LUT_3BAND:
         case TYPE_OD_BYTE_LUT_NBAND:
+            // Optimized cases
             int[] srcLineOffsets = (int[]) sBandOffsets.clone();
             int[] srcPixelOffsets = (int[]) srcLineOffsets.clone();
             int dLineOffset = dBandOffset;
@@ -803,7 +812,7 @@ public class OrderedDitherOpImage extends PointOpImage {
         } else if (caseB) {
             for (int count = dwidth; count > 0; count--) {
 
-                int x = x0 + dwidth -count;
+                int x = x0 + dwidth - count;
                 // ROI check
                 if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
                     int idx = (ditherLUT[pDtab0 + (sData0[sPixelOffsets[0]] & 0xff)] & 0xff)
@@ -871,7 +880,7 @@ public class OrderedDitherOpImage extends PointOpImage {
         } else {
             for (int count = dwidth; count > 0; count--) {
 
-                int x = x0 + dwidth -count;
+                int x = x0 + dwidth - count;
 
                 int src0 = sData0[sPixelOffsets[0]] & 0xff;
                 int src1 = sData1[sPixelOffsets[1]] & 0xff;
@@ -954,7 +963,7 @@ public class OrderedDitherOpImage extends PointOpImage {
             }
         } else if (caseB) {
             for (int count = dwidth; count > 0; count--) {
-                int x = x0 + dwidth -count;
+                int x = x0 + dwidth - count;
 
                 if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
                     int dlutBand = dlutCol;
@@ -1010,7 +1019,7 @@ public class OrderedDitherOpImage extends PointOpImage {
             }
         } else {
             for (int count = dwidth; count > 0; count--) {
-                int x = x0 + dwidth -count;
+                int x = x0 + dwidth - count;
 
                 if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
                     int dlutBand = dlutCol;

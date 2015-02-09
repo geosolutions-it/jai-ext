@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.colorindexer;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
@@ -57,22 +57,31 @@ public class ColorIndexerOpImage extends PointOpImage {
      */
     public static final boolean TILE_CACHED = true;
 
+    /** Input ColorIndexer Palett */
     private ColorIndexer palette;
 
+    /** Input ColorIndexer ColorModel */
     private IndexColorModel icm;
 
+    /** Boolean indicating if NoData check must be done */
     private boolean hasNoData;
 
+    /** Range used for testing NoData */
     private Range nodata;
 
+    /** Boolean indicating if ROI check must be done */
     private boolean hasROI;
 
+    /** ROI object used for reducing the active computation area */
     private ROI roi;
 
+    /** Rectangle containing ROI bounds */
     private Rectangle roiBounds;
 
+    /** {@link PlanarImage} representing ROI data */
     private PlanarImage roiImage;
 
+    /** Output value for NoData */
     private byte destNoData;
 
     /** Boolean indicating if No Data and ROI are not used */
@@ -84,6 +93,7 @@ public class ColorIndexerOpImage extends PointOpImage {
     /** Boolean indicating if only the No Data are used */
     private boolean caseC;
 
+    /** LookupTable used for doing a quick test if a byte value is NoData */
     private boolean[] lut;
 
     public ColorIndexerOpImage(RenderedImage image, ColorIndexer palette, ROI roi, Range nodata,
@@ -184,9 +194,9 @@ public class ColorIndexerOpImage extends PointOpImage {
         if (src == null) {
             return null;
         }
-        
-        WritableRaster dest = icm.createCompatibleWritableRaster(src.getWidth(),
-                src.getHeight()).createWritableTranslatedChild(src.getMinX(), src.getMinY());
+
+        WritableRaster dest = icm.createCompatibleWritableRaster(src.getWidth(), src.getHeight())
+                .createWritableTranslatedChild(src.getMinX(), src.getMinY());
 
         // ROI check
         ROI roiTile = null;
@@ -194,7 +204,6 @@ public class ColorIndexerOpImage extends PointOpImage {
         RandomIter roiIter = null;
 
         boolean roiContainsTile = false;
-        boolean roiDisjointTile = false;
 
         Rectangle srcRect = src.getBounds();
         // If a ROI is present, then only the part contained inside the current
@@ -206,22 +215,16 @@ public class ColorIndexerOpImage extends PointOpImage {
                     srcRectExpanded.getWidth() + 2, srcRectExpanded.getHeight() + 2);
             roiTile = roi.intersect(new ROIShape(srcRectExpanded));
 
-            if (!roiBounds.intersects(srcRectExpanded)) {
-                roiDisjointTile = true;
-            } else {
+            if (roiBounds.intersects(srcRectExpanded)) {
                 roiContainsTile = roiTile.contains(srcRectExpanded);
                 if (!roiContainsTile) {
-                    if (!roiTile.intersects(srcRectExpanded)) {
-                        roiDisjointTile = true;
-                    } else {
+                    if (roiTile.intersects(srcRectExpanded)) {
                         PlanarImage roiIMG = getImage();
                         roiIter = RandomIterFactory.create(roiIMG, null, TILE_CACHED, ARRAY_CALC);
                     }
                 }
             }
         }
-
-
 
         final int w = dest.getWidth();
         final int h = dest.getHeight();
@@ -264,6 +267,7 @@ public class ColorIndexerOpImage extends PointOpImage {
         } else if (caseB) {
             for (int y = srcMinY, y_ = dstMinY; y < srcMaxY; y++, y_++) {
                 for (int x = srcMinX, x_ = dstMinX; x < srcMaxX; x++, x_++) {
+                    // ROI check
                     if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
                         src.getPixel(x, y, pixel);
                         for (int i = 0; i < srcBands; i++) {
@@ -293,6 +297,7 @@ public class ColorIndexerOpImage extends PointOpImage {
             for (int y = srcMinY, y_ = dstMinY; y < srcMaxY; y++, y_++) {
                 for (int x = srcMinX, x_ = dstMinX; x < srcMaxX; x++, x_++) {
                     src.getPixel(x, y, pixel);
+                    // NoData check
                     boolean valid = true;
                     for (int i = 0; i < srcBands; i++) {
                         int b = pixel[i] & 0xFF;
@@ -323,8 +328,10 @@ public class ColorIndexerOpImage extends PointOpImage {
         } else {
             for (int y = srcMinY, y_ = dstMinY; y < srcMaxY; y++, y_++) {
                 for (int x = srcMinX, x_ = dstMinX; x < srcMaxX; x++, x_++) {
+                    // ROI Check
                     if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
                         src.getPixel(x, y, pixel);
+                        // NoData Check
                         boolean valid = true;
                         for (int i = 0; i < srcBands; i++) {
                             int b = pixel[i] & 0xFF;
@@ -378,5 +385,4 @@ public class ColorIndexerOpImage extends PointOpImage {
         }
         return img;
     }
-
 }

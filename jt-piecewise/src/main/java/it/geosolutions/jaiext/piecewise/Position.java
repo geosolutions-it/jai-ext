@@ -18,32 +18,31 @@
 package it.geosolutions.jaiext.piecewise;
 
 /**
- * Class used for indicating a position on a selected axis. Note that the
- * position is mono dimensional
+ * Class used for indicating a position on a selected axis. Note that the position is mono dimensional
  * 
  * @author Nicola Lagomarsini
  * 
  */
 public class Position {
 
-	double ordinate;
+    double ordinate;
 
-	public Position() {
-	}
+    public Position() {
+    }
 
-	public Position(double ordinate) {
-		this.ordinate = ordinate;
-	}
+    public Position(double ordinate) {
+        this.ordinate = ordinate;
+    }
 
-	public double getOrdinate() {
-		return ordinate;
-	}
+    public double getOrdinate() {
+        return ordinate;
+    }
 
-	public void setOrdinate(double ordinate) {
-		this.ordinate = ordinate;
-	}
+    public void setOrdinate(double ordinate) {
+        this.ordinate = ordinate;
+    }
 
-	public int getDimension() {
-		return 1;
-	}
+    public int getDimension() {
+        return 1;
+    }
 }

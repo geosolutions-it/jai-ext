@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.colorindexer;
 
 import static it.geosolutions.jaiext.colorindexer.ColorUtils.*;
@@ -25,13 +25,12 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import it.geosolutions.jaiext.colorindexer.ColorMap.ColorEntry;
 
-
 /**
- * A {@link HashMap} replacement especially designed to map an (eventually packed) color to a
- * non negative integer value, which can be in our use cases a count or a palette index.
+ * A {@link HashMap} replacement especially designed to map an (eventually packed) color to a non negative integer value, which can be in our use
+ * cases a count or a palette index.
  * <p>
- * It uses significant less resources than a normal {@link HashMap} as it avoids the usage of object
- * wrappers and other redundant information that we don't need in this particular application
+ * It uses significant less resources than a normal {@link HashMap} as it avoids the usage of object wrappers and other redundant information that we
+ * don't need in this particular application
  * 
  * @author Andrea Aime - GeoSolutions
  * 
@@ -67,11 +66,12 @@ public final class ColorMap implements Iterable<ColorEntry> {
      * Used to check for modifications during iteration
      */
     int modificationCount;
-    
+
     /**
      * Stats
      */
     long accessCount = 0;
+
     long scanCount = 0;
 
     public ColorMap(int initialCapacity) {
@@ -80,7 +80,7 @@ public final class ColorMap implements Iterable<ColorEntry> {
         int capacity = 1;
         while (capacity < initialCapacity)
             capacity <<= 1;
-        
+
         table = new ColorEntry[capacity];
         threshold = (int) (capacity * DEFAULT_LOAD_FACTOR);
         this.size = 0;
@@ -91,13 +91,11 @@ public final class ColorMap implements Iterable<ColorEntry> {
     }
 
     /**
-     * Increments the counter associated to the specified color by one, or sets the count
-     * of such color to one if missing
+     * Increments the counter associated to the specified color by one, or sets the count of such color to one if missing
      */
     public void increment(int red, int green, int blue, int alpha) {
         increment(red, green, blue, alpha, 1);
     }
-
 
     /**
      * Increments the counter associated to the specified color by one
@@ -190,7 +188,7 @@ public final class ColorMap implements Iterable<ColorEntry> {
         addEntry(color, value, index);
         return -1;
     }
-    
+
     /**
      * Removes the specified color from the map
      * 
@@ -203,11 +201,11 @@ public final class ColorMap implements Iterable<ColorEntry> {
     public boolean remove(int r, int g, int b, int a) {
         int color = color(r, g, b, a);
         int index = indexFor(hash(color), table.length);
-     
+
         ColorEntry prev = null;
         for (ColorEntry e = table[index]; e != null; e = e.next) {
             if (e.color == color) {
-                if(prev == null) {
+                if (prev == null) {
                     table[index] = null;
                 } else {
                     prev.next = e.next;
@@ -219,7 +217,7 @@ public final class ColorMap implements Iterable<ColorEntry> {
                 prev = e;
             }
         }
-        
+
         return false;
     }
 
@@ -244,7 +242,7 @@ public final class ColorMap implements Iterable<ColorEntry> {
     }
 
     /**
-     * Returns index for the specified color 
+     * Returns index for the specified color
      */
     static int indexFor(int h, int length) {
         return h & (length - 1);
@@ -270,9 +268,8 @@ public final class ColorMap implements Iterable<ColorEntry> {
     }
 
     /**
-     * Reset its own status to the one of the other color map.
-     * The {@link ColorEntry} are shared, so the other color map should
-     * not be used anymore after this call
+     * Reset its own status to the one of the other color map. The {@link ColorEntry} are shared, so the other color map should not be used anymore
+     * after this call
      */
     public void reset(ColorMap other) {
         this.modificationCount = other.modificationCount;
@@ -282,36 +279,37 @@ public final class ColorMap implements Iterable<ColorEntry> {
     }
 
     /**
-     * Prints out statistics about the color map, number of buckes, empty buckets count,
-     * number of entries per bucket, number of access operations and number of average
-     * color entries accessed each time
+     * Prints out statistics about the color map, number of buckes, empty buckets count, number of entries per bucket, number of access operations and
+     * number of average color entries accessed each time
      */
     public void printStats() {
         int empty = 0;
         int largest = 0;
         int sum = 0;
         for (int i = 0; i < table.length; i++) {
-            if(table[i] == null) {
+            if (table[i] == null) {
                 empty++;
             } else {
                 ColorEntry ce = table[i];
                 int count = 0;
-                while(ce != null) {
+                while (ce != null) {
                     count++;
                     ce = ce.next;
                 }
-                if(count > largest) {
+                if (count > largest) {
                     largest = count;
                 }
                 sum += count;
             }
         }
-        System.out.println("Bins " + table.length + ", empty: " + empty + " largest: " + largest + " avg: " + sum * 1.0 / (table.length - empty));
-        System.out.println("Accesses: " + accessCount + ", scans: " + scanCount + ", scan per access: " + (scanCount * 1.0 / accessCount));
+        System.out.println("Bins " + table.length + ", empty: " + empty + " largest: " + largest
+                + " avg: " + sum * 1.0 / (table.length - empty));
+        System.out.println("Accesses: " + accessCount + ", scans: " + scanCount
+                + ", scan per access: " + (scanCount * 1.0 / accessCount));
         accessCount = 0;
         scanCount = 0;
     }
-    
+
     public static final class ColorEntry {
         int color;
 
@@ -382,8 +380,5 @@ public final class ColorMap implements Iterable<ColorEntry> {
         }
 
     }
-
-    
-
 
 }

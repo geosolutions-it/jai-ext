@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package it.geosolutions.jaiext.bandcombine;
+package it.geosolutions.jaiext.orderdither;
 
 import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
@@ -25,8 +25,11 @@ import it.geosolutions.jaiext.testclasses.TestBase;
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+import java.util.Arrays;
 
+import javax.media.jai.ColorCube;
 import javax.media.jai.JAI;
+import javax.media.jai.KernelJAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
@@ -63,14 +66,17 @@ public class ComparisonTest extends TestBase {
     /** No Data Range parameter */
     private static Range range;
 
-    /** Input ROI used for reducing image active area*/
+    /** ROI Object used for testing */
     private static ROI roi;
 
-    /** Matrix used for the band combination*/
-    private static double[][] matrix;
+    /** ColorMap used for testing */
+    private static ColorCube colorMap;
+
+    /** Dithering mask used for testing */
+    private static KernelJAI[] ditherMask;
 
     @BeforeClass
-    public static void initialSetup() {
+    public static void init() {
 
         // Setting of the image filler parameter to true for a better image creation
         IMAGE_FILLER = true;
@@ -150,12 +156,18 @@ public class ComparisonTest extends TestBase {
             roi = null;
         }
 
-        // Matrix creation
-        matrix = new double[2][4];
-        for (int i = 0; i < matrix[0].length; i++) {
-            matrix[0][i] = i - 1;
-            matrix[1][i] = i + 1;
-        }
+        // Definition of the colorcube
+        colorMap = ColorCube.BYTE_496;
+        // Definition of the Kernels
+        // Getting the dithering mask
+        ditherMask = new KernelJAI[NUM_BANDS];
+        int width = 64;
+        int height = 64;
+        float[] data = new float[width * height];
+        Arrays.fill(data, 0.5f);
+        ditherMask[0] = new KernelJAI(width, height, data);
+        ditherMask[1] = new KernelJAI(width, height, data);
+        ditherMask[2] = new KernelJAI(width, height, data);
     }
 
     @Test
@@ -165,7 +177,7 @@ public class ComparisonTest extends TestBase {
         int dataType = TEST_SELECTOR;
 
         // Descriptor string definition
-        String description = "BandCombine";
+        String description = "OrderedDither";
 
         if (OLD_DESCRIPTOR) {
             description = "Old " + description;
@@ -202,7 +214,7 @@ public class ComparisonTest extends TestBase {
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image
-        PlanarImage finalImage = null;
+        PlanarImage imageCalculated = null;
 
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -213,17 +225,17 @@ public class ComparisonTest extends TestBase {
 
             // creation of the image
             if (OLD_DESCRIPTOR) {
-                JAIExt.registerJAIDescriptor("BandCombine");
-                finalImage = javax.media.jai.operator.BandCombineDescriptor.create(image, matrix,
-                        null);
+                JAIExt.registerJAIDescriptor("OrderedDither");
+                imageCalculated = javax.media.jai.operator.OrderedDitherDescriptor.create(image,
+                        colorMap, ditherMask, null);
             } else {
-                finalImage = BandCombineDescriptor.create(image, matrix, roi, range,
-                        destinationNoData, null);
+                imageCalculated = OrderedDitherDescriptor.create(image, colorMap, ditherMask, null,
+                        roi, range, 100d);
             }
 
             // Total calculation time
             long start = System.nanoTime();
-            finalImage.getTiles();
+            imageCalculated.getTiles();
             long end = System.nanoTime() - start;
 
             // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
@@ -260,8 +272,8 @@ public class ComparisonTest extends TestBase {
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
 
         // Final Image disposal
-        if (finalImage instanceof RenderedOp) {
-            ((RenderedOp) finalImage).dispose();
+        if (imageCalculated instanceof RenderedOp) {
+            ((RenderedOp) imageCalculated).dispose();
         }
 
     }

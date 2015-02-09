@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.piecewise;
 
 import it.geosolutions.jaiext.algebra.AlgebraDescriptor;
@@ -102,12 +102,13 @@ public class TestPiecewise extends TestBase {
         Assert.assertEquals(1, e0.getSourceDimensions());
         Assert.assertEquals(1, e0.getTargetDimensions());
 
+        boolean exceptionThrown = false;
         try {
             Assert.assertEquals(e0.transform(Double.POSITIVE_INFINITY), 0.0, 0.0);
-            Assert.assertTrue(false);
         } catch (Exception e) {
-            // TODO: handle exception
+            exceptionThrown = true;
         }
+        Assert.assertTrue(exceptionThrown);
 
         DefaultPiecewiseTransform1D<DefaultPiecewiseTransform1DElement> transform = new DefaultPiecewiseTransform1D<DefaultPiecewiseTransform1DElement>(
                 new DefaultPiecewiseTransform1DElement[] { e0 });
@@ -191,12 +192,14 @@ public class TestPiecewise extends TestBase {
         // checks
         Assert.assertEquals(0.0, e0.transform(0), 0.0);
         Assert.assertEquals(e0.transform(Double.POSITIVE_INFINITY), 0.0, 0.0);
+        boolean exceptionThrown = false;
         try {
             e0.inverse();
             Assert.assertTrue(false);
         } catch (Exception e) {
-            // TODO: handle exception
+            exceptionThrown = true;
         }
+        Assert.assertTrue(exceptionThrown);
 
         transform = new DefaultPiecewiseTransform1D<DefaultPiecewiseTransform1DElement>(
                 new DefaultPiecewiseTransform1DElement[] { e0 });
@@ -369,8 +372,7 @@ public class TestPiecewise extends TestBase {
         Assert.assertFalse(t0.contains(RangeFactory.create(0.1, true, 1.9, true, false)));
         Assert.assertTrue(t0.equals(t0));
         Assert.assertEquals(t0.inverse().transform(200.5), 0.5, 0.0);
-        // Assert.assertEquals(t0.derivative(1.0), 1.0, 0.0);
-        // TODO CHECK DERIVATIVE
+
         t0 = DefaultPiecewiseTransform1DElement.create("t0",
                 RangeFactory.create(0.0, true, 1.0, true, false),
                 RangeFactory.create(200, true, 201, true));
@@ -379,8 +381,6 @@ public class TestPiecewise extends TestBase {
                 RangeFactory.create(200, true, 202, true))));
         Assert.assertEquals(t0.transform(0.5), 200.5, 0.0);
         Assert.assertEquals(t0.inverse().transform(200.5), 0.5, 0.0);
-        // Assert.assertEquals(t0.derivative(1.0), 1.0, 0.0);
-        // TODO CHECK DERIVATIVE
 
         // //
         //
@@ -394,16 +394,11 @@ public class TestPiecewise extends TestBase {
         Assert.assertFalse(t0.equals(t1));
         Assert.assertEquals(t1.transform(1.8), 201, 0.0);
 
-        // Assert.assertEquals(t1.derivative(2.0), 0.0, 0.0);
-        // TODO CHECK DERIVATIVE
-
         t1 = new DefaultConstantPiecewiseTransformElement("t1", RangeFactory.create(1.0, false,
                 2.0, true, false), 201);
         Assert.assertEquals(t1.transform(1.5), 201, 0.0);
         Assert.assertEquals(t1.transform(1.6), 201, 0.0);
         Assert.assertEquals(t1.transform(1.8), 201, 0.0);
-        // Assert.assertEquals(t1.derivative(2.0), 0.0, 0.0);
-        // TODO CHECK DERIVATIVE
 
         DefaultPiecewiseTransform1D<DefaultPiecewiseTransform1DElement> transform = new DefaultPiecewiseTransform1D<DefaultPiecewiseTransform1DElement>(
                 new DefaultPiecewiseTransform1DElement[] { t1 }, 12);
@@ -452,8 +447,6 @@ public class TestPiecewise extends TestBase {
         Assert.assertEquals(p0.inverse(), SingleDimensionTransformation.IDENTITY);
         Assert.assertEquals(p0.transform(0.5), 0.5, 0.0);
         Assert.assertEquals(p0.inverse().transform(0.5), 0.5, 0.0);
-        // Assert.assertEquals(p0.derivative(1.0), 1.0, 0.0);
-        // TODO CHECK DERIVATIVE
         Assert.assertTrue(p0.transform(0.6) == 0.6);
 
         // //
@@ -484,8 +477,6 @@ public class TestPiecewise extends TestBase {
         Assert.assertEquals(p1.transform(111.5), 111.5, 0.0);
         Assert.assertEquals(p1.transform(123.5), 123.5, 0.0);
         Assert.assertEquals(p1.inverse().transform(657.5), 657.5, 0.0);
-        // Assert.assertEquals(p1.derivative(1.0), 1.0, 0.0);
-        // TODO CHECK DERIVATIVE
         Assert.assertTrue(p1.transform(0.6) == 0.6);
     }
 
@@ -596,8 +587,9 @@ public class TestPiecewise extends TestBase {
         image = BandSelectDescriptor.create(image, new int[] { 0 }, null);
         image = FormatDescriptor.create(image, DataBuffer.TYPE_DOUBLE, null);
         image = AlgebraDescriptor.create(Operator.ABSOLUTE, null, null, 0, null, image);
-        image = OperationConstDescriptor.create(image, new double[]{10}, Operator.SUM, null, null, 0, null);
-        
+        image = OperationConstDescriptor.create(image, new double[] { 10 }, Operator.SUM, null,
+                null, 0, null);
+
         StatsType[] stats = new StatsType[] { StatsType.EXTREMA };
         image = StatisticsDescriptor.create(image, 1, 1, null, null, false, new int[] { 0 }, stats,
                 null);
@@ -605,7 +597,7 @@ public class TestPiecewise extends TestBase {
         double[] result = (double[]) stat.getResult();
         final double minimum = result[0];
         final double maximum = result[1];
-        
+
         final DefaultPiecewiseTransform1DElement mainElement = new DefaultPiecewiseTransform1DElement(
                 "natural logarithm", RangeFactory.create(minimum, true, maximum, true),
                 new MathTransformation() {

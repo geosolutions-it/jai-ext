@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.piecewise;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
@@ -46,10 +46,7 @@ import com.sun.media.jai.util.ImageUtil;
  * 
  * 
  * 
- * @source $URL$
- * @version $Id$
  * @author Simone Giannecchini - GeoSolutions
- * @since 2.4
  */
 public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> extends ColormapOpImage {
 
@@ -69,28 +66,40 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
      */
     private final PiecewiseTransform1D<T> piecewise;
 
+    /** Boolean indicating if the output samplemodel has a Byte dataType */
     protected boolean isByteData;
 
+    /** Byte LookupTable used for quickly calculating piecewise operation for Byte data */
     private byte[][] lut;
 
+    /** Output NoData */
     private double gapsValue = Double.NaN;
 
+    /** Boolean indicating if output nodata has been defined */
     private boolean hasGapsValue = false;
 
+    /** Boolean indicating that the Last DefaultDomain can be used */
     private final boolean useLast;
 
+    /** Boolean indicating that NoData Range is present */
     private final boolean hasNoData;
 
+    /** Boolean indicating that ROI is present */
     private final boolean hasROI;
 
+    /** NoData Range used for checking input NoData */
     private Range nodata;
 
+    /** ROI object used for reducing calculations */
     private ROI roi;
 
+    /** Rectangle containing ROI bounds */
     private Rectangle roiBounds;
 
+    /** {@link PlanarImage} containing ROI data */
     private PlanarImage roiImage;
 
+    /** Output NoData for Bytes */
     private byte gapsValueByte;
 
     /** Boolean indicating that there No Data and ROI are not used */
@@ -102,8 +111,10 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
     /** Boolean indicating that only No Data are used */
     private final boolean caseC;
 
+    /** Optional value used for indicating that the calculations are made only on one band */
     private Integer bandIndex;
 
+    /** Boolean indicating that the bandIndex parameter has been defined */
     private boolean indexDefined;
 
     /**
@@ -121,11 +132,11 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
         // Ensure that the number of sets of breakpoints is either unity
         // or equal to the number of bands.
         final int numBands = sampleModel.getNumBands();
-        
+
         // Check the bandIndex value
-        if(bandIndex != null){
+        if (bandIndex != null) {
             this.bandIndex = bandIndex;
-            this.indexDefined = bandIndex != null && bandIndex !=-1;
+            this.indexDefined = bandIndex != null && bandIndex != -1;
         }
 
         // Set the byte data flag.
@@ -234,7 +245,7 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
                 }
             }
         }
-        
+
         // Check on the tile size
         if (sources[0].getWidth() != dest.getWidth()) {
             throw new IllegalArgumentException(

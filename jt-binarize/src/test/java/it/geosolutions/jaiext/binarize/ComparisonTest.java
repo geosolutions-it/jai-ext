@@ -28,6 +28,7 @@ import java.awt.image.RenderedImage;
 
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 
@@ -62,8 +63,10 @@ public class ComparisonTest extends TestBase {
     /** No Data Range parameter */
     private static Range range;
 
-    private static ROIShape roi;
+    /** ROI Object used for testing */
+    private static ROI roi;
 
+    /** Threshold used for image binarization */
     private static double[] thresholds;
 
     @BeforeClass
@@ -78,8 +81,8 @@ public class ComparisonTest extends TestBase {
         int noDataI = 100;
         float noDataF = 100;
         double noDataD = 100;
-        
-        //Threshold definition
+
+        // Threshold definition
         // thresholds
         thresholds = new double[6];
         thresholds[0] = 63;
@@ -212,10 +215,12 @@ public class ComparisonTest extends TestBase {
 
             // creation of the image
             if (OLD_DESCRIPTOR) {
-                JAIExt.registerJAIDescriptor("BandCombine");
-                imageCalculated = javax.media.jai.operator.BinarizeDescriptor.create(image, thresholds[dataType], null);
+                JAIExt.registerJAIDescriptor("Binarize");
+                imageCalculated = javax.media.jai.operator.BinarizeDescriptor.create(image,
+                        thresholds[dataType], null);
             } else {
-                imageCalculated = BinarizeDescriptor.create(image, thresholds[dataType], roi, range, null);
+                imageCalculated = BinarizeDescriptor.create(image, thresholds[dataType], roi,
+                        range, null);
             }
 
             // Total calculation time

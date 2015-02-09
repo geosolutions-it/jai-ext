@@ -31,32 +31,30 @@ import javax.media.jai.ROI;
 import com.sun.media.jai.opimage.RIFUtil;
 
 /**
- * {@link RenderedImageFactory} used for generating
- * {@link GenericPiecewiseOpImage} instances
+ * {@link RenderedImageFactory} used for generating {@link GenericPiecewiseOpImage} instances
  * 
  * @author Nicola Lagomarsini Geosolutions
  * 
  */
 public class GenericPiecewiseCRIF extends CRIFImpl {
 
-	public GenericPiecewiseCRIF() {
-		super(GenericPiecewiseOpImage.OPERATION_NAME);
-	}
+    public GenericPiecewiseCRIF() {
+        super(GenericPiecewiseOpImage.OPERATION_NAME);
+    }
 
-	public RenderedImage create(ParameterBlock pb, RenderingHints hints) {
-		// Getting ImageLayout
-		ImageLayout l = RIFUtil.getImageLayoutHint(hints);
-		// Getting Source
-		RenderedImage source = pb.getRenderedSource(0);
-		// Extracting Parameters
-		final PiecewiseTransform1D lic = (PiecewiseTransform1D) pb
-				.getObjectParameter(0);
-		final Integer bandIndex = pb.getIntParameter(1);
-		final ROI roi = (ROI) pb.getObjectParameter(2);
-		final Range nodata = (Range) pb.getObjectParameter(3);
+    public RenderedImage create(ParameterBlock pb, RenderingHints hints) {
+        // Getting ImageLayout
+        ImageLayout l = RIFUtil.getImageLayoutHint(hints);
+        // Getting Source
+        RenderedImage source = pb.getRenderedSource(0);
+        // Extracting Parameters
+        final PiecewiseTransform1D lic = (PiecewiseTransform1D) pb.getObjectParameter(0);
+        final Integer bandIndex = pb.getIntParameter(1);
+        final ROI roi = (ROI) pb.getObjectParameter(2);
+        final Range nodata = (Range) pb.getObjectParameter(3);
 
-		return new GenericPiecewiseOpImage<PiecewiseTransform1DElement>(source,
-				lic, l, bandIndex, roi, nodata, hints);
-	}
+        return new GenericPiecewiseOpImage<PiecewiseTransform1DElement>(source, lic, l, bandIndex,
+                roi, nodata, hints);
+    }
 
 }

@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.imagefunction;
 
 import java.awt.Rectangle;
@@ -30,9 +30,10 @@ import javax.media.jai.ROI;
  * @author Nicola Lagomarsini GeoSolutions
  */
 public class ImageFunctionJAIEXTWrapper implements ImageFunctionJAIEXT {
-
+    /** {@link ImageFunction} object being wrapped */
     private ImageFunction f;
 
+    /** Boolean indicating if the input {@link ImageFunction} is an instance of {@link ImageFunctionJAIEXT} */
     private boolean isJAIExt;
 
     public ImageFunctionJAIEXTWrapper(ImageFunction f) {
@@ -70,8 +71,9 @@ public class ImageFunctionJAIEXTWrapper implements ImageFunctionJAIEXT {
     }
 
     public void getElements(float startX, float startY, float deltaX, float deltaY, int countX,
-            int countY, int element, float[] real, float[] imag, Rectangle destRect, ROI roi, Range nodata,
-            float destNoData) {
+            int countY, int element, float[] real, float[] imag, Rectangle destRect, ROI roi,
+            Range nodata, float destNoData) {
+        // If ImageFunctionJAIExt, take into account ROI and NoData, otherwise simply act as a normal ImageFunction instance
         if (isJAIExt) {
             ((ImageFunctionJAIEXT) f).getElements(startX, startY, deltaX, deltaY, countX, countY,
                     element, real, imag, destRect, roi, nodata, destNoData);
@@ -81,8 +83,9 @@ public class ImageFunctionJAIEXTWrapper implements ImageFunctionJAIEXT {
     }
 
     public void getElements(double startX, double startY, double deltaX, double deltaY, int countX,
-            int countY, int element, double[] real, double[] imag, Rectangle destRect, ROI roi, Range nodata,
-            float destNoData) {
+            int countY, int element, double[] real, double[] imag, Rectangle destRect, ROI roi,
+            Range nodata, float destNoData) {
+        // If ImageFunctionJAIExt, take into account ROI and NoData, otherwise simply act as a normal ImageFunction instance
         if (isJAIExt) {
             ((ImageFunctionJAIEXT) f).getElements(startX, startY, deltaX, deltaY, countX, countY,
                     element, real, imag, destRect, roi, nodata, destNoData);

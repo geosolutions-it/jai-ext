@@ -32,43 +32,37 @@ import javax.media.jai.ROI;
 import com.sun.media.jai.opimage.RIFUtil;
 
 /**
- * {@link ContextualRenderedImageFactory} implementation used for creating new
- * {@link ColorConvertOpImage} instances.
+ * {@link ContextualRenderedImageFactory} implementation used for creating new {@link ColorConvertOpImage} instances.
  * 
  * @author Nicola Lagomarsini geosolutions
  * 
  */
 public class ColorConvertCRIF extends CRIFImpl {
 
-	/** Constructor. */
-	public ColorConvertCRIF() {
-		super("colorconvert");
-	}
+    /** Constructor. */
+    public ColorConvertCRIF() {
+        super("colorconvert");
+    }
 
-	/**
-	 * Creates a new instance of <code>ColorConvertOpImage</code> in the
-	 * rendered layer.
-	 * 
-	 * @param args
-	 *            The source image and the destination ColorModel.
-	 * @param hints
-	 *            Optionally contains destination image layout.
-	 */
-	public RenderedImage create(ParameterBlock pb, RenderingHints renderingHints) {
-		// Get ImageLayout from renderHints if any.
-		ImageLayout layout = RIFUtil.getImageLayoutHint(renderingHints);
-		// Getting source
-		RenderedImage source = (RenderedImage) pb.getSource(0);
+    /**
+     * Creates a new instance of <code>ColorConvertOpImage</code> in the rendered layer.
+     * 
+     * @param args The source image and the destination ColorModel.
+     * @param hints Optionally contains destination image layout.
+     */
+    public RenderedImage create(ParameterBlock pb, RenderingHints renderingHints) {
+        // Get ImageLayout from renderHints if any.
+        ImageLayout layout = RIFUtil.getImageLayoutHint(renderingHints);
+        // Getting source
+        RenderedImage source = (RenderedImage) pb.getSource(0);
 
-		// Getting Parameters
-		ColorModel cm = (ColorModel) pb.getObjectParameter(0);
-		ROI roi = (ROI) pb.getObjectParameter(1);
-		Range nodata = (Range) pb.getObjectParameter(2);
-		double[] destNoData = (double[]) pb.getObjectParameter(3);
+        // Getting Parameters
+        ColorModel cm = (ColorModel) pb.getObjectParameter(0);
+        ROI roi = (ROI) pb.getObjectParameter(1);
+        Range nodata = (Range) pb.getObjectParameter(2);
+        double[] destNoData = (double[]) pb.getObjectParameter(3);
 
-		// Generating the source image
-		return new ColorConvertOpImage(source, renderingHints, layout, cm,
-				nodata, roi, destNoData);
-	}
-
+        // Generating the source image
+        return new ColorConvertOpImage(source, renderingHints, layout, cm, nodata, roi, destNoData);
+    }
 }

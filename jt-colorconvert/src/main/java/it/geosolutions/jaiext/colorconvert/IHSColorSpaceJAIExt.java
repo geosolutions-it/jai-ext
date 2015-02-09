@@ -30,7 +30,6 @@ import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.lang.ref.SoftReference;
 
-import javax.media.jai.ColorSpaceJAI;
 import javax.media.jai.PixelAccessor;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;

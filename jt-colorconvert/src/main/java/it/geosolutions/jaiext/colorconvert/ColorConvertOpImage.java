@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.colorconvert;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
@@ -57,7 +57,7 @@ import com.sun.media.jai.util.ImageUtil;
  * 
  */
 public class ColorConvertOpImage extends PointOpImage {
-
+    /** LOGGER for the operation */
     private static final Logger LOGGER = Logger.getLogger(ColorConvertOpImage.class.toString());
 
     /** Constant indicating that the inner random iterators must pre-calculate an array of the image positions */
@@ -69,6 +69,7 @@ public class ColorConvertOpImage extends PointOpImage {
     /** Cache a rgb color space */
     private static final ColorSpace rgbColorSpace = ColorSpace.getInstance(ColorSpace.CS_sRGB);
 
+    /** SoftReference used for caching the {@link ColorConvertOp} instances */
     private static SoftReference softRef = null;
 
     /** The source image parameters */
@@ -92,10 +93,13 @@ public class ColorConvertOpImage extends PointOpImage {
     /** Boolean indicating if NoData is present */
     private boolean hasNoData;
 
+    /** ROI object used for reducing the computation area */
     private ROI roi;
 
+    /** Rectangle associated to the input ROI */
     private Rectangle roiBounds;
 
+    /** NoData Range used for checking NoData */
     private Range nodata;
 
     /** Boolean indicating that there No Data and ROI are not used */
@@ -110,10 +114,13 @@ public class ColorConvertOpImage extends PointOpImage {
     /** Image generated from the input ROI */
     private PlanarImage roiImage;
 
+    /** Float array containing an array of modified NoData used in output */
     private float[] destinationNoData;
 
+    /** Float array containing NoData used in output but not already modified */
     private float[] destinationNoDataNoJAI;
 
+    /** Array containing the value to set on the backgroud if the input tile is outside ROI */
     private double[] background;
 
     /**
@@ -231,7 +238,7 @@ public class ColorConvertOpImage extends PointOpImage {
             tempParam = createTempParam();
         } else if (srcColorSpace instanceof ColorSpaceJAI) {
             if (srcColorSpace instanceof IHSColorSpace) {
-                srcColorSpace = ColorSpaceJAIExt.getIHSColorSpace();
+                srcColorSpace = ColorSpaceJAIExt.getIHSColorSpaceJAIEXT();
             }
 
             // when source is ColorSpaceJAI, 1. convert via RGB if
@@ -244,7 +251,7 @@ public class ColorConvertOpImage extends PointOpImage {
                 caseNumber = 3;
         } else if (dstColorSpace instanceof ColorSpaceJAI) {
             if (dstColorSpace instanceof IHSColorSpace) {
-                dstColorSpace = ColorSpaceJAIExt.getIHSColorSpace();
+                dstColorSpace = ColorSpaceJAIExt.getIHSColorSpaceJAIEXT();
             }
 
             // when destination is ColorSpaceJAI, 1. convert via RGB if
@@ -446,7 +453,7 @@ public class ColorConvertOpImage extends PointOpImage {
             colorSpaceJAIExt = (ColorSpaceJAIExt) colorSpaceJAI;
         } else {
             if (colorSpaceJAI instanceof IHSColorSpace) {
-                colorSpaceJAIExt = ColorSpaceJAIExt.getIHSColorSpace();
+                colorSpaceJAIExt = ColorSpaceJAIExt.getIHSColorSpaceJAIEXT();
             } else {
                 colorSpaceJAIExt = new ColorSpaceJAIExtWrapper(colorSpaceJAI);
                 LOGGER.log(Level.SEVERE,
@@ -475,7 +482,7 @@ public class ColorConvertOpImage extends PointOpImage {
             colorSpaceJAIExt = (ColorSpaceJAIExt) colorSpaceJAI;
         } else {
             if (colorSpaceJAI instanceof IHSColorSpace) {
-                colorSpaceJAIExt = ColorSpaceJAIExt.getIHSColorSpace();
+                colorSpaceJAIExt = ColorSpaceJAIExt.getIHSColorSpaceJAIEXT();
             } else {
                 colorSpaceJAIExt = new ColorSpaceJAIExtWrapper(colorSpaceJAI);
                 LOGGER.log(Level.SEVERE,
@@ -808,7 +815,9 @@ public class ColorConvertOpImage extends PointOpImage {
         return img;
     }
 
-    // define a class to cache the parameters
+    /**
+     * Class used as a container for various objects to pass to different computation method
+     */
     private final class ImageParameters {
         private boolean isFloat;
 

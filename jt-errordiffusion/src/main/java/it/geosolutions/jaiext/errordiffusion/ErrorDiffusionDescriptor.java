@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.errordiffusion;
 
 import it.geosolutions.jaiext.range.Range;
@@ -170,9 +170,9 @@ public class ErrorDiffusionDescriptor extends OperationDescriptorImpl {
             KernelJAI errorKernel, ROI roi, Range nodata, double[] destNoData, RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI("ErrorDiffusion",
                 RenderedRegistryMode.MODE_NAME);
-
+        // Setting source
         pb.setSource("source0", source0);
-
+        // Setting parameters
         pb.setParameter("colorMap", colorMap);
         pb.setParameter("errorKernel", errorKernel);
         pb.setParameter("roi", roi);

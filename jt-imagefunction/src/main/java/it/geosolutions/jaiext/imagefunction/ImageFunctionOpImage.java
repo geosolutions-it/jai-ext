@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.imagefunction;
 
 import it.geosolutions.jaiext.range.Range;
@@ -67,16 +67,22 @@ final class ImageFunctionOpImage extends SourcelessOpImage {
     /** The Y translation. */
     protected float yTrans;
 
+    /** ROI used for reducing calculation area */
     private ROI roi;
 
+    /** NoData used for checking if input pixels are NoData */
     private Range nodata;
 
+    /** Boolean indicating if ROI is present */
     private boolean hasROI;
 
+    /** Value to set as output NoData */
     private float destNoData;
 
+    /** {@link PlanarImage} containing ROI data */
     private PlanarImage roiImage;
 
+    /** Rectangle defining ROI bounds */
     private Rectangle roiBounds;
 
     private static SampleModel sampleModelHelper(int numBands, ImageLayout layout) {
@@ -122,7 +128,7 @@ final class ImageFunctionOpImage extends SourcelessOpImage {
             this.roiBounds = roi.getBounds();
             this.roi = roi;
         }
-
+        // Check on NoData
         if (nodata != null) {
             this.nodata = RangeFactory.convertToFloatRange(nodata);
         }
@@ -153,7 +159,7 @@ final class ImageFunctionOpImage extends SourcelessOpImage {
 
             if (!roiBounds.intersects(srcRectExpanded)) {
                 roiDisjointTile = true;
-            } 
+            }
         }
 
         if (roiDisjointTile) {
@@ -185,7 +191,8 @@ final class ImageFunctionOpImage extends SourcelessOpImage {
             for (int band = 0; band < numBands; band++) {
                 function.getElements(xScale * (destRect.x - xTrans),
                         yScale * (destRect.y - yTrans), xScale, yScale, destRect.width,
-                        destRect.height, element++, real, imag, destRect, roiTile, nodata, destNoData);
+                        destRect.height, element++, real, imag, destRect, roiTile, nodata,
+                        destNoData);
                 dest.setSamples(destRect.x, destRect.y, destRect.width, destRect.height, band,
                         (double[]) real);
                 if (function.isComplex()) {
@@ -201,7 +208,8 @@ final class ImageFunctionOpImage extends SourcelessOpImage {
             for (int band = 0; band < numBands; band++) {
                 function.getElements(xScale * (destRect.x - xTrans),
                         yScale * (destRect.y - yTrans), xScale, yScale, destRect.width,
-                        destRect.height, element++, real, imag, destRect, roiTile, nodata, destNoData);
+                        destRect.height, element++, real, imag, destRect, roiTile, nodata,
+                        destNoData);
                 dest.setSamples(destRect.x, destRect.y, destRect.width, destRect.height, band, real);
                 if (function.isComplex()) {
                     dest.setSamples(destRect.x, destRect.y, destRect.width, destRect.height,

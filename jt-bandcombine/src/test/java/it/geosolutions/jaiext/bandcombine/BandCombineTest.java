@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.bandcombine;
 
 import static org.junit.Assert.assertEquals;
@@ -41,37 +41,49 @@ import it.geosolutions.jaiext.testclasses.TestBase;
  * Unit test for testing the BandCombine operation with NoData and ROI
  */
 public class BandCombineTest extends TestBase {
-
+    /** Tolerance parameter used in comparison */
     private static final double TOLERANCE = 0.1d;
 
+    /** Input data used for testing */
     private static RenderedImage[] testImages;
 
+    /** NoData Range for Byte dataType */
     private static Range noDataByte;
 
+    /** NoData Range for Ushort dataType */
     private static Range noDataUShort;
 
+    /** NoData Range for Short dataType */
     private static Range noDataShort;
 
+    /** NoData Range for Int dataType */
     private static Range noDataInt;
 
+    /** NoData Range for Float dataType */
     private static Range noDataFloat;
 
+    /** NoData Range for Double dataType */
     private static Range noDataDouble;
 
+    /** ROI used in tests */
     private static ROI roiObject;
 
+    /** Matrix for band combine */
     private static double[][] matrix;
 
+    /** Value to set as Output NoData */
     private static double destNoData;
 
     @BeforeClass
     public static void initialSetup() {
+        // NoData definition
         byte noDataB = 50;
         short noDataS = 50;
         int noDataI = 50;
         float noDataF = 50;
         double noDataD = 50;
 
+        // Image Creation
         testImages = new RenderedImage[6];
 
         IMAGE_FILLER = true;
@@ -224,7 +236,7 @@ public class BandCombineTest extends TestBase {
         // Ensure a correct band size
         assertEquals(dstBands, matrix.length);
 
-        // Check
+        // Check on all the pixels if they have been calculate correctly
         for (int tileX = minTileX; tileX < maxTileX; tileX++) {
             for (int tileY = minTileY; tileY < maxTileY; tileY++) {
                 Raster tile = combined.getTile(tileX, tileY);
@@ -257,10 +269,10 @@ public class BandCombineTest extends TestBase {
                                     if (isValidData) {
                                         switch (dataType) {
                                         case DataBuffer.TYPE_BYTE:
-                                            calculated += ((int)sample & 0xFF) * matrix[b][i];
+                                            calculated += ((int) sample & 0xFF) * matrix[b][i];
                                             break;
                                         case DataBuffer.TYPE_USHORT:
-                                            calculated += ((int)sample & 0xFFFF) * matrix[b][i];
+                                            calculated += ((int) sample & 0xFFFF) * matrix[b][i];
                                             break;
                                         case DataBuffer.TYPE_SHORT:
                                         case DataBuffer.TYPE_INT:
@@ -294,8 +306,8 @@ public class BandCombineTest extends TestBase {
                                         result = ImageUtil.clampRoundInt(result);
                                         break;
                                     case DataBuffer.TYPE_FLOAT:
-                                        calculated = (float)calculated;
-                                        calculated = (float)result;
+                                        calculated = (float) calculated;
+                                        calculated = (float) result;
                                         break;
                                     case DataBuffer.TYPE_DOUBLE:
                                         break;

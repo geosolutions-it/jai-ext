@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.classifier;
 
 import static org.junit.Assert.assertEquals;
@@ -50,12 +50,10 @@ import javax.xml.crypto.dsig.TransformException;
 import org.junit.Test;
 
 /**
+ * Test class for the RasterClassifier operation
  * 
  * @author Simone Giannecchini, GeoSolutions
  * @author Nicola Lagomarsini, GeoSolutions
- * 
- * 
- * 
  * 
  * @source $URL$
  */
@@ -73,9 +71,7 @@ public class TestClassifier extends TestBase {
 
         // /////////////////////////////////////////////////////////////////////
         //
-        // This test is interesting since it can be used to force the
-        // creation of a sample model that uses a USHORT datatype since the
-        // number of requested colors is pretty high. We are also using some
+        // This test uses a Double datatype raster. We are also using some
         // synthetic data where there is no NoData.
         //
         // /////////////////////////////////////////////////////////////////////
@@ -120,7 +116,7 @@ public class TestClassifier extends TestBase {
 
             final LinearColorMap list = new LinearColorMap("", new LinearColorMapElement[] { c0,
                     c1, c3, c4, c5, c6 }, new LinearColorMapElement[] { c7 });
-
+            // Operation creation
             final ParameterBlockJAI pbj = new ParameterBlockJAI(
                     RasterClassifierOpImage.OPERATION_NAME);
             pbj.addSource(image);
@@ -168,9 +164,7 @@ public class TestClassifier extends TestBase {
 
         // /////////////////////////////////////////////////////////////////////
         //
-        // This test is interesting since it can be used to force the
-        // creation of a sample model that uses a USHORT datatype since the
-        // number of requested colors is pretty high. We are also using some
+        // This test uses a Float datatype raster. We are also using some
         // synthetic data where there is no NoData.
         //
         // /////////////////////////////////////////////////////////////////////
@@ -282,12 +276,13 @@ public class TestClassifier extends TestBase {
             final LinearColorMap list = new LinearColorMap("", new LinearColorMapElement[] { n0 });
 
             double testNum = Math.random();
+            boolean exceptionThrown = false;
             try {
                 assertEquals(list.transform(testNum), testNum, 0.0);
-                assertTrue(false);
             } catch (Exception e) {
-                // TODO: handle exception
+                exceptionThrown = true;
             }
+            assertTrue(exceptionThrown);
             assertEquals(list.transform(Double.NaN), 9999, 0.0);
         }
     }
@@ -363,7 +358,7 @@ public class TestClassifier extends TestBase {
     }
 
     /**
-     * SWAN test-case.
+     * SWAN test-case. We generate an image similar to the SWAN dataset.
      * 
      * @throws IOException
      */
@@ -373,20 +368,7 @@ public class TestClassifier extends TestBase {
         //
         // This test is interesting since it can be used to simulate the
         // case where someone specifies a ColorMap that overlaps with the native
-        // NoData value. For this SWAN data the NoData value is -9.0 and no
-        // NaN which falls right into the first category.
-        //
-        // We overcome this problem by simply giving higher priority to the
-        // NoData category over the other categories when doing a search for
-        // the right category given a certain value. This force us to
-        // first evaluate the no data category and then evaluate a possible
-        // provided overlapping value.
-        //
-        // This test is also interesting since we create a color map by
-        // providing output indexes that are not ordered and also that are not
-        // all contained in a closed natural interval. As you can notice by
-        // inspecting the different classes below there is an index, 51, which
-        // is way outside the range of the others.
+        // NoData value.
         //
         // /////////////////////////////////////////////////////////////////////
         final RenderedImage image = getSWAN();
@@ -428,6 +410,7 @@ public class TestClassifier extends TestBase {
             pbj.addSource(image);
             pbj.setParameter("Domain1D", list);
 
+            boolean exceptionThrown = false;
             try {
                 // //
                 // forcing a bad band selection ...
@@ -436,12 +419,13 @@ public class TestClassifier extends TestBase {
                 final RenderedOp d = JAI.create(RasterClassifierOpImage.OPERATION_NAME, pbj);
                 d.getTiles();
                 // we should not be here!
-                assertTrue(false);
             } catch (Exception e) {
+                exceptionThrown = true;
                 // //
                 // ... ok, Exception wanted!
                 // //
             }
+            assertTrue(exceptionThrown);
 
             pbj.setParameter("bandIndex", new Integer(0));
             final RenderedOp finalimage = JAI.create(RasterClassifierOpImage.OPERATION_NAME, pbj);
@@ -455,7 +439,7 @@ public class TestClassifier extends TestBase {
     }
 
     /**
-     * Synthetic double .
+     * SWAN test-case. We generate an image similar to the SWAN dataset.
      * 
      * @throws IOException
      */
@@ -539,7 +523,7 @@ public class TestClassifier extends TestBase {
     }
 
     /**
-     * Building an image simulating on SWAN data.
+     * Building an image simulating SWAN data.
      * 
      * @return {@linkplain BufferedImage}
      * 

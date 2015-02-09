@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package it.geosolutions.jaiext.bandcombine;
+package it.geosolutions.jaiext.imagefunction;
 
 import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
@@ -24,8 +24,8 @@ import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
-import java.awt.image.RenderedImage;
 
+import javax.media.jai.ImageFunction;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
@@ -54,23 +54,35 @@ public class ComparisonTest extends TestBase {
     /** Boolean indicating if a ROI must be used */
     private final static boolean ROI_USED = Boolean.getBoolean("JAI.Ext.ROIUsed");
 
-    /** Source band number */
-    private static final int NUM_BANDS = 3;
-
-    /** Image to elaborate */
-    private static RenderedImage image;
-
     /** No Data Range parameter */
     private static Range range;
 
-    /** Input ROI used for reducing image active area*/
+    /** ROI Object used for testing */
     private static ROI roi;
 
-    /** Matrix used for the band combination*/
-    private static double[][] matrix;
+    /** {@link ImageFunction} used in test */
+    private static ImageFunctionJAIEXT function;
+
+    /** Output image width */
+    private static int width;
+
+    /** Output image height */
+    private static int height;
+
+    /** X translation of input pixels */
+    private static float xTrans;
+
+    /** Y translation of input pixels */
+    private static float yTrans;
+
+    /** X scale of input pixels */
+    private static float xScale;
+
+    /** Y scale of input pixels */
+    private static float yScale;
 
     @BeforeClass
-    public static void initialSetup() {
+    public static void init() {
 
         // Setting of the image filler parameter to true for a better image creation
         IMAGE_FILLER = true;
@@ -81,38 +93,6 @@ public class ComparisonTest extends TestBase {
         int noDataI = 100;
         float noDataF = 100;
         double noDataD = 100;
-
-        // Image creation
-        image = null;
-
-        switch (TEST_SELECTOR) {
-        case DataBuffer.TYPE_BYTE:
-            image = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataB,
-                    false, NUM_BANDS);
-            break;
-        case DataBuffer.TYPE_USHORT:
-            image = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                    noDataUS, false, NUM_BANDS);
-            break;
-        case DataBuffer.TYPE_SHORT:
-            image = createTestImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataS,
-                    false, NUM_BANDS);
-            break;
-        case DataBuffer.TYPE_INT:
-            image = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
-                    false, NUM_BANDS);
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            image = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataF,
-                    false, NUM_BANDS);
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            image = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataD,
-                    false, NUM_BANDS);
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data type");
-        }
         // Image filler must be reset
         IMAGE_FILLER = false;
 
@@ -150,12 +130,17 @@ public class ComparisonTest extends TestBase {
             roi = null;
         }
 
-        // Matrix creation
-        matrix = new double[2][4];
-        for (int i = 0; i < matrix[0].length; i++) {
-            matrix[0][i] = i - 1;
-            matrix[1][i] = i + 1;
-        }
+        // ImageFunction
+        function = new ImageFunctionTest.DummyFunction();
+
+        // size and other parameters
+        width = 256;
+        height = 256;
+        xTrans = 2f;
+        yTrans = 2f;
+        xScale = 3f;
+        yScale = 3f;
+
     }
 
     @Test
@@ -165,7 +150,7 @@ public class ComparisonTest extends TestBase {
         int dataType = TEST_SELECTOR;
 
         // Descriptor string definition
-        String description = "BandCombine";
+        String description = "ImageFunction";
 
         if (OLD_DESCRIPTOR) {
             description = "Old " + description;
@@ -202,7 +187,7 @@ public class ComparisonTest extends TestBase {
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image
-        PlanarImage finalImage = null;
+        PlanarImage imageCalculated = null;
 
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -213,17 +198,18 @@ public class ComparisonTest extends TestBase {
 
             // creation of the image
             if (OLD_DESCRIPTOR) {
-                JAIExt.registerJAIDescriptor("BandCombine");
-                finalImage = javax.media.jai.operator.BandCombineDescriptor.create(image, matrix,
+                JAIExt.registerJAIDescriptor("ImageFunction");
+                imageCalculated = javax.media.jai.operator.ImageFunctionDescriptor.create(
+                        (ImageFunction) function, width, height, xScale, yScale, xTrans, yTrans,
                         null);
             } else {
-                finalImage = BandCombineDescriptor.create(image, matrix, roi, range,
-                        destinationNoData, null);
+                imageCalculated = ImageFunctionDescriptor.create((ImageFunction) function, width,
+                        height, xScale, yScale, xTrans, yTrans, roi, range, 0f, null);
             }
 
             // Total calculation time
             long start = System.nanoTime();
-            finalImage.getTiles();
+            imageCalculated.getTiles();
             long end = System.nanoTime() - start;
 
             // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
@@ -260,8 +246,8 @@ public class ComparisonTest extends TestBase {
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
 
         // Final Image disposal
-        if (finalImage instanceof RenderedOp) {
-            ((RenderedOp) finalImage).dispose();
+        if (imageCalculated instanceof RenderedOp) {
+            ((RenderedOp) imageCalculated).dispose();
         }
 
     }

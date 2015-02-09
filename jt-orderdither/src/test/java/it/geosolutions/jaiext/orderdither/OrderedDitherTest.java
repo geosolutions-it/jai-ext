@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.orderdither;
 
 import static org.junit.Assert.assertEquals;
@@ -46,22 +46,31 @@ public class OrderedDitherTest extends TestBase {
 
     private static final double TOLERANCE = 0.01d;
 
+    /** Images used for testing */
     private static RenderedImage[] testImages;
 
+    /** NoData Range for Byte */
     private static Range noDataByte;
 
+    /** NoData Range for Ushort */
     private static Range noDataUShort;
 
+    /** NoData Range for Short */
     private static Range noDataShort;
 
+    /** NoData Range for Int */
     private static Range noDataInt;
 
+    /** NoData Range for Float */
     private static Range noDataFloat;
 
+    /** NoData Range for Double */
     private static Range noDataDouble;
 
+    /** Input ROI */
     private static ROI roiObject;
 
+    /** Output value for NoData */
     private static double destNoData;
 
     @BeforeClass
@@ -202,7 +211,7 @@ public class OrderedDitherTest extends TestBase {
         } else {
             noData = null;
         }
-
+        // ROI setting
         ROI roi;
 
         if (roiUsed) {
@@ -225,7 +234,7 @@ public class OrderedDitherTest extends TestBase {
         int width;
         int height;
         float[] data;
-
+        // Different Mask in case of Byte optimization
         if (byteOptimized) {
             width = 8;
             height = 8;
@@ -247,7 +256,7 @@ public class OrderedDitherTest extends TestBase {
         // Ordered Dither operation
         RenderedOp orderedDither = OrderedDitherDescriptor.create(src, colorMap, k, null, roi,
                 noData, destNoData + colorMap.getAdjustedOffset());
-        
+
         checkNoDataROI(orderedDither, src, roi, noData, colorMap);
 
         // Disposal of the output image

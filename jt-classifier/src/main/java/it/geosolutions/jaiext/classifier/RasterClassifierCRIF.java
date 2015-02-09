@@ -31,31 +31,29 @@ import javax.media.jai.ROI;
 import com.sun.media.jai.opimage.RIFUtil;
 
 /**
- * {@link RenderedImageFactory} used for creating a new
- * {@link RasterClassifierOpImage} instance.
+ * {@link RenderedImageFactory} used for creating a new {@link RasterClassifierOpImage} instance.
  * 
  * @author Nicola Lagomarsini geosolutions
  * 
  */
 public class RasterClassifierCRIF extends CRIFImpl {
 
-	/**
-	 * Creates a {@link RenderedImage} representing the results of an imaging
-	 * operation for a given {@link ParameterBlock} and {@link RenderingHints}.
-	 */
-	public RenderedImage create(final ParameterBlock param,
-			final RenderingHints hints) {
-		// Getting Source
-		final RenderedImage image = (RenderedImage) param.getSource(0);
-		// Getting imageLayout
-		ImageLayout layout = RIFUtil.getImageLayoutHint(hints);
-		final ColorMapTransform<ColorMapTransformElement> lic = (ColorMapTransform<ColorMapTransformElement>) param
-				.getObjectParameter(0);
-		final int bandIndex = param.getIntParameter(1);
-		ROI roi = (ROI) param.getObjectParameter(2);
-		Range nodata = (Range) param.getObjectParameter(3);
-		return new RasterClassifierOpImage(image, lic, layout, bandIndex, roi,
-				nodata, hints);
-	}
+    /**
+     * Creates a {@link RenderedImage} representing the results of an imaging operation for a given {@link ParameterBlock} and {@link RenderingHints}.
+     */
+    public RenderedImage create(final ParameterBlock param, final RenderingHints hints) {
+        // Getting Source
+        final RenderedImage image = (RenderedImage) param.getSource(0);
+        // Getting imageLayout
+        ImageLayout layout = RIFUtil.getImageLayoutHint(hints);
+        // Getting parameters
+        final ColorMapTransform<ColorMapTransformElement> lic = (ColorMapTransform<ColorMapTransformElement>) param
+                .getObjectParameter(0);
+        final int bandIndex = param.getIntParameter(1);
+        ROI roi = (ROI) param.getObjectParameter(2);
+        Range nodata = (Range) param.getObjectParameter(3);
+        // Creating the RasterClassifierOpImage
+        return new RasterClassifierOpImage(image, lic, layout, bandIndex, roi, nodata, hints);
+    }
 
 }

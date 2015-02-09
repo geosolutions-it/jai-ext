@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.binarize;
 
 import static org.junit.Assert.assertEquals;
@@ -39,23 +39,31 @@ import org.junit.Test;
  * Unit test for testing Binarize operation with ROI and No Data.
  */
 public class BinarizeTest extends TestBase {
-
+    /** Array of inut test data */
     private static RenderedImage[] testImages;
 
+    /** NoData Range for Byte */
     private static Range noDataByte;
 
+    /** NoData Range for Ushort */
     private static Range noDataUShort;
 
+    /** NoData Range for Short */
     private static Range noDataShort;
 
+    /** NoData Range for Int */
     private static Range noDataInt;
 
+    /** NoData Range for Float */
     private static Range noDataFloat;
 
+    /** NoData Range for Double */
     private static Range noDataDouble;
 
+    /** ROI object used for tests */
     private static ROI roiObject;
 
+    /** Threshold used for binarization */
     private static double[] thresholds;
 
     @BeforeClass
@@ -75,21 +83,22 @@ public class BinarizeTest extends TestBase {
         thresholds[4] = (255 / 2) * 5;
         thresholds[5] = (255 / 7) * 13;
 
+        // Image creation
         testImages = new RenderedImage[6];
 
         IMAGE_FILLER = true;
-        testImages[DataBuffer.TYPE_BYTE] = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataB, false, 1,
-                (byte)(thresholds[DataBuffer.TYPE_BYTE] + 1));
-        testImages[DataBuffer.TYPE_USHORT] = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataS, false, 1,
-                (short)(thresholds[DataBuffer.TYPE_USHORT] + 1));
-        testImages[DataBuffer.TYPE_SHORT] = createTestImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataS, false, 1,
-                (short)(thresholds[DataBuffer.TYPE_SHORT] + 1));
-        testImages[DataBuffer.TYPE_INT] = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI, false, 1,
-                (int)(thresholds[DataBuffer.TYPE_INT] + 1));
-        testImages[DataBuffer.TYPE_FLOAT] = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataF, false, 1,
-                (float)(thresholds[DataBuffer.TYPE_FLOAT] + 1));
-        testImages[DataBuffer.TYPE_DOUBLE] = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataD, false, 1,
-                thresholds[DataBuffer.TYPE_DOUBLE] + 1);
+        testImages[DataBuffer.TYPE_BYTE] = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH,
+                DEFAULT_HEIGHT, noDataB, false, 1, (byte) (thresholds[DataBuffer.TYPE_BYTE] + 1));
+        testImages[DataBuffer.TYPE_USHORT] = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH,
+                DEFAULT_HEIGHT, noDataS, false, 1, (short) (thresholds[DataBuffer.TYPE_USHORT] + 1));
+        testImages[DataBuffer.TYPE_SHORT] = createTestImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH,
+                DEFAULT_HEIGHT, noDataS, false, 1, (short) (thresholds[DataBuffer.TYPE_SHORT] + 1));
+        testImages[DataBuffer.TYPE_INT] = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH,
+                DEFAULT_HEIGHT, noDataI, false, 1, (int) (thresholds[DataBuffer.TYPE_INT] + 1));
+        testImages[DataBuffer.TYPE_FLOAT] = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH,
+                DEFAULT_HEIGHT, noDataF, false, 1, (float) (thresholds[DataBuffer.TYPE_FLOAT] + 1));
+        testImages[DataBuffer.TYPE_DOUBLE] = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH,
+                DEFAULT_HEIGHT, noDataD, false, 1, thresholds[DataBuffer.TYPE_DOUBLE] + 1);
         IMAGE_FILLER = false;
 
         // No Data Ranges
@@ -215,7 +224,7 @@ public class BinarizeTest extends TestBase {
         assertEquals(tileWidth, src.getTileWidth());
         assertEquals(tileHeight, src.getTileHeight());
 
-        // Check
+        // Check if the binarization is correct
         for (int tileX = minTileX; tileX < maxTileX; tileX++) {
             for (int tileY = minTileY; tileY < maxTileY; tileY++) {
                 Raster tile = binarized.getTile(tileX, tileY);
@@ -231,10 +240,10 @@ public class BinarizeTest extends TestBase {
                         double sample = srcTile.getSampleDouble(x, y, 0);
                         int result = tile.getSample(x, y, 0);
                         boolean over = result > 0;
-                        
-                        boolean isValidData = (!roiUsed || (roiUsed && roiObject.contains(x, y))) &&
-                                (!nodataUsed || (nodataUsed && !noDataDouble.contains(sample)));
-                        if(isValidData){
+                        // Check if the data can be accepted
+                        boolean isValidData = (!roiUsed || (roiUsed && roiObject.contains(x, y)))
+                                && (!nodataUsed || (nodataUsed && !noDataDouble.contains(sample)));
+                        if (isValidData) {
                             assertEquals(over, sample >= threshold);
                         } else {
                             assertEquals(over, false);

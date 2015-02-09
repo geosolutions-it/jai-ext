@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.orderdither;
 
 import it.geosolutions.jaiext.range.Range;
@@ -51,8 +51,8 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * it is assumed that the data samples have been scaled to the range [0.0, 1.0].
  * 
  * <p>
- * Notice that it is possible to define a {@link ROI} object for reducing the computation area. Also it is possible to define a {@link Range} of nodata
- * for checking if a Pixel is a NoData one.
+ * Notice that it is possible to define a {@link ROI} object for reducing the computation area. Also it is possible to define a {@link Range} of
+ * nodata for checking if a Pixel is a NoData one.
  * 
  * <p>
  * <table border=1>
@@ -158,14 +158,10 @@ public class OrderedDitherDescriptor extends OperationDescriptorImpl {
                         { "arg2Desc", JaiI18N.getString("OrderedDitherDescriptor3") },
                         { "arg3Desc", JaiI18N.getString("OrderedDitherDescriptor4") },
                         { "arg4Desc", JaiI18N.getString("OrderedDitherDescriptor5") } },
-                new String[] { "rendered" }, 
-                1, 
-                new String[] { "colorMap", "ditherMask", "roi",
-                        "nodata", "destNoData" }, 
-                new Class[] { javax.media.jai.ColorCube.class,
+                new String[] { "rendered" }, 1, new String[] { "colorMap", "ditherMask", "roi",
+                        "nodata", "destNoData" }, new Class[] { javax.media.jai.ColorCube.class,
                         javax.media.jai.KernelJAI[].class, javax.media.jai.ROI.class,
-                        it.geosolutions.jaiext.range.Range.class, Double.class }, 
-                new Object[] {
+                        it.geosolutions.jaiext.range.Range.class, Double.class }, new Object[] {
                         ColorCube.BYTE_496, KernelJAI.DITHER_MASK_443, null, null, 0d }, null);
     }
 
@@ -286,13 +282,12 @@ public class OrderedDitherDescriptor extends OperationDescriptorImpl {
      * @return The <code>RenderedOp</code> destination.
      */
     public static RenderedOp create(RenderedImage source0, ColorCube colorMap,
-            KernelJAI[] ditherMask, RenderingHints hints, ROI roi, Range nodata,
-            Double destNoData) {
+            KernelJAI[] ditherMask, RenderingHints hints, ROI roi, Range nodata, Double destNoData) {
         ParameterBlockJAI pb = new ParameterBlockJAI("OrderedDither",
                 RenderedRegistryMode.MODE_NAME);
-
+        // Setting source
         pb.setSource("source0", source0);
-
+        // Setting parameters
         pb.setParameter("colorMap", colorMap);
         pb.setParameter("ditherMask", ditherMask);
         pb.setParameter("roi", roi);

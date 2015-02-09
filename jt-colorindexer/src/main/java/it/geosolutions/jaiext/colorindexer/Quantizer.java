@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.colorindexer;
 
 import static it.geosolutions.jaiext.colorindexer.ColorUtils.*;
@@ -31,8 +31,8 @@ import it.geosolutions.jaiext.colorindexer.ColorMap.ColorEntry;
 import it.geosolutions.jaiext.colorindexer.PackedHistogram.SortComponent;
 
 /**
- * Analyzes a {@link RenderedImage} contents (using a Median Cut style algorithm) and builds an
- * optimal RGBA {@link ColorIndexer} that can be used to turn the RGBA image into a paletted one.
+ * Analyzes a {@link RenderedImage} contents (using a Median Cut style algorithm) and builds an optimal RGBA {@link ColorIndexer} that can be used to
+ * turn the RGBA image into a paletted one.
  */
 public class Quantizer {
 
@@ -43,17 +43,19 @@ public class Quantizer {
     boolean MEDIAN_BOX = true;
 
     float THRESHOLD = 0.5f;
-    
+
     boolean subsample = false;
 
+    /** Parameter indicating the maximum number of COlors */
     int maxColors;
 
     public Quantizer(int maxColors) {
         this.maxColors = maxColors;
     }
-    
+
     /**
      * Enables logarithmic subsampling
+     * 
      * @return
      */
     public Quantizer subsample() {
@@ -68,7 +70,7 @@ public class Quantizer {
         // (for very small images we pick one pixel every two, from 256 we switch to one every 3,
         // and so on)
         int subsx, subsy;
-        if(subsample) {
+        if (subsample) {
             subsx = 1 + (int) (Math.log(image.getWidth()) / Math.log(8));
             subsy = 1 + (int) (Math.log(image.getHeight()) / Math.log(8));
         } else {
@@ -149,10 +151,10 @@ public class Quantizer {
             sb.append("\n");
             LOGGER.finer("Median cut resulted in the following boxes:\n" + sb);
         }
-        
+
         // the png encoder goes bananas if we have a single color palette, in this
         // case we need to add an entry to the palette
-        if(boxes.size() == 1) {
+        if (boxes.size() == 1) {
             boxes.add(boxes.get(0));
         }
 
@@ -457,8 +459,7 @@ public class Quantizer {
     }
 
     /**
-     * Compares two boxes by pixel count, but makes sure the boxes that cannot be split are at the
-     * end of the array
+     * Compares two boxes by pixel count, but makes sure the boxes that cannot be split are at the end of the array
      * 
      * @author Andrea Aime - GeoSolutions
      * 
@@ -482,8 +483,7 @@ public class Quantizer {
     }
 
     /**
-     * Compares two boxes by volume weighted by pixel count, but makes sure the boxes that cannot be
-     * split are at the end of the array
+     * Compares two boxes by volume weighted by pixel count, but makes sure the boxes that cannot be split are at the end of the array
      * 
      * @author Andrea Aime - GeoSolutions
      * 

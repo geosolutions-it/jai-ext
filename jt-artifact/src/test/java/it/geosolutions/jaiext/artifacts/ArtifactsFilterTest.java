@@ -1,25 +1,28 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.artifacts;
 
 import static org.junit.Assert.assertEquals;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.stats.Statistics;
+import it.geosolutions.jaiext.stats.Statistics.StatsType;
+import it.geosolutions.jaiext.stats.StatisticsDescriptor;
 import it.geosolutions.jaiext.testclasses.TestBase;
 import it.geosolutions.jaiext.testclasses.TestData;
 
@@ -29,13 +32,11 @@ import java.awt.image.RenderedImage;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import javax.media.jai.Histogram;
 import javax.media.jai.JAI;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.FormatDescriptor;
-import javax.media.jai.operator.HistogramDescriptor;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -91,10 +92,20 @@ public class ArtifactsFilterTest extends TestBase {
     private void testArtifact(int dataType, RenderedImage image, Range nodata) {
         image.getWidth();
         image = FormatDescriptor.create(image, dataType, null);
-        RenderedOp histogramOp = HistogramDescriptor.create(image, null, Integer.valueOf(1),
-                Integer.valueOf(1), new int[] { 256 }, null, null, null);
-        Histogram histogram = (Histogram) histogramOp.getProperty("histogram");
-        int[][] bins = histogram.getBins();
+        StatsType[] stats = new StatsType[] { StatsType.HISTOGRAM };
+        RenderedOp histogramOp = StatisticsDescriptor.create(image, 1, 1, null, null, false,
+                new int[] { 0, 1, 2 }, stats, new double[] { 0 }, new double[] { 256 },
+                new int[] { 256 }, null);
+        int[][] bins = new int[3][256];
+        Statistics[][] results = (Statistics[][]) histogramOp
+                .getProperty(Statistics.STATS_PROPERTY);
+
+        for (int i = 0; i < 3; i++) {
+            double[] res = (double[]) results[i][0].getResult();
+            for (int k = 0; k < 256; k++) {
+                bins[i][k] = (int) res[k];
+            }
+        }
 
         assertEquals(bins[0][0], 4261);
         assertEquals(bins[1][0], 4261);
@@ -103,8 +114,8 @@ public class ArtifactsFilterTest extends TestBase {
         assertEquals(bins[1][20], 127); // This bin will disappear in the Histogram of the filtered image
         assertEquals(bins[2][20], 127); // This bin will disappear in the Histogram of the filtered image
         assertEquals(bins[0][180], 571);
-        assertEquals(bins[0][200], 5041);
-        assertEquals(bins[2][200], 5041);
+        assertEquals(bins[0][200], 5041); // This bin will disappear in the Histogram of the filtered image (NoData check)
+        assertEquals(bins[2][200], 5041); // This bin will disappear in the Histogram of the filtered image (NoData check)
         assertEquals(bins[1][255], 5612);
 
         assertEquals(bins[0][0] + bins[1][0] + bins[2][0] + bins[0][20] + bins[1][20] + bins[2][20]
@@ -115,12 +126,18 @@ public class ArtifactsFilterTest extends TestBase {
         double[] backgroundValues = new double[] { 0.0d, 0.0d, 0.0d };
         RenderedImage filtered = ArtifactsFilterDescriptor.create(image, roi, backgroundValues, 30,
                 3, nodata, null);
-        histogramOp = HistogramDescriptor.create(filtered, null, Integer.valueOf(1),
-                Integer.valueOf(1), new int[] { 256 }, null, null, null);
-        histogram = (Histogram) histogramOp.getProperty("histogram");
+        histogramOp = StatisticsDescriptor.create(filtered, 1, 1, null, null, false, new int[] { 0,
+                1, 2 }, stats, new double[] { 0 }, new double[] { 256 }, new int[] { 256 }, null);
+        bins = new int[3][256];
+        results = (Statistics[][]) histogramOp.getProperty(Statistics.STATS_PROPERTY);
 
-        bins = histogram.getBins();
-
+        for (int i = 0; i < 3; i++) {
+            double[] res = (double[]) results[i][0].getResult();
+            for (int k = 0; k < 256; k++) {
+                bins[i][k] = (int) res[k];
+            }
+        }
+        // Check if NoData has effect
         if (nodata != null) {
 
             assertEquals(bins[0][0], dataType < DataBuffer.TYPE_SHORT ? 9302 : 4261);

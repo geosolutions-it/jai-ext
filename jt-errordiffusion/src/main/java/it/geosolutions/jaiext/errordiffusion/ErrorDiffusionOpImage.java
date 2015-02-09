@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.errordiffusion;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
@@ -124,16 +124,22 @@ public class ErrorDiffusionOpImage extends UntiledOpImage {
      */
     private float maxPixelValue;
 
+    /** Boolean indicating if ROI is present */
     private final boolean hasROI;
 
+    /** Boolean indicating if NoData Range is present */
     private final boolean hasNodata;
 
+    /** NoData Range used for checking the input NoData */
     private Range nodata;
 
+    /** Rectangle containing the bounds for the input ROI */
     private Rectangle roiBounds;
 
+    /** Input ROI used for reducing calculation area */
     private ROI roi;
 
+    /** Integer used as output NoData value */
     private int destNoData;
 
     /** Boolean indicating if No Data and ROI are not used */
@@ -145,8 +151,10 @@ public class ErrorDiffusionOpImage extends UntiledOpImage {
     /** Boolean indicating if only the No Data are used */
     private boolean caseC;
 
+    /** {@link PlanarImage} containing ROI data */
     private PlanarImage roiImage;
 
+    /** LookupTable used for having a quick check if a pixel is NoData or not */
     private boolean[] lookupTable;
 
     /**
@@ -474,6 +482,7 @@ public class ErrorDiffusionOpImage extends UntiledOpImage {
             throw new RuntimeException(JaiI18N.getString("ErrorDiffusionOpImage0"));
         }
 
+        // If we use the optimized case and NoData are present, we init the LookupTable for NoData check
         if (isOptimizedCase && hasNodata) {
             initLookupTable(nodata);
         }
@@ -536,7 +545,7 @@ public class ErrorDiffusionOpImage extends UntiledOpImage {
             }
         }
 
-        // Image completely outside ROI
+        // Image completely outside ROI, fill with the background value
         if (roiDisjointTile) {
             ImageUtil.fillBackground(dest, destRect, new double[] { destNoData });
             return;
@@ -1556,6 +1565,14 @@ public class ErrorDiffusionOpImage extends UntiledOpImage {
         return img;
     }
 
+    /**
+     * Private method for checking if a pixel in position (x,y) is inside the ROI
+     * 
+     * @param roiIter
+     * @param y
+     * @param x
+     * @return true if the pixel is inside ROI
+     */
     private boolean inROI(RandomIter roiIter, int y, int x) {
         return (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0);
     }
