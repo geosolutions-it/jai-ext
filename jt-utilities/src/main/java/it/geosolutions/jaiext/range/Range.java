@@ -262,7 +262,7 @@ public abstract class Range {
 
 	/** Returns true if the current Range accepts NaN values */
 	public boolean isNanIncluded() {
-		return false;
+		return true;
 	}
 
 	/**

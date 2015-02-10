@@ -54,6 +54,8 @@ public class JAIExt {
     /** {@link Logger} used for Logging any excpetion or warning */
     private static final Logger LOGGER = Logger.getLogger(JAIExt.class.toString());
 
+    private static final String JAI_EXT_VENDOR = "it.geosolutions.jaiext";
+
     /** Initialization of the {@link JAIExt} instance */
     public static void initJAIEXT(ConcurrentOperationRegistry registry) {
         if (jaiext == null) {
@@ -114,6 +116,16 @@ public class JAIExt {
      */
     public static ConcurrentOperationRegistry getRegistry() {
         return jaiext.registry;
+    }
+    
+    /**
+     * Indicates if the operation is registered as JAI.
+     * 
+     * @param descriptorName
+     * @return
+     */
+    public static boolean isJAIExtOperation(String descriptorName){
+        return jaiext.isJAIExtOp(descriptorName);
     }
 
     private JAIExt(ConcurrentOperationRegistry registry) {
@@ -298,6 +310,22 @@ public class JAIExt {
             return ops;
         } finally {
             writeLock.unlock();
+        }
+    }
+    
+
+    private boolean isJAIExtOp(String descriptorName) {
+        Lock readLock = lock.readLock();
+        try {
+            readLock.lock();
+            OperationCollection items = registry.getOperationCollection();
+            OperationItem operationItem = items.get(descriptorName);
+            if(operationItem == null){
+                return false;
+            }
+            return operationItem.getVendor().equalsIgnoreCase(JAI_EXT_VENDOR);
+        } finally {
+            readLock.unlock();
         }
     }
 }

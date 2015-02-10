@@ -17,6 +17,7 @@
  */
 package it.geosolutions.jaiext.range;
 
+import java.awt.image.DataBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -150,6 +151,39 @@ public class RangeFactory {
 
         // New Double range
         return new RangeFloat(min, minIncluded, max, maxIncluded, nanIncluded);
+    }
+
+    public static Range convert(Range input, int dataType) {
+        if(input == null){
+            return null;
+        }
+        // If already double do nothing
+        if (input.getDataType().getDataType() == dataType) {
+            return input;
+        }
+
+        boolean minIncluded = input.isMinIncluded();
+        boolean maxIncluded = input.isMaxIncluded();
+        
+        Number min = input.getMin();
+        Number max = input.getMax();
+
+        switch (dataType) {
+        case DataBuffer.TYPE_BYTE:
+            return new RangeByte(min.byteValue(), minIncluded, max.byteValue(), maxIncluded);
+        case DataBuffer.TYPE_USHORT:
+            return new RangeUshort(min.shortValue(), minIncluded, max.shortValue(), maxIncluded);
+        case DataBuffer.TYPE_SHORT:
+            return new RangeShort(min.shortValue(), minIncluded, max.shortValue(), maxIncluded);
+        case DataBuffer.TYPE_INT:
+            return new RangeInt(min.intValue(), minIncluded, max.intValue(), maxIncluded);
+        case DataBuffer.TYPE_FLOAT:
+            return new RangeFloat(min.floatValue(), minIncluded, max.floatValue(), maxIncluded, input.isNanIncluded());
+        case DataBuffer.TYPE_DOUBLE:
+            return new RangeDouble(min.floatValue(), minIncluded, max.floatValue(), maxIncluded, input.isNanIncluded());
+        default:
+            return null;
+        }
     }
 
     public static Range convertToByteRange(Range input) {
