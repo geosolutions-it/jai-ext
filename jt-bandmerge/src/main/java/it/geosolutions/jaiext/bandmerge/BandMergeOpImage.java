@@ -37,6 +37,8 @@ import java.util.Vector;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.PointOpImage;
 import java.util.Map;
+
+import javax.media.jai.ColorSpaceJAI;
 import javax.media.jai.PixelAccessor;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
@@ -120,11 +122,12 @@ public class BandMergeOpImage extends PointOpImage {
      * @param roi Input ROI to use for the calculations.
      * @param destinationNoData output value for No Data.
      * @param layout The destination image layout.
+     * @param setAlpha 
      */
     public BandMergeOpImage(List sources, Map config, Range[] noData, ROI roi,
-            double destinationNoData, ImageLayout layout) {
+            double destinationNoData, boolean setAlpha, ImageLayout layout) {
 
-        super(vectorize(sources), layoutHelper(sources, layout), config, true);
+        super(vectorize(sources), layoutHelper(sources, layout, setAlpha), config, true);
 
         // Set flag to permit in-place operation.
         permitInPlaceOperation();
@@ -165,22 +168,31 @@ public class BandMergeOpImage extends PointOpImage {
 
         // If No Data are present
         if (noData != null) {
-            // If the length of the array is different from that of the sources
-            // the first Range is used for all the images
-            if (noData.length != numSrcs) {
-                Range firstNoData = noData[0];
-
-                this.noData = new Range[numSrcs];
-
-                for (int i = 0; i < numSrcs; i++) {
-                    this.noData[i] = firstNoData;
-                }
-            } else {
-                // Else the whole array is used
-                this.noData = noData;
+            int nullRanges = 0;
+            for (int i = 0; i < noData.length; i++) {
+                nullRanges += noData[i] == null ? 1 : 0;
             }
-            // No Data are present, so associated flaw is set to true
-            this.hasNoData = true;
+            if (nullRanges != noData.length) {
+                // If the length of the array is different from that of the sources
+                // the first Range is used for all the images
+                if (noData.length != numSrcs || nullRanges > 0) {
+                    Range firstNoData = noData[0];
+
+                    this.noData = new Range[numSrcs];
+
+                    for (int i = 0; i < numSrcs; i++) {
+                        this.noData[i] = firstNoData;
+                    }
+                } else {
+                    // Else the whole array is used
+                    this.noData = noData;
+                }
+                // No Data are present, so associated flaw is set to true
+                this.hasNoData = true;
+            } else {
+                this.noData = null;
+                this.hasNoData = false;
+            }
         } else {
             this.noData = null;
             this.hasNoData = false;
@@ -226,7 +238,7 @@ public class BandMergeOpImage extends PointOpImage {
         return total;
     }
 
-    private static ImageLayout layoutHelper(List sources, ImageLayout il) {
+    private static ImageLayout layoutHelper(List sources, ImageLayout il, boolean setAlpha) {
 
         // If the layout is not defined, a new one is created, else is cloned
         ImageLayout layout = (il == null) ? new ImageLayout() : (ImageLayout) il.clone();
@@ -299,7 +311,7 @@ public class BandMergeOpImage extends PointOpImage {
             layout.unsetValid(ImageLayout.COLOR_MODEL_MASK);
         }
         if ((cm == null || !cm.hasAlpha()) && sm instanceof ComponentSampleModel) {
-            cm = getDefaultColorModel(sm);
+            cm = getDefaultColorModel(sm, setAlpha);
             layout.setColorModel(cm);
         }
 
@@ -311,9 +323,10 @@ public class BandMergeOpImage extends PointOpImage {
      * Otherwise JAI set an alpha band by default for an image with 2 or 4 bands.
      * 
      * @param sm
+     * @param setAlpha 
      * @return
      */
-    public static ColorModel getDefaultColorModel(SampleModel sm) {
+    public static ColorModel getDefaultColorModel(SampleModel sm, boolean setAlpha) {
 
         // Check on the data type
         int dataType = sm.getDataType();
@@ -334,33 +347,39 @@ public class BandMergeOpImage extends PointOpImage {
             break;
         case 2:
         case 4:
-            // For 2 and 4 bands a custom colorspace is created
-            cs = new ColorSpace(dataType, numBands) {
+            if (setAlpha) {
 
-                @Override
-                public float[] toRGB(float[] colorvalue) {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
+                cs = numBands == 2 ? ColorSpace.getInstance(ColorSpaceJAI.CS_GRAY) : ColorSpace
+                        .getInstance(ColorSpaceJAI.CS_sRGB);
+            } else {
+                // For 2 and 4 bands a custom colorspace is created
+                cs = new ColorSpace(dataType, numBands) {
 
-                @Override
-                public float[] toCIEXYZ(float[] colorvalue) {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
+                    @Override
+                    public float[] toRGB(float[] colorvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
 
-                @Override
-                public float[] fromRGB(float[] rgbvalue) {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
+                    @Override
+                    public float[] toCIEXYZ(float[] colorvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
 
-                @Override
-                public float[] fromCIEXYZ(float[] colorvalue) {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
-            };
+                    @Override
+                    public float[] fromRGB(float[] rgbvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
+
+                    @Override
+                    public float[] fromCIEXYZ(float[] colorvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
+                };
+            }
             break;
         case 3:
             cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);

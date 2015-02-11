@@ -145,8 +145,8 @@ public abstract class Range {
 
 	/** Method for checking if a Generic value is contained inside the Range */
 	public <T extends Number> boolean containsN(T value) {
-		if (LOGGER.isLoggable(Level.WARNING)) {
-			LOGGER.log(Level.WARNING,
+		if (LOGGER.isLoggable(Level.FINE)) {
+			LOGGER.log(Level.FINE,
 					"Wrong data type tested: Input: " + value.getClass()
 							+ ", output: " + this.getDataType().getClassValue());
 		}

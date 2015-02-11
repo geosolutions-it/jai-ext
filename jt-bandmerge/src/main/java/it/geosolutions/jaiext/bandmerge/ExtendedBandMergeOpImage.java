@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import javax.media.jai.ColorSpaceJAI;
 import javax.media.jai.GeometricOpImage;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.PixelAccessor;
@@ -184,10 +185,11 @@ public class ExtendedBandMergeOpImage extends GeometricOpImage {
      * @param roi Input ROI to use for the calculations.
      * @param destinationNoData output value for No Data.
      * @param layout The destination image layout.
+     * @param setAlpha 
      */
     public ExtendedBandMergeOpImage(List sources, List<AffineTransform> transforms, Map config,
-            Range[] noData, ROI roi, double destinationNoData, ImageLayout layout) {
-        super(vectorize(sources), layoutHelper(sources, layout), config, false, null, null,
+            Range[] noData, ROI roi, double destinationNoData, boolean setAlpha, ImageLayout layout) {
+        super(vectorize(sources), layoutHelper(sources, layout, setAlpha), config, false, null, null,
                 new double[] { destinationNoData });
 
         // Initial Check on the source number and the related transformations
@@ -333,7 +335,7 @@ public class ExtendedBandMergeOpImage extends GeometricOpImage {
         return total;
     }
 
-    private static ImageLayout layoutHelper(List sources, ImageLayout il) {
+    private static ImageLayout layoutHelper(List sources, ImageLayout il, boolean setAlpha) {
 
         // If the layout is not defined, a new one is created, else is cloned
         boolean newLayout = il == null;
@@ -432,7 +434,7 @@ public class ExtendedBandMergeOpImage extends GeometricOpImage {
             layout.unsetValid(ImageLayout.COLOR_MODEL_MASK);
         }
         if ((cm == null || !cm.hasAlpha()) && sm instanceof ComponentSampleModel) {
-            cm = getDefaultColorModel(sm);
+            cm = getDefaultColorModel(sm, setAlpha);
             layout.setColorModel(cm);
         }
 
@@ -444,9 +446,10 @@ public class ExtendedBandMergeOpImage extends GeometricOpImage {
      * with 2 or 4 bands.
      * 
      * @param sm
+     * @param setAlpha 
      * @return
      */
-    public static ColorModel getDefaultColorModel(SampleModel sm) {
+    public static ColorModel getDefaultColorModel(SampleModel sm, boolean setAlpha) {
 
         // Check on the data type
         int dataType = sm.getDataType();
@@ -467,33 +470,39 @@ public class ExtendedBandMergeOpImage extends GeometricOpImage {
             break;
         case 2:
         case 4:
-            // For 2 and 4 bands a custom colorspace is created
-            cs = new ColorSpace(dataType, numBands) {
+            if (setAlpha) {
 
-                @Override
-                public float[] toRGB(float[] colorvalue) {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
+                cs = numBands == 2 ? ColorSpace.getInstance(ColorSpaceJAI.CS_GRAY) : ColorSpace
+                        .getInstance(ColorSpaceJAI.CS_sRGB);
+            } else {
+                // For 2 and 4 bands a custom colorspace is created
+                cs = new ColorSpace(dataType, numBands) {
 
-                @Override
-                public float[] toCIEXYZ(float[] colorvalue) {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
+                    @Override
+                    public float[] toRGB(float[] colorvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
 
-                @Override
-                public float[] fromRGB(float[] rgbvalue) {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
+                    @Override
+                    public float[] toCIEXYZ(float[] colorvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
 
-                @Override
-                public float[] fromCIEXYZ(float[] colorvalue) {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
-            };
+                    @Override
+                    public float[] fromRGB(float[] rgbvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
+
+                    @Override
+                    public float[] fromCIEXYZ(float[] colorvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
+                };
+            }
             break;
         case 3:
             cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);

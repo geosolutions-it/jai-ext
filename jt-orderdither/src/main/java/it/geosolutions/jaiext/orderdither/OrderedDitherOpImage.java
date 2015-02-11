@@ -314,7 +314,7 @@ public class OrderedDitherOpImage extends PointOpImage {
         }
 
         // Define the destination NoData value
-        if (destNoData < adjustedOffset) {
+        if ((hasROI || hasNoData) && destNoData < adjustedOffset) {
             throw new IllegalArgumentException(
                     "Destination NoData must be greater than the adjustedOffset value");
         }

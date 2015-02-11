@@ -129,7 +129,7 @@ public class ComparisonTest extends TestBase {
         testImageInt = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
                 false);
         // Offset creation
-        int byteOffset = noDataB;
+        int byteOffset = 0;
         int ushortOffset = 0;
         int shortOffset = noDataS;
         int intOffset = noDataI;

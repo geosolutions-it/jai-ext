@@ -73,7 +73,7 @@ public class ColorIndexerTest extends TestBase {
     public void test2BandsBug() {
         // build a transparent image
         BufferedImage image = new BufferedImage(256, 256, BufferedImage.TYPE_BYTE_GRAY);
-        RenderedOp img = BandMergeDescriptor.create(null, 0, null, image, image);
+        RenderedOp img = BandMergeDescriptor.create(null, 0, false, null, image, image);
 
         image = img.getAsBufferedImage();
 
