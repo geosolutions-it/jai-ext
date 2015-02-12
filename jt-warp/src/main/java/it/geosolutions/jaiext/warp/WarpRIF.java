@@ -30,6 +30,7 @@ import java.awt.image.renderable.RenderedImageFactory;
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.Warp;
 
@@ -70,6 +71,9 @@ public class WarpRIF implements RenderedImageFactory {
         Object roi_ = paramBlock.getObjectParameter(3);
         if (roi_ instanceof ROI) {
             roi = (ROI) roi_;
+            PlanarImage temp = PlanarImage.wrapRenderedImage(source);
+            temp.setProperty("ROI", roi);
+            source = temp;
         }
         Range noData = (Range) paramBlock.getObjectParameter(4);
         if (interp instanceof InterpolationNearest) {

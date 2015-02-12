@@ -1092,6 +1092,83 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
                 }
                 return values[0];
             }
+        },SUBTRACT_FROM(13, 0, false) {
+            @Override
+            public byte calculate(byte... values) {
+                int length = values.length;
+                byte result = values[length - 1];
+                if (length > 1) {
+                    for (int i = length -2; i >= 0; i--) {
+                        result -= values[i];
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                int length = values.length;
+                short result = values[length - 1];
+                if (length > 1) {
+                    for (int i = length -2; i >= 0; i--) {
+                        result -= values[i];
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public short calculate(short... values) {
+                return calculate(false, values);
+            }
+
+            @Override
+            public int calculate(int... values) {
+                int length = values.length;
+                int result = values[length - 1];
+                if (length > 1) {
+                    for (int i = length -2; i >= 0; i--) {
+                        result -= values[i];
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public float calculate(float... values) {
+                int length = values.length;
+                float result = values[length - 1];
+                if (length > 1) {
+                    for (int i = length -2; i >= 0; i--) {
+                        result -= values[i];
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public double calculate(double... values) {
+                int length = values.length;
+                double result = values[length - 1];
+                if (length > 1) {
+                    for (int i = length -2; i >= 0; i--) {
+                        result -= values[i];
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public long calculateL(long... values) {
+                int length = values.length;
+                long result = values[length - 1];
+                if (length > 1) {
+                    for (int i = length -2; i >= 0; i--) {
+                        result -= values[i];
+                    }
+                }
+                return result;
+            }
         };
 
         private final double nullValue;
