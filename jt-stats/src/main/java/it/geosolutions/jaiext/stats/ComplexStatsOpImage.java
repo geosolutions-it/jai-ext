@@ -67,6 +67,16 @@ public class ComplexStatsOpImage extends StatisticsOpImage {
 
         // Storage of the band indexes and length
         this.bands = bands;
+        
+        int[] numB = new int[bandsNumber];
+        double[] lowValue = new double[bandsNumber];
+        double[] highValue = new double[bandsNumber];
+        
+        for (int b = 0; b < bandsNumber; b++) {
+            numB[b] = numBins.length == 1 ? numBins[0] : numBins[b];
+            lowValue[b] = minBound.length == 1 ? minBound[0] : minBound[b];
+            highValue[b] = maxBound.length == 1 ? maxBound[0] : maxBound[b];
+        }
 
         // Creation of a global container of all the selected statistics for every band
         this.stats = new Statistics[selectedBands][statNum];
@@ -74,7 +84,7 @@ public class ComplexStatsOpImage extends StatisticsOpImage {
         for (int i = 0; i < selectedBands; i++) {
             for (int j = 0; j < statNum; j++) {
                 stats[i][j] = StatsFactory.createComplexStatisticsObjectFromInt(
-                        statsTypes[j].getStatsId(), minBound[j], maxBound[j], numBins[j]);
+                        statsTypes[j].getStatsId(), lowValue[i], highValue[i], numB[i]);
             }
         }
     }

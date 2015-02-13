@@ -59,8 +59,22 @@ public class OperationConstCRIF extends CRIFImpl {
 		// Getting the source
 		RenderedImage source = pb.getRenderedSource(0);
 		// Getting the parameters
-		Operator op = (Operator) pb.getObjectParameter(0);
-		double[] constants = (double[]) pb.getObjectParameter(1);
+		Operator op = (Operator) pb.getObjectParameter(1);
+		// Check for the constants
+		double[] constants = null;
+                Object param = pb.getObjectParameter(0);
+                if (param != null) {
+                    if (param instanceof double[]) {
+                        constants = (double[]) param;
+                    } else if (param instanceof int[]) {
+                        int[] paramInt = (int[]) param;
+                        constants = new double[paramInt.length];
+                        for (int i = 0; i < paramInt.length; i++) {
+                            constants[i] = paramInt[i];
+                        }
+                    }
+                }
+
 		ROI roi = (ROI) pb.getObjectParameter(2);
 		Range noData = (Range) pb.getObjectParameter(3);
 		double destinationNoData = pb.getDoubleParameter(4);
