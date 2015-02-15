@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.mosaic;
 
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -490,8 +491,7 @@ public class MosaicOpImage extends OpImage {
                 hasNoData[i] = true;
                 imageBeans[i].setSourceNoData(noDataRange);
                 if(noDataRange.getDataType().getDataType()!=dataType){
-                    throw new IllegalArgumentException(
-                            "Range data type is not the same of the source image");
+                    noDataRange = RangeFactory.convert(noDataRange, dataType);
                 }
 
                 if (dataType == DataBuffer.TYPE_BYTE) {

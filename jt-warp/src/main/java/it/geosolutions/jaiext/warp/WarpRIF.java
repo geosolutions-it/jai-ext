@@ -76,11 +76,12 @@ public class WarpRIF implements RenderedImageFactory {
             source = temp;
         }
         Range noData = (Range) paramBlock.getObjectParameter(4);
-        if (interp instanceof InterpolationNearest) {
+        if (interp instanceof InterpolationNearest || interp instanceof javax.media.jai.InterpolationNearest) {
             return new WarpNearestOpImage(source, renderHints, layout, warp, interp, roi, noData);
-        } else if (interp instanceof InterpolationBilinear) {
+        } else if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear) {
             return new WarpBilinearOpImage(source, extender, renderHints, layout, warp, interp, roi, noData);
-        } else if (interp instanceof InterpolationBicubic) {
+        } else if (interp instanceof InterpolationBicubic || interp instanceof javax.media.jai.InterpolationBicubic
+        		|| interp instanceof javax.media.jai.InterpolationBicubic2) {
             return new WarpBicubicOpImage(source, extender, renderHints, layout, warp, interp, roi, noData);
         } else {
             return new WarpGeneralOpImage(source, extender, renderHints, layout, warp, interp,

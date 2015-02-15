@@ -11,7 +11,7 @@
     <extensive.tests>false</extensive.tests>
     <interactive.tests>false</interactive.tests>
     <test.maxHeapSize>512M</test.maxHeapSize>
-	<test.maxPermSize>128m</test.maxPermSize>
+	<test.maxPermSize>256m</test.maxPermSize>
     <jt.version>1.2.0</jt.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.8.1</junit.version>

@@ -57,28 +57,37 @@ public class JAIExt {
     private static final String JAI_EXT_VENDOR = "it.geosolutions.jaiext";
 
     /** Initialization of the {@link JAIExt} instance */
-    public static void initJAIEXT(ConcurrentOperationRegistry registry) {
+    public synchronized static void initJAIEXT(ConcurrentOperationRegistry registry) {
         if (jaiext == null) {
             jaiext = new JAIExt(registry);
         }
     }
 
+    private synchronized static JAIExt getJAIEXT() {
+        if (jaiext == null) {
+			jaiext = new JAIExt(
+					(ConcurrentOperationRegistry) ConcurrentOperationRegistry
+							.initializeRegistry());
+        }
+		return jaiext;
+	}
+    
     /**
      * This method unregister a JAI operation and register the related JAI-EXT one
      * 
      * @param descriptorName
      */
     public static void registerJAIEXTDescriptor(String descriptorName) {
-        jaiext.registerOp(descriptorName, true);
+        getJAIEXT().registerOp(descriptorName, true);
     }
 
-    /**
+	/**
      * This method unregister a JAI-EXT operation and register the related JAI one
      * 
      * @param descriptorName
      */
     public static void registerJAIDescriptor(String descriptorName) {
-        jaiext.registerOp(descriptorName, false);
+    	getJAIEXT().registerOp(descriptorName, false);
     }
 
     /**
@@ -88,7 +97,7 @@ public class JAIExt {
      * @param accelerated
      */
     public static void setJAIAcceleration(String descriptorName, boolean accelerated) {
-        jaiext.setAcceleration(descriptorName, accelerated);
+    	getJAIEXT().setAcceleration(descriptorName, accelerated);
     }
 
     /**
@@ -97,7 +106,7 @@ public class JAIExt {
      * @return
      */
     public static List<OperationItem> getOperations() {
-        return jaiext.getItems();
+        return getJAIEXT().getItems();
     }
 
     /**
@@ -106,7 +115,7 @@ public class JAIExt {
      * @return
      */
     public static List<OperationItem> getJAIEXTOperations() {
-        return jaiext.getJAIEXTAvailableOps();
+        return getJAIEXT().getJAIEXTAvailableOps();
     }
 
     /**
@@ -115,7 +124,7 @@ public class JAIExt {
      * @return
      */
     public static ConcurrentOperationRegistry getRegistry() {
-        return jaiext.registry;
+        return getJAIEXT().registry;
     }
     
     /**
@@ -125,7 +134,7 @@ public class JAIExt {
      * @return
      */
     public static boolean isJAIExtOperation(String descriptorName){
-        return jaiext.isJAIExtOp(descriptorName);
+        return getJAIEXT().isJAIExtOp(descriptorName);
     }
 
     private JAIExt(ConcurrentOperationRegistry registry) {
