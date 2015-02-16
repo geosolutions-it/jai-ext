@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptor;
 import javax.media.jai.OperationRegistry;
 import javax.media.jai.registry.RenderedRegistryMode;
@@ -60,17 +61,19 @@ public class JAIExt {
     public synchronized static void initJAIEXT(ConcurrentOperationRegistry registry) {
         if (jaiext == null) {
             jaiext = new JAIExt(registry);
+            JAI.getDefaultInstance().setOperationRegistry(registry);
         }
     }
 
     private synchronized static JAIExt getJAIEXT() {
         if (jaiext == null) {
-			jaiext = new JAIExt(
-					(ConcurrentOperationRegistry) ConcurrentOperationRegistry
-							.initializeRegistry());
+            ConcurrentOperationRegistry initializeRegistry = (ConcurrentOperationRegistry) ConcurrentOperationRegistry.initializeRegistry();
+            jaiext = new JAIExt(
+                    initializeRegistry);
+            JAI.getDefaultInstance().setOperationRegistry(initializeRegistry);
         }
-		return jaiext;
-	}
+        return jaiext;
+    }
     
     /**
      * This method unregister a JAI operation and register the related JAI-EXT one

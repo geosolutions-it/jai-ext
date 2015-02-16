@@ -291,8 +291,8 @@ public class StatisticsDescriptor extends OperationDescriptorImpl {
 
     /** The parameter default value list for this operation. */
     private static final Object[] paramDefaults = { 1, 1, null, null, false, new int[] { 0 }, null,
-        new double[] {256.0},
         new double[] {0.0},
+        new double[] {256.0},
         new int[] {256}};
 
     public StatisticsDescriptor() {

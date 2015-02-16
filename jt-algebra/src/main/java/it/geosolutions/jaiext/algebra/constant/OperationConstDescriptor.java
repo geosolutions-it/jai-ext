@@ -85,7 +85,7 @@ public class OperationConstDescriptor extends OperationDescriptorImpl {
 
     /** Constructor. */
     public OperationConstDescriptor() {
-        super(resources, paramClasses, paramNames, paramDefaults);
+        super(resources, 1, paramClasses, paramNames, paramDefaults);
     }
 
     /** Returns <code>true</code> since renderable operation is supported. */
