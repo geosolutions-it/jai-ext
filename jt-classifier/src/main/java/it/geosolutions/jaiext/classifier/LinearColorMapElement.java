@@ -177,7 +177,7 @@ public class LinearColorMapElement extends DefaultLinearPiecewiseTransform1DElem
         if (getEquivalenceClass() != that.getEquivalenceClass())
             return false;
         if (Arrays.equals(this.getColors(), that.getColors()))
-            return false;
+            return true;
         return super.equals(that);
     }
 

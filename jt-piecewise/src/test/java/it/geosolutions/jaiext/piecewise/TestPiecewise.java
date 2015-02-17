@@ -178,8 +178,7 @@ public class TestPiecewise extends TestBase {
         Assert.assertFalse(transform1.equals(transform));
         Assert.assertFalse(transform.equals(transform));
         Assert.assertFalse(transform1.equals(transform1));
-        // Assert.assertEquals(transform1.hashCode(), transform.hashCode());
-        // TODO: Check hashcode generation
+        Assert.assertEquals(transform1.hashCode(), transform.hashCode());
 
         // /////////////////////////////////////////////////////////////////////
         //

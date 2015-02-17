@@ -20,13 +20,17 @@ package it.geosolutions.jaiext.classifier;
 import it.geosolutions.jaiext.piecewise.GenericPiecewiseOpImage;
 import it.geosolutions.jaiext.range.Range;
 
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.ColorModel;
+import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
+import java.awt.image.WritableRaster;
 
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 
 /**
@@ -47,7 +51,7 @@ public class RasterClassifierOpImage<T extends ColorMapTransformElement> extends
     public RasterClassifierOpImage(RenderedImage image, ColorMapTransform<T> lic,
             ImageLayout layout, Integer bandIndex, ROI roi, Range nodata, RenderingHints hints) {
         super(image, lic, prepareLayout(image, layout, lic), bandIndex, roi, nodata,
-                prepareHints(hints));
+                prepareHints(hints), false);
         this.isByteData = false;
     }
 
@@ -94,5 +98,12 @@ public class RasterClassifierOpImage<T extends ColorMapTransformElement> extends
         layout.setColorModel(finalColorModel);
         layout.setSampleModel(finalSampleModel);
         return layout;
+    }
+    
+    @Override
+    protected void computeRect(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
+        Raster[] sourceRasters = new Raster[1];
+        sourceRasters[0] = sources[0].getData();
+        computeRect(sourceRasters, dest, destRect);
     }
 }

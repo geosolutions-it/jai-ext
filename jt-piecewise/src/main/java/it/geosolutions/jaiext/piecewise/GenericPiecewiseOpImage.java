@@ -36,7 +36,10 @@ import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.iterator.RandomIter;
+import javax.media.jai.iterator.RectIter;
+import javax.media.jai.iterator.RectIterFactory;
 import javax.media.jai.iterator.WritableRandomIter;
+import javax.media.jai.iterator.WritableRectIter;
 
 import com.sun.media.jai.util.ImageUtil;
 
@@ -115,7 +118,7 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
     private Integer bandIndex;
 
     /** Boolean indicating that the bandIndex parameter has been defined */
-    private boolean indexDefined;
+    private boolean indexNotDefined;
 
     /**
      * Constructs a new {@code RasterClassifier}.
@@ -126,8 +129,9 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
      * @param hints The rendering hints.
      */
     public GenericPiecewiseOpImage(final RenderedImage image, final PiecewiseTransform1D<T> lic,
-            ImageLayout layout, Integer bandIndex, ROI roi, Range nodata, final RenderingHints hints) {
-        super(image, layout, hints, true);
+            ImageLayout layout, Integer bandIndex, ROI roi, Range nodata,
+            final RenderingHints hints, boolean cobbleSources) {
+        super(image, layout, hints, cobbleSources);
         this.piecewise = lic;
         // Ensure that the number of sets of breakpoints is either unity
         // or equal to the number of bands.
@@ -136,7 +140,7 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
         // Check the bandIndex value
         if (bandIndex != null) {
             this.bandIndex = bandIndex;
-            this.indexDefined = bandIndex != null && bandIndex != -1;
+            this.indexNotDefined = bandIndex == null || bandIndex != -1;
         }
 
         // Set the byte data flag.
@@ -247,14 +251,14 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
         }
 
         // Check on the tile size
-        if (sources[0].getWidth() != dest.getWidth()) {
-            throw new IllegalArgumentException(
-                    "Sourc and Destination image must have the same width");
-        }
-        if (sources[0].getHeight() != dest.getHeight()) {
-            throw new IllegalArgumentException(
-                    "Sourc and Destination image must have the same Height");
-        }
+        // if (sources[0].getWidth() != dest.getWidth()) {
+        // throw new IllegalArgumentException(
+        // "Sourc and Destination image must have the same width");
+        // }
+        // if (sources[0].getHeight() != dest.getHeight()) {
+        // throw new IllegalArgumentException(
+        // "Sourc and Destination image must have the same Height");
+        // }
         if (sources[0].getNumBands() != dest.getNumBands()) {
             throw new IllegalArgumentException(
                     "Sourc and Destination image must have the same Bands");
@@ -285,309 +289,367 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
     private void computeRectByte(final Raster source, final WritableRaster dest,
             final Rectangle destRect, RandomIter roiIter, boolean roiContainsTile) {
 
-        // Input position parameters
-        int x0 = 0;
-        int y0 = 0;
-
         int srcX = source.getMinX();
         int srcY = source.getMinY();
 
-        int dstWidth = destRect.width;
-        int dstHeight = destRect.height;
-        int dstBands = indexDefined ? bandIndex + 1 : dest.getNumBands();
-        int startBand = indexDefined ? bandIndex : 0;
+        // Input position parameters
+        int x0 = srcX;
+        int y0 = srcY;
 
-        WritableRandomIter dstIter = RandomIterFactory.createWritable(dest, destRect);
-        RandomIter srcIter = RandomIterFactory.create(source, destRect, ARRAY_CALC, ARRAY_CALC);
+        // int dstWidth = destRect.width;
+        // int dstHeight = destRect.height;
+        // int dstBands = indexDefined ? bandIndex + 1 : dest.getNumBands();
+        // int startBand = indexDefined ? bandIndex : 0;
+
+        // WritableRandomIter dstIter = RandomIterFactory.createWritable(dest, destRect);
+        // RandomIter srcIter = RandomIterFactory.create(source, destRect, ARRAY_CALC, ARRAY_CALC);
+
+        WritableRectIter dstIter = RectIterFactory.createWritable(dest, destRect);
+        RectIter srcIter = RectIterFactory.create(source, destRect);
+
+        // ////////////////////////////////////////////////////////////////////
+        //
+        // Prepare the iterator to work on the correct bands, if this is
+        // requested.
+        //
+        // ////////////////////////////////////////////////////////////////////
+        if (!dstIter.finishedBands() && !srcIter.finishedBands()) {
+            for (int i = 0; i < bandIndex; i++) {
+                dstIter.nextBand();
+                srcIter.nextBand();
+            }
+        }
 
         if (hasROI) {
-            for (int h = 0; h < dstHeight; h++) {
-
-                y0 = srcY + h;
-
-                for (int w = 0; w < dstWidth; w++) {
-
-                    x0 = srcX + w;
-
-                    if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
-                        for (int b = startBand; b < dstBands; b++) {
-                            dstIter.setSample(x0, y0, b, gapsValue);
-                        }
-                        continue;
-                    }
-
-                    for (int b = startBand; b < dstBands; b++) {
-                        // //
-                        //
-                        // get the input value to be transformed
-                        //
-                        // //
-                        final int value = srcIter.getSample(x0, y0, b);
-                        // //
-                        //
-                        // Transform this element
-                        //
-                        // //
-                        int result = lut[b][value];
-                        // //
-                        //
-                        // Set the result
-                        //
-                        // //
-                        dstIter.setSample(x0, y0, b, result);
-                    }
+            int bandNumber = 0;
+            do {
+                try {
+                    dstIter.startLines();
+                    srcIter.startLines();
+                    if (!dstIter.finishedLines() && !srcIter.finishedLines())
+                        do {
+                            dstIter.startPixels();
+                            srcIter.startPixels();
+                            if (!dstIter.finishedPixels() && !srcIter.finishedPixels())
+                                do {
+                                    // //
+                                    //
+                                    // get the input value to be transformed
+                                    //
+                                    // //
+                                    final int in = srcIter.getSample() & 0xff;
+                                    if (!(roiBounds.contains(x0, y0) && roiIter
+                                            .getSample(x0, y0, 0) > 0)) {
+                                        dstIter.setSample(gapsValue);
+                                    } else {
+                                        // //
+                                        //
+                                        // Transform this element
+                                        //
+                                        // //
+                                        final int out = 0xff & lut[bandNumber][in];
+                                        // //
+                                        //
+                                        // Set the result
+                                        //
+                                        // //
+                                        dstIter.setSample(out);
+                                    }
+                                    x0++;
+                                } while (!dstIter.nextPixelDone() && !srcIter.nextPixelDone());
+                            y0++;
+                            x0 = srcX;
+                        } while (!dstIter.nextLineDone() && !srcIter.nextLineDone());
+                } catch (final Exception cause) {
+                    final RasterFormatException exception = new RasterFormatException(
+                            cause.getLocalizedMessage());
+                    exception.initCause(cause);
+                    throw exception;
                 }
-            }
+                bandNumber++;
+                y0 = srcY;
+                x0 = srcX;
+                if (bandIndex != -1)
+                    break;
+            } while (dstIter.finishedBands() && srcIter.finishedBands());
         } else {
-            for (int h = 0; h < dstHeight; h++) {
-
-                y0 = srcY + h;
-
-                for (int w = 0; w < dstWidth; w++) {
-
-                    x0 = srcX + w;
-
-                    for (int b = startBand; b < dstBands; b++) {
-                        // //
-                        //
-                        // get the input value to be transformed
-                        //
-                        // //
-                        final int value = srcIter.getSample(x0, y0, b);
-                        // //
-                        //
-                        // Transform this element
-                        //
-                        // //
-                        int result = lut[b][value];
-                        // //
-                        //
-                        // Set the result
-                        //
-                        // //
-                        dstIter.setSample(x0, y0, b, result);
-                    }
+            int bandNumber = 0;
+            do {
+                try {
+                    dstIter.startLines();
+                    srcIter.startLines();
+                    if (!dstIter.finishedLines() && !srcIter.finishedLines())
+                        do {
+                            dstIter.startPixels();
+                            srcIter.startPixels();
+                            if (!dstIter.finishedPixels() && !srcIter.finishedPixels())
+                                do {
+                                    // //
+                                    //
+                                    // get the input value to be transformed
+                                    //
+                                    // //
+                                    final int in = srcIter.getSample() & 0xff;
+                                    // //
+                                    //
+                                    // Transform this element
+                                    //
+                                    // //
+                                    final int out = 0xff & lut[bandNumber][in];
+                                    // //
+                                    //
+                                    // Set the result
+                                    //
+                                    // //
+                                    dstIter.setSample(out);
+                                } while (!dstIter.nextPixelDone() && !srcIter.nextPixelDone());
+                        } while (!dstIter.nextLineDone() && !srcIter.nextLineDone());
+                } catch (final Exception cause) {
+                    final RasterFormatException exception = new RasterFormatException(
+                            cause.getLocalizedMessage());
+                    exception.initCause(cause);
+                    throw exception;
                 }
-            }
+                bandNumber++;
+                if (bandIndex != -1)
+                    break;
+            } while (dstIter.finishedBands() && srcIter.finishedBands());
         }
     }
 
     private void computeRectGeneral(final Raster source, final WritableRaster dest,
             final Rectangle destRect, RandomIter roiIter, boolean roiContainsTile) {
 
-        // Input position parameters
-        int x0 = 0;
-        int y0 = 0;
-
         int srcX = source.getMinX();
         int srcY = source.getMinY();
 
-        int dstWidth = destRect.width;
-        int dstHeight = destRect.height;
-        int dstBands = indexDefined ? bandIndex + 1 : dest.getNumBands();
-        int startBand = indexDefined ? bandIndex : 0;
+        // Input position parameters
+        int x0 = srcX;
+        int y0 = srcY;
 
         PiecewiseTransform1DElement element = null;
 
-        WritableRandomIter dstIter = RandomIterFactory.createWritable(dest, destRect);
-        RandomIter srcIter = RandomIterFactory.create(source, destRect, ARRAY_CALC, ARRAY_CALC);
-        try {
-            if (caseA || (caseB && roiContainsTile)) {
-                for (int h = 0; h < dstHeight; h++) {
+        WritableRectIter dstIter = RectIterFactory.createWritable(dest, destRect);
+        RectIter srcIter = RectIterFactory.create(source, destRect);
 
-                    y0 = srcY + h;
-
-                    for (int w = 0; w < dstWidth; w++) {
-
-                        x0 = srcX + w;
-
-                        for (int b = startBand; b < dstBands; b++) {
-                            // //
-                            //
-                            // get the input value to be transformed
-                            //
-                            // //
-                            final double value = srcIter.getSampleDouble(x0, y0, b);
-                            // //
-                            //
-                            // get the correct piecewise element for this
-                            // transformation
-                            //
-                            // //
-                            element = domainSearch(element, value);
-                            // //
-                            //
-                            // in case everything went fine let's apply the
-                            // transform.
-                            //
-                            // //
-                            if (element != null)
-                                dstIter.setSample(x0, y0, b, element.transform(value));
-                            else {
-                                // //
-                                //
-                                // if we did not find one let's try to use
-                                // one of the nodata ones to fill the gaps,
-                                // if we are allowed to (see above).
-                                //
-                                // //
-                                if (hasGapsValue)
-                                    dstIter.setSample(x0, y0, b, gapsValue);
-                                else
+        if (caseA || (caseB && roiContainsTile)) {
+            int bandNumber = 0;
+            do {
+                try {
+                    dstIter.startLines();
+                    srcIter.startLines();
+                    if (!dstIter.finishedLines() && !srcIter.finishedLines())
+                        do {
+                            dstIter.startPixels();
+                            srcIter.startPixels();
+                            if (!dstIter.finishedPixels() && !srcIter.finishedPixels())
+                                do {
                                     // //
                                     //
-                                    // if we did not find one let's throw a
-                                    // nice error message
+                                    // get the input value to be transformed
                                     //
                                     // //
-                                    throw new IllegalArgumentException(
-                                            "Unable to set input Gap value");
-                            }
-                        }
-                    }
-                }
-            } else if (caseB) {
-                for (int h = 0; h < dstHeight; h++) {
-
-                    y0 = srcY + h;
-
-                    for (int w = 0; w < dstWidth; w++) {
-
-                        x0 = srcX + w;
-
-                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
-                            for (int b = startBand; b < dstBands; b++) {
-                                dstIter.setSample(x0, y0, b, gapsValue);
-                            }
-                            continue;
-                        }
-
-                        for (int b = startBand; b < dstBands; b++) {
-                            // //
-                            //
-                            // get the input value to be transformed
-                            //
-                            // //
-                            final double value = srcIter.getSampleDouble(x0, y0, b);
-                            // //
-                            //
-                            // get the correct piecewise element for this
-                            // transformation
-                            //
-                            // //
-                            element = domainSearch(element, value);
-                            // //
-                            //
-                            // in case everything went fine let's apply the
-                            // transform.
-                            //
-                            // //
-                            if (element != null)
-                                dstIter.setSample(x0, y0, b, element.transform(value));
-                            else {
-                                // //
-                                //
-                                // if we did not find one let's try to use
-                                // one of the nodata ones to fill the gaps,
-                                // if we are allowed to (see above).
-                                //
-                                // //
-                                if (hasGapsValue)
-                                    dstIter.setSample(x0, y0, b, gapsValue);
-                                else
+                                    final double value = srcIter.getSampleDouble();
                                     // //
                                     //
-                                    // if we did not find one let's throw a
-                                    // nice error message
+                                    // get the correct piecewise element for this
+                                    // transformation
                                     //
                                     // //
-                                    throw new IllegalArgumentException(
-                                            "Unable to set input Gap value");
-                            }
-                        }
-                    }
-                }
-            } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
-                for (int h = 0; h < dstHeight; h++) {
-
-                    y0 = srcY + h;
-
-                    for (int w = 0; w < dstWidth; w++) {
-
-                        x0 = srcX + w;
-
-                        for (int b = startBand; b < dstBands; b++) {
-
-                            final double value = srcIter.getSampleDouble(x0, y0, b);
-
-                            if (nodata.contains(value)) {
-                                dstIter.setSample(x0, y0, b, gapsValue);
-                            } else {
-                                element = domainSearch(element, value);
-
-                                if (element != null)
-                                    dstIter.setSample(x0, y0, b, element.transform(value));
-                                else {
-
-                                    if (hasGapsValue) {
-                                        dstIter.setSample(x0, y0, b, gapsValue);
-                                    } else {
-                                        throw new IllegalArgumentException(
-                                                "Unable to set input Gap value");
+                                    element = domainSearch(element, value);
+                                    // //
+                                    //
+                                    // in case everything went fine let's apply the
+                                    // transform.
+                                    //
+                                    // //
+                                    if (element != null)
+                                        dstIter.setSample(element.transform(value));
+                                    else {
+                                        // //
+                                        //
+                                        // if we did not find one let's try to use
+                                        // one of the nodata ones to fill the gaps,
+                                        // if we are allowed to (see above).
+                                        //
+                                        // //
+                                        if (hasGapsValue)
+                                            dstIter.setSample(gapsValue);
+                                        else
+                                            // //
+                                            //
+                                            // if we did not find one let's throw a
+                                            // nice error message
+                                            //
+                                            // //
+                                            throw new IllegalArgumentException(
+                                                    "Unable to set input Gap value");
                                     }
-                                }
-                            }
-                        }
-                    }
+                                } while (!dstIter.nextPixelDone() && !srcIter.nextPixelDone());
+                        } while (!dstIter.nextLineDone() && !srcIter.nextLineDone());
+                } catch (final Exception cause) {
+                    final RasterFormatException exception = new RasterFormatException(
+                            cause.getLocalizedMessage());
+                    exception.initCause(cause);
+                    throw exception;
                 }
-            } else {
-                for (int h = 0; h < dstHeight; h++) {
-
-                    y0 = srcY + h;
-
-                    for (int w = 0; w < dstWidth; w++) {
-
-                        x0 = srcX + w;
-
-                        if (!(roiBounds.contains(x0, y0) && roiIter.getSample(x0, y0, 0) > 0)) {
-                            for (int b = startBand; b < dstBands; b++) {
-                                dstIter.setSample(x0, y0, b, gapsValue);
-                            }
-                            continue;
-                        }
-
-                        for (int b = startBand; b < dstBands; b++) {
-
-                            final double value = srcIter.getSampleDouble(x0, y0, b);
-
-                            if (nodata.contains(value)) {
-                                dstIter.setSample(x0, y0, b, gapsValue);
-                            } else {
-                                element = domainSearch(element, value);
-
-                                if (element != null)
-                                    dstIter.setSample(x0, y0, b, element.transform(value));
-                                else {
-
-                                    if (hasGapsValue) {
-                                        dstIter.setSample(x0, y0, b, gapsValue);
+                bandNumber++;
+                if (bandIndex != -1)
+                    break;
+            } while (dstIter.finishedBands() && srcIter.finishedBands());
+        } else if (caseB) {
+            int bandNumber = 0;
+            do {
+                try {
+                    dstIter.startLines();
+                    srcIter.startLines();
+                    if (!dstIter.finishedLines() && !srcIter.finishedLines())
+                        do {
+                            dstIter.startPixels();
+                            srcIter.startPixels();
+                            if (!dstIter.finishedPixels() && !srcIter.finishedPixels())
+                                do {
+                                    if (!(roiBounds.contains(x0, y0) && roiIter
+                                            .getSample(x0, y0, 0) > 0)) {
+                                        dstIter.setSample(gapsValue);
                                     } else {
-                                        throw new IllegalArgumentException(
-                                                "Unable to set input Gap value");
+
+                                        final double value = srcIter.getSampleDouble();
+
+                                        element = domainSearch(element, value);
+
+                                        if (element != null)
+                                            dstIter.setSample(element.transform(value));
+                                        else {
+
+                                            if (hasGapsValue)
+                                                dstIter.setSample(gapsValue);
+                                            else
+
+                                                throw new IllegalArgumentException(
+                                                        "Unable to set input Gap value");
+                                        }
+
                                     }
-                                }
-                            }
-                        }
-                    }
+                                    x0++;
+                                } while (!dstIter.nextPixelDone() && !srcIter.nextPixelDone());
+                            y0++;
+                            x0 = srcX;
+                        } while (!dstIter.nextLineDone() && !srcIter.nextLineDone());
+                } catch (final Exception cause) {
+                    final RasterFormatException exception = new RasterFormatException(
+                            cause.getLocalizedMessage());
+                    exception.initCause(cause);
+                    throw exception;
                 }
-            }
-        } catch (Exception e) {
-            final RasterFormatException exception = new RasterFormatException(
-                    e.getLocalizedMessage());
-            exception.initCause(e);
-            throw exception;
+                bandNumber++;
+                y0 = srcY;
+                x0 = srcX;
+                if (bandIndex != -1)
+                    break;
+            } while (dstIter.finishedBands() && srcIter.finishedBands());
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
+            int bandNumber = 0;
+            do {
+                try {
+                    dstIter.startLines();
+                    srcIter.startLines();
+                    if (!dstIter.finishedLines() && !srcIter.finishedLines())
+                        do {
+                            dstIter.startPixels();
+                            srcIter.startPixels();
+                            if (!dstIter.finishedPixels() && !srcIter.finishedPixels())
+                                do {
+
+                                    final double value = srcIter.getSampleDouble();
+
+                                    if (nodata.contains(value)) {
+                                        dstIter.setSample(gapsValue);
+                                    } else {
+
+                                        element = domainSearch(element, value);
+
+                                        if (element != null)
+                                            dstIter.setSample(element.transform(value));
+                                        else {
+
+                                            if (hasGapsValue)
+                                                dstIter.setSample(gapsValue);
+                                            else
+
+                                                throw new IllegalArgumentException(
+                                                        "Unable to set input Gap value");
+                                        }
+                                    }
+                                } while (!dstIter.nextPixelDone() && !srcIter.nextPixelDone());
+                        } while (!dstIter.nextLineDone() && !srcIter.nextLineDone());
+                } catch (final Exception cause) {
+                    final RasterFormatException exception = new RasterFormatException(
+                            cause.getLocalizedMessage());
+                    exception.initCause(cause);
+                    throw exception;
+                }
+                bandNumber++;
+                if (bandIndex != -1)
+                    break;
+            } while (dstIter.finishedBands() && srcIter.finishedBands());
+        } else {
+            int bandNumber = 0;
+            do {
+                try {
+                    dstIter.startLines();
+                    srcIter.startLines();
+                    if (!dstIter.finishedLines() && !srcIter.finishedLines())
+                        do {
+                            dstIter.startPixels();
+                            srcIter.startPixels();
+                            if (!dstIter.finishedPixels() && !srcIter.finishedPixels())
+                                do {
+                                    if (!(roiBounds.contains(x0, y0) && roiIter
+                                            .getSample(x0, y0, 0) > 0)) {
+                                        dstIter.setSample(gapsValue);
+                                    } else {
+
+                                        final double value = srcIter.getSampleDouble();
+
+                                        if (nodata.contains(value)) {
+                                            dstIter.setSample(gapsValue);
+                                        } else {
+
+                                            element = domainSearch(element, value);
+
+                                            if (element != null)
+                                                dstIter.setSample(element.transform(value));
+                                            else {
+
+                                                if (hasGapsValue)
+                                                    dstIter.setSample(gapsValue);
+                                                else
+
+                                                    throw new IllegalArgumentException(
+                                                            "Unable to set input Gap value");
+                                            }
+
+                                        }
+                                    }
+                                    x0++;
+                                } while (!dstIter.nextPixelDone() && !srcIter.nextPixelDone());
+                            y0++;
+                            x0 = srcX;
+                        } while (!dstIter.nextLineDone() && !srcIter.nextLineDone());
+                } catch (final Exception cause) {
+                    final RasterFormatException exception = new RasterFormatException(
+                            cause.getLocalizedMessage());
+                    exception.initCause(cause);
+                    throw exception;
+                }
+                bandNumber++;
+                y0 = srcY;
+                x0 = srcX;
+                if (bandIndex != -1)
+                    break;
+            } while (dstIter.finishedBands() && srcIter.finishedBands());
         }
-
     }
 
     private PiecewiseTransform1DElement domainSearch(PiecewiseTransform1DElement last, double value)

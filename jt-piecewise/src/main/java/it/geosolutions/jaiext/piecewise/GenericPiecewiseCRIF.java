@@ -54,7 +54,7 @@ public class GenericPiecewiseCRIF extends CRIFImpl {
         final Range nodata = (Range) pb.getObjectParameter(3);
 
         return new GenericPiecewiseOpImage<PiecewiseTransform1DElement>(source, lic, l, bandIndex,
-                roi, nodata, hints);
+                roi, nodata, hints, true);
     }
 
 }
