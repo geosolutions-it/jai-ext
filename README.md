@@ -2,9 +2,9 @@ JAI-EXT
 =======
 
 JAI-EXT is an open-source project which aims to extend the [JAI](http://en.wikipedia.org/wiki/Java_Advanced_Imaging) API. JAI is an API which provides a set of high level objects for the image processing. One feature of the JAI API is the ability to process the images in a multithreaded environment; this functionality can be reached by calculating each image tile separately. JAI-EXT improves this API in three different ways:
-* adding more features to the existing operations, like the support for nodata;
-* improving the performances of the existing operations; 
-* developing new operations.
+* adding more features to the existing operations, like the support for nodata
+* improving the performances of the existing operations
+* developing new operations
 
 More informations can be found at the [JAI-EXT Wiki](https://github.com/geosolutions-it/jai-ext/wiki)
 
