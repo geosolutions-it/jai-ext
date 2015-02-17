@@ -268,7 +268,7 @@ public class TestPiecewise extends TestBase {
 
                     }
 
-                    public MathTransformation inverse() {
+                    public MathTransformation inverseTransform() {
 
                         return null;
 
@@ -625,7 +625,7 @@ public class TestPiecewise extends TestBase {
                         return 1;
                     }
 
-                    public MathTransformation inverse() {
+                    public MathTransformation inverseTransform() {
                         throw new UnsupportedOperationException();
                     }
 

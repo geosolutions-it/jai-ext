@@ -28,7 +28,7 @@ import java.io.Serializable;
  * @author Simone Giannecchini, GeoSolutions
  * 
  */
-class DefaultConstantPiecewiseTransformElement extends DefaultLinearPiecewiseTransform1DElement
+public class DefaultConstantPiecewiseTransformElement extends DefaultLinearPiecewiseTransform1DElement
         implements PiecewiseTransform1DElement, Comparable<DomainElement1D>, Serializable {
 
     /**
@@ -44,7 +44,7 @@ class DefaultConstantPiecewiseTransformElement extends DefaultLinearPiecewiseTra
      * @param outVal for this {@link DefaultLinearPiecewiseTransform1DElement}
      * @throws IllegalArgumentException in case the input values are illegal.
      */
-    DefaultConstantPiecewiseTransformElement(CharSequence name, final Range inRange,
+    public DefaultConstantPiecewiseTransformElement(CharSequence name, final Range inRange,
             final double outVal) throws IllegalArgumentException {
         super(name, inRange, RangeFactory.create(outVal, true, outVal, true, true));
 
@@ -58,7 +58,7 @@ class DefaultConstantPiecewiseTransformElement extends DefaultLinearPiecewiseTra
      * @param outVal for this {@link DefaultLinearPiecewiseTransform1DElement}
      * @throws IllegalArgumentException in case the input values are illegal.
      */
-    DefaultConstantPiecewiseTransformElement(CharSequence name, final Range inRange,
+    public DefaultConstantPiecewiseTransformElement(CharSequence name, final Range inRange,
             final int outVal) throws IllegalArgumentException {
         super(name, inRange, RangeFactory.create(outVal, true, outVal, true));
     }
@@ -71,7 +71,7 @@ class DefaultConstantPiecewiseTransformElement extends DefaultLinearPiecewiseTra
      * @param outVal for this {@link DefaultLinearPiecewiseTransform1DElement}
      * @throws IllegalArgumentException in case the input values are illegal.
      */
-    DefaultConstantPiecewiseTransformElement(CharSequence name, final Range inRange,
+    public DefaultConstantPiecewiseTransformElement(CharSequence name, final Range inRange,
             final byte outVal) throws IllegalArgumentException {
         super(name, inRange, RangeFactory.create(outVal, true, outVal, true));
     }

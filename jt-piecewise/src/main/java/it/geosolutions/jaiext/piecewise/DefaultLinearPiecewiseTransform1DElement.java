@@ -20,8 +20,6 @@ package it.geosolutions.jaiext.piecewise;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 
-import java.util.logging.Logger;
-
 /**
  * Convenience class for linear transformations that maps an interval to another interval.
  * 
@@ -176,7 +174,7 @@ public class DefaultLinearPiecewiseTransform1DElement extends DefaultPiecewiseTr
             else
                 setInverse(null);
         else
-            setInverse((MathTransformation) transform.inverse());
+            setInverse((MathTransformation) transform.inverseTransform());
     }
 
     /**

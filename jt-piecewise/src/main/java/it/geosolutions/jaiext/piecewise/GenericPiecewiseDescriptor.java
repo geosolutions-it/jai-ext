@@ -52,7 +52,7 @@ public class GenericPiecewiseDescriptor extends OperationDescriptorImpl {
                 { "Version", "1.0" } }, new String[] { RenderedRegistryMode.MODE_NAME }, 1,
                 new String[] { "Domain1D", "bandIndex", "roi", "nodata" }, // Argument
                                                                            // names
-                new Class[] { DefaultPiecewiseTransform1D.class, Integer.class,
+                new Class[] { PiecewiseTransform1D.class, Integer.class,
                         javax.media.jai.ROI.class, it.geosolutions.jaiext.range.Range.class }, // Argument
                                                                                                // classes
                 new Object[] { NO_PARAMETER_DEFAULT, new Integer(-1), null, null }, // Default values for parameters,
@@ -71,7 +71,7 @@ public class GenericPiecewiseDescriptor extends OperationDescriptorImpl {
      * @param hints
      * @return
      */
-    public RenderedOp create(RenderedImage source0, DefaultPiecewiseTransform1D domain1D,
+    public RenderedOp create(RenderedImage source0, PiecewiseTransform1D domain1D,
             Integer bandIndex, ROI roi, Range nodata, RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI(GenericPiecewiseOpImage.OPERATION_NAME,
                 RenderedRegistryMode.MODE_NAME);

@@ -29,7 +29,7 @@ import it.geosolutions.jaiext.range.RangeFactory;
  * @author Simone Giannecchini, GeoSolutions
  * @author Alessio Fabiani, GeoSolutions
  */
-class DefaultPassthroughPiecewiseTransform1DElement extends DefaultPiecewiseTransform1DElement
+public class DefaultPassthroughPiecewiseTransform1DElement extends DefaultPiecewiseTransform1DElement
         implements PiecewiseTransform1DElement {
 
     /**
@@ -43,7 +43,7 @@ class DefaultPassthroughPiecewiseTransform1DElement extends DefaultPiecewiseTran
      * @param name for this {@link DomainElement1D}.
      * @throws IllegalArgumentException
      */
-    DefaultPassthroughPiecewiseTransform1DElement(CharSequence name)
+    public DefaultPassthroughPiecewiseTransform1DElement(CharSequence name)
             throws IllegalArgumentException {
         super(name, RangeFactory.create(Double.NEGATIVE_INFINITY, true, Double.POSITIVE_INFINITY,
                 true, true));
@@ -56,7 +56,7 @@ class DefaultPassthroughPiecewiseTransform1DElement extends DefaultPiecewiseTran
      * @param valueRange for this {@link DomainElement1D}.
      * @throws IllegalArgumentException
      */
-    DefaultPassthroughPiecewiseTransform1DElement(CharSequence name, final Range valueRange)
+    public DefaultPassthroughPiecewiseTransform1DElement(CharSequence name, final Range valueRange)
             throws IllegalArgumentException {
         super(name, valueRange);
     }

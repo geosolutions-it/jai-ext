@@ -133,7 +133,7 @@ public class DefaultPiecewiseTransform1DElement extends DefaultDomainElement1D i
      * @param valueRange for this {@link DomainElement1D}.
      * @throws IllegalArgumentException
      */
-    protected DefaultPiecewiseTransform1DElement(CharSequence name, Range valueRange)
+    public DefaultPiecewiseTransform1DElement(CharSequence name, Range valueRange)
             throws IllegalArgumentException {
         super(name, valueRange);
     }
@@ -147,7 +147,7 @@ public class DefaultPiecewiseTransform1DElement extends DefaultDomainElement1D i
      * @param transform for this {@link DomainElement1D}.
      * @throws IllegalArgumentException
      */
-    protected DefaultPiecewiseTransform1DElement(CharSequence name, Range valueRange,
+    public DefaultPiecewiseTransform1DElement(CharSequence name, Range valueRange,
             final MathTransformation transform) throws IllegalArgumentException {
         super(name, valueRange);
         // /////////////////////////////////////////////////////////////////////
@@ -226,7 +226,7 @@ public class DefaultPiecewiseTransform1DElement extends DefaultDomainElement1D i
             return inverse;
         if (transform == null)
             throw new IllegalStateException();
-        inverse = (MathTransformation) transform.inverse();
+        inverse = (MathTransformation) transform.inverseTransform();
         return inverse;
     }
 

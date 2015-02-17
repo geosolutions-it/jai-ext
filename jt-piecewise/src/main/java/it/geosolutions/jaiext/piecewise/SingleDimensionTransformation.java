@@ -71,7 +71,7 @@ public class SingleDimensionTransformation implements MathTransformation {
         return 1;
     }
 
-    public MathTransformation inverse() {
+    public MathTransformation inverseTransform() {
         if (inverse == null) {
             if (isIdentity()) {
                 inverse = this;
