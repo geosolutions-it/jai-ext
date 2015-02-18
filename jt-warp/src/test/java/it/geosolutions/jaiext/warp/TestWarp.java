@@ -102,6 +102,7 @@ public class TestWarp extends TestBase {
 
         // No Data Range
         Range noDataRange = null;
+        destinationNoData = 10;
 
         if (noDataUsed) {
             switch (dataType) {

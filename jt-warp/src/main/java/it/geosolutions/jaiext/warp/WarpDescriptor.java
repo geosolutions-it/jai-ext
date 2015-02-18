@@ -145,10 +145,10 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
             // input image.
             if (interp instanceof InterpolationBilinear) {
                 roiImage = new WarpBilinearOpImage(constantImage, extender, warpingHints,
-                        null, warp, interp, srcROI,null);
+                        null, warp, interp, srcROI,null, null);
             } else {
                 roiImage = new WarpNearestOpImage(constantImage, warpingHints, null, warp,
-                        interp, srcROI,null);
+                        interp, srcROI,null, null);
             }
 
             ROI dstROI = new ROI(roiImage, 1);
