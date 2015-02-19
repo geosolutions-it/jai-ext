@@ -119,10 +119,10 @@ public abstract class StatisticsOpImage extends OpImage {
     /** Extended ROI image*/
     protected RenderedOp srcROIImgExt;
 
-    public StatisticsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+    public StatisticsOpImage(RenderedImage source,
             int xPeriod, int yPeriod, ROI roi, Range noData, boolean useROIAccessor, int[] bands,
             StatsType[] statsTypes, double[] minBound, double[] maxBound, int[] numBins) {
-        super(vectorize(source), layout, configuration, true);
+        super(vectorize(source), new ImageLayout(source), null, true);
 
         // Source Image bands
         bandsNumber = source.getSampleModel().getNumBands();

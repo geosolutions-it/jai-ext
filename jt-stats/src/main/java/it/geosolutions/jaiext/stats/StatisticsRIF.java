@@ -64,14 +64,14 @@ public class StatisticsRIF implements RenderedImageFactory {
 
         // Creation of the OpImage
         if (isSimpleStat) {
-            return new SimpleStatsOpImage(source, layout, hints, xPeriod, yPeriod, roi, noData,
+            return new SimpleStatsOpImage(source, xPeriod, yPeriod, roi, noData,
                     useROIAccessor, bands, statsTypes);
         } else {
             // Selection of the bounds parameters
             double[] minBounds = (double[]) pb.getObjectParameter(7);
             double[] maxBounds = (double[]) pb.getObjectParameter(8);
             int[] numBins = (int[]) pb.getObjectParameter(9);
-            return new ComplexStatsOpImage(source, layout, hints, xPeriod, yPeriod, roi, noData,
+            return new ComplexStatsOpImage(source, xPeriod, yPeriod, roi, noData,
                     useROIAccessor, bands, statsTypes, minBounds, maxBounds, numBins);
         }
     }
