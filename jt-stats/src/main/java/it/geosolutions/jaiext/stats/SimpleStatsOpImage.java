@@ -41,10 +41,10 @@ import javax.media.jai.RasterFormatTag;
  */
 public class SimpleStatsOpImage extends StatisticsOpImage {
 
-    public SimpleStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+    public SimpleStatsOpImage(RenderedImage source,
             int xPeriod, int yPeriod, ROI roi, Range noData, boolean useROIAccessor, int[] bands,
             StatsType[] statsTypes) {
-        super(source, layout, configuration, xPeriod, yPeriod, roi, noData, useROIAccessor, bands,
+        super(source, xPeriod, yPeriod, roi, noData, useROIAccessor, bands,
                 statsTypes, null, null, null);
 
         // Storage of the statistic types indexes if present, and check if they are not complex statistic
