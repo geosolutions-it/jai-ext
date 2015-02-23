@@ -80,7 +80,12 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
             Object property = src.getProperty("ROI");
             if (property == null || property.equals(java.awt.Image.UndefinedProperty)
                     || !(property instanceof ROI)) {
-                return java.awt.Image.UndefinedProperty;
+                // Check on the parameterBlock
+                if(pb.getObjectParameter(3) != null){
+                    property = pb.getObjectParameter(3);
+                }else{
+                    return java.awt.Image.UndefinedProperty;
+                }
             }
 
             // Return undefined also if source ROI is empty.

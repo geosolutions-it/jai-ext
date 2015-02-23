@@ -58,10 +58,9 @@ public class JAIExt {
     private static final String JAI_EXT_VENDOR = "it.geosolutions.jaiext";
 
     /** Initialization of the {@link JAIExt} instance */
-    public synchronized static void initJAIEXT(ConcurrentOperationRegistry registry) {
+    public synchronized static void initJAIEXT() {
         if (jaiext == null) {
-            jaiext = new JAIExt(registry);
-            JAI.getDefaultInstance().setOperationRegistry(registry);
+            jaiext = getJAIEXT();
         }
     }
 
