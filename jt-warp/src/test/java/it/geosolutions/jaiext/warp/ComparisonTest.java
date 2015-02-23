@@ -95,9 +95,7 @@ public class ComparisonTest extends TestWarp {
 
     @BeforeClass
     public static void initialSetup() {
-        ConcurrentOperationRegistry registry = (ConcurrentOperationRegistry) ConcurrentOperationRegistry.initializeRegistry();
-        JAIExt.initJAIEXT(registry);
-        JAI.getDefaultInstance().setOperationRegistry(registry);
+        JAIExt.initJAIEXT();
         // Setting of the image filler parameter to true for a better image creation
         IMAGE_FILLER = true;
         // Images initialization
