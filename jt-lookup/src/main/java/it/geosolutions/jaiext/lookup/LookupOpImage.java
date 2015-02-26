@@ -19,6 +19,7 @@ package it.geosolutions.jaiext.lookup;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 import java.awt.Rectangle;
 import java.awt.image.Raster;
@@ -150,8 +151,8 @@ public class LookupOpImage extends ColormapOpImage {
             hasNoData = true;
             // Control if the range data type is the same of the source image
             if (noData.getDataType().getDataType() != source.getSampleModel().getDataType()) {
-                throw new IllegalArgumentException(
-                        "Range data type is not the same of the source image");
+                // Convert NoData
+                noData = RangeFactory.convert(noData, source.getSampleModel().getDataType());
             }
             lookupTable.setNoDataRange(noData);
         } else {

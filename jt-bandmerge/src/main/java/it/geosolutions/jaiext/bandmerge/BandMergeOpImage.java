@@ -707,6 +707,10 @@ public class BandMergeOpImage extends PointOpImage {
         int[] snbands = new int[nSrcs];
         // PixelAccessor array for each source
         PixelAccessor[] pas = new PixelAccessor[nSrcs];
+        
+        // Destination tile initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
 
         boolean isUshort = getSampleModel().getDataType() == DataBuffer.TYPE_USHORT;
 
@@ -939,6 +943,10 @@ public class BandMergeOpImage extends PointOpImage {
         // PixelAccessor array for each source
         PixelAccessor[] pas = new PixelAccessor[nSrcs];
 
+        // Destination tile initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
+
         for (int i = 0; i < nSrcs; i++) {
             pas[i] = new PixelAccessor(sources[i].getSampleModel(), colorModels[i]);
 
@@ -1167,6 +1175,10 @@ public class BandMergeOpImage extends PointOpImage {
         // PixelAccessor array for each source
         PixelAccessor[] pas = new PixelAccessor[nSrcs];
 
+        // Destination tile initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
+
         for (int i = 0; i < nSrcs; i++) {
             pas[i] = new PixelAccessor(sources[i].getSampleModel(), colorModels[i]);
 
@@ -1394,6 +1406,10 @@ public class BandMergeOpImage extends PointOpImage {
         int[] snbands = new int[nSrcs];
         // PixelAccessor array for each source
         PixelAccessor[] pas = new PixelAccessor[nSrcs];
+
+        // Destination tile initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
 
         for (int i = 0; i < nSrcs; i++) {
             pas[i] = new PixelAccessor(sources[i].getSampleModel(), colorModels[i]);

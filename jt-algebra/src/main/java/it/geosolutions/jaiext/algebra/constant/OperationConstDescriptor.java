@@ -48,7 +48,7 @@ public class OperationConstDescriptor extends OperationDescriptorImpl {
 
     public final static int RANGE_INDEX = 2;
 
-    public final static int DEST_NODATA_INDEX = 3;
+    public final static int DEST_NODATA_INDEX = 4;
 
     public final static int CONSTANT_INDEX = 3;
 
@@ -62,7 +62,7 @@ public class OperationConstDescriptor extends OperationDescriptorImpl {
             { "Description",
                     "This class executes the operation selected by the user on each pixel of the source images " },
             { "DocURL", "Not Defined" }, { "Version", "1.0" },
-            { "arg0Desc", "Operation to execute" }, { "arg1Desc", "Constant Values to Add" },
+            { "arg0Desc", "Constant Values to Add" }, { "arg1Desc", "Operation to execute" },
             { "arg2Desc", "ROI object used" }, { "arg3Desc", "No Data Range used" },
             { "arg4Desc", "Output value for No Data" } };
 

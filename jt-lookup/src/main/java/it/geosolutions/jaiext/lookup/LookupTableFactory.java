@@ -19,6 +19,8 @@ package it.geosolutions.jaiext.lookup;
 
 import java.awt.image.DataBuffer;
 
+import javax.media.jai.LookupTableJAI;
+
 public class LookupTableFactory {
     /**
      * Constructs a single-banded byte lookup table. The index offset is 0.
@@ -560,6 +562,89 @@ public class LookupTableFactory {
             return new LookupTableShort(data, offsets);
         case DataBuffer.TYPE_INT:
             return new LookupTableInt(data, offsets);
+        default:
+            throw new IllegalArgumentException("Wrong image dataType");
+        }
+    }
+    
+    /**
+     * Constructs a multi-banded lookup table from another one.
+     * 
+     * @param table The multi-banded lookupTable.
+     * @throws IllegalArgumentException if data is null.
+     */
+    public static LookupTable create(LookupTableJAI table, int dataType) {
+        int tableDataType = table.getDataType();
+        int[] offsets = table.getOffsets();
+        switch (dataType) {
+        case DataBuffer.TYPE_BYTE:
+            switch (tableDataType) {
+            case DataBuffer.TYPE_BYTE:
+                return new LookupTableByte(table.getByteData(), offsets);
+            case DataBuffer.TYPE_USHORT:
+                return new LookupTableByte(table.getShortData(), offsets, true);
+            case DataBuffer.TYPE_SHORT:
+                return new LookupTableByte(table.getShortData(), offsets, false);
+            case DataBuffer.TYPE_INT:
+                return new LookupTableByte(table.getByteData(), offsets);
+            case DataBuffer.TYPE_FLOAT:
+                return new LookupTableByte(table.getFloatData(), offsets);
+            case DataBuffer.TYPE_DOUBLE:
+                return new LookupTableByte(table.getDoubleData(), offsets);
+            default:
+                throw new IllegalArgumentException("Wrong image dataType");
+            }
+        case DataBuffer.TYPE_USHORT:
+            switch (tableDataType) {
+            case DataBuffer.TYPE_BYTE:
+                return new LookupTableUShort(table.getByteData(), offsets);
+            case DataBuffer.TYPE_USHORT:
+                return new LookupTableUShort(table.getShortData(), offsets, true);
+            case DataBuffer.TYPE_SHORT:
+                return new LookupTableUShort(table.getShortData(), offsets, false);
+            case DataBuffer.TYPE_INT:
+                return new LookupTableUShort(table.getByteData(), offsets);
+            case DataBuffer.TYPE_FLOAT:
+                return new LookupTableUShort(table.getFloatData(), offsets);
+            case DataBuffer.TYPE_DOUBLE:
+                return new LookupTableUShort(table.getDoubleData(), offsets);
+            default:
+                throw new IllegalArgumentException("Wrong image dataType");
+            }
+        case DataBuffer.TYPE_SHORT:
+            switch (tableDataType) {
+            case DataBuffer.TYPE_BYTE:
+                return new LookupTableShort(table.getByteData(), offsets);
+            case DataBuffer.TYPE_USHORT:
+                return new LookupTableShort(table.getShortData(), offsets, true);
+            case DataBuffer.TYPE_SHORT:
+                return new LookupTableShort(table.getShortData(), offsets, false);
+            case DataBuffer.TYPE_INT:
+                return new LookupTableShort(table.getByteData(), offsets);
+            case DataBuffer.TYPE_FLOAT:
+                return new LookupTableShort(table.getFloatData(), offsets);
+            case DataBuffer.TYPE_DOUBLE:
+                return new LookupTableShort(table.getDoubleData(), offsets);
+            default:
+                throw new IllegalArgumentException("Wrong image dataType");
+            }
+        case DataBuffer.TYPE_INT:
+            switch (tableDataType) {
+            case DataBuffer.TYPE_BYTE:
+                return new LookupTableInt(table.getByteData(), offsets);
+            case DataBuffer.TYPE_USHORT:
+                return new LookupTableInt(table.getShortData(), offsets, true);
+            case DataBuffer.TYPE_SHORT:
+                return new LookupTableInt(table.getShortData(), offsets, false);
+            case DataBuffer.TYPE_INT:
+                return new LookupTableInt(table.getByteData(), offsets);
+            case DataBuffer.TYPE_FLOAT:
+                return new LookupTableInt(table.getFloatData(), offsets);
+            case DataBuffer.TYPE_DOUBLE:
+                return new LookupTableInt(table.getDoubleData(), offsets);
+            default:
+                throw new IllegalArgumentException("Wrong image dataType");
+            }
         default:
             throw new IllegalArgumentException("Wrong image dataType");
         }

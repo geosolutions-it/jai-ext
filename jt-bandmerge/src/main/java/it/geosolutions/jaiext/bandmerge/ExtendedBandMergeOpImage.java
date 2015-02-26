@@ -217,23 +217,31 @@ public class ExtendedBandMergeOpImage extends GeometricOpImage {
 
         // If No Data are present
         if (noData != null) {
-            // If the length of the array is different from that of the sources
-            // the first Range is used for all the images
-            if (noData.length != numSrcs) {
-                Range firstNoData = noData[0];
-
-                this.noData = new Range[numSrcs];
-
-                for (int i = 0; i < numSrcs; i++) {
-                    this.noData[i] = firstNoData;
-                }
-            } else {
-                // Else the whole array is used
-                this.noData = noData;
+            int nullRanges = 0;
+            for (int i = 0; i < noData.length; i++) {
+                nullRanges += noData[i] == null ? 1 : 0;
             }
-            // No Data are present, so associated flaw is set to true
-            this.hasNoData = true;
+            if (nullRanges != noData.length) {
+                // If the length of the array is different from that of the sources
+                // the first Range is used for all the images
+                if (noData.length != numSrcs || nullRanges > 0) {
+                    Range firstNoData = noData[0];
 
+                    this.noData = new Range[numSrcs];
+
+                    for (int i = 0; i < numSrcs; i++) {
+                        this.noData[i] = firstNoData;
+                    }
+                } else {
+                    // Else the whole array is used
+                    this.noData = noData;
+                }
+                // No Data are present, so associated flaw is set to true
+                this.hasNoData = true;
+            } else {
+                this.noData = null;
+                this.hasNoData = false;
+            }
         } else {
             this.noData = null;
             this.hasNoData = false;

@@ -430,8 +430,6 @@ public abstract class TestBase {
     
     @BeforeClass
     public static void setup(){
-        ConcurrentOperationRegistry registry = (ConcurrentOperationRegistry) ConcurrentOperationRegistry.initializeRegistry();
-        JAIExt.initJAIEXT(registry);
-        JAI.getDefaultInstance().setOperationRegistry(registry);
+        JAIExt.initJAIEXT();
     }
 }

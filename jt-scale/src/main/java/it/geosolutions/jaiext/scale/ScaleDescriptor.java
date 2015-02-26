@@ -84,13 +84,18 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
             if (property == null ||
                 property.equals(java.awt.Image.UndefinedProperty) ||
                 !(property instanceof ROI)) {
-                return java.awt.Image.UndefinedProperty;
+                // Check on the parameterBlock
+                if(pb.getObjectParameter(5) != null){
+                    property = pb.getObjectParameter(5);
+                }else{
+                    return java.awt.Image.UndefinedProperty;
+                }
             }
             ROI srcROI = (ROI)property;
             
-            if (! (src instanceof RenderedOp)) {
-            	return srcROI;
-            }
+            //if (! (src instanceof RenderedOp)) {
+            	//return srcROI;
+            //}
             
             // Retrieve the Interpolation object.
             Interpolation interp = (Interpolation)pb.getObjectParameter(4);
@@ -435,7 +440,11 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
 
         float xScale = args.getFloatParameter(0);
         float yScale = args.getFloatParameter(1);
-        if (xScale <= 0 || yScale <= 0) {
+        ROI roi = null;
+        if(args.getNumParameters() > 5 && args.getObjectParameter(5) != null){
+            roi = (ROI) args.getObjectParameter(5);
+        }
+        if ((xScale <= 0 || yScale <= 0) && roi == null) {
             msg.append(getName() + " " +
                        JaiI18N.getString("ScaleDescriptor6"));
 	    return false;

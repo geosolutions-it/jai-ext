@@ -77,7 +77,11 @@ public class OperationConstCRIF extends CRIFImpl {
 
 		ROI roi = (ROI) pb.getObjectParameter(2);
 		Range noData = (Range) pb.getObjectParameter(3);
-		double destinationNoData = pb.getDoubleParameter(4);
+		double destinationNoData = 0;
+		int numParams = pb.getNumParameters();
+		if(numParams > 4){
+		    destinationNoData = pb.getDoubleParameter(4);
+		}
 
 		return new OperationConstOpImage(source, renderHints, layout, op,
 				constants, roi, noData, destinationNoData);

@@ -376,7 +376,7 @@ public class MosaicOpImage extends OpImage {
         }
 
         // Value for filling the image border
-        double sourceExtensionBorder = (noDatas != null && noDatas.length > 0) ? noDatas[0]
+        double sourceExtensionBorder = (noDatas != null && noDatas.length > 0 && noDatas[0] != null) ? noDatas[0]
                 .getMin().doubleValue() : destinationNoDataDouble[0];
 
         // BorderExtender used for filling the image border with the above
