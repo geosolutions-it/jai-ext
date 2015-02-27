@@ -77,76 +77,76 @@ public class LookupTest extends TestBase {
     private static RenderedImage testImageInt;
 
     /** LookupTable from byte to byte */
-    private static LookupTableByte byteToByteTable;
+    private static LookupTable byteToByteTable;
 
     /** LookupTable from byte to ushort */
-    private static LookupTableByte byteToUshortTable;
+    private static LookupTable byteToUshortTable;
 
     /** LookupTable from byte to short */
-    private static LookupTableByte byteToShortTable;
+    private static LookupTable byteToShortTable;
 
     /** LookupTable from byte to int */
-    private static LookupTableByte byteToIntTable;
+    private static LookupTable byteToIntTable;
 
     /** LookupTable from byte to float */
-    private static LookupTableByte byteToFloatTable;
+    private static LookupTable byteToFloatTable;
 
     /** LookupTable from byte to double */
-    private static LookupTableByte byteToDoubleTable;
+    private static LookupTable byteToDoubleTable;
 
     /** LookupTable from ushort to byte */
-    private static LookupTableUShort ushortToByteTable;
+    private static LookupTable ushortToByteTable;
 
     /** LookupTable from ushort to ushort */
-    private static LookupTableUShort ushortToUshortTable;
+    private static LookupTable ushortToUshortTable;
 
     /** LookupTable from ushort to short */
-    private static LookupTableUShort ushortToShortTable;
+    private static LookupTable ushortToShortTable;
 
     /** LookupTable from ushort to int */
-    private static LookupTableUShort ushortToIntTable;
+    private static LookupTable ushortToIntTable;
 
     /** LookupTable from ushort to float */
-    private static LookupTableUShort ushortToFloatTable;
+    private static LookupTable ushortToFloatTable;
 
     /** LookupTable from ushort to double */
-    private static LookupTableUShort ushortToDoubleTable;
+    private static LookupTable ushortToDoubleTable;
 
     /** LookupTable from short to byte */
-    private static LookupTableShort shortToByteTable;
+    private static LookupTable shortToByteTable;
 
     /** LookupTable from short to ushort */
-    private static LookupTableShort shortToUshortTable;
+    private static LookupTable shortToUshortTable;
 
     /** LookupTable from short to short */
-    private static LookupTableShort shortToShortTable;
+    private static LookupTable shortToShortTable;
 
     /** LookupTable from short to int */
-    private static LookupTableShort shortToIntTable;
+    private static LookupTable shortToIntTable;
 
     /** LookupTable from short to float */
-    private static LookupTableShort shortToFloatTable;
+    private static LookupTable shortToFloatTable;
 
     /** LookupTable from short to double */
-    private static LookupTableShort shortToDoubleTable;
+    private static LookupTable shortToDoubleTable;
 
     /** LookupTable from int to byte */
-    private static LookupTableInt intToByteTable;
+    private static LookupTable intToByteTable;
 
     /** LookupTable from int to ushort */
-    private static LookupTableInt intToUshortTable;
+    private static LookupTable intToUshortTable;
 
     /** LookupTable from int to short */
-    private static LookupTableInt intToShortTable;
+    private static LookupTable intToShortTable;
 
     /** LookupTable from int to int */
-    private static LookupTableInt intToIntTable;
+    private static LookupTable intToIntTable;
 
     /** LookupTable from int to float */
-    private static LookupTableInt intToFloatTable;
+    private static LookupTable intToFloatTable;
 
     /** LookupTable from int to double */
-    private static LookupTableInt intToDoubleTable;
+    private static LookupTable intToDoubleTable;
 
     /** ROI used in tests */
     private static ROIShape roi;
@@ -288,33 +288,33 @@ public class LookupTest extends TestBase {
         }
 
         // LookupTables creation
-        byteToByteTable = new LookupTableByte(dataByteB, byteOffset);
-        byteToUshortTable = new LookupTableByte(dataByteUS, byteOffset, true);
-        byteToShortTable = new LookupTableByte(dataByteS, byteOffset, false);
-        byteToIntTable = new LookupTableByte(dataByteI, byteOffset);
-        byteToFloatTable = new LookupTableByte(dataByteF, byteOffset);
-        byteToDoubleTable = new LookupTableByte(dataByteD, byteOffset);
+        byteToByteTable = new LookupTable(dataByteB, byteOffset);
+        byteToUshortTable = new LookupTable(dataByteUS, byteOffset, true);
+        byteToShortTable = new LookupTable(dataByteS, byteOffset, false);
+        byteToIntTable = new LookupTable(dataByteI, byteOffset);
+        byteToFloatTable = new LookupTable(dataByteF, byteOffset);
+        byteToDoubleTable = new LookupTable(dataByteD, byteOffset);
 
-        ushortToByteTable = new LookupTableUShort(dataUShortB, ushortOffset);
-        ushortToUshortTable = new LookupTableUShort(dataUShortUS, ushortOffset, true);
-        ushortToShortTable = new LookupTableUShort(dataUShortS, ushortOffset, false);
-        ushortToIntTable = new LookupTableUShort(dataUShortI, ushortOffset);
-        ushortToFloatTable = new LookupTableUShort(dataUShortF, ushortOffset);
-        ushortToDoubleTable = new LookupTableUShort(dataUShortD, ushortOffset);
+        ushortToByteTable = new LookupTable(dataUShortB, ushortOffset);
+        ushortToUshortTable = new LookupTable(dataUShortUS, ushortOffset, true);
+        ushortToShortTable = new LookupTable(dataUShortS, ushortOffset, false);
+        ushortToIntTable = new LookupTable(dataUShortI, ushortOffset);
+        ushortToFloatTable = new LookupTable(dataUShortF, ushortOffset);
+        ushortToDoubleTable = new LookupTable(dataUShortD, ushortOffset);
 
-        shortToByteTable = new LookupTableShort(dataShortB, shortOffset);
-        shortToUshortTable = new LookupTableShort(dataShortUS, shortOffset, true);
-        shortToShortTable = new LookupTableShort(dataShortS, shortOffset, false);
-        shortToIntTable = new LookupTableShort(dataShortI, shortOffset);
-        shortToFloatTable = new LookupTableShort(dataShortF, shortOffset);
-        shortToDoubleTable = new LookupTableShort(dataShortD, shortOffset);
+        shortToByteTable = new LookupTable(dataShortB, shortOffset);
+        shortToUshortTable = new LookupTable(dataShortUS, shortOffset, true);
+        shortToShortTable = new LookupTable(dataShortS, shortOffset, false);
+        shortToIntTable = new LookupTable(dataShortI, shortOffset);
+        shortToFloatTable = new LookupTable(dataShortF, shortOffset);
+        shortToDoubleTable = new LookupTable(dataShortD, shortOffset);
 
-        intToByteTable = new LookupTableInt(dataIntB, intOffset);
-        intToUshortTable = new LookupTableInt(dataIntUS, intOffset, true);
-        intToShortTable = new LookupTableInt(dataIntS, intOffset, false);
-        intToIntTable = new LookupTableInt(dataIntI, intOffset);
-        intToFloatTable = new LookupTableInt(dataIntF, intOffset);
-        intToDoubleTable = new LookupTableInt(dataIntD, intOffset);
+        intToByteTable = new LookupTable(dataIntB, intOffset);
+        intToUshortTable = new LookupTable(dataIntUS, intOffset, true);
+        intToShortTable = new LookupTable(dataIntS, intOffset, false);
+        intToIntTable = new LookupTable(dataIntI, intOffset);
+        intToFloatTable = new LookupTable(dataIntF, intOffset);
+        intToDoubleTable = new LookupTable(dataIntD, intOffset);
         // ROI creation
         Rectangle roiBounds = new Rectangle(0, 0, DEFAULT_WIDTH / 4, DEFAULT_HEIGHT / 4);
         roi = new ROIShape(roiBounds);

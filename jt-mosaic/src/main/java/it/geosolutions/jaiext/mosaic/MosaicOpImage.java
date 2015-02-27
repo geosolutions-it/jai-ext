@@ -19,10 +19,12 @@ package it.geosolutions.jaiext.mosaic;
 
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
@@ -44,6 +46,7 @@ import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.MosaicDescriptor;
 import javax.media.jai.operator.MosaicType;
 
@@ -419,7 +422,8 @@ public class MosaicOpImage extends OpImage {
                 pb.set(padding[3], 3);
                 pb.set(sourceBorderExtender, 4);
                 // Setting of the padded source to the associated bean
-                imageBeans[i].setImage(JAI.create("border", pb));
+                RenderedOp create = JAI.create("border", pb);
+                imageBeans[i].setImage(create);
             } else {
                 imageBeans[i].setImage(img);
             }
@@ -443,7 +447,9 @@ public class MosaicOpImage extends OpImage {
                     pb.set(pads[3], 3);
                     pb.set(zeroBorderExtender, 4);
                     // Setting of the padded alpha to the associated bean
-                    imageBeans[i].setAlphaChannel(JAI.create("border", pb));
+                    //imageBeans[i].setAlphaChannel(JAI.create("border", pb));
+                    RenderedOp create = JAI.create("border", pb);
+                    imageBeans[i].setAlphaChannel(create);
                 } else {
                     imageBeans[i].setAlphaChannel(alpha);
                 }
@@ -490,9 +496,9 @@ public class MosaicOpImage extends OpImage {
 
                 hasNoData[i] = true;
                 imageBeans[i].setSourceNoData(noDataRange);
-                if(noDataRange.getDataType().getDataType()!=dataType){
-                    noDataRange = RangeFactory.convert(noDataRange, dataType);
-                }
+                //if(noDataRange.getDataType().getDataType()!=dataType){
+                    //noDataRange = RangeFactory.convert(noDataRange, dataType);
+                //}
 
                 if (dataType == DataBuffer.TYPE_BYTE) {
                     // selection of the no data range for byte values
@@ -501,11 +507,11 @@ public class MosaicOpImage extends OpImage {
                     // The lookup table is filled with the related no data or valid data for every value
                     for (int b = 0; b < numBands; b++) {
                         for (int z = 0; z < byteLookupTable[i][0].length; z++) {
-                            byte value = (byte) z;
-                            if (noDataByte.contains(value)) {
+                            //byte value = (byte) z;
+                            if (noDataByte.contains(z)) {
                                 byteLookupTable[i][b][z] = destinationNoDataByte[b];
                             } else {
-                                byteLookupTable[i][b][z] = value;
+                                byteLookupTable[i][b][z] = (byte) z;
                             }
                         }
                     }
@@ -798,6 +804,8 @@ public class MosaicOpImage extends OpImage {
                 if (alphaPresentinRaster & alphaRA != null) {
                     alfaDataByte[i] = alphaRA.getByteDataArrays();
                     alfaBandOffsets[i] = alphaRA.getBandOffsets();
+                    alfaPixelStride[i] = alphaRA.getPixelStride();
+                    alfaLineStride[i] = alphaRA.getScanlineStride();
                 }
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
@@ -1121,6 +1129,8 @@ public class MosaicOpImage extends OpImage {
                 if (alphaPresentinRaster & alphaRA != null) {
                     alfaDataUshort[i] = alphaRA.getShortDataArrays();
                     alfaBandOffsets[i] = alphaRA.getBandOffsets();
+                    alfaPixelStride[i] = alphaRA.getPixelStride();
+                    alfaLineStride[i] = alphaRA.getScanlineStride();
                 }
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
@@ -1450,6 +1460,8 @@ public class MosaicOpImage extends OpImage {
                 if (alphaPresentinRaster & alphaRA != null) {
                     alfaDataShort[i] = alphaRA.getShortDataArrays();
                     alfaBandOffsets[i] = alphaRA.getBandOffsets();
+                    alfaPixelStride[i] = alphaRA.getPixelStride();
+                    alfaLineStride[i] = alphaRA.getScanlineStride();
                 }
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
@@ -1777,6 +1789,8 @@ public class MosaicOpImage extends OpImage {
                 if (alphaPresentinRaster & alphaRA != null) {
                     alfaDataInt[i] = alphaRA.getIntDataArrays();
                     alfaBandOffsets[i] = alphaRA.getBandOffsets();
+                    alfaPixelStride[i] = alphaRA.getPixelStride();
+                    alfaLineStride[i] = alphaRA.getScanlineStride();
                 }
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
@@ -2104,6 +2118,8 @@ public class MosaicOpImage extends OpImage {
                 if (alphaPresentinRaster & alphaRA != null) {
                     alfaDataFloat[i] = alphaRA.getFloatDataArrays();
                     alfaBandOffsets[i] = alphaRA.getBandOffsets();
+                    alfaPixelStride[i] = alphaRA.getPixelStride();
+                    alfaLineStride[i] = alphaRA.getScanlineStride();
                 }
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
@@ -2438,6 +2454,8 @@ public class MosaicOpImage extends OpImage {
                 if (alphaPresentinRaster & alphaRA != null) {
                     alfaDataDouble[i] = alphaRA.getDoubleDataArrays();
                     alfaBandOffsets[i] = alphaRA.getBandOffsets();
+                    alfaPixelStride[i] = alphaRA.getPixelStride();
+                    alfaLineStride[i] = alphaRA.getScanlineStride();
                 }
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used

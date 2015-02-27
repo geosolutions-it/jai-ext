@@ -7,4 +7,4 @@ descriptor  it.geosolutions.jaiext.rlookup.RangeLookupDescriptor
 #
 # "rendered" factory objects
 #
-rendered  it.geosolutions.jaiext.rlookup.RangeLookupRIF  it.geosolutions.jaiext  RangeLookup  RangeLookup
+rendered  it.geosolutions.jaiext.rlookup.RangeLookupRIF  it.geosolutions.jaiext  RLookup  RLookup

@@ -28,19 +28,8 @@ public class LookupTableFactory {
      * @param data The single-banded byte data.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(byte[] data, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(byte[] data) {
+        return new LookupTable(data);
     }
 
     /**
@@ -50,19 +39,8 @@ public class LookupTableFactory {
      * @param offset The offset.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(byte[] data, int offset, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offset);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offset);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offset);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offset);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(byte[] data, int offset) {
+        return new LookupTable(data, offset);
     }
 
     /**
@@ -71,19 +49,8 @@ public class LookupTableFactory {
      * @param data The multi-banded byte data in [band][index] format.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(byte[][] data, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(byte[][] data) {
+        return new LookupTable(data);
     }
 
     /**
@@ -93,19 +60,8 @@ public class LookupTableFactory {
      * @param offset The common offset for all bands.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(byte[][] data, int offset, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offset);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offset);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offset);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offset);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(byte[][] data, int offset) {
+        return new LookupTable(data, offset);
     }
 
     /**
@@ -115,19 +71,8 @@ public class LookupTableFactory {
      * @param offsets The offsets for the bands.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(byte[][] data, int[] offsets, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offsets);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offsets);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offsets);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offsets);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(byte[][] data, int[] offsets) {
+        return new LookupTable(data, offsets);
     }
 
     /**
@@ -137,19 +82,8 @@ public class LookupTableFactory {
      * @param isUShort True if data type is DataBuffer.TYPE_USHORT; false if data type is DataBuffer.TYPE_SHORT.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(short[] data, boolean isUShort, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, isUShort);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, isUShort);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, isUShort);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, isUShort);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(short[] data, boolean isUShort) {
+        return new LookupTable(data, isUShort);
     }
 
     /**
@@ -160,19 +94,8 @@ public class LookupTableFactory {
      * @param isUShort True if data type is DataBuffer.TYPE_USHORT; false if data type is DataBuffer.TYPE_SHORT.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(short[] data, int offset, boolean isUShort, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offset, isUShort);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offset, isUShort);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offset, isUShort);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offset, isUShort);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(short[] data, int offset, boolean isUShort) {
+        return new LookupTable(data, offset, isUShort);
     }
 
     /**
@@ -182,19 +105,8 @@ public class LookupTableFactory {
      * @param isUShort True if data type is DataBuffer.TYPE_USHORT; false if data type is DataBuffer.TYPE_SHORT.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(short[][] data, boolean isUShort, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, isUShort);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, isUShort);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, isUShort);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, isUShort);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(short[][] data, boolean isUShort) {
+        return new LookupTable(data, isUShort);
     }
 
     /**
@@ -205,19 +117,8 @@ public class LookupTableFactory {
      * @param isUShort True if data type is DataBuffer.TYPE_USHORT; false if data type is DataBuffer.TYPE_SHORT.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(short[][] data, int offset, boolean isUShort, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offset, isUShort);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offset, isUShort);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offset, isUShort);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offset, isUShort);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(short[][] data, int offset, boolean isUShort) {
+        return new LookupTable(data, offset, isUShort);
     }
 
     /**
@@ -228,19 +129,8 @@ public class LookupTableFactory {
      * @param isUShort True if data type is DataBuffer.TYPE_USHORT; false if data type is DataBuffer.TYPE_SHORT.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(short[][] data, int[] offsets, boolean isUShort, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offsets, isUShort);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offsets, isUShort);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offsets, isUShort);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offsets, isUShort);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(short[][] data, int[] offsets, boolean isUShort) {
+        return new LookupTable(data, offsets, isUShort);
     }
 
     /**
@@ -249,19 +139,8 @@ public class LookupTableFactory {
      * @param data The single-banded int data.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(int[] data, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(int[] data) {
+        return new LookupTable(data);
     }
 
     /**
@@ -271,19 +150,8 @@ public class LookupTableFactory {
      * @param offset The offset.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(int[] data, int offset, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offset);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offset);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offset);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offset);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(int[] data, int offset) {
+        return new LookupTable(data, offset);
     }
 
     /**
@@ -292,19 +160,8 @@ public class LookupTableFactory {
      * @param data The multi-banded int data in [band][index] format.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(int[][] data, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(int[][] data) {
+        return new LookupTable(data);
     }
 
     /**
@@ -314,19 +171,8 @@ public class LookupTableFactory {
      * @param offset The common offset for all bands.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(int[][] data, int offset, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offset);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offset);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offset);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offset);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(int[][] data, int offset) {
+        return new LookupTable(data, offset);
     }
 
     /**
@@ -336,19 +182,8 @@ public class LookupTableFactory {
      * @param offsets The offsets for the bands.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(int[][] data, int[] offsets, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offsets);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offsets);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offsets);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offsets);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(int[][] data, int[] offsets) {
+        return new LookupTable(data, offsets);
     }
 
     /**
@@ -357,19 +192,8 @@ public class LookupTableFactory {
      * @param data The single-banded float data.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(float[] data, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(float[] data) {
+        return new LookupTable(data);
     }
 
     /**
@@ -379,19 +203,8 @@ public class LookupTableFactory {
      * @param offset The offset.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(float[] data, int offset, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offset);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offset);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offset);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offset);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(float[] data, int offset) {
+        return new LookupTable(data, offset);
     }
 
     /**
@@ -400,19 +213,8 @@ public class LookupTableFactory {
      * @param data The multi-banded float data in [band][index] format.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(float[][] data, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(float[][] data) {
+        return new LookupTable(data);
     }
 
     /**
@@ -422,19 +224,8 @@ public class LookupTableFactory {
      * @param offset The common offset for all bands.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(float[][] data, int offset, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offset);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offset);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offset);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offset);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(float[][] data, int offset) {
+        return new LookupTable(data, offset);
     }
 
     /**
@@ -444,19 +235,8 @@ public class LookupTableFactory {
      * @param offsets The offsets for the bands.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(float[][] data, int[] offsets, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offsets);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offsets);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offsets);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offsets);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(float[][] data, int[] offsets) {
+        return new LookupTable(data, offsets);
     }
 
     /**
@@ -465,19 +245,8 @@ public class LookupTableFactory {
      * @param data The single-banded double data.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(double[] data, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(double[] data) {
+        return new LookupTable(data);
     }
 
     /**
@@ -487,19 +256,8 @@ public class LookupTableFactory {
      * @param offset The offset.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(double[] data, int offset, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offset);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offset);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offset);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offset);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(double[] data, int offset) {
+        return new LookupTable(data, offset);
     }
 
     /**
@@ -508,19 +266,8 @@ public class LookupTableFactory {
      * @param data The multi-banded double data in [band][index] format.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(double[][] data, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(double[][] data) {
+        return new LookupTable(data);
     }
 
     /**
@@ -530,19 +277,8 @@ public class LookupTableFactory {
      * @param offset The common offset for all bands.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(double[][] data, int offset, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offset);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offset);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offset);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offset);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(double[][] data, int offset) {
+        return new LookupTable(data, offset);
     }
 
     /**
@@ -552,19 +288,8 @@ public class LookupTableFactory {
      * @param offsets The offsets for the bands.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(double[][] data, int[] offsets, int dataType) {
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new LookupTableByte(data, offsets);
-        case DataBuffer.TYPE_USHORT:
-            return new LookupTableUShort(data, offsets);
-        case DataBuffer.TYPE_SHORT:
-            return new LookupTableShort(data, offsets);
-        case DataBuffer.TYPE_INT:
-            return new LookupTableInt(data, offsets);
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
+    public static LookupTable create(double[][] data, int[] offsets) {
+        return new LookupTable(data, offsets);
     }
     
     /**
@@ -573,80 +298,24 @@ public class LookupTableFactory {
      * @param table The multi-banded lookupTable.
      * @throws IllegalArgumentException if data is null.
      */
-    public static LookupTable create(LookupTableJAI table, int dataType) {
+    public static LookupTable create(LookupTableJAI table) {
         int tableDataType = table.getDataType();
         int[] offsets = table.getOffsets();
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
             switch (tableDataType) {
             case DataBuffer.TYPE_BYTE:
-                return new LookupTableByte(table.getByteData(), offsets);
+                return new LookupTable(table.getByteData(), offsets);
             case DataBuffer.TYPE_USHORT:
-                return new LookupTableByte(table.getShortData(), offsets, true);
+                return new LookupTable(table.getShortData(), offsets, true);
             case DataBuffer.TYPE_SHORT:
-                return new LookupTableByte(table.getShortData(), offsets, false);
+                return new LookupTable(table.getShortData(), offsets, false);
             case DataBuffer.TYPE_INT:
-                return new LookupTableByte(table.getByteData(), offsets);
+                return new LookupTable(table.getByteData(), offsets);
             case DataBuffer.TYPE_FLOAT:
-                return new LookupTableByte(table.getFloatData(), offsets);
+                return new LookupTable(table.getFloatData(), offsets);
             case DataBuffer.TYPE_DOUBLE:
-                return new LookupTableByte(table.getDoubleData(), offsets);
+                return new LookupTable(table.getDoubleData(), offsets);
             default:
                 throw new IllegalArgumentException("Wrong image dataType");
             }
-        case DataBuffer.TYPE_USHORT:
-            switch (tableDataType) {
-            case DataBuffer.TYPE_BYTE:
-                return new LookupTableUShort(table.getByteData(), offsets);
-            case DataBuffer.TYPE_USHORT:
-                return new LookupTableUShort(table.getShortData(), offsets, true);
-            case DataBuffer.TYPE_SHORT:
-                return new LookupTableUShort(table.getShortData(), offsets, false);
-            case DataBuffer.TYPE_INT:
-                return new LookupTableUShort(table.getByteData(), offsets);
-            case DataBuffer.TYPE_FLOAT:
-                return new LookupTableUShort(table.getFloatData(), offsets);
-            case DataBuffer.TYPE_DOUBLE:
-                return new LookupTableUShort(table.getDoubleData(), offsets);
-            default:
-                throw new IllegalArgumentException("Wrong image dataType");
-            }
-        case DataBuffer.TYPE_SHORT:
-            switch (tableDataType) {
-            case DataBuffer.TYPE_BYTE:
-                return new LookupTableShort(table.getByteData(), offsets);
-            case DataBuffer.TYPE_USHORT:
-                return new LookupTableShort(table.getShortData(), offsets, true);
-            case DataBuffer.TYPE_SHORT:
-                return new LookupTableShort(table.getShortData(), offsets, false);
-            case DataBuffer.TYPE_INT:
-                return new LookupTableShort(table.getByteData(), offsets);
-            case DataBuffer.TYPE_FLOAT:
-                return new LookupTableShort(table.getFloatData(), offsets);
-            case DataBuffer.TYPE_DOUBLE:
-                return new LookupTableShort(table.getDoubleData(), offsets);
-            default:
-                throw new IllegalArgumentException("Wrong image dataType");
-            }
-        case DataBuffer.TYPE_INT:
-            switch (tableDataType) {
-            case DataBuffer.TYPE_BYTE:
-                return new LookupTableInt(table.getByteData(), offsets);
-            case DataBuffer.TYPE_USHORT:
-                return new LookupTableInt(table.getShortData(), offsets, true);
-            case DataBuffer.TYPE_SHORT:
-                return new LookupTableInt(table.getShortData(), offsets, false);
-            case DataBuffer.TYPE_INT:
-                return new LookupTableInt(table.getByteData(), offsets);
-            case DataBuffer.TYPE_FLOAT:
-                return new LookupTableInt(table.getFloatData(), offsets);
-            case DataBuffer.TYPE_DOUBLE:
-                return new LookupTableInt(table.getDoubleData(), offsets);
-            default:
-                throw new IllegalArgumentException("Wrong image dataType");
-            }
-        default:
-            throw new IllegalArgumentException("Wrong image dataType");
-        }
     }
 }

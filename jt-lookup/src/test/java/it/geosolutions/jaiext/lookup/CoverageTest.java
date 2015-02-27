@@ -35,43 +35,43 @@ public class CoverageTest extends TestBase{
     
     
     /** LookupTable from byte to byte */
-    private static LookupTableByte bTobTableNoOffset;
-    private static LookupTableByte bTobTable;
-    private static LookupTableByte bTobTableOffset;
-    private static LookupTableByte bTobTableOffsetArray;
+    private static LookupTable bTobTableNoOffset;
+    private static LookupTable bTobTable;
+    private static LookupTable bTobTableOffset;
+    private static LookupTable bTobTableOffsetArray;
     
     /** LookupTable from byte to ushort */
-    private static LookupTableByte bTousTableNoOffset;
-    private static LookupTableByte bTousTable;
-    private static LookupTableByte bTousTableOffset;
-    private static LookupTableByte bTousTableOffsetArray;
+    private static LookupTable bTousTableNoOffset;
+    private static LookupTable bTousTable;
+    private static LookupTable bTousTableOffset;
+    private static LookupTable bTousTableOffsetArray;
     
     
     /** LookupTable from byte to short */
-    private static LookupTableByte bTosTableNoOffset;
-    private static LookupTableByte bTosTable;
-    private static LookupTableByte bTosTableOffset;
-    private static LookupTableByte bTosTableOffsetArray;
+    private static LookupTable bTosTableNoOffset;
+    private static LookupTable bTosTable;
+    private static LookupTable bTosTableOffset;
+    private static LookupTable bTosTableOffsetArray;
     
     
     /** LookupTable from byte to int */
-    private static LookupTableByte bToiTableNoOffset;
-    private static LookupTableByte bToiTable;
-    private static LookupTableByte bToiTableOffset;
-    private static LookupTableByte bToiTableOffsetArray;
+    private static LookupTable bToiTableNoOffset;
+    private static LookupTable bToiTable;
+    private static LookupTable bToiTableOffset;
+    private static LookupTable bToiTableOffsetArray;
     
     
     /** LookupTable from byte to float */
-    private static LookupTableByte bTofTableNoOffset;
-    private static LookupTableByte bTofTable;
-    private static LookupTableByte bTofTableOffset;
-    private static LookupTableByte bTofTableOffsetArray;
+    private static LookupTable bTofTableNoOffset;
+    private static LookupTable bTofTable;
+    private static LookupTable bTofTableOffset;
+    private static LookupTable bTofTableOffsetArray;
     
     /** LookupTable from byte to double */
-    private static LookupTableByte bTodTableNoOffset;
-    private static LookupTableByte bTodTable;
-    private static LookupTableByte bTodTableOffset;
-    private static LookupTableByte bTodTableOffsetArray;
+    private static LookupTable bTodTableNoOffset;
+    private static LookupTable bTodTable;
+    private static LookupTable bTodTableOffset;
+    private static LookupTable bTodTableOffsetArray;
         
     private static ROIShape roi;
     private static RenderedImage testImageByte;
@@ -130,13 +130,13 @@ public class CoverageTest extends TestBase{
     public void testNullData(byte[] data1D, byte[][] data2D, int offset, int[] offsetArray) {
         
         if(data1D==null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data1D);
+            LookupTable table = new LookupTable(data1D);
         }else if(data1D!=null && data2D == null && offset!=0){
-            LookupTableByte table = new LookupTableByte(data2D,offset);
+            LookupTable table = new LookupTable(data2D,offset);
         }else if(data1D!=null && data2D == null && offsetArray !=null){
-            LookupTableByte table = new LookupTableByte(data2D,offsetArray);
+            LookupTable table = new LookupTable(data2D,offsetArray);
         }else if(data1D!=null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data2D);
+            LookupTable table = new LookupTable(data2D);
         }
    }
     
@@ -167,13 +167,13 @@ public class CoverageTest extends TestBase{
     public void testNullDataUShort(short[] data1D, short[][] data2D, int offset, int[] offsetArray) {
         
         if(data1D==null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data1D,true);
+            LookupTable table = new LookupTable(data1D,true);
         }else if(data1D!=null && data2D == null && offset!=0){
-            LookupTableByte table = new LookupTableByte(data2D,offset,true);
+            LookupTable table = new LookupTable(data2D,offset,true);
         }else if(data1D!=null && data2D == null && offsetArray !=null){
-            LookupTableByte table = new LookupTableByte(data2D,offsetArray,true);
+            LookupTable table = new LookupTable(data2D,offsetArray,true);
         }else if(data1D!=null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data2D,true);
+            LookupTable table = new LookupTable(data2D,true);
         }
    }
     
@@ -203,13 +203,13 @@ public class CoverageTest extends TestBase{
     public void testNullDataShort(short[] data1D, short[][] data2D, int offset, int[] offsetArray) {
         
         if(data1D==null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data1D,false);
+            LookupTable table = new LookupTable(data1D,false);
         }else if(data1D!=null && data2D == null && offset!=0){
-            LookupTableByte table = new LookupTableByte(data2D,offset,false);
+            LookupTable table = new LookupTable(data2D,offset,false);
         }else if(data1D!=null && data2D == null && offsetArray !=null){
-            LookupTableByte table = new LookupTableByte(data2D,offsetArray,false);
+            LookupTable table = new LookupTable(data2D,offsetArray,false);
         }else if(data1D!=null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data2D,false);
+            LookupTable table = new LookupTable(data2D,false);
         }
    }
     
@@ -239,13 +239,13 @@ public class CoverageTest extends TestBase{
     public void testNullDataInt(int[] data1D, int[][] data2D, int offset, int[] offsetArray) {
         
         if(data1D==null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data1D);
+            LookupTable table = new LookupTable(data1D);
         }else if(data1D!=null && data2D == null && offset!=0){
-            LookupTableByte table = new LookupTableByte(data2D,offset);
+            LookupTable table = new LookupTable(data2D,offset);
         }else if(data1D!=null && data2D == null && offsetArray !=null){
-            LookupTableByte table = new LookupTableByte(data2D,offsetArray);
+            LookupTable table = new LookupTable(data2D,offsetArray);
         }else if(data1D!=null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data2D);
+            LookupTable table = new LookupTable(data2D);
         }
    }
     
@@ -277,13 +277,13 @@ public class CoverageTest extends TestBase{
     public void testNullDataFloat(float[] data1D, float[][] data2D, int offset, int[] offsetArray) {
         
         if(data1D==null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data1D);
+            LookupTable table = new LookupTable(data1D);
         }else if(data1D!=null && data2D == null && offset!=0){
-            LookupTableByte table = new LookupTableByte(data2D,offset);
+            LookupTable table = new LookupTable(data2D,offset);
         }else if(data1D!=null && data2D == null && offsetArray !=null){
-            LookupTableByte table = new LookupTableByte(data2D,offsetArray);
+            LookupTable table = new LookupTable(data2D,offsetArray);
         }else if(data1D!=null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data2D);
+            LookupTable table = new LookupTable(data2D);
         }
    }
     
@@ -313,13 +313,13 @@ public class CoverageTest extends TestBase{
     public void testNullDataDouble(double[] data1D, double[][] data2D, int offset, int[] offsetArray) {
         
         if(data1D==null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data1D);
+            LookupTable table = new LookupTable(data1D);
         }else if(data1D!=null && data2D == null && offset!=0){
-            LookupTableByte table = new LookupTableByte(data2D,offset);
+            LookupTable table = new LookupTable(data2D,offset);
         }else if(data1D!=null && data2D == null && offsetArray !=null){
-            LookupTableByte table = new LookupTableByte(data2D,offsetArray);
+            LookupTable table = new LookupTable(data2D,offsetArray);
         }else if(data1D!=null && data2D == null){
-            LookupTableByte table = new LookupTableByte(data2D);
+            LookupTable table = new LookupTable(data2D);
         }
    }
     
@@ -387,36 +387,36 @@ public class CoverageTest extends TestBase{
 
         // LookupTables creation
         // No Offset
-        bTobTableNoOffset = new LookupTableByte(dataByteB);
-        bTousTableNoOffset = new LookupTableByte(dataByteUS,true);
-        bTosTableNoOffset = new LookupTableByte(dataByteS,false);
-        bToiTableNoOffset = new LookupTableByte(dataByteI);
-        bTofTableNoOffset = new LookupTableByte(dataByteF);
-        bTodTableNoOffset = new LookupTableByte(dataByteD);
+        bTobTableNoOffset = new LookupTable(dataByteB);
+        bTousTableNoOffset = new LookupTable(dataByteUS,true);
+        bTosTableNoOffset = new LookupTable(dataByteS,false);
+        bToiTableNoOffset = new LookupTable(dataByteI);
+        bTofTableNoOffset = new LookupTable(dataByteF);
+        bTodTableNoOffset = new LookupTable(dataByteD);
         
         // No Offset with a 2-dimension array 
-        bTobTable = new LookupTableByte(dataByteB3Bands);
-        bTousTable = new LookupTableByte(dataByteUS3Bands,true);
-        bTosTable = new LookupTableByte(dataByteS3Bands,false);
-        bToiTable = new LookupTableByte(dataByteI3Bands);
-        bTofTable = new LookupTableByte(dataByteF3Bands);
-        bTodTable = new LookupTableByte(dataByteD3Bands);
+        bTobTable = new LookupTable(dataByteB3Bands);
+        bTousTable = new LookupTable(dataByteUS3Bands,true);
+        bTosTable = new LookupTable(dataByteS3Bands,false);
+        bToiTable = new LookupTable(dataByteI3Bands);
+        bTofTable = new LookupTable(dataByteF3Bands);
+        bTodTable = new LookupTable(dataByteD3Bands);
          
         // With scalar Offset with a 2-dimension array 
-        bTobTableOffset = new LookupTableByte(dataByteB3Bands,byteOffset);
-        bTousTableOffset = new LookupTableByte(dataByteUS3Bands,byteOffset,true);
-        bTosTableOffset = new LookupTableByte(dataByteS3Bands,byteOffset,false);
-        bToiTableOffset = new LookupTableByte(dataByteI3Bands,byteOffset);
-        bTofTableOffset = new LookupTableByte(dataByteF3Bands,byteOffset);
-        bTodTableOffset = new LookupTableByte(dataByteD3Bands,byteOffset);
+        bTobTableOffset = new LookupTable(dataByteB3Bands,byteOffset);
+        bTousTableOffset = new LookupTable(dataByteUS3Bands,byteOffset,true);
+        bTosTableOffset = new LookupTable(dataByteS3Bands,byteOffset,false);
+        bToiTableOffset = new LookupTable(dataByteI3Bands,byteOffset);
+        bTofTableOffset = new LookupTable(dataByteF3Bands,byteOffset);
+        bTodTableOffset = new LookupTable(dataByteD3Bands,byteOffset);
         
         // With scalar Offset with a 2-dimension array 
-        bTobTableOffsetArray = new LookupTableByte(dataByteB3Bands,offsetArray);
-        bTousTableOffsetArray = new LookupTableByte(dataByteUS3Bands,offsetArray,true);
-        bTosTableOffsetArray = new LookupTableByte(dataByteS3Bands,offsetArray,false);
-        bToiTableOffsetArray = new LookupTableByte(dataByteI3Bands,offsetArray);
-        bTofTableOffsetArray = new LookupTableByte(dataByteF3Bands,offsetArray);
-        bTodTableOffsetArray = new LookupTableByte(dataByteD3Bands,offsetArray);       
+        bTobTableOffsetArray = new LookupTable(dataByteB3Bands,offsetArray);
+        bTousTableOffsetArray = new LookupTable(dataByteUS3Bands,offsetArray,true);
+        bTosTableOffsetArray = new LookupTable(dataByteS3Bands,offsetArray,false);
+        bToiTableOffsetArray = new LookupTable(dataByteI3Bands,offsetArray);
+        bTofTableOffsetArray = new LookupTable(dataByteF3Bands,offsetArray);
+        bTodTableOffsetArray = new LookupTable(dataByteD3Bands,offsetArray);       
     }
     
 }

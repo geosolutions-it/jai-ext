@@ -126,8 +126,8 @@ public class RangeLookupDescriptor extends OperationDescriptorImpl {
     /** Constructor. */
     public RangeLookupDescriptor() {
         super(new String[][] {
-                { "GlobalName", "RangeLookup" },
-                { "LocalName", "RangeLookup" },
+                { "GlobalName", "RLookup" },
+                { "LocalName", "RLookup" },
                 { "Vendor", "it.geosolutions.jaiext" },
                 { "Description", "Maps source image value ranges to destination image values" },
                 { "DocURL", "" },
@@ -161,7 +161,7 @@ public class RangeLookupDescriptor extends OperationDescriptorImpl {
     public static RenderedOp create(RenderedImage source, RangeLookupTable table,
             Number defaultValue, ROI roi, RenderingHints hints) {
         // Definition of the ParameterBlock
-        ParameterBlockJAI pb = new ParameterBlockJAI("RangeLookup");
+        ParameterBlockJAI pb = new ParameterBlockJAI("RLookup");
         // Setting the source
         pb.setSource(source, 0);
         // Setting the parameters
@@ -169,7 +169,7 @@ public class RangeLookupDescriptor extends OperationDescriptorImpl {
         pb.setParameter("default", defaultValue);
         pb.setParameter("roi", roi);
         // Calling the operation
-        return JAI.create("RangeLookup", pb, hints);
+        return JAI.create("RLookup", pb, hints);
     }
 
 }

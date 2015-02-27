@@ -181,39 +181,22 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
         interp_top = interp.getTopPadding();
 
         // Selection of the destination No Data
-        switch (srcDataType) {
-        case DataBuffer.TYPE_BYTE:
-            destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
+        destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
+        destinationNoDataUShort = (short) (((short) destinationNoDataDouble) & 0xffff);
+        destinationNoDataShort = (short) destinationNoDataDouble;
+        destinationNoDataInt = (int) destinationNoDataDouble;
+        destinationNoDataFloat = (float) destinationNoDataDouble;
 
-            if (hasNoData) {
+        if (hasNoData) {
 
-                for (int i = 0; i < byteLookupTable.length; i++) {
-                    byte value = (byte) i;
-                    if (noData.contains(value)) {
-                        byteLookupTable[i] = destinationNoDataByte;
-                    } else {
-                        byteLookupTable[i] = value;
-                    }
+            for (int i = 0; i < byteLookupTable.length; i++) {
+                byte value = (byte) i;
+                if (noData.contains(value)) {
+                    byteLookupTable[i] = destinationNoDataByte;
+                } else {
+                    byteLookupTable[i] = value;
                 }
             }
-
-            break;
-        case DataBuffer.TYPE_USHORT:
-            destinationNoDataUShort = (short) (((short) destinationNoDataDouble) & 0xffff);
-            break;
-        case DataBuffer.TYPE_SHORT:
-            destinationNoDataShort = (short) destinationNoDataDouble;
-            break;
-        case DataBuffer.TYPE_INT:
-            destinationNoDataInt = (int) destinationNoDataDouble;
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            destinationNoDataFloat = (float) destinationNoDataDouble;
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data Type");
         }
 
         // Definition of the possible cases that can be found
@@ -295,7 +278,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
         // This methods differs only for the presence of the roi or if the image is a binary one
 
-        switch (dataType) {
+        switch (dstAccessor.getDataType()) {
         case DataBuffer.TYPE_BYTE:
             byteLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracValues, yfracValues,
                     roiAccessor, yposRoi, roiScanlineStride);
