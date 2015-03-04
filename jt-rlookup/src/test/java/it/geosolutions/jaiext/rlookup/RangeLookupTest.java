@@ -454,12 +454,12 @@ public class RangeLookupTest extends TestBase {
 
 	private RenderedOp doOp(RenderedImage srcImg, RangeLookupTable table,
 			ROI roi, Double defaultValue) {
-		ParameterBlockJAI pb = new ParameterBlockJAI("RangeLookup");
+		ParameterBlockJAI pb = new ParameterBlockJAI("RLookup");
 		pb.setSource("source0", srcImg);
 		pb.setParameter("table", table);
 		pb.setParameter("roi", roi);
 		pb.setParameter("default", defaultValue);
-		return JAI.create("RangeLookup", pb);
+		return JAI.create("RLookup", pb);
 	}
 
 	/**
