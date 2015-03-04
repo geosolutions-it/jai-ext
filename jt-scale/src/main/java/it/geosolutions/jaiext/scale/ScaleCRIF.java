@@ -127,9 +127,9 @@ public class ScaleCRIF extends CRIFImpl {
             // check if we can use the native operation instead
             // Rectangle sourceBounds = new Rectangle(source.getMinX(),
             // source.getMinY(), source.getWidth(), source.getHeight());
-            if (roi == null
+            if ((roi == null 
                     || (ImageUtilities.isMediaLibAvailable() && (roi.getBounds().isEmpty() || roi
-                            .contains(sourceBounds)))) {
+                            .contains(sourceBounds)))) && (nodata == null)) {
                 RenderedImage accelerated = new MlibScaleRIF().create(paramBlock, renderHints);
                 if (accelerated != null) {
                     return accelerated;

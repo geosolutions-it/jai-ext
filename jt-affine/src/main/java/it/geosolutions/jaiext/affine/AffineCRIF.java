@@ -92,6 +92,9 @@ public class AffineCRIF extends CRIFImpl {
         double tr[];
         tr = new double[6];
         transform.getMatrix(tr);
+        
+        // Get the Nodata Range
+        Range nodata = (Range) paramBlock.getObjectParameter(6);
 
         // Get the boolean useROIAccessor (by default set to false)
         boolean useROIAccessor = false;
@@ -112,7 +115,7 @@ public class AffineCRIF extends CRIFImpl {
             // check if we can use the native operation instead
             Rectangle sourceBounds = new Rectangle(source.getMinX(), source.getMinY(),
                     source.getWidth(), source.getHeight());
-            if (roi == null || (ImageUtilities.isMediaLibAvailable() && roi.contains(sourceBounds))) {
+            if ((roi == null || (ImageUtilities.isMediaLibAvailable() && roi.contains(sourceBounds))) && (nodata == null)) {
                 RenderedImage accelerated = new MlibAffineRIF().create(paramBlock, renderHints);
                 if (accelerated != null) {
                     return accelerated;
@@ -127,9 +130,6 @@ public class AffineCRIF extends CRIFImpl {
         // Get the image bounds
         Rectangle sourceBounds = new Rectangle(source.getMinX(), source.getMinY(),
                 source.getWidth(), source.getHeight());
-
-        // Get the Nodata Range
-        Range nodata = (Range) paramBlock.getObjectParameter(6);
 
         // For remember
         // tr[0] = scale on the X axis
