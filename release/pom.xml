@@ -16,7 +16,7 @@
   <dependencies>
 	<dependency>
 		<groupId>it.geosolutions.jaiext.concurrent-tile-cache</groupId>
-		<artifactId>concurrent-tile-cache</artifactId>
+		<artifactId>jt-concurrent-tile-cache</artifactId>
 		<version>${project.version}</version>
     </dependency>
 	<dependency>
@@ -111,7 +111,7 @@
     </dependency>
 	<dependency>
 		<groupId>it.geosolutions.jaiext.squareroot</groupId>
-		<artifactId>square-root</artifactId>
+		<artifactId>jt-square-root</artifactId>
 		<version>${project.version}</version>
     </dependency>
   </dependencies>
