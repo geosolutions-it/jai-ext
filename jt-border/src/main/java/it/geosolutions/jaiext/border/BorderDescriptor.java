@@ -65,11 +65,11 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>GlobalName</td>
- * <td>BorderOp</td>
+ * <td>Border</td>
  * </tr>
  * <tr>
  * <td>LocalName</td>
- * <td>BorderOp</td>
+ * <td>Border</td>
  * </tr>
  * <tr>
  * <td>Vendor</td>
@@ -164,8 +164,8 @@ public class BorderDescriptor extends OperationDescriptorImpl {
     /**
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
-    private static final String[][] resources = { { "GlobalName", "BorderOp" },
-            { "LocalName", "BorderOp" }, { "Vendor", "it.geosolutions.jaiext" },
+    private static final String[][] resources = { { "GlobalName", "Border" },
+            { "LocalName", "Border" }, { "Vendor", "it.geosolutions.jaiext" },
             { "Description", "Operation which adds borders to the input image" },
             { "DocURL", "Not Defined" }, { "Version", "1.0" },
             { "arg0Desc", "Image's left padding" }, { "arg1Desc", "Image's right padding" },
@@ -340,7 +340,7 @@ public class BorderDescriptor extends OperationDescriptorImpl {
     public static RenderedOp create(RenderedImage source0, int leftPad, int rightPad, int topPad,
             int bottomPad, BorderExtender type, Range noData, double destinationNoData,
             RenderingHints hints) {
-        ParameterBlockJAI pb = new ParameterBlockJAI("BorderOp", RenderedRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("Border", RenderedRegistryMode.MODE_NAME);
         // Setting of the source
         pb.setSource("source0", source0);
         // Setting of the parameters
@@ -352,6 +352,6 @@ public class BorderDescriptor extends OperationDescriptorImpl {
         pb.setParameter("noData", noData);
         pb.setParameter("destNoData", destinationNoData);
 
-        return JAI.create("BorderOp", pb, hints);
+        return JAI.create("Border", pb, hints);
     }
 }

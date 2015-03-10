@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.range;
 
+import it.geosolutions.jaiext.utilities.ImageUtilities;
+
 
 /**
  * This class is a subclass of the {@link Range} class handling double data.
@@ -31,12 +33,6 @@ public class RangeDouble extends Range {
     
     /** If the Range is degenerated and it is a NaN value, then this value is taken as a Long */
     private final long intValue;
-
-    /** Boolean indicating if the minimum bound is included */
-    private final boolean minIncluded;
-
-    /** Boolean indicating if the maximum bound is included */
-    private final boolean maxIncluded;
     
     /** Boolean indicating if the maximum bound is included */
     private final boolean isPoint;
@@ -48,7 +44,8 @@ public class RangeDouble extends Range {
     private final boolean nanIncluded;
 
     RangeDouble(double minValue, boolean minIncluded, double maxValue, boolean maxIncluded,boolean nanIncluded) {        // If one of the 2 bound values is NaN an exception is thrown
-        if (Double.isNaN(minValue) && !Double.isNaN(maxValue) || !Double.isNaN(minValue) && Double.isNaN(maxValue)) {
+        super(minIncluded, maxIncluded);
+    	if (Double.isNaN(minValue) && !Double.isNaN(maxValue) || !Double.isNaN(minValue) && Double.isNaN(maxValue)) {
             throw new UnsupportedOperationException(
                     "NaN values can only be set inside a single-point Range");
         }else if (minValue < maxValue) {
@@ -56,8 +53,6 @@ public class RangeDouble extends Range {
             this.maxValue = maxValue;
             this.isPoint = false;
             this.isNaN = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
             this.intValue=0;
             this.nanIncluded=nanIncluded;
         } else if (minValue > maxValue) {
@@ -65,8 +60,6 @@ public class RangeDouble extends Range {
             this.maxValue = minValue;
             this.isPoint = false;
             this.isNaN = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
             this.intValue=0;
             this.nanIncluded=nanIncluded;
         } else {
@@ -86,8 +79,8 @@ public class RangeDouble extends Range {
                         "Cannot create a single-point range without minimum and maximum "
                                 + "bounds included");
             } else {
-                this.minIncluded = true;
-                this.maxIncluded = true;
+                setMinIncluded(true);
+                setMaxIncluded(true);
             }
         }}
 
@@ -104,13 +97,13 @@ public class RangeDouble extends Range {
             final boolean lower;
             final boolean upper;
 
-            if (minIncluded) {
+            if (isMinIncluded()) {
                 lower = value < minValue;
             } else {
                 lower = value <= minValue;
             }
 
-            if (maxIncluded) {
+            if (isMaxIncluded()) {
                 upper = value > maxValue;
             } else {
                 upper = value >= maxValue;
@@ -121,13 +114,13 @@ public class RangeDouble extends Range {
             final boolean notLower;
             final boolean notUpper;
 
-            if (minIncluded) {
+            if (isMinIncluded()) {
                 notLower = value >= minValue;
             } else {
                 notLower = value > minValue;
             }
 
-            if (maxIncluded) {
+            if (isMaxIncluded()) {
                 notUpper = value <= maxValue;
             } else {
                 notUpper = value < maxValue;
@@ -157,4 +150,61 @@ public class RangeDouble extends Range {
         return minValue;
     }
     
+    public Number getMax(boolean isMaxIncluded) {
+        double value = maxValue;
+        if (isMaxIncluded != isMaxIncluded()) {
+            value = ImageUtilities.rool(getDataType().getClassValue(), value, isMaxIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Number getMin(boolean isMinIncluded) {
+        double value = minValue;
+        if (isMinIncluded != isMinIncluded()) {
+            value = ImageUtilities.rool(getDataType().getClassValue(), value, isMinIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public boolean isNanIncluded() {
+        return nanIncluded;
+    }
+    
+    public boolean isNaN(){
+        return isNaN;
+    }
+    
+    public Range union(Range other){
+        if(this.contains(other)){
+            return this;
+        } else if(other.contains(this)){
+            return other;
+        }
+        
+        double min2 = other.getMin().doubleValue();
+        double max2 = other.getMax().doubleValue();
+        
+        double finalMin = minValue;
+        double finalMax = maxValue;
+        
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+        
+        if(min2 < minValue){
+            finalMin = min2;
+            minIncluded = other.isMinIncluded();
+        } else if(min2 == minValue){
+            minIncluded |= other.isMinIncluded();
+        }
+        if(max2 > maxValue){
+            finalMax = max2;
+            maxIncluded = other.isMaxIncluded();
+        } else if(max2 == maxValue){
+            maxIncluded |= other.isMaxIncluded();
+        }
+        
+        boolean isNaNIncluded = this.isNaN() || other.isNaN() || this.isNanIncluded() || other.isNanIncluded();
+        
+        return new RangeDouble(finalMin, minIncluded, finalMax, maxIncluded, isNaNIncluded);
+    }
 }

@@ -20,6 +20,7 @@ package it.geosolutions.jaiext.scale;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.translate.TranslateIntOpImage;
 import it.geosolutions.jaiext.utilities.ImageUtilities;
 
@@ -78,7 +79,11 @@ public class ScaleCRIF extends CRIFImpl {
         float xTrans = paramBlock.getFloatParameter(2);
         float yTrans = paramBlock.getFloatParameter(3);
         Interpolation interp = (Interpolation) paramBlock.getObjectParameter(4);
+        // Get the Nodata Range
+        Range nodata = (Range) paramBlock.getObjectParameter(7);
 
+        // Get the backgroundValues
+        double[] backgroundValues = (double[]) paramBlock.getObjectParameter(8);
         // SG make sure we use the ROI
         Object property = paramBlock.getObjectParameter(5);
         ROI roi = null;
@@ -122,9 +127,9 @@ public class ScaleCRIF extends CRIFImpl {
             // check if we can use the native operation instead
             // Rectangle sourceBounds = new Rectangle(source.getMinX(),
             // source.getMinY(), source.getWidth(), source.getHeight());
-            if (roi == null
+            if ((roi == null 
                     || (ImageUtilities.isMediaLibAvailable() && (roi.getBounds().isEmpty() || roi
-                            .contains(sourceBounds)))) {
+                            .contains(sourceBounds)))) && (nodata == null)) {
                 RenderedImage accelerated = new MlibScaleRIF().create(paramBlock, renderHints);
                 if (accelerated != null) {
                     return accelerated;
@@ -141,30 +146,64 @@ public class ScaleCRIF extends CRIFImpl {
                 && (sm.getDataType() == DataBuffer.TYPE_BYTE
                         || sm.getDataType() == DataBuffer.TYPE_USHORT || sm.getDataType() == DataBuffer.TYPE_INT);
         
+        // Check which kind of interpolation we are using
+        boolean nearestInterp = interp instanceof InterpolationNearest
+                || interp instanceof javax.media.jai.InterpolationNearest;
+        boolean bilinearInterp = interp instanceof InterpolationBilinear
+                || interp instanceof javax.media.jai.InterpolationBilinear;
+        boolean bicubicInterp = interp instanceof InterpolationBicubic
+                || interp instanceof javax.media.jai.InterpolationBicubic
+                || interp instanceof javax.media.jai.InterpolationBicubic2;
         
-        if (interp instanceof InterpolationNearest && isBinary) {
-            return new ScaleGeneralOpImage(source, layout, renderHints, extender,
-                    (InterpolationNearest) interp, xScale, yScale, xTrans, yTrans,
-                    useRoiAccessor);
-        }else if((interp instanceof InterpolationNearest)&& !isBinary){
-            return new ScaleNearestOpImage(source, layout, renderHints, extender, 
-                    interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
-        }else if (interp instanceof InterpolationBilinear && !isBinary) {
-            return new ScaleBilinearOpImage(source, layout, renderHints,  extender, interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
-        }else if (interp instanceof InterpolationBilinear && isBinary) {
-            return new ScaleGeneralOpImage(source, layout, renderHints, extender,
-                    (InterpolationBilinear) interp, xScale, yScale, xTrans, yTrans,
-                    useRoiAccessor);
-        } else if (interp instanceof InterpolationBicubic && !isBinary) {
-            return new ScaleBicubicOpImage(source, layout, renderHints, extender, interp, xScale, yScale, xTrans, yTrans, useRoiAccessor);
-        }else if (interp instanceof InterpolationBicubic  && isBinary) {
-            return new ScaleGeneralOpImage(source, layout, renderHints, extender,
-                    (InterpolationBicubic) interp, xScale, yScale, xTrans, yTrans,
-                    useRoiAccessor);
-        } else {
-            return new ScaleGeneralOpImage(source, layout, renderHints, extender, interp, xScale,
-                    yScale, xTrans, yTrans, useRoiAccessor);
-        }
+        // Transformation of the interpolators JAI-->JAI-EXT
+		int dataType = source.getSampleModel().getDataType();
+		double destinationNoData = (backgroundValues != null && backgroundValues.length > 0)?
+				backgroundValues[0] : 0;
+		if (interp instanceof javax.media.jai.InterpolationNearest) {
+			interp = new InterpolationNearest(nodata, useRoiAccessor, destinationNoData,
+					dataType);
+		} else if (interp instanceof javax.media.jai.InterpolationBilinear) {
+			interp = new InterpolationBilinear(interp.getSubsampleBitsH(), nodata,
+					useRoiAccessor, destinationNoData, dataType);
+		} else if (interp instanceof javax.media.jai.InterpolationBicubic ) {
+			javax.media.jai.InterpolationBicubic bic = (javax.media.jai.InterpolationBicubic) interp;
+			interp = new InterpolationBicubic(bic.getSubsampleBitsH(), nodata,
+					useRoiAccessor, destinationNoData, dataType,true, bic.getPrecisionBits());
+		} else if (interp instanceof javax.media.jai.InterpolationBicubic2 ) {
+			javax.media.jai.InterpolationBicubic2 bic = (javax.media.jai.InterpolationBicubic2) interp;
+			interp = new InterpolationBicubic(bic.getSubsampleBitsH(), nodata,
+					useRoiAccessor, destinationNoData, dataType,false, bic.getPrecisionBits());
+		}
+        
+		if (nearestInterp && isBinary) {
+			return new ScaleGeneralOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale,
+					xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
+		} else if (nearestInterp && !isBinary) {
+			return new ScaleNearestOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale, xTrans, yTrans,
+					useRoiAccessor, nodata, backgroundValues);
+		} else if (bilinearInterp && !isBinary) {
+			return new ScaleBilinearOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale, xTrans, yTrans,
+					useRoiAccessor, nodata, backgroundValues);
+		} else if (bilinearInterp && isBinary) {
+			return new ScaleGeneralOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale,
+					xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
+		} else if (bicubicInterp && !isBinary) {
+			return new ScaleBicubicOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale, xTrans, yTrans,
+					useRoiAccessor, nodata, backgroundValues);
+		} else if (bicubicInterp && isBinary) {
+			return new ScaleGeneralOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale,
+					xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
+		} else {
+			return new ScaleGeneralOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale, xTrans, yTrans,
+					useRoiAccessor, nodata, backgroundValues);
+		}
     }
 
     /**

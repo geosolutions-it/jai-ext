@@ -54,7 +54,7 @@ import javax.media.jai.iterator.RandomIter;
 @SuppressWarnings("unchecked")
 final class WarpNearestOpImage extends WarpOpImage {
     /** LookupTable used for a faster NoData check */
-    private byte[] byteLookupTable;
+    private byte[][] byteLookupTable;
 
     /**
      * Constructs a WarpNearestOpImage.
@@ -70,9 +70,9 @@ final class WarpNearestOpImage extends WarpOpImage {
      */
     public WarpNearestOpImage(final RenderedImage source, final Map<?, ?> config,
             final ImageLayout layout, final Warp warp, final Interpolation interp,
-            final ROI sourceROI, Range noData) {
+            final ROI sourceROI, Range noData, double[] bkg) {
         super(source, layout, config, false, null, // extender not needed in nearest-neighbor interpolation
-                interp, warp, null, sourceROI, noData);
+                interp, warp, bkg, sourceROI, noData);
 
         /*
          * If the source has IndexColorModel, override the default setting in OpImage. The dest shall have exactly the same SampleModel and ColorModel
@@ -88,42 +88,40 @@ final class WarpNearestOpImage extends WarpOpImage {
         /*
          * Selection of a destinationNoData value for each datatype
          */
-        destinationNoDataDouble = backgroundValues[0];
         SampleModel sm = source.getSampleModel();
         // Source image data Type
         int srcDataType = sm.getDataType();
 
         switch (srcDataType) {
         case DataBuffer.TYPE_BYTE:
-            destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
+            //destinationNoDataByte = (byte) (((byte) backgroundValues[b]) & 0xff);
             // Creation of a lookuptable containing the values to use for no data
             if (hasNoData) {
-                byteLookupTable = new byte[256];
-                for (int i = 0; i < byteLookupTable.length; i++) {
-                    byte value = (byte) i;
-                    if (noDataRange.contains(value)) {
-                        if (setBackground) {
-                            byteLookupTable[i] = destinationNoDataByte;
-                        } else {
-                            byteLookupTable[i] = 0;
-                        }
-                    } else {
-                        byteLookupTable[i] = value;
-                    }
-                }
+				int numBands = getNumBands();
+				byteLookupTable = new byte[numBands][256];
+				for (int b = 0; b < numBands; b++) {
+					for (int i = 0; i < byteLookupTable.length; i++) {
+						byte value = (byte) i;
+						if (noDataRange.contains(value)) {
+							byteLookupTable[b][i] = (byte) backgroundValues[b];
+						} else {
+							byteLookupTable[b][i] = value;
+						}
+					}
+				}
             }
             break;
         case DataBuffer.TYPE_USHORT:
-            destinationNoDataShort = (short) (((short) destinationNoDataDouble) & 0xffff);
+            //(short)backgroundValues[b] = (short) (((short) backgroundValues[b]) & 0xffff);
             break;
         case DataBuffer.TYPE_SHORT:
-            destinationNoDataShort = (short) destinationNoDataDouble;
+            //(short)backgroundValues[b] = (short) backgroundValues[b];
             break;
         case DataBuffer.TYPE_INT:
-            destinationNoDataInt = (int) destinationNoDataDouble;
+            //(int)backgroundValues[b] = (int) backgroundValues[b];
             break;
         case DataBuffer.TYPE_FLOAT:
-            destinationNoDataFloat = (float) destinationNoDataDouble;
+            //(float)backgroundValues[b] = (float) backgroundValues[b];
             break;
         case DataBuffer.TYPE_DOUBLE:
             break;
@@ -176,7 +174,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                             }
                         }
                     } else {
@@ -209,16 +207,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -252,13 +250,13 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                             }
                         }
                     } else {
                         // The related source pixel is set if it isn't a nodata
                         for (int b = 0; b < dstBands; b++) {
-                            data[b][pixelOffset + bandOffsets[b]] = byteLookupTable[iter.getSample(
+                            data[b][pixelOffset + bandOffsets[b]] = byteLookupTable[b][iter.getSample(
                                     sx, sy, b)];
                         }
                     }
@@ -285,22 +283,22 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
                             // The related source pixel is set if it isn't a nodata
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = byteLookupTable[iter
+                                data[b][pixelOffset + bandOffsets[b]] = byteLookupTable[b][iter
                                         .getSample(sx, sy, b)];
                             }
                         }
@@ -356,7 +354,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -389,16 +387,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -433,7 +431,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -442,7 +440,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             // Input value selected
                             inputValue = (short) (iter.getSample(sx, sy, b) & 0xFFFF);
                             if (noDataRange.contains(inputValue)) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             } else {
                                 data[b][pixelOffset + bandOffsets[b]] = inputValue;
                             }
@@ -472,16 +470,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -490,7 +488,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                                 // Input value selected
                                 inputValue = (short) (iter.getSample(sx, sy, b) & 0xFFFF);
                                 if (noDataRange.contains(inputValue)) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = inputValue;
                                 }
@@ -548,7 +546,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -581,16 +579,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -625,7 +623,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -634,7 +632,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             // Input value selected
                             inputValue = (short) iter.getSample(sx, sy, b);
                             if (noDataRange.contains(inputValue)) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             } else {
                                 data[b][pixelOffset + bandOffsets[b]] = inputValue;
                             }
@@ -664,16 +662,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -682,7 +680,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                                 // Input value selected
                                 inputValue = (short) iter.getSample(sx, sy, b);
                                 if (noDataRange.contains(inputValue)) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = inputValue;
                                 }
@@ -740,7 +738,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -772,16 +770,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                    data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -815,7 +813,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -824,7 +822,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             // Input value selected
                             inputValue = iter.getSample(sx, sy, b);
                             if (noDataRange.contains(inputValue)) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             } else {
                                 data[b][pixelOffset + bandOffsets[b]] = inputValue;
                             }
@@ -854,16 +852,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                    data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -872,7 +870,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                                 // Input value selected
                                 inputValue = iter.getSample(sx, sy, b);
                                 if (noDataRange.contains(inputValue)) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                    data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = inputValue;
                                 }
@@ -930,7 +928,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -962,16 +960,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                    data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -1006,7 +1004,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1015,7 +1013,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             // Input value selected
                             inputValue = iter.getSampleFloat(sx, sy, b);
                             if (noDataRange.contains(inputValue)) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             } else {
                                 data[b][pixelOffset + bandOffsets[b]] = inputValue;
                             }
@@ -1045,16 +1043,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                    data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -1063,7 +1061,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                                 // Input value selected
                                 inputValue = iter.getSampleFloat(sx, sy, b);
                                 if (noDataRange.contains(inputValue)) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                    data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = inputValue;
                                 }
@@ -1121,7 +1119,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -1153,16 +1151,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                    data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                                 }
                             }
                         } else {
@@ -1197,7 +1195,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -1206,7 +1204,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                             // Input value selected
                             inputValue = iter.getSampleDouble(sx, sy, b);
                             if (noDataRange.contains(inputValue)) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             } else {
                                 data[b][pixelOffset + bandOffsets[b]] = inputValue;
                             }
@@ -1236,16 +1234,16 @@ final class WarpNearestOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
                         // SG if we falls outside the roi we use the background value
-                        if (!(roiIter.getSample(sx, sy, 0) > 0)) {
+                        if (!(roiBounds.contains(sx, sy) && roiIter.getSample(sx, sy, 0) > 0)) {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                    data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                                 }
                             }
                         } else {
@@ -1254,7 +1252,7 @@ final class WarpNearestOpImage extends WarpOpImage {
                                 // Input value selected
                                 inputValue = iter.getSampleDouble(sx, sy, b);
                                 if (noDataRange.contains(inputValue)) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                    data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                                 } else {
                                     data[b][pixelOffset + bandOffsets[b]] = inputValue;
                                 }

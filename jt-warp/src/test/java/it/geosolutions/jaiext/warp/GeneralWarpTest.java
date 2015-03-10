@@ -17,10 +17,14 @@
 */
 package it.geosolutions.jaiext.warp;
 
+import it.geosolutions.jaiext.ConcurrentOperationRegistry;
+import it.geosolutions.jaiext.JAIExt;
+
 import java.awt.geom.AffineTransform;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 
+import javax.media.jai.JAI;
 import javax.media.jai.WarpAffine;
 
 import org.junit.AfterClass;
@@ -37,6 +41,7 @@ public class GeneralWarpTest extends TestWarp{
      */
     @BeforeClass
     public static void setup() {
+        JAIExt.initJAIEXT();
         // Definition of the Warp Object
         AffineTransform transform = AffineTransform.getRotateInstance(Math
                 .toRadians(ANGLE_ROTATION));

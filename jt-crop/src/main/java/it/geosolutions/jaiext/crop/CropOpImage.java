@@ -33,7 +33,7 @@ import javax.media.jai.PointOpImage;
  * This is a clean room implementation (there are no others ways in which a Crop can be implemented,
  * so it looks a lot like the original one)
  */
-final class CropOpImage extends PointOpImage {
+public class CropOpImage extends PointOpImage {
 
     private static ImageLayout layoutHelper(RenderedImage source, float originX, float originY,
             float width, float height) {
@@ -72,7 +72,7 @@ final class CropOpImage extends PointOpImage {
      * cutting will be performed by the image layout), or we return null
      */
     public Raster getTile(int tileX, int tileY) {
-        if (tileX >= getMinTileX() && tileX <= getMaxTileX() //  
+        if (tileX >= getMinTileX() && tileX <= getMaxTileX() 
                 && tileY >= getMinTileY() && tileY <= getMaxTileY()) {
             return getSourceImage(0).getTile(tileX, tileY);
         } else {

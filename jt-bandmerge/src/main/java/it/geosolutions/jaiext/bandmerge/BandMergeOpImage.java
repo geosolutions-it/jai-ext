@@ -20,7 +20,11 @@ package it.geosolutions.jaiext.bandmerge;
 import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
 import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
@@ -33,12 +37,15 @@ import java.util.Vector;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.PointOpImage;
 import java.util.Map;
+
+import javax.media.jai.ColorSpaceJAI;
 import javax.media.jai.PixelAccessor;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.UnpackedImageData;
 import javax.media.jai.RasterFactory;
 
+import com.sun.media.jai.codecimpl.util.FloatDoubleColorModel;
 import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.JDKWorkarounds;
 
@@ -55,7 +62,7 @@ import com.sun.media.jai.util.JDKWorkarounds;
  * If No Data are present, they can be handled if the user provides an array of No Data Range objects and a double value for the destination No Data.
  * 
  */
-class BandMergeOpImage extends PointOpImage {
+public class BandMergeOpImage extends PointOpImage {
 
     public static final int TILE_EXTENDER = 1;
 
@@ -115,11 +122,12 @@ class BandMergeOpImage extends PointOpImage {
      * @param roi Input ROI to use for the calculations.
      * @param destinationNoData output value for No Data.
      * @param layout The destination image layout.
+     * @param setAlpha 
      */
     public BandMergeOpImage(List sources, Map config, Range[] noData, ROI roi,
-            double destinationNoData, ImageLayout layout) {
+            double destinationNoData, boolean setAlpha, ImageLayout layout) {
 
-        super(vectorize(sources), layoutHelper(sources, layout), config, true);
+        super(vectorize(sources), layoutHelper(sources, layout, setAlpha), config, true);
 
         // Set flag to permit in-place operation.
         permitInPlaceOperation();
@@ -160,22 +168,31 @@ class BandMergeOpImage extends PointOpImage {
 
         // If No Data are present
         if (noData != null) {
-            // If the length of the array is different from that of the sources
-            // the first Range is used for all the images
-            if (noData.length != numSrcs) {
-                Range firstNoData = noData[0];
-
-                this.noData = new Range[numSrcs];
-
-                for (int i = 0; i < numSrcs; i++) {
-                    this.noData[i] = firstNoData;
-                }
-            } else {
-                // Else the whole array is used
-                this.noData = noData;
+            int nullRanges = 0;
+            for (int i = 0; i < noData.length; i++) {
+                nullRanges += noData[i] == null ? 1 : 0;
             }
-            // No Data are present, so associated flaw is set to true
-            this.hasNoData = true;
+            if (nullRanges != noData.length) {
+                // If the length of the array is different from that of the sources
+                // the first Range is used for all the images
+                if (noData.length != numSrcs || nullRanges > 0) {
+                    Range firstNoData = noData[0];
+
+                    this.noData = new Range[numSrcs];
+
+                    for (int i = 0; i < numSrcs; i++) {
+                        this.noData[i] = firstNoData;
+                    }
+                } else {
+                    // Else the whole array is used
+                    this.noData = noData;
+                }
+                // No Data are present, so associated flaw is set to true
+                this.hasNoData = true;
+            } else {
+                this.noData = null;
+                this.hasNoData = false;
+            }
         } else {
             this.noData = null;
             this.hasNoData = false;
@@ -221,7 +238,7 @@ class BandMergeOpImage extends PointOpImage {
         return total;
     }
 
-    private static ImageLayout layoutHelper(List sources, ImageLayout il) {
+    private static ImageLayout layoutHelper(List sources, ImageLayout il, boolean setAlpha) {
 
         // If the layout is not defined, a new one is created, else is cloned
         ImageLayout layout = (il == null) ? new ImageLayout() : (ImageLayout) il.clone();
@@ -293,8 +310,110 @@ class BandMergeOpImage extends PointOpImage {
             // Clear the mask bit if incompatible.
             layout.unsetValid(ImageLayout.COLOR_MODEL_MASK);
         }
+        if ((cm == null || !cm.hasAlpha()) && sm instanceof ComponentSampleModel) {
+            cm = getDefaultColorModel(sm, setAlpha);
+            layout.setColorModel(cm);
+        }
 
         return layout;
+    }
+
+    /**
+     * Create a colormodel without an alpha band in the case that no alpha band is present. 
+     * Otherwise JAI set an alpha band by default for an image with 2 or 4 bands.
+     * 
+     * @param sm
+     * @param setAlpha 
+     * @return
+     */
+    public static ColorModel getDefaultColorModel(SampleModel sm, boolean setAlpha) {
+
+        // Check on the data type
+        int dataType = sm.getDataType();
+        int numBands = sm.getNumBands();
+        if (dataType < DataBuffer.TYPE_BYTE || dataType == DataBuffer.TYPE_SHORT
+                || dataType > DataBuffer.TYPE_DOUBLE || numBands < 1 || numBands > 4) {
+            return null;
+        }
+
+        // Creation of the colorspace
+        ColorSpace cs = null;
+
+        switch (numBands) {
+        case 0:
+            throw new IllegalArgumentException("No input bands defined");
+        case 1:
+            cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
+            break;
+        case 2:
+        case 4:
+            if (setAlpha) {
+
+                cs = numBands == 2 ? ColorSpace.getInstance(ColorSpaceJAI.CS_GRAY) : ColorSpace
+                        .getInstance(ColorSpaceJAI.CS_sRGB);
+            } else {
+                // For 2 and 4 bands a custom colorspace is created
+                cs = new ColorSpace(dataType, numBands) {
+
+                    @Override
+                    public float[] toRGB(float[] colorvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
+
+                    @Override
+                    public float[] toCIEXYZ(float[] colorvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
+
+                    @Override
+                    public float[] fromRGB(float[] rgbvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
+
+                    @Override
+                    public float[] fromCIEXYZ(float[] colorvalue) {
+                        // TODO Auto-generated method stub
+                        return null;
+                    }
+                };
+            }
+            break;
+        case 3:
+            cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);
+            break;
+        default:
+            return null;
+        }
+
+        // Definition of the colormodel
+        int dataTypeSize = DataBuffer.getDataTypeSize(dataType);
+        int[] bits = new int[numBands];
+        for (int i = 0; i < numBands; i++) {
+            bits[i] = dataTypeSize;
+        }
+
+        boolean useAlpha = false, premultiplied = false;
+        int transparency = Transparency.OPAQUE;
+        switch (dataType) {
+        case DataBuffer.TYPE_BYTE:
+            return new ComponentColorModel(cs, bits, useAlpha, premultiplied, transparency,
+                    dataType);
+        case DataBuffer.TYPE_USHORT:
+            return new ComponentColorModel(cs, bits, useAlpha, premultiplied, transparency,
+                    dataType);
+        case DataBuffer.TYPE_INT:
+            return new ComponentColorModel(cs, bits, useAlpha, premultiplied, transparency,
+                    dataType);
+        case DataBuffer.TYPE_FLOAT:
+            return new FloatDoubleColorModel(cs, useAlpha, premultiplied, transparency, dataType);
+        case DataBuffer.TYPE_DOUBLE:
+            return new FloatDoubleColorModel(cs, useAlpha, premultiplied, transparency, dataType);
+        default:
+            throw new IllegalArgumentException("Wrong data type used");
+        }
     }
 
     /**
@@ -588,6 +707,10 @@ class BandMergeOpImage extends PointOpImage {
         int[] snbands = new int[nSrcs];
         // PixelAccessor array for each source
         PixelAccessor[] pas = new PixelAccessor[nSrcs];
+        
+        // Destination tile initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
 
         boolean isUshort = getSampleModel().getDataType() == DataBuffer.TYPE_USHORT;
 
@@ -820,6 +943,10 @@ class BandMergeOpImage extends PointOpImage {
         // PixelAccessor array for each source
         PixelAccessor[] pas = new PixelAccessor[nSrcs];
 
+        // Destination tile initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
+
         for (int i = 0; i < nSrcs; i++) {
             pas[i] = new PixelAccessor(sources[i].getSampleModel(), colorModels[i]);
 
@@ -1048,6 +1175,10 @@ class BandMergeOpImage extends PointOpImage {
         // PixelAccessor array for each source
         PixelAccessor[] pas = new PixelAccessor[nSrcs];
 
+        // Destination tile initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
+
         for (int i = 0; i < nSrcs; i++) {
             pas[i] = new PixelAccessor(sources[i].getSampleModel(), colorModels[i]);
 
@@ -1275,6 +1406,10 @@ class BandMergeOpImage extends PointOpImage {
         int[] snbands = new int[nSrcs];
         // PixelAccessor array for each source
         PixelAccessor[] pas = new PixelAccessor[nSrcs];
+
+        // Destination tile initial position
+        final int minX = destRect.x;
+        final int minY = destRect.y;
 
         for (int i = 0; i < nSrcs; i++) {
             pas[i] = new PixelAccessor(sources[i].getSampleModel(), colorModels[i]);

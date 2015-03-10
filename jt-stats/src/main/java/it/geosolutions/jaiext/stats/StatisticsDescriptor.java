@@ -234,11 +234,11 @@ class StatisticsPropertyGenerator extends PropertyGeneratorImpl {
  * <td>it.geosolutions.jaiext.stats.Statistics.StatsType[]</td>
  * <td>null</td>
  * <tr>
- * <td>minBounds</td>
+ * <td>lowValue</td>
  * <td>double[]</td>
  * <td>null</td>
  * <tr>
- * <td>maxBounds</td>
+ * <td>highValue</td>
  * <td>double[]</td>
  * <td>null</td>
  * <tr>
@@ -287,11 +287,13 @@ public class StatisticsDescriptor extends OperationDescriptorImpl {
 
     /** The parameter name list for this operation. */
     private static final String[] paramNames = { "xPeriod", "yPeriod", "ROI", "noData",
-            "useRoiAccessor", "bands", "stats", "minBounds", "maxBounds", "numBins" };
+            "useRoiAccessor", "bands", "stats", "lowValue", "highValue", "numBins" };
 
     /** The parameter default value list for this operation. */
     private static final Object[] paramDefaults = { 1, 1, null, null, false, new int[] { 0 }, null,
-            null, null, null };
+        new double[] {0.0},
+        new double[] {256.0},
+        new int[] {256}};
 
     public StatisticsDescriptor() {
         super(resources, 1, paramClasses, paramNames, paramDefaults);
@@ -350,8 +352,8 @@ public class StatisticsDescriptor extends OperationDescriptorImpl {
         pb.setParameter("bands", bands);
         pb.setParameter("stats", stats);
         if (minBounds != null && maxBounds != null && numBins != null) {
-            pb.setParameter("minBounds", minBounds);
-            pb.setParameter("maxBounds", maxBounds);
+            pb.setParameter("lowValue", minBounds);
+            pb.setParameter("highValue", maxBounds);
             pb.setParameter("numBins", numBins);
         } else if (minBounds != null || maxBounds != null || numBins != null) {
             throw new IllegalArgumentException("bounds and bins must be declared together");

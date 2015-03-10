@@ -24,10 +24,19 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
+import javax.media.jai.operator.AbsoluteDescriptor;
 import javax.media.jai.operator.AddDescriptor;
+import javax.media.jai.operator.AndDescriptor;
 import javax.media.jai.operator.DivideDescriptor;
+import javax.media.jai.operator.ExpDescriptor;
+import javax.media.jai.operator.InvertDescriptor;
+import javax.media.jai.operator.LogDescriptor;
 import javax.media.jai.operator.MultiplyDescriptor;
+import javax.media.jai.operator.NotDescriptor;
+import javax.media.jai.operator.OrDescriptor;
 import javax.media.jai.operator.SubtractDescriptor;
+import javax.media.jai.operator.XorDescriptor;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 import it.geosolutions.jaiext.algebra.AlgebraDescriptor.Operator;
@@ -200,6 +209,33 @@ public class ComparisonTest extends TestBase {
         case DIVIDE:
             description = "Divide";
             break;
+        case OR:
+            description = "or";
+            break;
+        case XOR:
+            description = "Xor";
+            break;
+        case ABSOLUTE:
+            description = "Absolute";
+            break;
+        case AND:
+            description = "And";
+            break;
+        case EXP:
+            description = "Exp";
+            break;
+        case INVERT:
+            description = "Invert";
+            break;
+        case LOG:
+            description = "Log";
+            break;
+        case NOT:
+            description = "Not";
+            break;
+        case DIVIDE_INTO:
+            description = "DivideInto";
+            break;
         } 
 
         if (OLD_DESCRIPTOR) {
@@ -279,6 +315,42 @@ public class ComparisonTest extends TestBase {
                         firstOp = DivideDescriptor.create(firstOp, images[j], null);                        
                     }
                     imageCalculated = (PlanarImage) firstOp;
+                    break;
+                case ABSOLUTE:
+                    imageCalculated = (PlanarImage) AbsoluteDescriptor.create(images[0], null);;
+                    break;
+                case AND:
+                    firstOp = images[0];
+                    for(int j = 1; j < NUM_IMAGES; j++){
+                        firstOp = AndDescriptor.create(firstOp, images[j], null);                        
+                    }
+                    imageCalculated = (PlanarImage) firstOp;
+                    break;
+                case OR:
+                    firstOp = images[0];
+                    for(int j = 1; j < NUM_IMAGES; j++){
+                        firstOp = OrDescriptor.create(firstOp, images[j], null);                        
+                    }
+                    imageCalculated = (PlanarImage) firstOp;
+                    break;
+                case XOR:
+                    firstOp = images[0];
+                    for(int j = 1; j < NUM_IMAGES; j++){
+                        firstOp = XorDescriptor.create(firstOp, images[j], null);                        
+                    }
+                    imageCalculated = (PlanarImage) firstOp;
+                    break;
+                case NOT:
+                    imageCalculated = (PlanarImage) NotDescriptor.create(images[0], null);
+                    break;
+                case EXP:
+                    imageCalculated = (PlanarImage) ExpDescriptor.create(images[0], null);
+                    break;
+                case INVERT:
+                    imageCalculated = (PlanarImage) InvertDescriptor.create(images[0], null);
+                    break;
+                case LOG:
+                    imageCalculated = (PlanarImage) LogDescriptor.create(images[0], null);
                     break;
                 }                
             } else {

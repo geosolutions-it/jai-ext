@@ -18,6 +18,9 @@
 package it.geosolutions.jaiext.testclasses;
 
 
+import it.geosolutions.jaiext.ConcurrentOperationRegistry;
+import it.geosolutions.jaiext.JAIExt;
+
 import java.awt.Rectangle;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
@@ -25,8 +28,11 @@ import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 
+import javax.media.jai.JAI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.TiledImage;
+
+import org.junit.BeforeClass;
 
 
 /**
@@ -156,16 +162,22 @@ public abstract class TestBase {
         return createTestImage(dataType, width,height, noDataValue, isBinary, 3);
     }
     
+    public static RenderedImage createTestImage(int dataType, int width, int height, Number noDataValue,
+            boolean isBinary, int bands){
+        return createTestImage(dataType, width, height, noDataValue, isBinary, bands, null);
+        
+    }
+    
     /** Simple method for image creation */
     public static RenderedImage createTestImage(int dataType, int width, int height, Number noDataValue,
-            boolean isBinary, int bands) {
+            boolean isBinary, int bands, Number validData) {
         // This values could be used for fill all the image
-        byte valueB = 64;
-        short valueUS = Short.MAX_VALUE / 4;
-        short valueS = -50;
-        int valueI = 100;
-        float valueF = (255 / 2) * 5;
-        double valueD = (255 / 1) * 4;
+        byte valueB = validData != null ? validData.byteValue() : 64;
+        short valueUS = validData != null ? validData.shortValue() : Short.MAX_VALUE / 4;
+        short valueS = validData != null ? validData.shortValue() : -50;
+        int valueI = validData != null ? validData.intValue() : 100;
+        float valueF = validData != null ? validData.floatValue() : (255 / 2) * 5f;
+        double valueD = validData != null ? validData.doubleValue() : (255 / 1) * 4d;
 
         boolean fillImage = IMAGE_FILLER;
         
@@ -415,5 +427,9 @@ public abstract class TestBase {
         }
         return used;
     }
-
+    
+    @BeforeClass
+    public static void setup(){
+        JAIExt.initJAIEXT();
+    }
 }

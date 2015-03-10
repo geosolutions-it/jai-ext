@@ -82,9 +82,9 @@ public class BufferRIF implements RenderedImageFactory {
 
             // Check ColorModel.
             ColorModel colorModel = layout.getColorModel(null);
-            if(colorModel != null &&
-               !JDKWorkarounds.areCompatibleDataModels(layout.getSampleModel(src),
-                                                       colorModel)) {
+            if (colorModel != null
+                    && !JDKWorkarounds.areCompatibleDataModels(layout.getSampleModel(src),
+                            colorModel)) {
                 // Clear the mask bit if incompatible.
                 layout.unsetValid(ImageLayout.COLOR_MODEL_MASK);
             }
@@ -100,10 +100,10 @@ public class BufferRIF implements RenderedImageFactory {
                 layout.getTileGridXOffset(src) == src.getTileGridXOffset() &&
                 layout.getTileGridYOffset(src) == src.getTileGridYOffset()) {
 
-                if(layout.getColorModel(src) != src.getColorModel()) {
+                if (layout.getColorModel(src) != src.getColorModel()) {
                     // Remove TileCache hint from RenderingHints if present.
-                    if(renderHints != null && renderHints.containsKey(JAI.KEY_TILE_CACHE)) {
-                        renderHints = new RenderingHints((Map)renderHints);
+                    if (renderHints != null && renderHints.containsKey(JAI.KEY_TILE_CACHE)) {
+                        renderHints = new RenderingHints((Map) renderHints);
                         renderHints.remove(JAI.KEY_TILE_CACHE);
                     }
                 }
@@ -126,8 +126,7 @@ public class BufferRIF implements RenderedImageFactory {
                 }
             }
         }
-        
-        
+
         BorderExtender extender = (BorderExtender) pb.getObjectParameter(0);
 
         int leftPadding = pb.getIntParameter(1);
@@ -140,7 +139,6 @@ public class BufferRIF implements RenderedImageFactory {
         double destinationNoData = pb.getDoubleParameter(7);
         Double valueToCount = (Double) pb.getObjectParameter(8);
         double pixelArea = pb.getDoubleParameter(10);
-        
 
         return new BufferOpImage(src, layout, renderHints, extender, leftPadding, rightPadding,
                 topPadding, bottomPadding, rois, noData, destinationNoData, valueToCount, pixelArea);

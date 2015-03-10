@@ -17,7 +17,6 @@
 */
 package it.geosolutions.jaiext.crop;
 
-import it.geosolutions.jaiext.mosaic.ImageMosaicBean;
 import it.geosolutions.jaiext.mosaic.MosaicOpImage;
 import it.geosolutions.jaiext.range.Range;
 
@@ -87,51 +86,44 @@ public class CropCRIF implements RenderedImageFactory {
         // Initialization of the final bounds
         Rectangle finalBounds = bounds;
         // If roi is present the final bounds are intersected with the ROI object
-        if(roi != null){
-            Rectangle roiBounds = roi.getBounds();   
-            
-            if(finalBounds.contains(roiBounds)){
+        if (roi != null) {
+            Rectangle roiBounds = roi.getBounds();
+
+            if (finalBounds.contains(roiBounds)) {
                 finalBounds = roiBounds;
-            }else{
+            } else {
                 finalBounds.intersection(roiBounds);
-            }  
+            }
         }
         // The final bounds coordinates are taken
         x = (float) finalBounds.getMinX();
         y = (float) finalBounds.getMinY();
         width = (float) finalBounds.getWidth();
         height = (float) finalBounds.getHeight();
-        
+
         // If noData are present, the MosaicOpImage is used instead of the crop
-        if(noData!=null){
+        if (noData != null) {
             // The calculated bounds are taken as an input roi
             roi = new ROIShape(finalBounds);
             // The source image is taken as a list of data
             List<RenderedImage> listSrc = new Vector<RenderedImage>();            
             listSrc.add(image);
-            // The related ImageMosaicBean object is created
-            ImageMosaicBean[] bean = new ImageMosaicBean[1];            
-            bean[0] = new ImageMosaicBean();
-            // Setting of the parameters
-            bean[0].setImage(image);
-            bean[0].setRoi(roi);
-            bean[0].setSourceNoData(noData);
-            
-            //layout settings
-            if(layout == null){
+
+            // layout settings
+            if (layout == null) {
                 layout = new ImageLayout();
             }
             layout.setHeight(finalBounds.height);
             layout.setWidth(finalBounds.width);
             layout.setMinX(finalBounds.x);
             layout.setMinY(finalBounds.y);
-            
-            
+
             // Mosaic operation
-            image = new MosaicOpImage(listSrc, layout, local, bean, MosaicDescriptor.MOSAIC_TYPE_OVERLAY, destNoData);
+            image = new MosaicOpImage(listSrc, layout, local, MosaicDescriptor.MOSAIC_TYPE_OVERLAY,
+                    null, new ROI[] { roi }, null, destNoData, new Range[] { noData });
             return image;
         }
-        
+
         // If noData are not present, then the crop operation is performed
         return new CropOpImage(image, x, y, width, height, local);
     }

@@ -107,6 +107,10 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
     public double getDestinationNoData() {
         return destinationNoData;
     }
+
+	public void setDestinationNoData(double destinationNoData) {
+		this.destinationNoData = destinationNoData;
+	}
     
     public Range getNoDataRange() {
         return noDataRange;
@@ -117,6 +121,14 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
             this.noDataRange = noDataRange;     
             this.isNotPointRange = !noDataRange.isPoint();
         }
+    }
+    
+    public boolean getUseROIAccessor() {
+    	return useROIAccessor;
+    }
+    
+    public void setUseROIAccessor(boolean useROIAccessor) {
+    	this.useROIAccessor = useROIAccessor;
     }
     
     public boolean isBicubic2(){

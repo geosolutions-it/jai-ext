@@ -84,13 +84,13 @@ public class CoverageClassTest extends TestScale {
 
         // Scaled images
         RenderedImage scaleImgNear = ScaleDescriptor.create(testIMG, scaleX, scaleY, transX,
-                transY, interpNear, roi, useROIAccessor, null);
+                transY, interpNear, roi, useROIAccessor, null, null, null);
 
         RenderedImage scaleImgBil = ScaleDescriptor.create(testIMG, scaleX, scaleY, transX,
-                transY, interpBil, roi, useROIAccessor, null);
+                transY, interpBil, roi, useROIAccessor, null, null, null);
 
         RenderedImage scaleImgBic = ScaleDescriptor.create(testIMG, scaleX, scaleY, transX,
-                transY, interpBic, roi, useROIAccessor, null);
+                transY, interpBic, roi, useROIAccessor, null, null, null);
 
         scaleImgNear.getTile(0, 0);
         scaleImgBil.getTile(0, 0);
@@ -167,7 +167,7 @@ public class CoverageClassTest extends TestScale {
 
         // Scaled images
         PlanarImage scaleImgNear = ScaleDescriptor.create(testIMG, xScale, yScale, xTrans,
-                yTrans, interpNear, null, useROIAccessor, null);
+                yTrans, interpNear, null, useROIAccessor, null, null, null);
         scaleImgNear.getTiles();
         
         double actualX=scaleImgNear.getMinX();
@@ -211,7 +211,7 @@ public class CoverageClassTest extends TestScale {
 
         // Scaled images
         PlanarImage scaleImgNear = ScaleDescriptor.create(testIMG, xScale, yScale, xTrans,
-                yTrans, interpNear, null, useROIAccessor, null);
+                yTrans, interpNear, null, useROIAccessor, null, null, null);
         scaleImgNear.getTiles();
         
         double actualX=scaleImgNear.getMinX();

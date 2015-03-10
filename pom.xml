@@ -10,8 +10,8 @@
     <java.lib>${env.JAVA_HOME}/jre/lib/ext</java.lib>
     <extensive.tests>false</extensive.tests>
     <interactive.tests>false</interactive.tests>
-    <test.maxHeapSize>512M</test.maxHeapSize>
-	<test.maxPermSize>128m</test.maxPermSize>
+    <test.maxHeapSize>1024M</test.maxHeapSize>
+	<test.maxPermSize>1024m</test.maxPermSize>
     <jt.version>1.2.0</jt.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.8.1</junit.version>
@@ -599,5 +599,19 @@
     <module>jt-algebra</module>
     <module>jt-buffer</module>
     <module>jt-scheduler</module>
+    <module>jt-binarize</module>
+    <module>jt-bandcombine</module>
+    <module>jt-convolve</module>
+    <module>jt-classifier</module>
+    <module>jt-piecewise</module>
+    <module>jt-artifact</module>
+    <module>jt-format</module>
+    <module>jt-colorconvert</module>
+    <module>jt-errordiffusion</module>
+    <module>jt-orderdither</module>
+    <module>jt-colorindexer</module>
+    <module>jt-imagefunction</module>
+    <module>jt-rlookup</module>
+    <module>jt-vectorbin</module>
   </modules>
 </project>

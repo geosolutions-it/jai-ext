@@ -19,6 +19,7 @@ package it.geosolutions.jaiext.lookup;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 import java.awt.Rectangle;
 import java.awt.image.Raster;
@@ -148,13 +149,14 @@ public class LookupOpImage extends ColormapOpImage {
         // If no Data are present, then a No Data Range is added to the table
         if (noData != null) {
             hasNoData = true;
-            //Control if the range data type is the same of the source image
-            if(noData.getDataType().getDataType()!=source.getSampleModel().getDataType()){
-                throw new IllegalArgumentException("Range data type is not the same of the source image");
+            // Control if the range data type is the same of the source image
+            if (noData.getDataType().getDataType() != source.getSampleModel().getDataType()) {
+                // Convert NoData
+                noData = RangeFactory.convert(noData, source.getSampleModel().getDataType());
             }
             lookupTable.setNoDataRange(noData);
-        }else{
-            // if no data range is not present the table no data range is set to nul.
+        } else {
+            // if no data range is not present the table no data range is set to null.
             lookupTable.unsetNoData();
         }
 
@@ -178,9 +180,9 @@ public class LookupOpImage extends ColormapOpImage {
             // For each image there is a check if the rectangle is contained inside the source image;
             // if this not happen, the data is taken from the padded image.
             Raster roi = null;
-            if(srcROIImage.getBounds().contains(rect)){
+            if (srcROIImage.getBounds().contains(rect)) {
                 roi = srcROIImage.getData(rect);
-            }else{
+            } else {
                 roi = srcROIImgExt.getData(rect);
             }
             lookupTable.lookup(sources[0], dest, destRect, roi);
@@ -206,5 +208,4 @@ public class LookupOpImage extends ColormapOpImage {
             }
         }
     }
-
 }

@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
@@ -57,7 +58,7 @@ import org.junit.Test;
  * used is selected by passing the JVM integral parameter JAI.Ext.TransformationSelector, with 0 that indicates rotation, 1 scale, 2 combination of
  * them. If the user wants to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
-public class ComparisonTest {
+public class ComparisonTest extends TestAffine{
 
     /** Number of benchmark iterations (Default 1) */
     private final static int BENCHMARK_ITERATION = Integer.getInteger("JAI.Ext.BenchmarkCycles", 1);
@@ -194,6 +195,9 @@ public class ComparisonTest {
                 weight[2][i] = 1;
                 weight[3][i] = 1;
             }
+        }
+        if(OLD_DESCRIPTOR){
+            JAIExt.registerJAIDescriptor("Affine");
         }
 
     }
@@ -534,7 +538,7 @@ public class ComparisonTest {
                         interp, destinationNoDataArray, hints);
             } else {
                 imageAffine = AffineDescriptor.create(image, transform, interp,
-                        destinationNoDataArray, null, false, false, hints);
+                        destinationNoDataArray, null, false, false, null, hints);
             }
 
             // Total calculation time

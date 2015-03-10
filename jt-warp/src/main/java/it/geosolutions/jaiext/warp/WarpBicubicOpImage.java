@@ -109,8 +109,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
      */
     public WarpBicubicOpImage(final RenderedImage source, final BorderExtender extender,
             final Map<?, ?> config, final ImageLayout layout, final Warp warp,
-            final Interpolation interp, final ROI sourceROI, Range noData) {
-        super(source, layout, config, false, extender, interp, warp, null, sourceROI, noData);
+            final Interpolation interp, final ROI sourceROI, Range noData, double[] bkg) {
+        super(source, layout, config, false, extender, interp, warp, bkg, sourceROI, noData);
 
         /*
          * If the source has IndexColorModel, get the RGB color table. Note, in this case, the source should have an integral data type. And dest
@@ -128,14 +128,14 @@ final class WarpBicubicOpImage extends WarpOpImage {
         /*
          * Selection of a destinationNoData value for each datatype
          */
-        destinationNoDataDouble = backgroundValues[0];
+        //backgroundValues[b] = backgroundValues[0];
         SampleModel sm = source.getSampleModel();
         // Source image data Type
         int srcDataType = sm.getDataType();
 
         switch (srcDataType) {
         case DataBuffer.TYPE_BYTE:
-            destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
+            //(byte)backgroundValues[b] = (byte) (((byte) backgroundValues[b]) & 0xff);
             // Creation of a lookuptable containing the values to use for no data
             if (hasNoData) {
                 booleanLookupTable = new boolean[256];
@@ -146,16 +146,16 @@ final class WarpBicubicOpImage extends WarpOpImage {
             }
             break;
         case DataBuffer.TYPE_USHORT:
-            destinationNoDataShort = (short) (((short) destinationNoDataDouble) & 0xffff);
+            //(short)backgroundValues[b] = (short) (((short) backgroundValues[b]) & 0xffff);
             break;
         case DataBuffer.TYPE_SHORT:
-            destinationNoDataShort = (short) destinationNoDataDouble;
+            //(short)backgroundValues[b] = (short) backgroundValues[b];
             break;
         case DataBuffer.TYPE_INT:
-            destinationNoDataInt = (int) destinationNoDataDouble;
+            //(int)backgroundValues[b] = (int) backgroundValues[b];
             break;
         case DataBuffer.TYPE_FLOAT:
-            destinationNoDataFloat = (float) destinationNoDataDouble;
+            //(float)backgroundValues[b] = (float) backgroundValues[b];
             break;
         case DataBuffer.TYPE_DOUBLE:
             break;
@@ -266,7 +266,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -315,7 +315,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -355,7 +355,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         }
@@ -402,7 +402,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -452,7 +452,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 } else {
 
                                     tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
@@ -520,7 +520,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -588,7 +588,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                                     // Control if the 16 pixel are all No Data
                                     if (weight == 0) {
-                                        data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                        data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                     } else {
 
                                         tempData = bicubicInpainting(sumArray, weightVert,
@@ -616,7 +616,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         }
@@ -647,7 +647,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -697,7 +697,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -738,7 +738,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         }
@@ -785,7 +785,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -835,7 +835,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 } else {
 
                                     tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
@@ -905,7 +905,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         } else {
@@ -973,7 +973,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                                     // Control if the 16 pixel are all No Data
                                     if (weight == 0) {
-                                        data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                        data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                     } else {
 
                                         tempData = bicubicInpainting(sumArray, weightVert,
@@ -1003,7 +1003,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 }
                             }
                         }
@@ -1081,7 +1081,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1131,7 +1131,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1172,7 +1172,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     }
@@ -1219,7 +1219,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1268,7 +1268,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             } else {
 
                                 tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
@@ -1337,7 +1337,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1404,7 +1404,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 } else {
 
                                     tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
@@ -1433,7 +1433,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     }
@@ -1509,7 +1509,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1559,7 +1559,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1600,7 +1600,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     }
@@ -1647,7 +1647,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1696,7 +1696,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             } else {
 
                                 tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
@@ -1765,7 +1765,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1832,7 +1832,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                    data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 } else {
 
                                     tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
@@ -1861,7 +1861,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     }
@@ -1937,7 +1937,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1987,7 +1987,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -2028,7 +2028,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     }
@@ -2075,7 +2075,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -2124,7 +2124,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             } else {
 
                                 tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
@@ -2193,7 +2193,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -2260,7 +2260,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                    data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                                 } else {
 
                                     tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
@@ -2289,7 +2289,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     }
@@ -2365,7 +2365,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -2415,7 +2415,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -2456,7 +2456,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     }
@@ -2501,7 +2501,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -2550,7 +2550,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             } else {
 
                                 tempData = bicubicInpaintingDouble(sumArray, weightVert, emptyArray);
@@ -2615,7 +2615,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -2683,7 +2683,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                    data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                                 } else {
 
                                     tempData = bicubicInpaintingDouble(sumArray, weightVert,
@@ -2711,7 +2711,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     }
@@ -2787,7 +2787,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -2828,7 +2828,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -2860,7 +2860,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     }
@@ -2905,7 +2905,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -2954,7 +2954,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             } else {
 
                                 tempData = bicubicInpaintingDouble(sumArray, weightVert, emptyArray);
@@ -3011,7 +3011,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -3079,7 +3079,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
 
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                    data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                                 } else {
 
                                     tempData = bicubicInpaintingDouble(sumArray, weightVert,
@@ -3099,7 +3099,7 @@ final class WarpBicubicOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     }

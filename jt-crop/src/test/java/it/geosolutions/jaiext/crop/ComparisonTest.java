@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.crop;
 
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
@@ -230,6 +231,7 @@ public class ComparisonTest extends TestBase {
 
             // creation of the image
             if (OLD_DESCRIPTOR) {
+                JAIExt.registerJAIDescriptor("Crop");
                 imageCrop = javax.media.jai.operator.CropDescriptor.create(image, cropX, cropY,
                         cropWidth, cropHeight, null);
             } else {

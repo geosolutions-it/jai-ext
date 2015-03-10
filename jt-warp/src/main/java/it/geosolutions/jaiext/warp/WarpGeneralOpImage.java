@@ -63,7 +63,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
     private byte[][] ctable = null;
 
     /** LookupTable used for a faster NoData check */
-    private byte[] byteLookupTable;
+    private byte[][] byteLookupTable;
 
     /**
      * Constructs a WarpGeneralOpImage.
@@ -99,38 +99,41 @@ final class WarpGeneralOpImage extends WarpOpImage {
         /*
          * Selection of a destinationNoData value for each datatype
          */
-        destinationNoDataDouble = backgroundValues[0];
+        //backgroundValues[b] = backgroundValues[0];
         SampleModel sm = source.getSampleModel();
         // Source image data Type
         int srcDataType = sm.getDataType();
 
         switch (srcDataType) {
         case DataBuffer.TYPE_BYTE:
-            destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
+            //destinationNoDataByte = (byte) (((byte) backgroundValues[b]) & 0xff);
             // Creation of a lookuptable containing the values to use for no data
             if (hasNoData) {
-                byteLookupTable = new byte[256];
-                for (int i = 0; i < byteLookupTable.length; i++) {
-                    byte value = (byte) i;
-                    if (noDataRange.contains(value)) {
-                        byteLookupTable[i] = NODATA_VALUE;
-                    } else {
-                        byteLookupTable[i] = value;
-                    }
-                }
+				int numBands = getNumBands();
+				byteLookupTable = new byte[numBands][256];
+				for (int b = 0; b < numBands; b++) {
+					for (int i = 0; i < byteLookupTable.length; i++) {
+						byte value = (byte) i;
+						if (noDataRange.contains(value)) {
+							byteLookupTable[b][i] = (byte) backgroundValues[b];
+						} else {
+							byteLookupTable[b][i] = value;
+						}
+					}
+				}
             }
             break;
         case DataBuffer.TYPE_USHORT:
-            destinationNoDataShort = (short) (((short) destinationNoDataDouble) & 0xffff);
+            //(short)backgroundValues[b] = (short) (((short) backgroundValues[b]) & 0xffff);
             break;
         case DataBuffer.TYPE_SHORT:
-            destinationNoDataShort = (short) destinationNoDataDouble;
+            //(short)backgroundValues[b] = (short) backgroundValues[b];
             break;
         case DataBuffer.TYPE_INT:
-            destinationNoDataInt = (int) destinationNoDataDouble;
+            //(int)backgroundValues[b] = (int) backgroundValues[b];
             break;
         case DataBuffer.TYPE_FLOAT:
-            destinationNoDataFloat = (float) destinationNoDataDouble;
+            //(float)backgroundValues[b] = (float) backgroundValues[b];
             break;
         case DataBuffer.TYPE_DOUBLE:
             break;
@@ -221,7 +224,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         } else {
@@ -266,7 +269,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         } else {
@@ -301,7 +304,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         }
@@ -331,7 +334,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         } else {
@@ -356,7 +359,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 for (int j = 0; j < kheight; j++) {
                                     for (int i = 0; i < kwidth; i++) {
                                         // If the value is a NODATA, is substituted with 0
-                                        samples[j][i] = byteLookupTable[iter.getSample(xint + i,
+                                        samples[j][i] = byteLookupTable[b][iter.getSample(xint + i,
                                                 yint + j, b) & 0xFF];
                                     }
                                 }
@@ -390,7 +393,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         } else {
@@ -420,7 +423,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                         //
                                         for (int i = 0; i < kwidth; i++) {
                                             // If the value is a NODATA, is substituted with 0
-                                            samples[j][i] = byteLookupTable[iter.getSample(
+                                            samples[j][i] = byteLookupTable[b][iter.getSample(
                                                     xint + i, yint + j, b) & 0xFF];
                                         }
                                     }
@@ -430,7 +433,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         }
@@ -463,7 +466,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         } else {
@@ -508,7 +511,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         } else {
@@ -543,7 +546,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         }
@@ -573,7 +576,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         } else {
@@ -588,7 +591,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 for (int j = 0; j < kheight; j++) {
                                     for (int i = 0; i < kwidth; i++) {
                                         // If the value is a NODATA, is substituted with 0
-                                        samples[j][i] = byteLookupTable[t[iter.getSample(xint + i,
+                                        samples[j][i] = byteLookupTable[b][t[iter.getSample(xint + i,
                                                 yint + j, 0) & 0xFF] & 0xFF];
                                     }
                                 }
@@ -623,7 +626,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             /* Fill with a background color. */
                             if (setBackground) {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         } else {
@@ -654,7 +657,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                     for (int j = 0; j < kheight; j++) {
                                         for (int i = 0; i < kwidth; i++) {
                                             // If the value is a NODATA, is substituted with 0
-                                            samples[j][i] = byteLookupTable[t[iter.getSample(xint
+                                            samples[j][i] = byteLookupTable[b][t[iter.getSample(xint
                                                     + i, yint + j, 0) & 0xFF] & 0xFF];
                                         }
                                     }
@@ -664,7 +667,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                                 }
                             } else {
                                 for (int b = 0; b < dstBands; b++) {
-                                    data[b][pixelOffset + bandOffsets[b]] = destinationNoDataByte;
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) backgroundValues[b];
                                 }
                             }
                         }
@@ -746,7 +749,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     } else {
@@ -790,7 +793,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     } else {
@@ -824,7 +827,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     }
@@ -855,7 +858,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     } else {
@@ -909,7 +912,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     } else {
@@ -953,7 +956,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     }
@@ -1034,7 +1037,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     } else {
@@ -1078,7 +1081,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     } else {
@@ -1112,7 +1115,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     }
@@ -1143,7 +1146,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     } else {
@@ -1197,7 +1200,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short) backgroundValues[b];
                             }
                         }
                     } else {
@@ -1241,7 +1244,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataShort;
+                                data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             }
                         }
                     }
@@ -1322,7 +1325,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1366,7 +1369,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1400,7 +1403,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     }
@@ -1431,7 +1434,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1485,7 +1488,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1529,7 +1532,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataInt;
+                                data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             }
                         }
                     }
@@ -1607,7 +1610,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1651,7 +1654,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1685,7 +1688,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     }
@@ -1716,7 +1719,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1770,7 +1773,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     } else {
@@ -1814,7 +1817,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataFloat;
+                                data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             }
                         }
                     }
@@ -1892,7 +1895,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -1936,7 +1939,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -1970,7 +1973,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     }
@@ -2001,7 +2004,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -2055,7 +2058,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                         /* Fill with a background color. */
                         if (setBackground) {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     } else {
@@ -2099,7 +2102,7 @@ final class WarpGeneralOpImage extends WarpOpImage {
                             }
                         } else {
                             for (int b = 0; b < dstBands; b++) {
-                                data[b][pixelOffset + bandOffsets[b]] = destinationNoDataDouble;
+                                data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             }
                         }
                     }

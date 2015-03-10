@@ -188,7 +188,7 @@ public class ZonalStatsTest extends TestBase {
         rangeList[5] = new ArrayList<Range>(1);
 
         // Data Range creation
-        rangeList[0].add(RangeFactory.create((byte) -1, true, (byte) 100, true));
+        rangeList[0].add(RangeFactory.create((byte) 0, true, (byte) 100, true));
         rangeList[1].add(RangeFactory.createU((short) 0.0, true, (short) 100, true));
         rangeList[2].add(RangeFactory.create((short) -1, true, (short) 100, true));
         rangeList[3].add(RangeFactory.create(-1, true, 100, true));

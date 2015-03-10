@@ -53,7 +53,7 @@ public class ScaleNearestOpImage3 extends ScaleOpImage {
     public ScaleNearestOpImage3(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor) {
-        super(source, layout, configuration, true, extender, interp, scaleX, scaleY, transX, transY, useRoiAccessor);
+        super(source, layout, configuration, true, extender, interp, scaleX, scaleY, transX, transY, useRoiAccessor, null);
         scaleOpInitialization(source, interp);
     }
 

@@ -46,4 +46,21 @@ public interface InterpolationNoData {
      */
     public double getDestinationNoData();
     
+    /**
+     * Sets the destinationNoData value associated to the Interpolation Object
+     */
+    public void setDestinationNoData(double destinationNoData);
+
+    /**
+     * Sets the useROIAccessor value associated to the Interpolation Object
+     */
+	public void setUseROIAccessor(boolean useROIAccessor);
+	
+    /**
+     * Gets the useROIAccessor value associated to the Interpolation Object
+     *
+     * @return useROIAccessor
+     */
+	public boolean getUseROIAccessor();
+    
 }

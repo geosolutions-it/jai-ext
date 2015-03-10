@@ -42,10 +42,10 @@ import javax.media.jai.RasterFormatTag;
  */
 public class ComplexStatsOpImage extends StatisticsOpImage {
 
-    public ComplexStatsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+    public ComplexStatsOpImage(RenderedImage source,
             int xPeriod, int yPeriod, ROI roi, Range noData, boolean useROIAccessor, int[] bands,
             StatsType[] statsTypes, double[] minBound, double[] maxBound, int[] numBins) {
-        super(source, layout, configuration, xPeriod, yPeriod, roi, noData, useROIAccessor, bands,
+        super(source, xPeriod, yPeriod, roi, noData, useROIAccessor, bands,
                 statsTypes, minBound, maxBound, numBins);
 
         // Storage of the statistic types indexes if present, and check if they are not simple statistic
@@ -67,6 +67,16 @@ public class ComplexStatsOpImage extends StatisticsOpImage {
 
         // Storage of the band indexes and length
         this.bands = bands;
+        
+        int[] numB = new int[bandsNumber];
+        double[] lowValue = new double[bandsNumber];
+        double[] highValue = new double[bandsNumber];
+        
+        for (int b = 0; b < bandsNumber; b++) {
+            numB[b] = numBins.length == 1 ? numBins[0] : numBins[b];
+            lowValue[b] = minBound.length == 1 ? minBound[0] : minBound[b];
+            highValue[b] = maxBound.length == 1 ? maxBound[0] : maxBound[b];
+        }
 
         // Creation of a global container of all the selected statistics for every band
         this.stats = new Statistics[selectedBands][statNum];
@@ -74,7 +84,7 @@ public class ComplexStatsOpImage extends StatisticsOpImage {
         for (int i = 0; i < selectedBands; i++) {
             for (int j = 0; j < statNum; j++) {
                 stats[i][j] = StatsFactory.createComplexStatisticsObjectFromInt(
-                        statsTypes[j].getStatsId(), minBound[j], maxBound[j], numBins[j]);
+                        statsTypes[j].getStatsId(), lowValue[i], highValue[i], numB[i]);
             }
         }
     }
@@ -98,7 +108,7 @@ public class ComplexStatsOpImage extends StatisticsOpImage {
             return source;
         }
 
-        Rectangle srcRect = source.getBounds();
+        Rectangle srcRect = getSourceImage(0).getBounds().intersection(source.getBounds());
         // creation of the RasterAccessor
         RasterAccessor src = new RasterAccessor(source, srcRect, formatTags[0], getSourceImage(0)
                 .getColorModel());

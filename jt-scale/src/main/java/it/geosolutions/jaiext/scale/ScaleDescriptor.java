@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.scale;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -83,13 +84,18 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
             if (property == null ||
                 property.equals(java.awt.Image.UndefinedProperty) ||
                 !(property instanceof ROI)) {
-                return java.awt.Image.UndefinedProperty;
+                // Check on the parameterBlock
+                if(pb.getObjectParameter(5) != null){
+                    property = pb.getObjectParameter(5);
+                }else{
+                    return java.awt.Image.UndefinedProperty;
+                }
             }
             ROI srcROI = (ROI)property;
             
-            if (! (src instanceof RenderedOp)) {
-            	return srcROI;
-            }
+            //if (! (src instanceof RenderedOp)) {
+            	//return srcROI;
+            //}
             
             // Retrieve the Interpolation object.
             Interpolation interp = (Interpolation)pb.getObjectParameter(4);
@@ -165,7 +171,7 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
 	            
 	            InterpolationBilinear interpBilinear=new InterpolationBilinear(interpolator.getSubsampleBitsH(), null, false, 0, interpolator.getDataType());	                    
 	            
-	            roiImage = new ScaleGeneralOpImage(constantImage, null,scalingHints,extender, interpBilinear,sx, sy, tx, ty,  false);
+	            roiImage = new ScaleGeneralOpImage(constantImage, null,scalingHints,extender, interpBilinear,sx, sy, tx, ty,  false, null, null);
 	            
 //	            roiImage = new ScaleBilinearOpImage(constantImage, extender, scalingHints, layout, sx, sy, tx, ty, interp, false);
 	            
@@ -191,7 +197,7 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
 						paramBlock.add(interp);
 					}
 				}
-				roiImage = JAI.create("ScaleNoData", paramBlock);
+				roiImage = JAI.create("Scale", paramBlock);
             }
             ROI dstROI = new ROI(roiImage, 1);
             
@@ -313,8 +319,8 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
  * <p><table border=1>
  * <caption>Resource List</caption>
  * <tr><th>Name</th>        <th>Value</th></tr>
- * <tr><td>GlobalName</td>  <td>ScaleNoData</td></tr>
- * <tr><td>LocalName</td>   <td>ScaleNoData</td></tr>
+ * <tr><td>GlobalName</td>  <td>Scale</td></tr>
+ * <tr><td>LocalName</td>   <td>Scale</td></tr>
  * <tr><td>Vendor</td>      <td>it.geosolutions.jaiext</td></tr>
  * <tr><td>Description</td> <td>Resizes an image.</td></tr>
  * <tr><td>DocURL</td>      <td> See this URL for the official description http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ScaleDescriptor.html</td></tr>
@@ -360,8 +366,8 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
      * and specify the parameter list for this operation.
      */
     private static final String[][] resources = {
-        {"GlobalName",  "ScaleNoData"},
-        {"LocalName",   "ScaleNoData"},
+        {"GlobalName",  "Scale"},
+        {"LocalName",   "Scale"},
         {"Vendor",      "it.geosolutions.jaiext"},
         {"Description", JaiI18N.getString("ScaleDescriptor0")},
         {"DocURL",      "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ScaleDescriptor.html"},
@@ -373,26 +379,28 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
         {"arg4Desc",    JaiI18N.getString("ScaleDescriptor5")},
         {"arg5Desc",    JaiI18N.getString("ScaleDescriptor6")},
         {"arg6Desc",    JaiI18N.getString("ScaleDescriptor7")},
-        
+        {"arg7Desc",    JaiI18N.getString("ScaleDescriptor8")},
+        {"arg8Desc",    JaiI18N.getString("ScaleDescriptor9")},
     };
 
     /** The parameter class list for this operation. */
     private static final Class[] paramClasses = {
         java.lang.Float.class, java.lang.Float.class,
         java.lang.Float.class, java.lang.Float.class,
-        javax.media.jai.Interpolation.class, ROI.class, Boolean.class
+        javax.media.jai.Interpolation.class, ROI.class, Boolean.class,
+        it.geosolutions.jaiext.range.Range.class, double[].class
     };
 
     /** The parameter name list for this operation. */
     private static final String[] paramNames = {
-        "xScale", "yScale", "xTrans", "yTrans", "interpolation", "ROI", "useRoiAccessor"
+        "xScale", "yScale", "xTrans", "yTrans", "interpolation", "ROI", "useRoiAccessor", "nodata", "backgroundValues"
     };
 
     /** The parameter default value list for this operation. */
     private static final Object[] paramDefaults = {
         new Float(1.0F), new Float(1.0F),
         new Float(0.0F), new Float(0.0F),
-        null,null, false
+        Interpolation.getInstance(Interpolation.INTERP_NEAREST),null, false, null, null
     };
 
     /** Constructor. */
@@ -432,7 +440,11 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
 
         float xScale = args.getFloatParameter(0);
         float yScale = args.getFloatParameter(1);
-        if (xScale <= 0 || yScale <= 0) {
+        ROI roi = null;
+        if(args.getNumParameters() > 5 && args.getObjectParameter(5) != null){
+            roi = (ROI) args.getObjectParameter(5);
+        }
+        if ((xScale <= 0 || yScale <= 0) && roi == null) {
             msg.append(getName() + " " +
                        JaiI18N.getString("ScaleDescriptor6"));
 	    return false;
@@ -454,7 +466,7 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
             return new Float(0.0F);
         } else if (index == 2 || index == 3) {
             return new Float(-Float.MAX_VALUE);
-        } else if (index == 4||index == 5|| index == 6) {
+        } else if (index == 4||index == 5|| index == 6|| index == 7|| index == 8) {
             return null;
     	} else {
             throw new ArrayIndexOutOfBoundsException();
@@ -484,6 +496,12 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
      * May be <code>null</code>.
      * @param interpolation The interpolation method for resampling.
      * May be <code>null</code>.
+     * @param ROI The ROI parameter.
+     * May be <code>null</code>.
+     * @param nodata The nodata Range parameter.
+     * May be <code>null</code>.
+     * @param backgroundValues The destination no data parameters.
+     * May be <code>null</code>.
      * @param hints The <code>RenderingHints</code> to use.
      * May be <code>null</code>.
      * @return The <code>RenderedOp</code> destination.
@@ -497,9 +515,11 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
                                     Interpolation interpolation,
                                     ROI roi,
                                     Boolean useRoiAccessor,
+                                    Range nodata,
+                                    double[] backgroundValues,
                                     RenderingHints hints)  {
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("ScaleNoData",
+            new ParameterBlockJAI("Scale",
                                   RenderedRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
@@ -509,11 +529,15 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
         pb.setParameter("xTrans", xTrans);
         pb.setParameter("yTrans", yTrans);
         pb.setParameter("interpolation", interpolation);
+        pb.setParameter("nodata", nodata);
         if(roi!=null)
             pb.setParameter("ROI", roi);
+        if(backgroundValues != null){
+        	pb.setParameter("backgroundValues", backgroundValues);
+        }
         pb.setParameter("useRoiAccessor", useRoiAccessor);
 
-        return JAI.create("ScaleNoData", pb, hints);
+        return JAI.create("Scale", pb, hints);
     }
 
     /**
@@ -538,6 +562,12 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
      * May be <code>null</code>.
      * @param interpolation The interpolation method for resampling.
      * May be <code>null</code>.
+     * @param ROI The ROI parameter.
+     * May be <code>null</code>.
+     * @param nodata The nodata Range parameter.
+     * May be <code>null</code>.
+     * @param backgroundValues The destination no data parameters.
+     * May be <code>null</code>.
      * @param hints The <code>RenderingHints</code> to use.
      * May be <code>null</code>.
      * @return The <code>RenderableOp</code> destination.
@@ -550,9 +580,11 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
                                                 Float yTrans,
                                                 Interpolation interpolation,
                                                 ROI roi,
+                                                Range nodata,
+                                                double[] backgroundValues,
                                                 RenderingHints hints)  {
         ParameterBlockJAI pb =
-            new ParameterBlockJAI("ScaleNoData",
+            new ParameterBlockJAI("Scale",
                                   RenderableRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
@@ -562,8 +594,12 @@ public class ScaleDescriptor extends OperationDescriptorImpl {
         pb.setParameter("xTrans", xTrans);
         pb.setParameter("yTrans", yTrans);
         pb.setParameter("interpolation", interpolation);
+        pb.setParameter("nodata", nodata);
         if(roi!=null)
             pb.setParameter("ROI", roi);
-        return JAI.createRenderable("ScaleNoData", pb, hints);
+        if(backgroundValues != null){
+        	pb.setParameter("backgroundValues", backgroundValues);
+        }
+        return JAI.createRenderable("Scale", pb, hints);
     }
 }

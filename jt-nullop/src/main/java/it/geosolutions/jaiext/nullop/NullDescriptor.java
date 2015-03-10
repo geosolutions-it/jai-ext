@@ -54,11 +54,11 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>GlobalName</td>
- * <td>NullOp</td>
+ * <td>Null</td>
  * </tr>
  * <tr>
  * <td>LocalName</td>
- * <td>NullOp</td>
+ * <td>Null</td>
  * </tr>
  * <tr>
  * <td>Vendor</td>
@@ -90,8 +90,8 @@ public class NullDescriptor extends OperationDescriptorImpl {
     /**
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
-    private static final String[][] resources = { { "GlobalName", "NullOp" },
-            { "LocalName", "NullOp" }, { "Vendor", "it.geosolutions.jaiext" },
+    private static final String[][] resources = { { "GlobalName", "Null" },
+            { "LocalName", "Null" }, { "Vendor", "it.geosolutions.jaiext" },
             { "Description", "Operation used for wrapping other images with no processing" },
             { "DocURL", "Not Defined" }, { "Version", "1.0" }, };
 
@@ -186,11 +186,11 @@ public class NullDescriptor extends OperationDescriptorImpl {
      */
     public static RenderedOp create(RenderedImage source0, RenderingHints hints) {
         // Selection of the parameterBlock associated with the Null operation
-        ParameterBlockJAI pb = new ParameterBlockJAI("NullOp", RenderedRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("Null", RenderedRegistryMode.MODE_NAME);
         // Setting of the source
         pb.setSource("source0", source0);
         // Creation of the RenderedOp associated with the Null operation
-        return JAI.create("NullOp", pb, hints);
+        return JAI.create("Null", pb, hints);
     }
 
     /**
@@ -211,10 +211,10 @@ public class NullDescriptor extends OperationDescriptorImpl {
      */
     public static RenderableOp createRenderable(RenderableImage source0, RenderingHints hints) {
         // Selection of the parameterBlock associated with the Null operation
-        ParameterBlockJAI pb = new ParameterBlockJAI("NullOp", RenderableRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("Null", RenderableRegistryMode.MODE_NAME);
         // Setting of the source
         pb.setSource("source0", source0);
         // Creation of the RenderabledOp associated with the Null operation
-        return JAI.createRenderable("NullOp", pb, hints);
+        return JAI.createRenderable("Null", pb, hints);
     }
 }

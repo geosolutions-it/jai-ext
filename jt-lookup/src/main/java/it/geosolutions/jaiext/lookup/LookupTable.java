@@ -19,22 +19,20 @@ package it.geosolutions.jaiext.lookup;
 
 import it.geosolutions.jaiext.range.Range;
 
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
-import java.awt.image.DataBufferByte;
-import java.awt.image.DataBufferInt;
-import java.awt.image.DataBufferShort;
-import java.awt.image.DataBufferUShort;
 import java.awt.image.Raster;
+import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.io.Serializable;
-
+import javax.media.jai.LookupTableJAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFactory;
+import javax.media.jai.RasterFormatTag;
 import javax.media.jai.iterator.RandomIter;
-
-import com.sun.media.jai.util.DataBufferUtils;
 
 /**
  * This abstract class defines the general methods of a LookupTable. This class contains all the table informations used by its direct subclasses for
@@ -45,13 +43,7 @@ import com.sun.media.jai.util.DataBufferUtils;
  * subClass data type.
  */
 
-public abstract class LookupTable implements Serializable {
-
-    /** The table data. */
-    protected transient DataBuffer data;
-
-    /** The band offset values */
-    protected int[] tableOffsets;
+public class LookupTable extends LookupTableJAI implements Serializable {
 
     /** Destination no data for Byte images */
     protected byte destinationNoDataByte;
@@ -88,7 +80,7 @@ public abstract class LookupTable implements Serializable {
 
     /** Boolean indicating if the image contains a ROI */
     protected boolean hasROI;
-
+    
     /**
      * Constructs a single-banded byte lookup table. The index offset is 0.
      * 
@@ -96,12 +88,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(byte[] data) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.data = new DataBufferByte(data, data.length);
-        this.initOffsets(1, 0);
+        super(data);
     }
 
     /**
@@ -112,12 +99,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(byte[] data, int offset) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(1, offset);
-        this.data = new DataBufferByte(data, data.length);
+        super(data, offset);
     }
 
     /**
@@ -127,12 +109,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     public LookupTable(byte[][] data) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, 0);
-        this.data = new DataBufferByte(data, data[0].length);
+        super(data);
     }
 
     /**
@@ -143,12 +120,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     public LookupTable(byte[][] data, int offset) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, offset);
-        this.data = new DataBufferByte(data, data[0].length);
+        super(data, offset);
     }
 
     /**
@@ -159,12 +131,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(byte[][] data, int[] offsets) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, offsets);
-        this.data = new DataBufferByte(data, data[0].length);
+        super(data, offsets);
     }
 
     /**
@@ -175,16 +142,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(short[] data, boolean isUShort) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(1, 0);
-        if (isUShort) {
-            this.data = new DataBufferUShort(data, data.length);
-        } else {
-            this.data = new DataBufferShort(data, data.length);
-        }
+        super(data, isUShort);
     }
 
     /**
@@ -196,16 +154,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(short[] data, int offset, boolean isUShort) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(1, offset);
-        if (isUShort) {
-            this.data = new DataBufferUShort(data, data.length);
-        } else {
-            this.data = new DataBufferShort(data, data.length);
-        }
+        super(data, offset, isUShort);
     }
 
     /**
@@ -216,16 +165,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(short[][] data, boolean isUShort) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, 0);
-        if (isUShort) {
-            this.data = new DataBufferUShort(data, data[0].length);
-        } else {
-            this.data = new DataBufferShort(data, data[0].length);
-        }
+        super(data, isUShort);
     }
 
     /**
@@ -237,16 +177,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(short[][] data, int offset, boolean isUShort) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, offset);
-        if (isUShort) {
-            this.data = new DataBufferUShort(data, data[0].length);
-        } else {
-            this.data = new DataBufferShort(data, data[0].length);
-        }
+        super(data, offset, isUShort);
     }
 
     /**
@@ -258,17 +189,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(short[][] data, int[] offsets, boolean isUShort) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, offsets);
-
-        if (isUShort) {
-            this.data = new DataBufferUShort(data, data[0].length);
-        } else {
-            this.data = new DataBufferShort(data, data[0].length);
-        }
+        super(data, offsets, isUShort);
     }
 
     /**
@@ -278,12 +199,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(int[] data) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(1, 0);
-        this.data = new DataBufferInt(data, data.length);
+        super(data);
     }
 
     /**
@@ -294,12 +210,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(int[] data, int offset) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(1, offset);
-        this.data = new DataBufferInt(data, data.length);
+        super(data, offset);
     }
 
     /**
@@ -309,12 +220,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(int[][] data) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, 0);
-        this.data = new DataBufferInt(data, data[0].length);
+        super(data);
     }
 
     /**
@@ -325,12 +231,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(int[][] data, int offset) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, offset);
-        this.data = new DataBufferInt(data, data[0].length);
+        super(data, offset);
     }
 
     /**
@@ -341,12 +242,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(int[][] data, int[] offsets) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, offsets);
-        this.data = new DataBufferInt(data, data[0].length);
+        super(data, offsets);
     }
 
     /**
@@ -356,12 +252,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(float[] data) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(1, 0);
-        this.data = DataBufferUtils.createDataBufferFloat(data, data.length);
+        super(data);
     }
 
     /**
@@ -372,12 +263,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(float[] data, int offset) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(1, offset);
-        this.data = DataBufferUtils.createDataBufferFloat(data, data.length);
+        super(data, offset);
     }
 
     /**
@@ -387,12 +273,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(float[][] data) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, 0);
-        this.data = DataBufferUtils.createDataBufferFloat(data, data[0].length);
+        super(data);
     }
 
     /**
@@ -403,12 +284,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(float[][] data, int offset) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, offset);
-        this.data = DataBufferUtils.createDataBufferFloat(data, data[0].length);
+        super(data, offset);
     }
 
     /**
@@ -419,12 +295,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(float[][] data, int[] offsets) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, offsets);
-        this.data = DataBufferUtils.createDataBufferFloat(data, data[0].length);
+        super(data, offsets);
     }
 
     /**
@@ -434,12 +305,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(double[] data) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(1, 0);
-        this.data = DataBufferUtils.createDataBufferDouble(data, data.length);
+        super(data);
     }
 
     /**
@@ -450,12 +316,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(double[] data, int offset) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(1, offset);
-        this.data = DataBufferUtils.createDataBufferDouble(data, data.length);
+        super(data, offset);
     }
 
     /**
@@ -465,12 +326,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(double[][] data) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, 0);
-        this.data = DataBufferUtils.createDataBufferDouble(data, data[0].length);
+        super(data);
     }
 
     /**
@@ -481,12 +337,7 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(double[][] data, int offset) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, offset);
-        this.data = DataBufferUtils.createDataBufferDouble(data, data[0].length);
+        super(data, offset);
     }
 
     /**
@@ -497,310 +348,18 @@ public abstract class LookupTable implements Serializable {
      * @throws IllegalArgumentException if data is null.
      */
     protected LookupTable(double[][] data, int[] offsets) {
-        if (data == null) {
-            throw new IllegalArgumentException("Input data cannot be null");
-        }
-
-        this.initOffsets(data.length, offsets);
-        this.data = DataBufferUtils.createDataBufferDouble(data, data[0].length);
-    }
-
-    /**
-     * Returns the table data as a DataBuffer.
-     */
-    public DataBuffer getData() {
-        return data;
-    }
-
-    /**
-     * Returns the byte table data in array format, or null if the table's data type is not byte.
-     */
-    public byte[][] getByteData() {
-        return data instanceof DataBufferByte ? ((DataBufferByte) data).getBankData() : null;
-    }
-
-    /**
-     * Returns the byte table data of a specific band in array format, or null if the table's data type is not byte.
-     */
-    public byte[] getByteData(int band) {
-        return data instanceof DataBufferByte ? ((DataBufferByte) data).getData(band) : null;
-    }
-
-    /**
-     * Returns the short table data in array format, or null if the table's data type is not short. This includes both signed and unsigned short table
-     * data.
-     * 
-     */
-    public short[][] getShortData() {
-        if (data instanceof DataBufferUShort) {
-            return ((DataBufferUShort) data).getBankData();
-        } else if (data instanceof DataBufferShort) {
-            return ((DataBufferShort) data).getBankData();
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Returns the short table data of a specific band in array format, or null if the table's data type is not short.
-     * 
-     */
-    public short[] getShortData(int band) {
-        if (data instanceof DataBufferUShort) {
-            return ((DataBufferUShort) data).getData(band);
-        } else if (data instanceof DataBufferShort) {
-            return ((DataBufferShort) data).getData(band);
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Returns the integer table data in array format, or null if the table's data type is not int.
-     * 
-     */
-    public int[][] getIntData() {
-        return data instanceof DataBufferInt ? ((DataBufferInt) data).getBankData() : null;
-    }
-
-    /**
-     * Returns the integer table data of a specific band in array format, or null if table's data type is not int.
-     * 
-     */
-    public int[] getIntData(int band) {
-        return data instanceof DataBufferInt ? ((DataBufferInt) data).getData(band) : null;
-    }
-
-    /**
-     * Returns the float table data in array format, or null if the table's data type is not float.
-     * 
-     */
-    public float[][] getFloatData() {
-        return data.getDataType() == DataBuffer.TYPE_FLOAT ? DataBufferUtils.getBankDataFloat(data)
-                : null;
-    }
-
-    /**
-     * Returns the float table data of a specific band in array format, or null if table's data type is not float.
-     * 
-     */
-    public float[] getFloatData(int band) {
-        return data.getDataType() == DataBuffer.TYPE_FLOAT ? DataBufferUtils.getDataFloat(data,
-                band) : null;
-    }
-
-    /**
-     * Returns the double table data in array format, or null if the table's data type is not double.
-     * 
-     */
-    public double[][] getDoubleData() {
-        return data.getDataType() == DataBuffer.TYPE_DOUBLE ? DataBufferUtils
-                .getBankDataDouble(data) : null;
-    }
-
-    /**
-     * Returns the double table data of a specific band in array format, or null if table's data type is not double.
-     * 
-     */
-    public double[] getDoubleData(int band) {
-        return data.getDataType() == DataBuffer.TYPE_DOUBLE ? DataBufferUtils.getDataDouble(data,
-                band) : null;
-    }
-
-    /** Returns the index offsets of entry 0 for all bands. */
-    public int[] getOffsets() {
-        return tableOffsets;
-    }
-
-    /**
-     * Returns the index offset of entry 0 for the default band.
-     * 
-     */
-    public int getOffset() {
-        return tableOffsets[0];
-    }
-
-    /**
-     * Returns the index offset of entry 0 for a specific band.
-     * 
-     */
-    public int getOffset(int band) {
-        return tableOffsets[band];
-    }
-
-    /** Returns the number of bands of the table. */
-    public int getNumBands() {
-        return data.getNumBanks();
-    }
-
-    /**
-     * Returns the number of entries per band of the table.
-     * 
-     */
-    public int getNumEntries() {
-        return data.getSize();
-    }
-
-    /**
-     * Returns the data type of the table data.
-     * 
-     */
-    public int getDataType() {
-        return data.getDataType();
-    }
-
-    /**
-     * Returns the number of bands of the destination image, based on the number of bands of the source image and lookup table.
-     * 
-     * @param srcNumBands The number of bands of the source image.
-     * @return the number of bands in destination image.
-     */
-    public int getDestNumBands(int srcNumBands) {
-        int tblNumBands = getNumBands();
-        return srcNumBands == 1 ? tblNumBands : srcNumBands;
-    }
-
-    /**
-     * Returns a <code>SampleModel</code> suitable for holding the output of a lookup operation on the source data described by a given SampleModel
-     * with this table. The width and height of the destination SampleModel are the same as that of the source. This method will return null if the
-     * source SampleModel has a non-integral data type.
-     * 
-     * @param srcSampleModel The SampleModel of the source image.
-     * 
-     * @throws IllegalArgumentException if srcSampleModel is null.
-     * @return sampleModel suitable for the destination image.
-     */
-    public SampleModel getDestSampleModel(SampleModel srcSampleModel) {
-        if (srcSampleModel == null) {
-            throw new IllegalArgumentException("Source SampleModel must be not null");
-        }
-
-        return getDestSampleModel(srcSampleModel, srcSampleModel.getWidth(),
-                srcSampleModel.getHeight());
-    }
-
-    /**
-     * Returns a <code>SampleModel</code> suitable for holding the output of a lookup operation on the source data described by a given SampleModel
-     * with this table. This method will return null if the source SampleModel has a non-integral data type.
-     * 
-     * @param srcSampleModel The SampleModel of the source image.
-     * @param width The width of the destination SampleModel.
-     * @param height The height of the destination SampleModel.
-     * 
-     * @throws IllegalArgumentException if srcSampleModel is null.
-     * @return sampleModel suitable for the destination image.
-     */
-    public SampleModel getDestSampleModel(SampleModel srcSampleModel, int width, int height) {
-        if (srcSampleModel == null) {
-            throw new IllegalArgumentException("Source SampleModel must be not null");
-        }
-        // Control if the source has non-integral data type
-        if (!isIntegralDataType(srcSampleModel)) {
-            return null;
-        }
-        // If the sample model is present, then a new component sample model is created
-        return RasterFactory.createComponentSampleModel(srcSampleModel, getDataType(), width,
-                height, getDestNumBands(srcSampleModel.getNumBands()));
-    }
-
-    /**
-     * Validates data type. Returns true if it's one of the integral data types; false otherwise.
-     * 
-     * @throws IllegalArgumentException if sampleModel is null.
-     */
-    public boolean isIntegralDataType(SampleModel sampleModel) {
-        if (sampleModel == null) {
-            throw new IllegalArgumentException("SampleModel must be not null");
-        }
-
-        return isIntegralDataType(sampleModel.getTransferType());
-    }
-
-    /**
-     * Returns <code>true</code> if the specified data type is an integral data type, such as byte, ushort, short, or int.
-     */
-    public boolean isIntegralDataType(int dataType) {
-        if ((dataType == DataBuffer.TYPE_BYTE) || (dataType == DataBuffer.TYPE_USHORT)
-                || (dataType == DataBuffer.TYPE_SHORT) || (dataType == DataBuffer.TYPE_INT)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Performs lookup on a given value belonging to a given source band, and returns the result as an int. NoData Range or ROI are not considered.
-     * 
-     * @param band The source band the value is from.
-     * @param value The source value to be placed through the lookup table.
-     */
-    public int lookup(int band, int value) {
-        return data.getElem(band, value - tableOffsets[band]);
-    }
-
-    /**
-     * Performs lookup on a given value belonging to a given source band, and returns the result as a float. NoData Range or ROI are not considered.
-     * 
-     * @param band The source band the value is from.
-     * @param value The source value to be placed through the lookup table.
-     */
-    public float lookupFloat(int band, int value) {
-        return data.getElemFloat(band, value - tableOffsets[band]);
-    }
-
-    /**
-     * Performs lookup on a given value belonging to a given source band, and returns the result as a double. NoData Range or ROI are not considered.
-     * 
-     * @param band The source band the value is from.
-     * @param value The source value to be placed through the lookup table.
-     */
-    public double lookupDouble(int band, int value) {
-        return data.getElemDouble(band, value - tableOffsets[band]);
-    }
-
-    /** This method sets the same table offset for all the bands */
-    protected void initOffsets(int nbands, int offset) {
-        tableOffsets = new int[nbands];
-        for (int i = 0; i < nbands; i++) {
-            tableOffsets[i] = offset;
-        }
-    }
-
-    /** This method sets the table offset related to every band */
-    protected void initOffsets(int nbands, int[] offset) {
-        tableOffsets = new int[nbands];
-        for (int i = 0; i < nbands; i++) {
-            tableOffsets[i] = offset[i];
-        }
+        super(data, offsets);
     }
 
     /** This method sets destination no data used for No Data or ROI calculation */
     public void setDestinationNoData(double destinationNoData) {               
-        // Selection of the table data type
-        int dataType = getDataType();
         // Cast of the initial double value to that of the data type
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
             destinationNoDataByte = (byte) ((byte) destinationNoData & 0xff);
-            break;
-        case DataBuffer.TYPE_USHORT:
             destinationNoDataShort = (short) ((short) destinationNoData & 0xffff);
-            break;
-        case DataBuffer.TYPE_SHORT:
             destinationNoDataShort = (short) destinationNoData;
-            break;
-        case DataBuffer.TYPE_INT:
             destinationNoDataInt = (int) destinationNoData;
-            break;
-        case DataBuffer.TYPE_FLOAT:
             destinationNoDataFloat = (float) destinationNoData;
-            break;
-        case DataBuffer.TYPE_DOUBLE:
             destinationNoDataDouble = destinationNoData;
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data type");
-        }
     }
 
     /** No Data flag is set to true and no data range is taken */
@@ -835,6 +394,6227 @@ public abstract class LookupTable implements Serializable {
     }
 
     /** Abstract method for calculating the destination tile from the source tile and an eventual ROI raster */
-    protected abstract void lookup(Raster source, WritableRaster dst, Rectangle rect, Raster roi);
+    protected void lookup(Raster source, WritableRaster dst, Rectangle rect, Raster roi){
+        
+        
+        // Validate source.
+        if (source == null) {
+            throw new IllegalArgumentException("Source data must be present");
+        }
 
+        // If the image data type is not integral an exception is thrown
+        SampleModel srcSampleModel = source.getSampleModel();
+        if (!isIntegralDataType(srcSampleModel)) {
+            throw new IllegalArgumentException("Only integral data type are handled");
+        }
+
+        // Validate rectangle.
+        if (rect == null) {
+            rect = source.getBounds();
+        } else {
+            rect = rect.intersection(source.getBounds());
+        }
+
+        if (dst != null) {
+            rect = rect.intersection(dst.getBounds());
+        }
+
+        // Validate destination.
+        SampleModel dstSampleModel;
+        if (dst == null) { // create dst according to table
+            dstSampleModel = getDestSampleModel(srcSampleModel, rect.width, rect.height);
+            dst = RasterFactory.createWritableRaster(dstSampleModel, new Point(rect.x, rect.y));
+        } else {
+            dstSampleModel = dst.getSampleModel();
+
+            if (dstSampleModel.getTransferType() != getDataType()
+                    || dstSampleModel.getNumBands() != getDestNumBands(srcSampleModel.getNumBands())) {
+                throw new IllegalArgumentException(
+                        "Destination image must have the same data type and band number of the Table");
+            }
+        }
+
+        // Add bit support?
+        int sTagID = RasterAccessor.findCompatibleTag(null, srcSampleModel);
+        int dTagID = RasterAccessor.findCompatibleTag(null, dstSampleModel);
+
+        RasterFormatTag sTag = new RasterFormatTag(srcSampleModel,sTagID);
+        RasterFormatTag dTag = new RasterFormatTag(dstSampleModel,dTagID);
+
+        RasterAccessor s = new RasterAccessor(source, rect, sTag, null);
+        RasterAccessor d = new RasterAccessor(dst, rect, dTag, null);
+        
+        // Roi rasterAccessor initialization
+        RasterAccessor roiAccessor = null;
+        // ROI calculation only if the roi raster is present
+        if (useROIAccessor) {
+            // Get the source rectangle
+            Rectangle srcRect = source.getBounds();
+            // creation of the rasterAccessor
+            roiAccessor = new RasterAccessor(roi, srcRect, RasterAccessor.findCompatibleTags(
+                    new RenderedImage[] { srcROIImage }, srcROIImage)[0],
+                    srcROIImage.getColorModel());
+        }
+
+        int srcNumBands = s.getNumBands();
+        int srcDataType = s.getDataType();
+
+        int tblNumBands = getNumBands();
+        int tblDataType = getDataType();
+
+        int dstWidth = d.getWidth();
+        int dstHeight = d.getHeight();
+        int dstNumBands = d.getNumBands();
+        int dstDataType = d.getDataType();
+
+        // Source information.
+        int srcLineStride = s.getScanlineStride();
+        int srcPixelStride = s.getPixelStride();
+        int[] srcBandOffsets = s.getBandOffsets();
+
+        byte[][] bSrcData = s.getByteDataArrays();
+        short[][] sSrcData = s.getShortDataArrays();
+        int[][] iSrcData = s.getIntDataArrays();
+
+        if (srcNumBands < dstNumBands) {
+            int offset0 = srcBandOffsets[0];
+            srcBandOffsets = new int[dstNumBands];
+            for (int i = 0; i < dstNumBands; i++) {
+                srcBandOffsets[i] = offset0;
+            }
+
+            switch (srcDataType) {
+            case DataBuffer.TYPE_BYTE:
+                byte[] bData0 = bSrcData[0];
+                bSrcData = new byte[dstNumBands][];
+                for (int i = 0; i < dstNumBands; i++) {
+                    bSrcData[i] = bData0;
+                }
+                break;
+            case DataBuffer.TYPE_USHORT:
+            case DataBuffer.TYPE_SHORT:
+                short[] sData0 = sSrcData[0];
+                sSrcData = new short[dstNumBands][];
+                for (int i = 0; i < dstNumBands; i++) {
+                    sSrcData[i] = sData0;
+                }
+                break;
+            case DataBuffer.TYPE_INT:
+                int[] iData0 = iSrcData[0];
+                iSrcData = new int[dstNumBands][];
+                for (int i = 0; i < dstNumBands; i++) {
+                    iSrcData[i] = iData0;
+                }
+                break;
+            }
+        }
+
+        // Table information.
+        int[] tblOffsets = getOffsets();
+
+        byte[][] bTblData = getByteData();
+        short[][] sTblData = getShortData();
+        int[][] iTblData = getIntData();
+        float[][] fTblData = getFloatData();
+        double[][] dTblData = getDoubleData();
+
+        if (tblNumBands < dstNumBands) {
+            int offset0 = tblOffsets[0];
+            tblOffsets = new int[dstNumBands];
+            for (int i = 0; i < dstNumBands; i++) {
+                tblOffsets[i] = offset0;
+            }
+
+            switch (tblDataType) {
+            case DataBuffer.TYPE_BYTE:
+                byte[] bData0 = bTblData[0];
+                bTblData = new byte[dstNumBands][];
+                for (int i = 0; i < dstNumBands; i++) {
+                    bTblData[i] = bData0;
+                }
+                break;
+            case DataBuffer.TYPE_USHORT:
+            case DataBuffer.TYPE_SHORT:
+                short[] sData0 = sTblData[0];
+                sTblData = new short[dstNumBands][];
+                for (int i = 0; i < dstNumBands; i++) {
+                    sTblData[i] = sData0;
+                }
+                break;
+            case DataBuffer.TYPE_INT:
+                int[] iData0 = iTblData[0];
+                iTblData = new int[dstNumBands][];
+                for (int i = 0; i < dstNumBands; i++) {
+                    iTblData[i] = iData0;
+                }
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                float[] fData0 = fTblData[0];
+                fTblData = new float[dstNumBands][];
+                for (int i = 0; i < dstNumBands; i++) {
+                    fTblData[i] = fData0;
+                }
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                double[] dData0 = dTblData[0];
+                dTblData = new double[dstNumBands][];
+                for (int i = 0; i < dstNumBands; i++) {
+                    dTblData[i] = dData0;
+                }
+            }
+        }
+
+        // Destination information.
+        int dstLineStride = d.getScanlineStride();
+        int dstPixelStride = d.getPixelStride();
+        int[] dstBandOffsets = d.getBandOffsets();
+
+        byte[][] bDstData = d.getByteDataArrays();
+        short[][] sDstData = d.getShortDataArrays();
+        int[][] iDstData = d.getIntDataArrays();
+        float[][] fDstData = d.getFloatDataArrays();
+        double[][] dDstData = d.getDoubleDataArrays();
+
+        switch (dstDataType) {
+        case DataBuffer.TYPE_BYTE:
+            switch (srcDataType) {
+            case DataBuffer.TYPE_BYTE:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, bSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, bDstData,
+                       tblOffsets, bTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_USHORT:
+                lookupU(srcLineStride, srcPixelStride,
+                        srcBandOffsets, sSrcData,
+                        dstWidth, dstHeight, dstNumBands,
+                        dstLineStride, dstPixelStride,
+                        dstBandOffsets, bDstData,
+                        tblOffsets, bTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_SHORT:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, sSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, bDstData,
+                       tblOffsets, bTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_INT:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, iSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, bDstData,
+                       tblOffsets, bTblData, roiAccessor, rect);
+                break;
+            }
+            break;
+
+        case DataBuffer.TYPE_USHORT:
+        case DataBuffer.TYPE_SHORT:
+            switch (srcDataType) {
+            case DataBuffer.TYPE_BYTE:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, bSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, sDstData,
+                       tblOffsets, sTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_USHORT:
+                lookupU(srcLineStride, srcPixelStride,
+                        srcBandOffsets, sSrcData,
+                        dstWidth, dstHeight, dstNumBands,
+                        dstLineStride, dstPixelStride,
+                        dstBandOffsets, sDstData,
+                        tblOffsets, sTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_SHORT:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, sSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, sDstData,
+                       tblOffsets, sTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_INT:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, iSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, sDstData,
+                       tblOffsets, sTblData, roiAccessor, rect);
+                break;
+            }
+            break;
+
+        case DataBuffer.TYPE_INT:
+            switch (srcDataType) {
+            case DataBuffer.TYPE_BYTE:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, bSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, iDstData,
+                       tblOffsets, iTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_USHORT:
+                lookupU(srcLineStride, srcPixelStride,
+                        srcBandOffsets, sSrcData,
+                        dstWidth, dstHeight, dstNumBands,
+                        dstLineStride, dstPixelStride,
+                        dstBandOffsets, iDstData,
+                        tblOffsets, iTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_SHORT:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, sSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, iDstData,
+                       tblOffsets, iTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_INT:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, iSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, iDstData,
+                       tblOffsets, iTblData, roiAccessor, rect);
+                break;
+            }
+            break;
+
+        case DataBuffer.TYPE_FLOAT:
+            switch (srcDataType) {
+            case DataBuffer.TYPE_BYTE:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, bSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, fDstData,
+                       tblOffsets, fTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_USHORT:
+                lookupU(srcLineStride, srcPixelStride,
+                        srcBandOffsets, sSrcData,
+                        dstWidth, dstHeight, dstNumBands,
+                        dstLineStride, dstPixelStride,
+                        dstBandOffsets, fDstData,
+                        tblOffsets, fTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_SHORT:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, sSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, fDstData,
+                       tblOffsets, fTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_INT:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, iSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, fDstData,
+                       tblOffsets, fTblData, roiAccessor, rect);
+                break;
+            }
+            break;
+
+        case DataBuffer.TYPE_DOUBLE:
+            switch (srcDataType) {
+            case DataBuffer.TYPE_BYTE:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, bSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, dDstData,
+                       tblOffsets, dTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_USHORT:
+                lookupU(srcLineStride, srcPixelStride,
+                        srcBandOffsets, sSrcData,
+                        dstWidth, dstHeight, dstNumBands,
+                        dstLineStride, dstPixelStride,
+                        dstBandOffsets, dDstData,
+                        tblOffsets, dTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_SHORT:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, sSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, dDstData,
+                       tblOffsets, dTblData, roiAccessor, rect);
+                break;
+
+            case DataBuffer.TYPE_INT:
+                lookup(srcLineStride, srcPixelStride,
+                       srcBandOffsets, iSrcData,
+                       dstWidth, dstHeight, dstNumBands,
+                       dstLineStride, dstPixelStride,
+                       dstBandOffsets, dDstData,
+                       tblOffsets, dTblData, roiAccessor, rect);
+                break;
+            }
+            break;
+        }
+
+        d.copyDataToRaster();
+
+        //return dst;
+        
+    }
+
+
+    // byte to byte
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            byte[][] bSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, byte[][] bDstData, int[] tblOffsets,
+            byte[][] bTblData, RasterAccessor roi, Rectangle destRect) {
+
+        // Destination image bounds
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        // ROI parameters
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        // Boolean indicating the possible situations: with or without ROI,
+        // with or without No Data, and a special case when table data are not present
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+
+            // Cycle on all the bands
+            for (int b = 0; b < dstNumBands; b++) {
+                // Selection of the band arrays
+                final byte[] s = bSrcData[b];
+                final byte[] d = bDstData[b];
+                final byte[] t = bTblData[b];
+                // Selection of the line offsets
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                // Cycle on all the y dimension
+                for (int h = 0; h < dstHeight; h++) {
+                    // Setting of the source and destination pixel offset(is updated for iterating on all the source and destination
+                    // array)
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+                    // Update of the line offsets
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+                    // Cycle on all the x dimension
+                    for (int w = 0; w < dstWidth; w++) {
+                        // Output value is taken from the table array
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+                        // Update of the source and destination pixel offsets
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    // Selection of the band arrays
+                    byte[] s = bSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+                    // Selection of the line offsets
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        // Setting of the source and destination pixel offset(is updated for iterating on all the source and destination
+                        // array)
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+                        // Update of the line offsets
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+                        // Calculation of the y roi position
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // Calculation of the x position
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            // Calculation of the roi data array index
+                            int windex = (posx / dstNumBands) + posyROI;
+                            // From the selected index the value is taken
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                            // If the roi value is 0 the value is outside the ROI, else the table value
+                            // is taken
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+                            }
+                            // Update of the source and destination pixel offsets
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    // Selection of the band arrays
+                    byte[] s = bSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+                    // Selection of the line offsets
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        // Setting of the source and destination pixel offset(is updated for iterating on all the source and destination
+                        // array)
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+                        // Update of the line offsets
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // If the sample is inside ROI bounds
+                            if (roiBounds.contains(x, y)) {
+                                // ROI pixel value is calculated
+                                int w = roiIter.getSample(x, y, 0);
+                                // if is 0 means that the pixel is outside the ROI, else the table data is taken
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            }
+                            // Update of the source and destination pixel offsets
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstNumBands; b++) {
+                // Selection of the band arrays
+                byte[] s = bSrcData[b];
+                byte[] d = bDstData[b];
+                byte[] t = bTblData[b];
+                // Selection of the line offsets
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                // Cycle on all the y dimension
+                for (int y = 0; y < dstHeight; y++) {
+                    // Setting of the source and destination pixel offset(is updated for iterating on all the source and destination
+                    // array)
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+                    // Update of the line offsets
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+                    // Cycle on all the x dimension
+                    for (int x = 0; x < dstWidth; x++) {
+                        // If the value is a not a noData, the table value is stored
+                        byte value = (s[srcPixelOffset]);
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataByte;
+                        } else {
+                            d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                        }
+                        // Update of the source and destination pixel offsets
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    // Selection of the band arrays
+                    byte[] s = bSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+                    // Selection of the line offsets
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        // Setting of the source and destination pixel offset(is updated for iterating on all the source and destination
+                        // array)
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+                        // Update of the line offsets
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+                        // Calculation of the y roi position
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // Calculation of the x position
+                            int posx = (x - dst_min_x) * srcPixelStride;
+                            // Calculation of the roi data array index
+                            int windex = (posx / dstNumBands) + posyROI;
+                            // From the selected index the value is taken
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                            // If the roi value is 0 the value is outside the ROI, else the table value
+                            // is taken
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            } else {
+                                // If the value is a not a noData, the table value is stored
+                                byte value = (s[srcPixelOffset]);
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                                }
+                            }
+                            // Update of the source and destination pixel offsets
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    // Selection of the band arrays
+                    byte[] s = bSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+                    // Selection of the line offsets
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        // Setting of the source and destination pixel offset(is updated for iterating on all the source and destination
+                        // array)
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+                        // Update of the line offsets
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // If the sample is inside ROI bounds
+                            if (roiBounds.contains(x, y)) {
+                                // ROI pixel value is calculated
+                                int w = roiIter.getSample(x, y, 0);
+                                // if is 0 means that the pixel is outside the ROI, else the table data is taken
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    // If the value is a not a noData, the table value is stored
+                                    byte value = (s[srcPixelOffset]);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataByte;
+                                    } else {
+                                        d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            }
+                            // Update of the source and destination pixel offsets
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // byte to ushort/short
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            byte[][] bSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, short[][] sDstData, int[] tblOffsets,
+            short[][] sTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final byte[] s = bSrcData[b];
+                final short[] d = sDstData[b];
+                final short[] t = sTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                byte[] s = bSrcData[b];
+                short[] d = sDstData[b];
+                short[] t = sTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        byte value = (s[srcPixelOffset]);
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataShort;
+                        } else {
+                            d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            } else {
+                                byte value = (s[srcPixelOffset]);
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    byte value = (s[srcPixelOffset]);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataShort;
+                                    } else {
+                                        d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // byte to int
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            byte[][] bSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, int[][] iDstData, int[] tblOffsets,
+            int[][] iTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+        final boolean caseNull = iTblData == null;
+
+        if (caseA) {
+            if (caseNull) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final byte[] s = bSrcData[b];
+                    final int[] d = iDstData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+
+                    for (int h = 0; h < dstHeight; h++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int w = 0; w < dstWidth; w++) {
+                            d[dstPixelOffset] = getData().getElem(b, (s[srcPixelOffset]&0xFF));
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final byte[] s = bSrcData[b];
+                    final int[] d = iDstData[b];
+                    final int[] t = iTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int h = 0; h < dstHeight; h++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int w = 0; w < dstWidth; w++) {
+                            d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        } else if (caseB) {
+            if (useROIAccessor) {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final byte[] s = bSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    d[dstPixelOffset] = getData().getElem(b, (s[srcPixelOffset]&0xFF));
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        byte[] s = bSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final byte[] s = bSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = getData().getElem(b,
+                                                (s[srcPixelOffset]&0xFF));
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        byte[] s = bSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF)
+                                                - tblOffset];
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (caseC) {
+            if (caseNull) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final byte[] s = bSrcData[b];
+                    final int[] d = iDstData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+
+                    for (int y = 0; y < dstHeight; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = 0; x < dstWidth; x++) {
+
+                            byte value = (s[srcPixelOffset]);
+                            if (noData.contains(value)) {
+                                d[dstPixelOffset] = destinationNoDataInt;
+                            } else {
+                                d[dstPixelOffset] = getData().getElem(b, (s[srcPixelOffset]&0xFF));
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    int[] d = iDstData[b];
+                    int[] t = iTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = 0; y < dstHeight; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = 0; x < dstWidth; x++) {
+                            byte value = (s[srcPixelOffset]);
+                            if (noData.contains(value)) {
+                                d[dstPixelOffset] = destinationNoDataInt;
+                            } else {
+                                d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        } else {
+            if (useROIAccessor) {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final byte[] s = bSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    byte value = (s[srcPixelOffset]);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = getData().getElem(b,
+                                                (s[srcPixelOffset]&0xFF));
+                                    }
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        byte[] s = bSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    byte value = (s[srcPixelOffset]);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                                    }
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final byte[] s = bSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        byte value = (s[srcPixelOffset]);
+                                        if (noData.contains(value)) {
+                                            d[dstPixelOffset] = destinationNoDataInt;
+                                        } else {
+                                            d[dstPixelOffset] = getData().getElem(b,
+                                                    (s[srcPixelOffset]) & 0xFF);
+                                        }
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        byte[] s = bSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        byte value = (s[srcPixelOffset]);
+                                        if (noData.contains(value)) {
+                                            d[dstPixelOffset] = destinationNoDataInt;
+                                        } else {
+                                            d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                                        }
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // byte to float
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            byte[][] bSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, float[][] fDstData, int[] tblOffsets,
+            float[][] fTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final byte[] s = bSrcData[b];
+                final float[] d = fDstData[b];
+                final float[] t = fTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                byte[] s = bSrcData[b];
+                float[] d = fDstData[b];
+                float[] t = fTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        byte value = (s[srcPixelOffset]);
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataFloat;
+                        } else {
+                            d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            } else {
+                                byte value = (s[srcPixelOffset]);
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    byte value = (s[srcPixelOffset]);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataFloat;
+                                    } else {
+                                        d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // byte to double
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            byte[][] bSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, double[][] dDstData, int[] tblOffsets,
+            double[][] dTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+        
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final byte[] s = bSrcData[b];
+                final double[] d = dDstData[b];
+                final double[] t = dTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]&0xFF) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                byte[] s = bSrcData[b];
+                double[] d = dDstData[b];
+                double[] t = dTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        byte value = (s[srcPixelOffset]);
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataDouble;
+                        } else {
+                            d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            } else {
+                                byte value = (s[srcPixelOffset]);
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    byte[] s = bSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    byte value = (s[srcPixelOffset]);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataDouble;
+                                    } else {
+                                        d[dstPixelOffset] = t[value&0xFF - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+    
+
+    // ushort to byte
+    private void lookupU(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, byte[][] bDstData, int[] tblOffsets,
+            byte[][] bTblData, RasterAccessor roi, Rectangle destRect) {
+
+        // Destination image bounds
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        // ROI parameters
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        // Boolean indicating the possible situations: with or without ROI,
+        // with or without No Data, and a special case when table data are not present
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstNumBands; b++) {
+                final short[] s = sSrcData[b];
+                final byte[] d = bDstData[b];
+                final byte[] t = bTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+                // Cycle on all the y dimension
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+                    // Cycle on all the x dimension
+                    for (int w = 0; w < dstWidth; w++) {
+                        // Output value is taken from the table array
+                        d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // Calculation of the x position
+                            int posx = (x - dst_min_x) * srcPixelStride;
+                            // Calculation of the roi data array index
+                            int windex = (posx / dstNumBands) + posyROI;
+                            // From the selected index the value is taken
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                            // If the roi value is 0 the value is outside the ROI, else the table value
+                            // is taken
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // If the sample is inside ROI bounds
+                            if (roiBounds.contains(x, y)) {
+                                // ROI pixel value is calculated
+                                int w = roiIter.getSample(x, y, 0);
+                                // if is 0 means that the pixel is outside the ROI, else the table data is taken
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstNumBands; b++) {
+                short[] s = sSrcData[b];
+                byte[] d = bDstData[b];
+                byte[] t = bTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+                // Cycle on all the y dimension
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+                    // Cycle on all the x dimension
+                    for (int x = 0; x < dstWidth; x++) {
+                        // If the value is a not a noData, the table value is stored
+                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataByte;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // Calculation of the x position
+                            int posx = (x - dst_min_x) * srcPixelStride;
+                            // Calculation of the roi data array index
+                            int windex = (posx / dstNumBands) + posyROI;
+                            // From the selected index the value is taken
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                            // If the roi value is 0 the value is outside the ROI, else the table value
+                            // is taken
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            } else {
+                                // If the value is a not a noData, the table value is stored
+                                short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // If the sample is inside ROI bounds
+                            if (roiBounds.contains(x, y)) {
+                                // ROI pixel value is calculated
+                                int w = roiIter.getSample(x, y, 0);
+                                // if is 0 means that the pixel is outside the ROI, else the table data is taken
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    // If the value is a not a noData, the table value is stored
+                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataByte;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ushort to ushort/short
+    private void lookupU(int srcLineStride, int srcPixelStride,
+            int[] srcBandOffsets, short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands,
+            int dstLineStride, int dstPixelStride, int[] dstBandOffsets, short[][] sDstData,
+            int[] tblOffsets, short[][] sTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final short[] s = sSrcData[b];
+                final short[] d = sDstData[b];
+                final short[] t = sTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                short[] s = sSrcData[b];
+                short[] d = sDstData[b];
+                short[] t = sTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataShort;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            } else {
+                                short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataShort;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+    // ushort to int
+    private void lookupU(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, int[][] iDstData, int[] tblOffsets,
+            int[][] iTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+        final boolean caseNull = iTblData == null;
+
+        if (caseA) {
+            if (caseNull) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final short[] s = sSrcData[b];
+                    final int[] d = iDstData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+
+                    for (int h = 0; h < dstHeight; h++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int w = 0; w < dstWidth; w++) {
+                            d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset] & 0xFFFF);
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final short[] s = sSrcData[b];
+                    final int[] d = iDstData[b];
+                    final int[] t = iTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int h = 0; h < dstHeight; h++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int w = 0; w < dstWidth; w++) {
+                            d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        } else if (caseB) {
+            if (useROIAccessor) {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final short[] s = sSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset] & 0xFFFF);
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        short[] s = sSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final short[] s = sSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = getData().getElem(b,
+                                                s[srcPixelOffset] & 0xFFFF);
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        short[] s = sSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF)
+                                                - tblOffset];
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (caseC) {
+            if (caseNull) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final short[] s = sSrcData[b];
+                    final int[] d = iDstData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+
+                    for (int y = 0; y < dstHeight; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = 0; x < dstWidth; x++) {
+
+                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            if (noData.contains(value)) {
+                                d[dstPixelOffset] = destinationNoDataInt;
+                            } else {
+                                d[dstPixelOffset] = getData().getElem(b, value);
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    int[] d = iDstData[b];
+                    int[] t = iTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = 0; y < dstHeight; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = 0; x < dstWidth; x++) {
+                            short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                            if (noData.contains(value)) {
+                                d[dstPixelOffset] = destinationNoDataInt;
+                            } else {
+                                d[dstPixelOffset] = t[value - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        } else {
+            if (useROIAccessor) {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final short[] s = sSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = getData().getElem(b, value);
+                                    }
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        short[] s = sSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final short[] s = sSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        if (noData.contains(value)) {
+                                            d[dstPixelOffset] = destinationNoDataInt;
+                                        } else {
+                                            d[dstPixelOffset] = getData().getElem(b, value);
+                                        }
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        short[] s = sSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                        if (noData.contains(value)) {
+                                            d[dstPixelOffset] = destinationNoDataInt;
+                                        } else {
+                                            d[dstPixelOffset] = t[value - tblOffset];
+                                        }
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ushort to float
+    private void lookupU(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, float[][] fDstData, int[] tblOffsets,
+            float[][] fTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final short[] s = sSrcData[b];
+                final float[] d = fDstData[b];
+                final float[] t = fTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                short[] s = sSrcData[b];
+                float[] d = fDstData[b];
+                float[] t = fTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataFloat;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            } else {
+                                short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataFloat;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ushort to double
+    private void lookupU(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, double[][] dDstData, int[] tblOffsets,
+            double[][] dTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final short[] s = sSrcData[b];
+                final double[] d = dDstData[b];
+                final double[] t = dTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset] & 0xFFFF) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                short[] s = sSrcData[b];
+                double[] d = dDstData[b];
+                double[] t = dTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataDouble;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            } else {
+                                short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    short value = (short) (s[srcPixelOffset] & 0xFFFF);
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataDouble;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+    
+
+    // short to byte
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, byte[][] bDstData, int[] tblOffsets,
+            byte[][] bTblData, RasterAccessor roi, Rectangle destRect) {
+
+        // Destination image bounds
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        // ROI parameters
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        // Boolean indicating the possible situations: with or without ROI,
+        // with or without No Data, and a special case when table data are not present
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstNumBands; b++) {
+                final short[] s = sSrcData[b];
+                final byte[] d = bDstData[b];
+                final byte[] t = bTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+                // Cycle on all the y dimension
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+                    // Cycle on all the x dimension
+                    for (int w = 0; w < dstWidth; w++) {
+                        // Output value is taken from the table array
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // Calculation of the x position
+                            int posx = (x - dst_min_x) * srcPixelStride;
+                            // Calculation of the roi data array index
+                            int windex = (posx / dstNumBands) + posyROI;
+                            // From the selected index the value is taken
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                            // If the roi value is 0 the value is outside the ROI, else the table value
+                            // is taken
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // If the sample is inside ROI bounds
+                            if (roiBounds.contains(x, y)) {
+                                // ROI pixel value is calculated
+                                int w = roiIter.getSample(x, y, 0);
+                                // if is 0 means that the pixel is outside the ROI, else the table data is taken
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstNumBands; b++) {
+                short[] s = sSrcData[b];
+                byte[] d = bDstData[b];
+                byte[] t = bTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+                // Cycle on all the y dimension
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+                    // Cycle on all the x dimension
+                    for (int x = 0; x < dstWidth; x++) {
+                        // If the value is a not a noData, the table value is stored
+                        short value = s[srcPixelOffset];
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataByte;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // Calculation of the x position
+                            int posx = (x - dst_min_x) * srcPixelStride;
+                            // Calculation of the roi data array index
+                            int windex = (posx / dstNumBands) + posyROI;
+                            // From the selected index the value is taken
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                            // If the roi value is 0 the value is outside the ROI, else the table value
+                            // is taken
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            } else {
+                                // If the value is a not a noData, the table value is stored
+                                short value = s[srcPixelOffset];
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // If the sample is inside ROI bounds
+                            if (roiBounds.contains(x, y)) {
+                                // ROI pixel value is calculated
+                                int w = roiIter.getSample(x, y, 0);
+                                // if is 0 means that the pixel is outside the ROI, else the table data is taken
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    // If the value is a not a noData, the table value is stored
+                                    short value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataByte;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // short to ushort/short
+    private void lookup(int srcLineStride, int srcPixelStride,
+            int[] srcBandOffsets, short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands,
+            int dstLineStride, int dstPixelStride, int[] dstBandOffsets, short[][] sDstData,
+            int[] tblOffsets, short[][] sTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final short[] s = sSrcData[b];
+                final short[] d = sDstData[b];
+                final short[] t = sTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                short[] s = sSrcData[b];
+                short[] d = sDstData[b];
+                short[] t = sTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        short value = s[srcPixelOffset];
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataShort;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            } else {
+                                short value = s[srcPixelOffset];
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    short value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataShort;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // short to int
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, int[][] iDstData, int[] tblOffsets,
+            int[][] iTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+        final boolean caseNull = iTblData == null;
+
+        if (caseA) {
+            if (caseNull) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final short[] s = sSrcData[b];
+                    final int[] d = iDstData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+
+                    for (int h = 0; h < dstHeight; h++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int w = 0; w < dstWidth; w++) {
+                            d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset]);
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final short[] s = sSrcData[b];
+                    final int[] d = iDstData[b];
+                    final int[] t = iTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int h = 0; h < dstHeight; h++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int w = 0; w < dstWidth; w++) {
+                            d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        } else if (caseB) {
+            if (useROIAccessor) {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final short[] s = sSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset]);
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        short[] s = sSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final short[] s = sSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset]);
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        short[] s = sSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (caseC) {
+            if (caseNull) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final short[] s = sSrcData[b];
+                    final int[] d = iDstData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+
+                    for (int y = 0; y < dstHeight; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = 0; x < dstWidth; x++) {
+
+                            short value = s[srcPixelOffset];
+                            if (noData.contains(value)) {
+                                d[dstPixelOffset] = destinationNoDataInt;
+                            } else {
+                                d[dstPixelOffset] = getData().getElem(b, value);
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    int[] d = iDstData[b];
+                    int[] t = iTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = 0; y < dstHeight; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = 0; x < dstWidth; x++) {
+                            short value = s[srcPixelOffset];
+                            if (noData.contains(value)) {
+                                d[dstPixelOffset] = destinationNoDataInt;
+                            } else {
+                                d[dstPixelOffset] = t[value - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        } else {
+            if (useROIAccessor) {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final short[] s = sSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    short value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = getData().getElem(b, value);
+                                    }
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        short[] s = sSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    short value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final short[] s = sSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        short value = s[srcPixelOffset];
+                                        if (noData.contains(value)) {
+                                            d[dstPixelOffset] = destinationNoDataInt;
+                                        } else {
+                                            d[dstPixelOffset] = getData().getElem(b, value);
+                                        }
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        short[] s = sSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        short value = s[srcPixelOffset];
+                                        if (noData.contains(value)) {
+                                            d[dstPixelOffset] = destinationNoDataInt;
+                                        } else {
+                                            d[dstPixelOffset] = t[value - tblOffset];
+                                        }
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // short to float
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, float[][] fDstData, int[] tblOffsets,
+            float[][] fTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final short[] s = sSrcData[b];
+                final float[] d = fDstData[b];
+                final float[] t = fTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                short[] s = sSrcData[b];
+                float[] d = fDstData[b];
+                float[] t = fTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        short value = s[srcPixelOffset];
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataFloat;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            } else {
+                                short value = s[srcPixelOffset];
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    short value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataFloat;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // short to double
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, double[][] dDstData, int[] tblOffsets,
+            double[][] dTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final short[] s = sSrcData[b];
+                final double[] d = dDstData[b];
+                final double[] t = dTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                short[] s = sSrcData[b];
+                double[] d = dDstData[b];
+                double[] t = dTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        short value = s[srcPixelOffset];
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataDouble;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            } else {
+                                short value = s[srcPixelOffset];
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    short[] s = sSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    short value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataDouble;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+
+    // int to byte
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, byte[][] bDstData, int[] tblOffsets,
+            byte[][] bTblData, RasterAccessor roi, Rectangle destRect) {
+
+        // Destination image bounds
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        // ROI parameters
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        // Boolean indicating the possible situations: with or without ROI,
+        // with or without No Data, and a special case when table data are not present
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstNumBands; b++) {
+                final int[] s = iSrcData[b];
+                final byte[] d = bDstData[b];
+                final byte[] t = bTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+                // Cycle on all the y dimension
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+                    // Cycle on all the x dimension
+                    for (int w = 0; w < dstWidth; w++) {
+                        // Output value is taken from the table array
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // Calculation of the x position
+                            int posx = (x - dst_min_x) * srcPixelStride;
+                            // Calculation of the roi data array index
+                            int windex = (posx / dstNumBands) + posyROI;
+                            // From the selected index the value is taken
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                            // If the roi value is 0 the value is outside the ROI, else the table value
+                            // is taken
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            } else {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // If the sample is inside ROI bounds
+                            if (roiBounds.contains(x, y)) {
+                                // ROI pixel value is calculated
+                                int w = roiIter.getSample(x, y, 0);
+                                // if is 0 means that the pixel is outside the ROI, else the table data is taken
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            // Cycle on all the bands
+            for (int b = 0; b < dstNumBands; b++) {
+                int[] s = iSrcData[b];
+                byte[] d = bDstData[b];
+                byte[] t = bTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+                // Cycle on all the y dimension
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+                    // Cycle on all the x dimension
+                    for (int x = 0; x < dstWidth; x++) {
+                        // If the value is a not a noData, the table value is stored
+                        int value = s[srcPixelOffset];
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataByte;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // Calculation of the x position
+                            int posx = (x - dst_min_x) * srcPixelStride;
+                            // Calculation of the roi data array index
+                            int windex = (posx / dstNumBands) + posyROI;
+                            // From the selected index the value is taken
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+                            // If the roi value is 0 the value is outside the ROI, else the table value
+                            // is taken
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            } else {
+                                // If the value is a not a noData, the table value is stored
+                                int value = s[srcPixelOffset];
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                // Cycle on all the bands
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    byte[] d = bDstData[b];
+                    byte[] t = bTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+                    // Cycle on all the y dimension
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+                        // Cycle on all the x dimension
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            // If the sample is inside ROI bounds
+                            if (roiBounds.contains(x, y)) {
+                                // ROI pixel value is calculated
+                                int w = roiIter.getSample(x, y, 0);
+                                // if is 0 means that the pixel is outside the ROI, else the table data is taken
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataByte;
+                                } else {
+                                    // If the value is a not a noData, the table value is stored
+                                    int value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataByte;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataByte;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // int to ushort/short
+    private void lookup(int srcLineStride, int srcPixelStride,
+            int[] srcBandOffsets, int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands,
+            int dstLineStride, int dstPixelStride, int[] dstBandOffsets, short[][] sDstData,
+            int[] tblOffsets, short[][] sTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final int[] s = iSrcData[b];
+                final short[] d = sDstData[b];
+                final short[] t = sTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                int[] s = iSrcData[b];
+                short[] d = sDstData[b];
+                short[] t = sTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        int value = s[srcPixelOffset];
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataShort;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            } else {
+                                int value = s[srcPixelOffset];
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    short[] d = sDstData[b];
+                    short[] t = sTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataShort;
+                                } else {
+                                    int value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataShort;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataShort;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // int to int
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, int[][] iDstData, int[] tblOffsets,
+            int[][] iTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+        final boolean caseNull = iTblData == null;
+
+        if (caseA) {
+            if (caseNull) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final int[] s = iSrcData[b];
+                    final int[] d = iDstData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+
+                    for (int h = 0; h < dstHeight; h++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int w = 0; w < dstWidth; w++) {
+                            d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset]);
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final int[] s = iSrcData[b];
+                    final int[] d = iDstData[b];
+                    final int[] t = iTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int h = 0; h < dstHeight; h++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int w = 0; w < dstWidth; w++) {
+                            d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        } else if (caseB) {
+            if (useROIAccessor) {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final int[] s = iSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset]);
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        int[] s = iSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final int[] s = iSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = getData().getElem(b, s[srcPixelOffset]);
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        int[] s = iSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (caseC) {
+            if (caseNull) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    final int[] s = iSrcData[b];
+                    final int[] d = iDstData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+
+                    for (int y = 0; y < dstHeight; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = 0; x < dstWidth; x++) {
+
+                            int value = s[srcPixelOffset];
+                            if (noData.contains(value)) {
+                                d[dstPixelOffset] = destinationNoDataInt;
+                            } else {
+                                d[dstPixelOffset] = getData().getElem(b, value);
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    int[] d = iDstData[b];
+                    int[] t = iTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = 0; y < dstHeight; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = 0; x < dstWidth; x++) {
+                            int value = s[srcPixelOffset];
+                            if (noData.contains(value)) {
+                                d[dstPixelOffset] = destinationNoDataInt;
+                            } else {
+                                d[dstPixelOffset] = t[value - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        } else {
+            if (useROIAccessor) {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final int[] s = iSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    int value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = getData().getElem(b, value);
+                                    }
+                                }
+
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        int[] s = iSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            int posyROI = (y - dst_min_y) * roiLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                int posx = (x - dst_min_x) * srcPixelStride;
+
+                                int windex = (posx / dstNumBands) + posyROI;
+
+                                int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                } else {
+                                    int value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (caseNull) {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        final int[] s = iSrcData[b];
+                        final int[] d = iDstData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        int value = s[srcPixelOffset];
+                                        if (noData.contains(value)) {
+                                            d[dstPixelOffset] = destinationNoDataInt;
+                                        } else {
+                                            d[dstPixelOffset] = getData().getElem(b, value);
+                                        }
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                } else {
+                    for (int b = 0; b < dstNumBands; b++) {
+                        int[] s = iSrcData[b];
+                        int[] d = iDstData[b];
+                        int[] t = iTblData[b];
+
+                        int srcLineOffset = srcBandOffsets[b];
+                        int dstLineOffset = dstBandOffsets[b];
+                        int tblOffset = tblOffsets[b];
+
+                        for (int y = dst_min_y; y < dst_max_y; y++) {
+                            int srcPixelOffset = srcLineOffset;
+                            int dstPixelOffset = dstLineOffset;
+
+                            srcLineOffset += srcLineStride;
+                            dstLineOffset += dstLineStride;
+
+                            for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                                if (roiBounds.contains(x, y)) {
+                                    int w = roiIter.getSample(x, y, 0);
+                                    if (w == 0) {
+                                        d[dstPixelOffset] = destinationNoDataInt;
+                                    } else {
+                                        int value = s[srcPixelOffset];
+                                        if (noData.contains(value)) {
+                                            d[dstPixelOffset] = destinationNoDataInt;
+                                        } else {
+                                            d[dstPixelOffset] = t[value - tblOffset];
+                                        }
+                                    }
+                                } else {
+                                    d[dstPixelOffset] = destinationNoDataInt;
+                                }
+                                srcPixelOffset += srcPixelStride;
+                                dstPixelOffset += dstPixelStride;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // int to float
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, float[][] fDstData, int[] tblOffsets,
+            float[][] fTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final int[] s = iSrcData[b];
+                final float[] d = fDstData[b];
+                final float[] t = fTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                int[] s = iSrcData[b];
+                float[] d = fDstData[b];
+                float[] t = fTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        int value = s[srcPixelOffset];
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataFloat;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            } else {
+                                int value = s[srcPixelOffset];
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    float[] d = fDstData[b];
+                    float[] t = fTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataFloat;
+                                } else {
+                                    int value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataFloat;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataFloat;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // int to double
+    private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
+            int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
+            int dstPixelStride, int[] dstBandOffsets, double[][] dDstData, int[] tblOffsets,
+            double[][] dTblData, RasterAccessor roi, Rectangle destRect) {
+
+        final int dst_min_x = destRect.x;
+        final int dst_min_y = destRect.y;
+        final int dst_max_x = destRect.x + destRect.width;
+        final int dst_max_y = destRect.y + destRect.height;
+
+        int roiLineStride = 0;
+        byte[] roiDataArray = null;
+        int roiDataLength = 0;
+        if (useROIAccessor) {
+            roiDataArray = roi.getByteDataArray(0);
+            roiDataLength = roiDataArray.length;
+            roiLineStride = roi.getScanlineStride();
+        }
+
+        final boolean caseA = !hasROI && !hasNoData;
+        final boolean caseB = hasROI && !hasNoData;
+        final boolean caseC = !hasROI && hasNoData;
+
+        if (caseA) {
+            for (int b = 0; b < dstNumBands; b++) {
+                final int[] s = iSrcData[b];
+                final double[] d = dDstData[b];
+                final double[] t = dTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int h = 0; h < dstHeight; h++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int w = 0; w < dstWidth; w++) {
+                        d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else if (caseB) {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            } else {
+                                d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    d[dstPixelOffset] = t[(s[srcPixelOffset]) - tblOffset];
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            }
+
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            }
+        } else if (caseC) {
+            for (int b = 0; b < dstNumBands; b++) {
+                int[] s = iSrcData[b];
+                double[] d = dDstData[b];
+                double[] t = dTblData[b];
+
+                int srcLineOffset = srcBandOffsets[b];
+                int dstLineOffset = dstBandOffsets[b];
+                int tblOffset = tblOffsets[b];
+
+                for (int y = 0; y < dstHeight; y++) {
+                    int srcPixelOffset = srcLineOffset;
+                    int dstPixelOffset = dstLineOffset;
+
+                    srcLineOffset += srcLineStride;
+                    dstLineOffset += dstLineStride;
+
+                    for (int x = 0; x < dstWidth; x++) {
+                        int value = s[srcPixelOffset];
+                        if (noData.contains(value)) {
+                            d[dstPixelOffset] = destinationNoDataDouble;
+                        } else {
+                            d[dstPixelOffset] = t[value - tblOffset];
+                        }
+
+                        srcPixelOffset += srcPixelStride;
+                        dstPixelOffset += dstPixelStride;
+                    }
+                }
+            }
+
+        } else {
+            if (useROIAccessor) {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        int posyROI = (y - dst_min_y) * roiLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            int posx = (x - dst_min_x) * srcPixelStride;
+
+                            int windex = (posx / dstNumBands) + posyROI;
+
+                            int w = windex < roiDataLength ? roiDataArray[windex] & 0xff : 0;
+
+                            if (w == 0) {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            } else {
+                                int value = s[srcPixelOffset];
+                                if (noData.contains(value)) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    d[dstPixelOffset] = t[value - tblOffset];
+                                }
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+
+            } else {
+                for (int b = 0; b < dstNumBands; b++) {
+                    int[] s = iSrcData[b];
+                    double[] d = dDstData[b];
+                    double[] t = dTblData[b];
+
+                    int srcLineOffset = srcBandOffsets[b];
+                    int dstLineOffset = dstBandOffsets[b];
+                    int tblOffset = tblOffsets[b];
+
+                    for (int y = dst_min_y; y < dst_max_y; y++) {
+                        int srcPixelOffset = srcLineOffset;
+                        int dstPixelOffset = dstLineOffset;
+
+                        srcLineOffset += srcLineStride;
+                        dstLineOffset += dstLineStride;
+
+                        for (int x = dst_min_x; x < dst_max_x; x++) {
+
+                            if (roiBounds.contains(x, y)) {
+                                int w = roiIter.getSample(x, y, 0);
+                                if (w == 0) {
+                                    d[dstPixelOffset] = destinationNoDataDouble;
+                                } else {
+                                    int value = s[srcPixelOffset];
+                                    if (noData.contains(value)) {
+                                        d[dstPixelOffset] = destinationNoDataDouble;
+                                    } else {
+                                        d[dstPixelOffset] = t[value - tblOffset];
+                                    }
+                                }
+                            } else {
+                                d[dstPixelOffset] = destinationNoDataDouble;
+                            }
+                            srcPixelOffset += srcPixelStride;
+                            dstPixelOffset += dstPixelStride;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

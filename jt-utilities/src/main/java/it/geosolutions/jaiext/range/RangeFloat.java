@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.range;
 
+import it.geosolutions.jaiext.utilities.ImageUtilities;
+
 /**
  * This class is a subclass of the {@link Range} class handling float data.
  */
@@ -30,12 +32,6 @@ public class RangeFloat extends Range {
     /** If the Range is degenerated and it is a NaN value, then this value is taken as an Integer */
     private final int intValue;
 
-    /** Boolean indicating if the minimum bound is included */
-    private final boolean minIncluded;
-
-    /** Boolean indicating if the maximum bound is included */
-    private final boolean maxIncluded;
-
     /** Boolean indicating if the maximum bound is included */
     private final boolean isPoint;
 
@@ -46,7 +42,8 @@ public class RangeFloat extends Range {
     private final boolean nanIncluded;
 
     RangeFloat(float minValue, boolean minIncluded, float maxValue, boolean maxIncluded,boolean nanIncluded) {
-        // If one of the 2 bound values is NaN an exception is thrown
+        super(minIncluded, maxIncluded);
+    	// If one of the 2 bound values is NaN an exception is thrown
         if (Float.isNaN(minValue) && !Float.isNaN(maxValue) || !Float.isNaN(minValue) && Float.isNaN(maxValue)) {
             throw new UnsupportedOperationException(
                     "NaN values can only be set inside a single-point Range");
@@ -55,8 +52,6 @@ public class RangeFloat extends Range {
             this.maxValue = maxValue;
             this.isPoint = false;
             this.isNaN = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
             this.intValue=0;
             this.nanIncluded=nanIncluded;
         } else if (minValue > maxValue) {
@@ -64,8 +59,6 @@ public class RangeFloat extends Range {
             this.maxValue = minValue;
             this.isPoint = false;
             this.isNaN = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
             this.intValue=0;
             this.nanIncluded=nanIncluded;
         } else {
@@ -85,8 +78,8 @@ public class RangeFloat extends Range {
                         "Cannot create a single-point range without minimum and maximum "
                                 + "bounds included");
             } else {
-                this.minIncluded = true;
-                this.maxIncluded = true;
+            	setMaxIncluded(true);
+            	setMinIncluded(true);
             }
         }
     }
@@ -104,13 +97,13 @@ public class RangeFloat extends Range {
             final boolean lower;
             final boolean upper;
 
-            if (minIncluded) {
+            if (isMinIncluded()) {
                 lower = value < minValue;
             } else {
                 lower = value <= minValue;
             }
 
-            if (maxIncluded) {
+            if (isMaxIncluded()) {
                 upper = value > maxValue;
             } else {
                 upper = value >= maxValue;
@@ -121,13 +114,13 @@ public class RangeFloat extends Range {
             final boolean notLower;
             final boolean notUpper;
 
-            if (minIncluded) {
+            if (isMinIncluded()) {
                 notLower = value >= minValue;
             } else {
                 notLower = value > minValue;
             }
 
-            if (maxIncluded) {
+            if (isMaxIncluded()) {
                 notUpper = value <= maxValue;
             } else {
                 notUpper = value < maxValue;
@@ -157,4 +150,61 @@ public class RangeFloat extends Range {
         return minValue;
     }
 
+    public Number getMax(boolean isMaxIncluded) {
+        float value = maxValue;
+        if (isMaxIncluded != isMaxIncluded()) {
+            value = (float) ImageUtilities.rool(getDataType().getClassValue(), value, isMaxIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Number getMin(boolean isMinIncluded) {
+        float value = minValue;
+        if (isMinIncluded != isMinIncluded()) {
+            value = (float) ImageUtilities.rool(getDataType().getClassValue(), value, isMinIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public boolean isNanIncluded() {
+        return nanIncluded;
+    }
+    
+    public boolean isNaN(){
+        return isNaN;
+    }
+    
+    public Range union(Range other){
+        if(this.contains(other)){
+            return this;
+        } else if(other.contains(this)){
+            return other;
+        }
+        
+        float min2 = other.getMin().floatValue();
+        float max2 = other.getMax().floatValue();
+        
+        float finalMin = minValue;
+        float finalMax = maxValue;
+        
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+        
+        if(min2 < minValue){
+            finalMin = min2;
+            minIncluded = other.isMinIncluded();
+        } else if(min2 == minValue){
+            minIncluded |= other.isMinIncluded();
+        }
+        if(max2 > maxValue){
+            finalMax = max2;
+            maxIncluded = other.isMaxIncluded();
+        } else if(max2 == maxValue){
+            maxIncluded |= other.isMaxIncluded();
+        }
+        
+        boolean isNaNIncluded = this.isNaN() || other.isNaN() || this.isNanIncluded() || other.isNanIncluded();
+        
+        return new RangeFloat(finalMin, minIncluded, finalMax, maxIncluded, isNaNIncluded);
+    }
 }

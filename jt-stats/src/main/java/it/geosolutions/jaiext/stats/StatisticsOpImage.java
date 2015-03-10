@@ -119,10 +119,10 @@ public abstract class StatisticsOpImage extends OpImage {
     /** Extended ROI image*/
     protected RenderedOp srcROIImgExt;
 
-    public StatisticsOpImage(RenderedImage source, ImageLayout layout, Map configuration,
+    public StatisticsOpImage(RenderedImage source,
             int xPeriod, int yPeriod, ROI roi, Range noData, boolean useROIAccessor, int[] bands,
             StatsType[] statsTypes, double[] minBound, double[] maxBound, int[] numBins) {
-        super(vectorize(source), layout, configuration, true);
+        super(vectorize(source), new ImageLayout(source), null, true);
 
         // Source Image bands
         bandsNumber = source.getSampleModel().getNumBands();
@@ -373,7 +373,7 @@ public abstract class StatisticsOpImage extends OpImage {
 
                     // Cycle on the selected Bands
                     for (int i = 0; i < selectedBands; i++) {
-                        byte sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
+                        int sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]] & 0xFF;
                         for (int j = 0; j < statNum; j++) {
                             // Update of all the statistics
                             statArray[i][j].addSample(sample);
@@ -403,8 +403,7 @@ public abstract class StatisticsOpImage extends OpImage {
                         if (w != 0) {
                             // Cycle on the selected Bands
                             for (int i = 0; i < selectedBands; i++) {
-                                byte sample = srcData[bands[i]][posx + posy
-                                        + srcBandOffsets[bands[i]]];
+                                int sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]] & 0xFF;
                                 for (int j = 0; j < statNum; j++) {
                                     // Update of all the statistics
                                     statArray[i][j].addSample(sample);
@@ -433,8 +432,7 @@ public abstract class StatisticsOpImage extends OpImage {
                             if (w != 0) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < selectedBands; i++) {
-                                    byte sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
+                                    int sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]] & 0xFF;
                                     for (int j = 0; j < statNum; j++) {
                                         // Update of all the statistics
                                         statArray[i][j].addSample(sample);
@@ -457,9 +455,9 @@ public abstract class StatisticsOpImage extends OpImage {
                     int posx = x * srcPixelStride;
                     // Cycle on the selected Bands
                     for (int i = 0; i < selectedBands; i++) {
-                        byte sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]];
+                        int sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]] & 0xFF;
                         // Control if the sample is Not a NO Data
-                        if (booleanLookupTable[sample & 0xFF]) {
+                        if (booleanLookupTable[sample]) {
                             for (int j = 0; j < statNum; j++) {
                                 // Update of all the statistics
                                 statArray[i][j].addSample(sample);
@@ -490,10 +488,9 @@ public abstract class StatisticsOpImage extends OpImage {
                         if (w != 0) {
                             // Cycle on the selected Bands
                             for (int i = 0; i < selectedBands; i++) {
-                                byte sample = srcData[bands[i]][posx + posy
-                                        + srcBandOffsets[bands[i]]];
+                                int sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]] & 0xFF;
                                 // Control if the sample is Not a NO Data
-                                if (booleanLookupTable[sample & 0xFF]) {
+                                if (booleanLookupTable[sample]) {
                                     for (int j = 0; j < statNum; j++) {
                                         // Update of all the statistics
                                         statArray[i][j].addSample(sample);
@@ -523,10 +520,9 @@ public abstract class StatisticsOpImage extends OpImage {
                             if (w != 0) {
                                 // Cycle on the selected Bands
                                 for (int i = 0; i < selectedBands; i++) {
-                                    byte sample = srcData[bands[i]][posx + posy
-                                            + srcBandOffsets[bands[i]]];
+                                    int sample = srcData[bands[i]][posx + posy + srcBandOffsets[bands[i]]] & 0xFF;
                                     // Control if the sample is Not a NO Data
-                                    if (booleanLookupTable[sample & 0xFF]) {
+                                    if (booleanLookupTable[sample]) {
                                         for (int j = 0; j < statNum; j++) {
                                             // Update of all the statistics
                                             statArray[i][j].addSample(sample);

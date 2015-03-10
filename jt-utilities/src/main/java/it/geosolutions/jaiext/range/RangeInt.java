@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.range;
 
+import it.geosolutions.jaiext.utilities.ImageUtilities;
+
 /**
  * This class is a subclass of the {@link Range} class handling Integer data.
  */
@@ -26,30 +28,20 @@ public class RangeInt extends Range {
 
     /** Maximum range bound */
     private final int maxValue;
-
-    /** Boolean indicating if the minimum bound is included */
-    private final boolean minIncluded;
-
-    /** Boolean indicating if the maximum bound is included */
-    private final boolean maxIncluded;
     
     /** Boolean indicating if the maximum bound is included */
     private final boolean isPoint;
 
     RangeInt(int minValue, boolean minIncluded, int maxValue, boolean maxIncluded) {
-        
+        super(minIncluded, maxIncluded);
         if (minValue < maxValue) {
             this.minValue = minValue;
             this.maxValue = maxValue;
             this.isPoint = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
         } else if (minValue > maxValue) {
             this.minValue = maxValue;
             this.maxValue = minValue;
             this.isPoint = false;
-            this.minIncluded = minIncluded;
-            this.maxIncluded = maxIncluded;
         } else {
             this.minValue = minValue;
             this.maxValue = minValue;
@@ -59,8 +51,8 @@ public class RangeInt extends Range {
                         "Cannot create a single-point range without minimum and maximum "
                                 + "bounds included");
             } else {
-                this.minIncluded = true;
-                this.maxIncluded = true;
+                setMinIncluded(true);
+                setMaxIncluded(true);
             }
         }
     }
@@ -74,13 +66,13 @@ public class RangeInt extends Range {
             final boolean lower;
             final boolean upper;
 
-            if (minIncluded) {
+            if (isMinIncluded()) {
                 lower = value < minValue;
             } else {
                 lower = value <= minValue;
             }
 
-            if (maxIncluded) {
+            if (isMaxIncluded()) {
                 upper = value > maxValue;
             } else {
                 upper = value >= maxValue;
@@ -109,5 +101,52 @@ public class RangeInt extends Range {
     public Number getMin() {
         return minValue;
     }
-
+    
+    public Number getMax(boolean isMaxIncluded) {
+        int value = maxValue;
+        if (isMaxIncluded != isMaxIncluded()) {
+            value = (int) ImageUtilities.rool(getDataType().getClassValue(), value, isMaxIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Number getMin(boolean isMinIncluded) {
+        int value = minValue;
+        if (isMinIncluded != isMinIncluded()) {
+            value = (int) ImageUtilities.rool(getDataType().getClassValue(), value, isMinIncluded ? -1 : +1);
+        }
+        return value;
+    }
+    
+    public Range union(Range other){
+        if(this.contains(other)){
+            return this;
+        } else if(other.contains(this)){
+            return other;
+        }
+        
+        int min2 = other.getMin().intValue();
+        int max2 = other.getMax().intValue();
+        
+        int finalMin = minValue;
+        int finalMax = maxValue;
+        
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+        
+        if(min2 < minValue){
+            finalMin = min2;
+            minIncluded = other.isMinIncluded();
+        } else if(min2 == minValue){
+            minIncluded |= other.isMinIncluded();
+        }
+        if(max2 > maxValue){
+            finalMax = max2;
+            maxIncluded = other.isMaxIncluded();
+        } else if(max2 == maxValue){
+            maxIncluded |= other.isMaxIncluded();
+        }
+        
+        return new RangeInt(finalMin, minIncluded, finalMax, maxIncluded);
+    }
 }

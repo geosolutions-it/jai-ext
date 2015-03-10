@@ -18,6 +18,8 @@
 package it.geosolutions.jaiext.affine;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -55,13 +57,13 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
     public AffineBilinearOpImage(RenderedImage source, BorderExtender extender, Map config,
             ImageLayout layout, AffineTransform transform, Interpolation interp,
-            double[] backgroundValues, boolean setDestinationNoData, boolean useROIAccessor) {
-        super(source, extender, config, layout, transform, interp, null);
-        affineOpInitialization(source, interp, layout, useROIAccessor, setDestinationNoData);
+            double[] backgroundValues, boolean setDestinationNoData, boolean useROIAccessor, Range nodata) {
+        super(source, extender, config, layout, transform, interp, backgroundValues);
+        affineOpInitialization(source, interp, layout, backgroundValues, useROIAccessor, setDestinationNoData, nodata);
     }
 
     private void affineOpInitialization(RenderedImage source, Interpolation interp,
-            ImageLayout layout, boolean useROIAccessor, boolean setDestinationNoData) {
+            ImageLayout layout, double[] backgroundValues, boolean useROIAccessor, boolean setDestinationNoData, Range nodata) {
 
         SampleModel sm = source.getSampleModel();
 
@@ -80,28 +82,36 @@ public class AffineBilinearOpImage extends AffineOpImage {
         int srcDataType = sm.getDataType();
 
         // If both roiBounds and roiIter are not null, they are used in calculation
+        Range nod = nodata;
+        Double destNod = null;
+        if (backgroundValues != null && backgroundValues.length > 0) {
+            destNod = backgroundValues[0];
+        }
         if (interp instanceof InterpolationBilinear) {
             interpB = (InterpolationBilinear) interp;
             this.interp = interpB;
             interpB.setROIdata(roiBounds, roiIter);
-            noData = interpB.getNoDataRange();
-            this.useROIAccessor = false;
-            if (noData != null) {
-                hasNoData = true;
-                destinationNoDataDouble = interpB.getDestinationNoData();
-            } else if (hasROI) {
-                destinationNoDataDouble = interpB.getDestinationNoData();
-                this.useROIAccessor = useROIAccessor;
+            if (nod == null) {
+                nod = interpB.getNoDataRange();
+            }
+            if (destNod == null) {
+                destNod = interpB.getDestinationNoData();
             }
         }
-
-        // Creation of the destination background values
-        int srcNumBands = source.getSampleModel().getNumBands();
-        double[] background = new double[srcNumBands];
-        for (int i = 0; i < srcNumBands; i++) {
-            background[i] = destinationNoDataDouble;
+        // Nodata definition
+        if (nod != null) {
+            hasNoData = true;
+            noData = nod;
         }
-        this.backgroundValues = background;
+        if (destNod != null) {
+            destinationNoDataDouble = destNod;
+        } else if (this.backgroundValues != null && this.backgroundValues.length > 0) {
+            destinationNoDataDouble = this.backgroundValues[0];
+        }
+        // ROIAccessor definition
+        if (hasROI) {
+            this.useROIAccessor = useROIAccessor;
+        }
 
         // destination No Data set
         this.setDestinationNoData = setDestinationNoData;
@@ -148,7 +158,6 @@ public class AffineBilinearOpImage extends AffineOpImage {
             throw new IllegalArgumentException("Wrong data Type");
         }
 
-        
         // Definition of the possible cases that can be found
         // caseA = no ROI nor No Data
         // caseB = ROI present but No Data not present
@@ -291,7 +300,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -383,7 +392,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -401,8 +410,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -523,7 +532,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -541,8 +550,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -663,7 +672,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -762,7 +771,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -780,8 +789,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -908,7 +917,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -926,8 +935,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -1109,7 +1118,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -1199,7 +1208,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -1217,8 +1226,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -1339,7 +1348,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -1357,8 +1366,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -1479,7 +1488,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -1581,7 +1590,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -1599,8 +1608,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -1729,7 +1738,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -1747,8 +1756,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -1930,7 +1939,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -2023,7 +2032,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -2041,8 +2050,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2165,7 +2174,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -2183,8 +2192,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2307,7 +2316,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -2408,7 +2417,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -2426,8 +2435,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2557,7 +2566,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -2575,8 +2584,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2760,7 +2769,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -2852,7 +2861,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -2870,8 +2879,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -2994,7 +3003,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -3012,8 +3021,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -3136,7 +3145,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -3237,7 +3246,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -3255,8 +3264,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -3384,7 +3393,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -3402,8 +3411,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -3586,7 +3595,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -3666,7 +3675,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -3684,8 +3693,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -3796,7 +3805,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -3814,8 +3823,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -3926,7 +3935,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -4020,7 +4029,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -4038,8 +4047,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -4162,7 +4171,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -4180,8 +4189,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -4358,7 +4367,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -4438,7 +4447,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -4456,8 +4465,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -4569,7 +4578,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -4587,8 +4596,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -4701,7 +4710,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                 // Backward map the first point in the line
                 // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                 mapDestPoint(dst_pt, src_pt);
 
@@ -4795,7 +4804,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -4813,8 +4822,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,
@@ -4937,7 +4946,7 @@ public class AffineBilinearOpImage extends AffineOpImage {
 
                     // Backward map the first point in the line
                     // The energy is at the (pt_x + 0.5, pt_y + 0.5)
-                    dst_pt.setLocation(dst_min_x + 0.5d, y + 0.5d);
+                    dst_pt.setLocation(dst_min_x + HALF_PIXEL, y + HALF_PIXEL);
 
                     mapDestPoint(dst_pt, src_pt);
 
@@ -4955,8 +4964,8 @@ public class AffineBilinearOpImage extends AffineOpImage {
                     fracx = s_x - s_ix * 1.0d;
                     fracy = s_y - s_iy * 1.0d;
 
-                    int ifracx = (int) Math.floor(fracx * geom_frac_max);
-                    int ifracy = (int) Math.floor(fracy * geom_frac_max);
+                    int ifracx = (int) Math.floor(fracx * GEOM_FRAC_MAX);
+                    int ifracy = (int) Math.floor(fracy * GEOM_FRAC_MAX);
 
                     // Compute clipMinX, clipMinY
                     javax.media.jai.util.Range clipRange = performScanlineClipping(src_rect_x1,

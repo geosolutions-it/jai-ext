@@ -17,16 +17,22 @@
 */
 package it.geosolutions.jaiext.mosaic;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.util.List;
+
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
 import javax.media.jai.ParameterBlockJAI;
+import javax.media.jai.PlanarImage;
+import javax.media.jai.ROI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.MosaicType;
 import javax.media.jai.registry.RenderedRegistryMode;
+
 import org.jaitools.JAITools;
 
 
@@ -47,8 +53,8 @@ import org.jaitools.JAITools;
  * // s[i][x][y] = pixel value for the source i
  * // d[x][y] = pixel value of the destination 
  * d[x][y] = destinationNoData;
- * for(int i=0; i< sources.length(); i++){
- *      if(!SourceNoDataRange[i].contains(s[i][x][y]){ 
+ * for (int i=0; i< sources.length(); i++) {
+ *      if (!SourceNoDataRange[i].contains(s[i][x][y]) { 
  *              d[x][y] = s[i][x][y];
  *              break;
  *      } 
@@ -62,8 +68,8 @@ import org.jaitools.JAITools;
  * // s[i][x][y] = pixel value for the source i
  * // w[i][x][y] = weigthed value of the destination 
  * w[i][x][y] = 0;
- * for(int i=0; i< sources.length(); i++){
- *      if(!SourceNoDataRange[i].contains(s[i][x][y]){ 
+ * for (int i=0; i< sources.length(); i++) {
+ *      if (!SourceNoDataRange[i].contains(s[i][x][y]) { 
  *              w[i][x][y] = 1;
  *      } 
  * }
@@ -96,125 +102,116 @@ import org.jaitools.JAITools;
  * <p>
  * The ROI and alpha mosaic type are equal to those of the classic MosaicOp.
  * 
- * @see MosaicOpImage2
+ * @see MosaicOpImage
  */
 public class MosaicDescriptor extends OperationDescriptorImpl {
 
-/** serialVersionUID */
-private static final long serialVersionUID = 2718297230579888333L;
+    /** serialVersionUID */
+    private static final long serialVersionUID = 2718297230579888333L;
 
-/**
- * The resource strings that indicates the global name, local name, vendor, a
- * simple operation description, the documentation URL, the version number and a
- * simple description of the operation parameters.
- */
-private static final String[][] resources = {
-        { "GlobalName", "MosaicNoData" },
-        { "LocalName", "MosaicNoData" },
-        { "Vendor", "it.geosolutions.jaiext" },
-        {
-                "Description",
-                "A different mosaic operation which supports noData and doesn't supports threshold" },
-        { "DocURL", "wiki github non already available" },
-        { "Version", "1.0" }, { "arg0Desc", "ImageMosaicBean " },
-        { "arg1Desc", "Mosaic Type" },
-        { "arg2Desc", "Destination no data  Values" } };
+    /**
+     * The resource strings that indicates the global name, local name, vendor, 
+     * a simple operation description, the documentation URL, the version
+     * number and a simple description of the operation parameters.
+     */
+    private static final String[][] resources = {
+            { "GlobalName", "Mosaic" },
+            { "LocalName", "Mosaic" },
+            { "Vendor", "it.geosolutions.jaiext" },
+            {
+                    "Description",
+                    "A different mosaic operation which supports noData and doesn't supports threshold" },
+            { "DocURL", "wiki github non already available" },
+            { "Version", "1.0" }, 
+            { "arg0Desc", "Mosaic Type" },
+            { "arg1Desc", "The source Alpha bands" },
+            { "arg2Desc", "The source ROIs" },
+            { "arg3Desc", "Thresholds used for the mosaic" },
+            { "arg4Desc", "Background values" },
+            { "arg5Desc", "No data  Values" }
+            };
 
-/** The parameter class. Used for the constructor. */
-private static final Class[] paramClasses = { ImageMosaicBean[].class,
-        MosaicType.class, double[].class };
+    /** The parameter class. Used for the constructor. */
+    private static final Class[] paramClasses = {         
+    	javax.media.jai.operator.MosaicType.class,
+        javax.media.jai.PlanarImage[].class,
+        javax.media.jai.ROI[].class,
+        double[][].class,
+        double[].class,
+        it.geosolutions.jaiext.range.Range[].class,
+    };
 
-/** The parameter name list. Used for the constructor. */
-private static final String[] paramNames = { "imageMosaicBean", "mosaicType",
-        "destinationNoData" };
+    /** The parameter name list. Used for the constructor. */
+    private static final String[] paramNames = { 
+        "mosaicType",
+        "sourceAlpha",
+        "sourceROI",
+        "sourceThreshold",
+        "backgroundValues",
+        "nodata"
+    };
 
-/** The parameter values. Used for the constructor. */
-private static final Object[] paramDefaults = { null, javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY,
-        new double[] { 0.0 } };
+    /** The parameter values. Used for the constructor. */
+    private static final Object[] paramDefaults = { 
+        javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY,
+        null,
+        null,
+        new double[][] {{1.0}},
+        new double[] {0.0},
+        null };
 
-/** Constructor. */
-public MosaicDescriptor() {
-    super(resources, new String[] { RenderedRegistryMode.MODE_NAME }, 0,
-            paramNames, paramClasses, paramDefaults, null);
-}
+    /** Constructor. */
+    public MosaicDescriptor() {
+        super(resources, new String[] { RenderedRegistryMode.MODE_NAME }, 0,
+                paramNames, paramClasses, paramDefaults, null);
+    }
 
-/** Check if the Renderable mode is supported */
-public boolean isRenderableSupported() {
-    return false;
-}
+    /** Check if the Renderable mode is supported */
+    public boolean isRenderableSupported() {
+        return false;
+    }
 
-/**
- * This method check if the parameters are suitable for the operation.
- * 
- * @param pb The ParameterBlock containing the values to check
- * @return <code>True</code> only if all the parameters are valid.
- */
-public boolean validateParameters(ParameterBlock pb) {
-    // All the parameters are listed
-    List params = pb.getParameters();
-    for (int i = 0; i < params.size(); i++) {
-        switch (i) {
-        /*
-         * If the ImageBeam array has not the same length of the source list,
-         * this method returns false.
-         */
-        case 1:
-            ImageMosaicBean[] bean = (ImageMosaicBean[]) pb
-                    .getObjectParameter(i);
-            int numSource = pb.getNumSources();
-            if (bean.length != numSource) {
-                return false;
-            }
-            break;
-        /*
-         * If the Mosaic type is not MOSAIC_TYPE_BLEND or MOSAIC_TYPE_OVERLAY
-         * this method returns false.
-         */
-        case 2:
-            MosaicType mosaic = (MosaicType) pb.getObjectParameter(i);
-            if (mosaic != javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_BLEND || mosaic != javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
-                return false;
-            }
-            break;
-        default:
+    /**
+     * RenderedOp creation method that takes all the parameters, passes them to the
+     * ParameterBlockJAI and then call the JAI create method for the mosaic
+     * operation with no data support.
+     * 
+     * @param sources The RenderdImage source array used for the operation.
+     * @param mosaicType This field sets which type of mosaic operation must be
+     *        executed.
+     * @param sourceAlpha source alpha bands
+     * @param sourceROI source ROI
+     * @param sourceThreshold source thresholds
+     * @param backgroundValues This value fills the image pixels that contain no
+     *        data.
+     * @param nodata array of NoData {@link Range} used for checking nodata values
+     * @param renderingHints This value sets the rendering hints for the operation.
+     * @return A RenderedOp that performs the mosaic operation with no data support.
+     */
+    public static RenderedOp create(RenderedImage[] sources,
+            MosaicType mosaicType,
+            PlanarImage[] sourceAlpha,
+            ROI[] sourceROI,
+            double[][] sourceThreshold,
+            double[] backgroundValues,
+            Range[] nodata,
+            RenderingHints renderingHints) {
+        ParameterBlockJAI pb = new ParameterBlockJAI("Mosaic", RenderedRegistryMode.MODE_NAME);
+
+        // All the source images are added to the parameter block.
+        int numSources = sources.length;
+        for (int i = 0; i < numSources; i++) {
+            pb.addSource(sources[i]);
         }
-
+        // Then the parameters are passed to the parameterblockJAI.
+        pb.setParameter("mosaicType", mosaicType);
+        pb.setParameter("sourceAlpha", sourceAlpha);
+        pb.setParameter("sourceROI", sourceROI);
+        pb.setParameter("sourceThreshold", sourceThreshold);
+        pb.setParameter("backgroundValues", backgroundValues);
+        pb.setParameter("nodata", nodata);
+        // JAI operation performed.
+        return JAI.create("Mosaic", pb, renderingHints);
     }
-    // Otherwise it returns true
-    return true;
-}
-
-/**
- * RenderedOp creation method that takes all the parameters, passes them to the
- * ParameterBlockJAI and then call the JAI create method for the mosaic
- * operation with no data support.
- * 
- * @param sources The RenderdImage source array used for the operation.
- * @param bean The Java Bean used for storing image data, ROI and alpha channel
- *        if present, and no data Range.
- * @param mosaicType This field sets which type of mosaic operation must be
- *        executed.
- * @param destinationNoData This value fills the image pixels that contain no
- *        data.
- * @param renderingHints This value sets the rendering hints for the operation.
- * @return A RenderedOp that performs the mosaic operation with no data support.
- */
-public static RenderedOp create(RenderedImage[] sources,
-        ImageMosaicBean[] bean, MosaicType mosaicType,
-        double[] destinationNoData, RenderingHints renderingHints) {
-    ParameterBlockJAI pb = new ParameterBlockJAI("MosaicNoData", RenderedRegistryMode.MODE_NAME);
-
-    // All the source images are added to the parameter block.
-    int numSources = sources.length;
-    for (int i = 0; i < numSources; i++) {
-        pb.addSource(sources[i]);
-    }
-    // Then the parameters are passed to the parameterblockJAI.
-    pb.setParameter("imageMosaicBean", bean);
-    pb.setParameter("mosaicType", mosaicType);
-    pb.setParameter("destinationNoData", destinationNoData);
-    // JAI operation performed.
-    return JAI.create("MosaicNoData", pb, renderingHints);
-}
 
 }

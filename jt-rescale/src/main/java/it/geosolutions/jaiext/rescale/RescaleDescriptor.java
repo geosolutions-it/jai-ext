@@ -121,11 +121,11 @@ class RescalePropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>GlobalName</td>
- * <td>Rescaling</td>
+ * <td>Rescale</td>
  * </tr>
  * <tr>
  * <td>LocalName</td>
- * <td>Rescaling</td>
+ * <td>Rescale</td>
  * </tr>
  * <tr>
  * <td>Vendor</td>
@@ -211,8 +211,8 @@ public class RescaleDescriptor extends OperationDescriptorImpl {
     /**
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
-    private static final String[][] resources = { { "GlobalName", "Rescaling" },
-            { "LocalName", "Rescaling" }, { "Vendor", "it.geosolutions.jaiext" },
+    private static final String[][] resources = { { "GlobalName", "Rescale" },
+            { "LocalName", "Rescale" }, { "Vendor", "it.geosolutions.jaiext" },
             { "Description", "Operation which converts the image dynamic to a new dynamic" },
             { "DocURL", "Not Defined" }, { "Version", "1.0" },
             { "arg0Desc", "Scale factors used for rescaling values" },
@@ -227,7 +227,7 @@ public class RescaleDescriptor extends OperationDescriptorImpl {
             Double.class };
 
     /** The parameter name list for this operation. */
-    private static final String[] paramNames = { "scale", "offset", "ROI", "noData",
+    private static final String[] paramNames = { "constants", "offsets", "ROI", "noData",
             "useRoiAccessor", "destNoData" };
 
     /** The parameter default value list for this operation. */
@@ -273,21 +273,21 @@ public class RescaleDescriptor extends OperationDescriptorImpl {
      * @return The <code>RenderedOp</code> destination.
      * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.
      */
-    public static RenderedOp create(RenderedImage source0, double[] scales, double[] offsets,
+    public static RenderedOp create(RenderedImage source0, double[] constants, double[] offsets,
             ROI roi, Range rangeND, boolean useRoiAccessor, double destNoData, RenderingHints hints) {
         // Creation of the parameterBlock object associated to the operation
-        ParameterBlockJAI pb = new ParameterBlockJAI("Rescaling", RenderedRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("Rescale", RenderedRegistryMode.MODE_NAME);
         // Setting of the source
         pb.setSource("source0", source0);
         // Setting of the parameters
-        pb.setParameter("scale", scales);
-        pb.setParameter("offset", offsets);
+        pb.setParameter("constants", constants);
+        pb.setParameter("offsets", offsets);
         pb.setParameter("ROI", roi);
         pb.setParameter("noData", rangeND);
         pb.setParameter("useRoiAccessor", useRoiAccessor);
         pb.setParameter("destNoData", destNoData);
 
-        return JAI.create("Rescaling", pb, hints);
+        return JAI.create("Rescale", pb, hints);
     }
 
     /**
@@ -308,22 +308,22 @@ public class RescaleDescriptor extends OperationDescriptorImpl {
      * @return The <code>RenderedOp</code> destination.
      * @throws IllegalArgumentException if <code>source0</code> is <code>null</code>.
      */
-    public static RenderableOp createRenderable(RenderableImage source0, double[] scales,
+    public static RenderableOp createRenderable(RenderableImage source0, double[] constants,
             double[] offsets, ROI roi, Range rangeND, boolean useRoiAccessor, double destNoData,
             RenderingHints hints) {
         // Creation of the parameterBlock object associated to the operation
-        ParameterBlockJAI pb = new ParameterBlockJAI("Rescaling", RenderableRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("Rescale", RenderableRegistryMode.MODE_NAME);
         // Setting of the source
         pb.setSource("source0", source0);
         // Setting of the parameters
-        pb.setParameter("scale", scales);
-        pb.setParameter("offset", offsets);
+        pb.setParameter("constants", constants);
+        pb.setParameter("offsets", offsets);
         pb.setParameter("ROI", roi);
         pb.setParameter("noData", rangeND);
         pb.setParameter("useRoiAccessor", useRoiAccessor);
         pb.setParameter("destNoData", destNoData);
 
-        return JAI.createRenderable("Rescaling", pb, hints);
+        return JAI.createRenderable("Rescale", pb, hints);
     }
 
 }

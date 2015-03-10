@@ -57,10 +57,7 @@ public class JAIEXTTest {
         FileUtils.copyFile(inputJAIFile, newJAIFile);
 
         // Setting of the operation registry
-        ConcurrentOperationRegistry registry = (ConcurrentOperationRegistry) ConcurrentOperationRegistry
-                .initializeRegistry();
-        JAI.getDefaultInstance().setOperationRegistry(registry);
-        JAIExt.initJAIEXT(registry);
+        JAIExt.initJAIEXT();
     }
 
     @Test

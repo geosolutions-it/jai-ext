@@ -105,6 +105,18 @@ public class InterpolationNearest extends Interpolation implements Interpolation
         return destinationNoData;
     }
 
+	public void setDestinationNoData(double destinationNoData) {
+		this.destinationNoData = destinationNoData;
+	}
+    
+    public boolean getUseROIAccessor() {
+    	return useROIAccessor;
+    }
+    
+    public void setUseROIAccessor(boolean useROIAccessor) {
+    	this.useROIAccessor = useROIAccessor;
+    }
+    
     public Range getNoDataRange() {
         return noDataRange;
     }

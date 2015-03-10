@@ -8,4 +8,4 @@ descriptor  it.geosolutions.jaiext.mosaic.MosaicDescriptor
 # RenderedImageFactories
 #
 
-rendered  it.geosolutions.jaiext.mosaic.MosaicRIF  it.geosolutions.jaiext  MosaicNoData MosaicNoData 
+rendered  it.geosolutions.jaiext.mosaic.MosaicRIF  it.geosolutions.jaiext  Mosaic Mosaic 

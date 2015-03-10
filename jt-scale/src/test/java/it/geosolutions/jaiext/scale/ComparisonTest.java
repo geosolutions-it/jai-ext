@@ -24,11 +24,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.testclasses.TestBase;
 import it.geosolutions.jaiext.testclasses.TestData;
 
 import javax.media.jai.BorderExtender;
@@ -58,7 +60,7 @@ import org.junit.Test;
  * bicubic. The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor. If the user
  * wants to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
-public class ComparisonTest {
+public class ComparisonTest extends TestBase{
 
     /** Number of benchmark iterations (Default 1) */
     private final static Integer BENCHMARK_ITERATION = Integer.getInteger(
@@ -160,6 +162,10 @@ public class ComparisonTest {
         interpBicOld = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
         interpBicNew = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, rangeND, false, dataType,
                 dataType, false, DEFAULT_PRECISION_BITS);
+        
+        if(OLD_DESCRIPTOR){
+            JAIExt.registerJAIDescriptor("Scale");
+        }
     }
 
     @Test
@@ -266,7 +272,7 @@ public class ComparisonTest {
                         xTrans, yTrans, interp, hints);
             } else {
                 imageScale = ScaleDescriptor.create(image, scaleX, scaleY, xTrans, yTrans, interp,
-                        null, false, hints);
+                        null, false, null, null, hints);
             }
 
             // Total calculation time

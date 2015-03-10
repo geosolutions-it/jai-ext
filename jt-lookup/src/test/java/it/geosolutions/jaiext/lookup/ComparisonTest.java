@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.lookup;
 
+import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
@@ -82,16 +83,16 @@ public class ComparisonTest extends TestBase {
     private static RenderedImage testImageInt;
 
     /** LookupTable from byte to byte */
-    private static LookupTableByte byteToByteTableNew;
+    private static LookupTable byteToByteTableNew;
 
     /** LookupTable from ushort to byte */
-    private static LookupTableUShort ushortToByteTableNew;
+    private static LookupTable ushortToByteTableNew;
 
     /** LookupTable from short to byte */
-    private static LookupTableShort shortToByteTableNew;
+    private static LookupTable shortToByteTableNew;
 
     /** LookupTable from int to byte */
-    private static LookupTableInt intToByteTableNew;
+    private static LookupTable intToByteTableNew;
 
     /** LookupTableJAI from byte to byte */
     private static LookupTableJAI byteToByteTableOld;
@@ -128,7 +129,7 @@ public class ComparisonTest extends TestBase {
         testImageInt = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
                 false);
         // Offset creation
-        int byteOffset = noDataB;
+        int byteOffset = 0;
         int ushortOffset = 0;
         int shortOffset = noDataS;
         int intOffset = noDataI;
@@ -164,13 +165,13 @@ public class ComparisonTest extends TestBase {
         }
 
         // LookupTables creation
-        byteToByteTableNew = new LookupTableByte(dataByteB, byteOffset);
+        byteToByteTableNew = new LookupTable(dataByteB, byteOffset);
 
-        ushortToByteTableNew = new LookupTableUShort(dataUShortB, ushortOffset);
+        ushortToByteTableNew = new LookupTable(dataUShortB, ushortOffset);
 
-        shortToByteTableNew = new LookupTableShort(dataShortB, shortOffset);
+        shortToByteTableNew = new LookupTable(dataShortB, shortOffset);
 
-        intToByteTableNew = new LookupTableInt(dataIntB, intOffset);
+        intToByteTableNew = new LookupTable(dataIntB, intOffset);
 
         byteToByteTableOld = new LookupTableJAI(dataByteB, byteOffset);
 
@@ -203,6 +204,10 @@ public class ComparisonTest extends TestBase {
                     throw new IllegalArgumentException("Wrong data type");
             }
             
+        }
+        
+        if(OLD_DESCRIPTOR){
+            JAIExt.registerJAIDescriptor("lookup");
         }
         
         

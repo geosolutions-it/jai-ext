@@ -67,11 +67,11 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>GlobalName</td>
- * <td>BandMergeOp</td>
+ * <td>BandMerge</td>
  * </tr>
  * <tr>
  * <td>LocalName</td>
- * <td>BandMergeOp</td>
+ * <td>BandMerge</td>
  * </tr>
  * <tr>
  * <td>Vendor</td>
@@ -146,33 +146,34 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      * The resource strings that provide the general documentation and specify the parameter list for this operation.
      */
     private static final String[][] resources = {
-            { "GlobalName", "BandMergeOp" },
-            { "LocalName", "BandMergeOp" },
+            { "GlobalName", "BandMerge" },
+            { "LocalName", "BandMerge" },
             { "Vendor", "it.geosolutions.jaiext" },
             { "Description",
                     "Operation used for merging multiple images into a single multibanded image" },
             { "DocURL", "Not Defined" }, { "Version", "1.0" }, { "arg0Desc", "NoData values" },
             { "arg1Desc", "Destination No Data value" },
             { "arg2Desc", "Transformations List" },
-            { "arg3Desc", "ROI object to use" }
+            { "arg3Desc", "ROI object to use" },
+            { "arg4Desc", "Boolean indicating if the last band is an alpha band" }
 
     };
 
     /**
      * Input Parameter name
      */
-    private static final String[] paramNames = { "noData", "destinationNoData", "transformations", "roi" };
+    private static final String[] paramNames = { "noData", "destinationNoData", "transformations", "roi", "setAlpha" };
 
     /**
      * Input Parameter class
      */
     private static final Class[] paramClasses = { it.geosolutions.jaiext.range.Range[].class,
-            Double.class, List.class, javax.media.jai.ROI.class };
+            Double.class, List.class, javax.media.jai.ROI.class, Boolean.class };
 
     /**
      * Input Parameter default values
      */
-    private static final Object[] paramDefaults = { null, 0d, null, null };
+    private static final Object[] paramDefaults = { null, 0d, null, null, false };
 
     /** Constructor. */
     public BandMergeDescriptor() {
@@ -197,17 +198,18 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      * 
      * @param noData Array of input No Data Ranges.
      * @param destinationNoData value used by the RenderedOp for setting the output no data value.
+     * @param setAlpha boolean used for setting the last band as alpha band
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @param sources Array of source <code>RenderedImage</code>.
      * @return The <code>RenderedOp</code> destination.
      * @throws IllegalArgumentException if <code>sources</code> is <code>null</code>.
      * @throws IllegalArgumentException if a <code>source</code> is <code>null</code>.
      */
-    public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints,
+    public static RenderedOp create(Range[] noData, double destinationNoData, boolean setAlpha, RenderingHints hints,
             RenderedImage... sources) {
-        return create(noData, destinationNoData, hints, null, sources);
+        return create(noData, destinationNoData, setAlpha, hints, null, sources);
     }
-    
+
     /**
      * Merge (possibly multi-banded)images into a multibanded image.
      * 
@@ -221,6 +223,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      * 
      * @param noData Array of input No Data Ranges.
      * @param destinationNoData value used by the RenderedOp for setting the output no data value.
+     * @param setAlpha boolean used for setting the last band as alpha band
      * @param hints The <code>RenderingHints</code> to use. May be <code>null</code>.
      * @param transform A List of AffineTransformation to use for backward mapping each source image. May be <code>null</code>.
      * @param sources Array of source <code>RenderedImage</code>.
@@ -228,9 +231,9 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      * @throws IllegalArgumentException if <code>sources</code> is <code>null</code>.
      * @throws IllegalArgumentException if a <code>source</code> is <code>null</code>.
      */
-    public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints, 
+    public static RenderedOp create(Range[] noData, double destinationNoData, boolean setAlpha, RenderingHints hints, 
             List<AffineTransform> transform, RenderedImage... sources) {
-        return create(noData, destinationNoData, hints, transform, null, sources);
+        return create(noData, destinationNoData, setAlpha, hints, transform, null, sources);
     }
 
     /**
@@ -254,9 +257,9 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      * @throws IllegalArgumentException if <code>sources</code> is <code>null</code>.
      * @throws IllegalArgumentException if a <code>source</code> is <code>null</code>.
      */
-    public static RenderedOp create(Range[] noData, double destinationNoData, RenderingHints hints, 
+    public static RenderedOp create(Range[] noData, double destinationNoData, boolean setAlpha, RenderingHints hints, 
             List<AffineTransform> transform, ROI roi, RenderedImage... sources) {
-        ParameterBlockJAI pb = new ParameterBlockJAI("BandMergeOp", RenderedRegistryMode.MODE_NAME);
+        ParameterBlockJAI pb = new ParameterBlockJAI("BandMerge", RenderedRegistryMode.MODE_NAME);
         // Source number
         int numSources = sources.length;
         // Check on the source number
@@ -280,16 +283,17 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
         if(transform != null && !transform.isEmpty() && transform.get(0) instanceof AffineTransform){
             pb.setParameter("transformations", transform);
         }
-        
+
         // Setting of the parameters
         pb.setParameter("noData", noData);
         pb.setParameter("destinationNoData", destinationNoData);
         pb.setParameter("roi", roi);
+        pb.setParameter("setAlpha", setAlpha);
 
         // Creation of the RenderedOp
-        return JAI.create("BandMergeOp", pb, hints);
+        return JAI.create("BandMerge", pb, hints);
     }
-    
+
     /**
      * Merge (possibly multi-banded)images into a multibanded image.
      * 
@@ -313,7 +317,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
             RenderingHints hints, RenderableImage... sources) {
         return createRenderable(noData, destinationNoData, hints, null, sources);
     }
-    
+
     /**
      * Merge (possibly multi-banded)images into a multibanded image.
      * 
@@ -338,7 +342,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
             RenderingHints hints, List<AffineTransform> transform, RenderableImage... sources) {
         return createRenderable(noData, destinationNoData, hints, transform, null, sources);
     }
-    
+
     /**
      * Merge (possibly multi-banded)images into a multibanded image.
      * 
@@ -362,7 +366,7 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
      */
     public static RenderableOp createRenderable(Range[] noData, double destinationNoData,
             RenderingHints hints, List<AffineTransform> transform, ROI roi, RenderableImage... sources) {
-        ParameterBlockJAI pb = new ParameterBlockJAI("BandMergeOp",
+        ParameterBlockJAI pb = new ParameterBlockJAI("BandMerge",
                 RenderableRegistryMode.MODE_NAME);
         // Source number
         int numSources = sources.length;
@@ -381,18 +385,19 @@ public class BandMergeDescriptor extends OperationDescriptorImpl {
 
             pb.setSource(source, index);
         }
-        
+
         // Check if the transform object can be used
-        if(transform != null && !transform.isEmpty() && transform.get(0) instanceof AffineTransform){
+        if (transform != null && !transform.isEmpty()
+                && transform.get(0) instanceof AffineTransform) {
             pb.setParameter("transformations", transform);
         }
-        
+
         // Setting of the parameters
         pb.setParameter("noData", noData);
         pb.setParameter("destinationNoData", destinationNoData);
         pb.setParameter("roi", roi);
-        
+
         // Creation of the RenderedOp
-        return JAI.createRenderable("BandMergeOp", pb, hints);
+        return JAI.createRenderable("BandMerge", pb, hints);
     }
 }
