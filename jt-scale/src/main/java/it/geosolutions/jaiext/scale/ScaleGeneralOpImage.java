@@ -45,6 +45,7 @@ import javax.media.jai.InterpolationTable;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
+import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.Rational;
 
 /**
@@ -85,7 +86,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
         // ColorModel as the source.
         // Note, in this case, the source should have an integral data type.
         ColorModel srcColorModel = source.getColorModel();
-        if (srcColorModel instanceof IndexColorModel) {
+        if (srcColorModel instanceof IndexColorModel && ImageUtil.isBinary(source.getSampleModel())) {
             sampleModel = source.getSampleModel()
                     .createCompatibleSampleModel(tileWidth, tileHeight);
             colorModel = srcColorModel;

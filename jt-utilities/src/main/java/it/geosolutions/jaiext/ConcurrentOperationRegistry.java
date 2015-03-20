@@ -1040,7 +1040,10 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
                 // but it is not used by default
                 for (Object factory : list) {
                     if (factory.getClass().getName().contains("Mlib")) {
-                        value.setMlibFactory(factory);
+                        // Ensure Medialib is present
+                        if(JAIExt.isMedialibavailable()){
+                            value.setMlibFactory(factory);
+                        }
                     } else {
                         value.setFactory(factory);
                         break;

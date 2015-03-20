@@ -93,22 +93,26 @@ public class JAIEXTTest {
         // Using JAI-EXT class for setting the MediaLib Factory
         // Setting the JAI operation
         JAIExt.registerJAIDescriptor(SCALE);
-        // Set the acceleration
-        JAIExt.setJAIAcceleration(SCALE, true);
-        // Then check that the descriptor is an instance of the ScaleDescriptor class
-        operations = registry.getOperationCollection();
-        operationItem = operations.get(SCALE);
-        // Also check that the associated RIF is an instance of the ScaleCRIF class
-        assertTrue(operationItem.getCurrentFactory().getClass()
-                .isAssignableFrom(MlibScaleRIF.class));
+        // Check if the Medialib acceleration is present otherwise no test is done
+        if (JAIExt.isMedialibavailable()) {
+            // Set the acceleration
+            JAIExt.setJAIAcceleration(SCALE, true);
+            // Then check that the descriptor is an instance of the ScaleDescriptor class
+            operations = registry.getOperationCollection();
+            operationItem = operations.get(SCALE);
+            // Also check that the associated RIF is an instance of the ScaleCRIF class
+            assertTrue(operationItem.getCurrentFactory().getClass()
+                    .isAssignableFrom(MlibScaleRIF.class));
 
-        // Unset the acceleration
-        JAIExt.setJAIAcceleration(SCALE, false);
-        // Then check that the descriptor is an instance of the ScaleDescriptor class
-        operations = registry.getOperationCollection();
-        operationItem = operations.get(SCALE);
-        // Also check that the associated RIF is an instance of the ScaleCRIF class
-        assertTrue(operationItem.getCurrentFactory().getClass().isAssignableFrom(ScaleCRIF.class));
+            // Unset the acceleration
+            JAIExt.setJAIAcceleration(SCALE, false);
+            // Then check that the descriptor is an instance of the ScaleDescriptor class
+            operations = registry.getOperationCollection();
+            operationItem = operations.get(SCALE);
+            // Also check that the associated RIF is an instance of the ScaleCRIF class
+            assertTrue(operationItem.getCurrentFactory().getClass()
+                    .isAssignableFrom(ScaleCRIF.class));
+        }
     }
 
     @Test

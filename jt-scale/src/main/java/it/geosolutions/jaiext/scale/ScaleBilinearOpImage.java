@@ -36,6 +36,8 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
+import com.sun.media.jai.util.ImageUtil;
+
 public class ScaleBilinearOpImage extends ScaleOpImage {
     
     /** boolean indicating if the data type is DataBuffer.TYPE_INT*/
@@ -61,7 +63,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         // ColorModel as the source.
         // Note, in this case, the source should have an integral data type.
         ColorModel srcColorModel = source.getColorModel();
-        if (srcColorModel instanceof IndexColorModel) {
+        if (srcColorModel instanceof IndexColorModel && ImageUtil.isBinary(source.getSampleModel())) {
             sampleModel = source.getSampleModel()
                     .createCompatibleSampleModel(tileWidth, tileHeight);
             colorModel = srcColorModel;

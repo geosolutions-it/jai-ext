@@ -36,6 +36,8 @@ import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
+import com.sun.media.jai.util.ImageUtil;
+
 public class ScaleBicubicOpImage extends ScaleOpImage {
 
     /** Bicubic interpolator */
@@ -76,7 +78,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
         // ColorModel as the source.
         // Note, in this case, the source should have an integral data type.
         ColorModel srcColorModel = source.getColorModel();
-        if (srcColorModel instanceof IndexColorModel) {
+        if (srcColorModel instanceof IndexColorModel && ImageUtil.isBinary(source.getSampleModel())) {
             sampleModel = source.getSampleModel()
                     .createCompatibleSampleModel(tileWidth, tileHeight);
             colorModel = srcColorModel;
@@ -677,7 +679,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     weightVert = 0;
 
                                     // Vertical sum update
-                                    tempSum = tempData[0] * dataVi[offsetY] + tempData[1]
+                                    sum = tempData[0] * dataVi[offsetY] + tempData[1]
                                             * dataVi[offsetY + 1] + tempData[2]
                                             * dataVi[offsetY + 2] + tempData[3]
                                             * dataVi[offsetY + 3];
