@@ -20,6 +20,9 @@ package it.geosolutions.jaiext;
 import it.geosolutions.jaiext.ConcurrentOperationRegistry.OperationCollection;
 import it.geosolutions.jaiext.ConcurrentOperationRegistry.OperationItem;
 
+import java.lang.reflect.Method;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -103,6 +106,64 @@ public class JAIExt {
         algebric.add("SubtractFrom");
         algebric.add("DivideInto");
         NAME_MAPPING.put(ALGEBRIC_NAME, algebric);
+    }
+    
+    /**
+     * {@code true} if JAI media lib is available.
+     */
+    private static final boolean mediaLibAvailable;
+    static {
+
+        // do we wrappers at hand?
+        boolean mediaLib = false;
+        Class<?> mediaLibImage = null;
+        try {
+            mediaLibImage = Class.forName("com.sun.medialib.mlib.Image");
+        } catch (ClassNotFoundException e) {
+        }
+        mediaLib = (mediaLibImage != null);
+
+        // npw check if we either wanted to disable explicitly and if we installed the native libs
+        if (mediaLib) {
+            try {
+                // explicit disable
+                mediaLib = !Boolean.getBoolean("com.sun.media.jai.disableMediaLib");
+                // native libs installed
+                if (mediaLib) {
+                    final Class<?> mImage = mediaLibImage;
+                    mediaLib = AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
+                        public Boolean run() {
+                            try {
+                                // get the method
+                                final Class<?> params[] = {};
+                                Method method = mImage.getDeclaredMethod("isAvailable", params);
+
+                                // invoke
+                                final Object paramsObj[] = {};
+
+                                final Object o = mImage.newInstance();
+                                return (Boolean) method.invoke(o, paramsObj);
+                            } catch (Throwable e) {
+                                return false;
+                            }
+                        }
+                    });
+                }
+            } catch (Throwable e) {
+                // Because the property com.sun.media.jai.disableMediaLib isn't
+                // defined as public, the users shouldn't know it. In most of
+                // the cases, it isn't defined, and thus no access permission
+                // is granted to it in the policy file. When JAI is utilized in
+                // a security environment, AccessControlException will be thrown.
+                // In this case, we suppose that the users would like to use
+                // medialib accelaration. So, the medialib won't be disabled.
+
+                // The fix of 4531501
+
+                mediaLib = false;
+            }
+        }
+        mediaLibAvailable = mediaLib;
     }
  
     private static final String JAI_EXT_VENDOR = "it.geosolutions.jaiext";
@@ -456,28 +517,29 @@ public class JAIExt {
                     acc2 = " Accelerated";
                 }
                 // Registration step
-                List orderedFactoryList = registry.getOrderedFactoryList(RenderedRegistryMode.MODE_NAME, descriptorName,
+                List orderedFactoryList = registry.getOrderedFactoryList(
+                        RenderedRegistryMode.MODE_NAME, descriptorName,
                         ConcurrentOperationRegistry.JAI_PRODUCT);
-                if (orderedFactoryList != null && orderedFactoryList.contains(oldFactory) ){
-                    registry.unregisterFactory(RenderedRegistryMode.MODE_NAME, descriptorName,
-                            ConcurrentOperationRegistry.JAI_PRODUCT, oldFactory);
+                if (orderedFactoryList != null && orderedFactoryList.contains(oldFactory)) {
+                    // registry.unregisterFactory(RenderedRegistryMode.MODE_NAME, descriptorName,
+                    // ConcurrentOperationRegistry.JAI_PRODUCT, oldFactory);
+                    registry.unregisterDescriptor(jaiItem.getDescriptor());
+                    registry.registerDescriptor(jaiItem.getDescriptor());
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST, "Unregistered" + acc1 + " Factory for the operation: "
-                                + descriptorName);
+                        LOGGER.log(Level.FINEST, "Unregistered" + acc1
+                                + " Factory for the operation: " + descriptorName);
                     }
                 }
-                orderedFactoryList = registry.getOrderedFactoryList(RenderedRegistryMode.MODE_NAME, descriptorName,
-                        ConcurrentOperationRegistry.JAI_PRODUCT);
-                if (orderedFactoryList == null || !orderedFactoryList.contains(newFactory) ){
+                orderedFactoryList = registry.getOrderedFactoryList(RenderedRegistryMode.MODE_NAME,
+                        descriptorName, ConcurrentOperationRegistry.JAI_PRODUCT);
+                if (orderedFactoryList == null || !orderedFactoryList.contains(newFactory)) {
                     registry.registerFactory(RenderedRegistryMode.MODE_NAME, descriptorName,
                             ConcurrentOperationRegistry.JAI_PRODUCT, newFactory);
-                    
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST, "Registered" + acc2 + " Factory for the operation: "
-                                + descriptorName);
+                        LOGGER.log(Level.FINEST, "Registered" + acc2
+                                + " Factory for the operation: " + descriptorName);
                     }
                 }
-
             }else{
                 if (LOGGER.isLoggable(Level.INFO)) {
                     LOGGER.log(Level.INFO, "Unable to set acceleration for following operation: " + descriptorName);
@@ -621,5 +683,9 @@ public class JAIExt {
         } finally {
             writeLock.unlock();
         }
+    }
+
+    public static boolean isMedialibavailable() {
+        return mediaLibAvailable;
     }
 }
