@@ -61,7 +61,7 @@ public class ImageFunctionRIF implements RenderedImageFactory {
                 && layout.getSampleModel(null).getNumBands() != numBandsRequired) {
             throw new RuntimeException(JaiI18N.getString("ImageFunctionRIF0"));
         }
-
+        // Origin definition
         int minX = 0;
         int minY = 0;
         if (layout != null) {

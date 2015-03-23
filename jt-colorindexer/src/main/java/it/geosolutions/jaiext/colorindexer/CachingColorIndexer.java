@@ -25,6 +25,7 @@ import java.awt.image.IndexColorModel;
  * @author Andrea Aime - GeoSolutions
  */
 public class CachingColorIndexer implements ColorIndexer {
+    /** {@link ColorIndexer} wrapped by this instance*/
     ColorIndexer delegate;
 
     /** Last used element of its colorcomponent */

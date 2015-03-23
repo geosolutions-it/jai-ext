@@ -38,16 +38,13 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RectIter;
 import javax.media.jai.iterator.RectIterFactory;
-import javax.media.jai.iterator.WritableRandomIter;
 import javax.media.jai.iterator.WritableRectIter;
 
 import com.sun.media.jai.util.ImageUtil;
 
 /**
- * Images are created using the {@code            GenericPiecewise.CRIF} inner class, where "CRIF" stands for
- * {@link java.awt.image.renderable.ContextualRenderedImageFactory} . The image operation name is "org.geotools.GenericPiecewise".
- * 
- * 
+ * Images are created using the {@code GenericPiecewise.CRIF} inner class, where "CRIF" stands for
+ * {@link java.awt.image.renderable.ContextualRenderedImageFactory} . The image operation name is "GenericPiecewise".
  * 
  * @author Simone Giannecchini - GeoSolutions
  */
@@ -117,15 +114,14 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
     /** Optional value used for indicating that the calculations are made only on one band */
     private Integer bandIndex;
 
-    /** Boolean indicating that the bandIndex parameter has been defined */
-    private boolean indexNotDefined;
-
     /**
      * Constructs a new {@code RasterClassifier}.
      * 
      * @param image The source image.
      * @param lic The DefaultPiecewiseTransform1D.
-     * @param bandIndex
+     * @param bandIndex index used for defining the band to calculate
+     * @param roi {@link ROI} used for reducing computation area
+     * @param nodata {@link Range} used for defining NoData values
      * @param hints The rendering hints.
      */
     public GenericPiecewiseOpImage(final RenderedImage image, final PiecewiseTransform1D<T> lic,
@@ -140,7 +136,6 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
         // Check the bandIndex value
         if (bandIndex != null) {
             this.bandIndex = bandIndex;
-            this.indexNotDefined = bandIndex == null || bandIndex != -1;
         }
 
         // Set the byte data flag.
@@ -206,7 +201,6 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
                 final RuntimeException re = new RuntimeException(e);
                 throw re;
             }
-
         }
 
         // Set flag to permit in-place operation.
@@ -250,22 +244,13 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
             }
         }
 
-        // Check on the tile size
-        // if (sources[0].getWidth() != dest.getWidth()) {
-        // throw new IllegalArgumentException(
-        // "Sourc and Destination image must have the same width");
-        // }
-        // if (sources[0].getHeight() != dest.getHeight()) {
-        // throw new IllegalArgumentException(
-        // "Sourc and Destination image must have the same Height");
-        // }
+        // Check on the num bands
         if (sources[0].getNumBands() != dest.getNumBands()) {
             throw new IllegalArgumentException(
                     "Sourc and Destination image must have the same Bands");
         }
 
-        // Creating the RasterAccessors
-
+        // Creating the RasterAccessors and testing
         if (!hasROI || !roiDisjointTile) {
             if (isByteData) {
                 computeRectByte(sources[0], dest, destRect, roiIter, roiContainsTile);
@@ -295,14 +280,6 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
         // Input position parameters
         int x0 = srcX;
         int y0 = srcY;
-
-        // int dstWidth = destRect.width;
-        // int dstHeight = destRect.height;
-        // int dstBands = indexDefined ? bandIndex + 1 : dest.getNumBands();
-        // int startBand = indexDefined ? bandIndex : 0;
-
-        // WritableRandomIter dstIter = RandomIterFactory.createWritable(dest, destRect);
-        // RandomIter srcIter = RandomIterFactory.create(source, destRect, ARRAY_CALC, ARRAY_CALC);
 
         WritableRectIter dstIter = RectIterFactory.createWritable(dest, destRect);
         RectIter srcIter = RectIterFactory.create(source, destRect);
@@ -432,8 +409,14 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
         WritableRectIter dstIter = RectIterFactory.createWritable(dest, destRect);
         RectIter srcIter = RectIterFactory.create(source, destRect);
 
+        if (!dstIter.finishedBands() && !srcIter.finishedBands()) {
+            for (int i = 0; i < bandIndex; i++) {
+                dstIter.nextBand();
+                srcIter.nextBand();
+            }
+        }
+
         if (caseA || (caseB && roiContainsTile)) {
-            int bandNumber = 0;
             do {
                 try {
                     dstIter.startLines();
@@ -493,12 +476,10 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
                     exception.initCause(cause);
                     throw exception;
                 }
-                bandNumber++;
                 if (bandIndex != -1)
                     break;
             } while (dstIter.finishedBands() && srcIter.finishedBands());
         } else if (caseB) {
-            int bandNumber = 0;
             do {
                 try {
                     dstIter.startLines();
@@ -542,14 +523,12 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
                     exception.initCause(cause);
                     throw exception;
                 }
-                bandNumber++;
                 y0 = srcY;
                 x0 = srcX;
                 if (bandIndex != -1)
                     break;
             } while (dstIter.finishedBands() && srcIter.finishedBands());
         } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
-            int bandNumber = 0;
             do {
                 try {
                     dstIter.startLines();
@@ -589,12 +568,10 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
                     exception.initCause(cause);
                     throw exception;
                 }
-                bandNumber++;
                 if (bandIndex != -1)
                     break;
             } while (dstIter.finishedBands() && srcIter.finishedBands());
         } else {
-            int bandNumber = 0;
             do {
                 try {
                     dstIter.startLines();
@@ -643,7 +620,6 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
                     exception.initCause(cause);
                     throw exception;
                 }
-                bandNumber++;
                 y0 = srcY;
                 x0 = srcX;
                 if (bandIndex != -1)

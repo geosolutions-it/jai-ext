@@ -25,10 +25,10 @@ package it.geosolutions.jaiext.piecewise;
  */
 public class NoninvertibleTransformException extends TransformationException {
 
+    /** serialVersionUID */
+    private static final long serialVersionUID = 1L;
+
     public NoninvertibleTransformException(String string) {
-
         super(string);
-
     }
-
 }

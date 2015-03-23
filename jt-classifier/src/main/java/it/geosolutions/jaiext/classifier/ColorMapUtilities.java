@@ -198,7 +198,7 @@ public class ColorMapUtilities {
     }
 
     /**
-     * Returns a suggered type for an {@link IndexColorModel} of {@code mapSize} colors. This method returns {@link DataBuffer#TYPE_BYTE} or
+     * Returns a suggested type for an {@link IndexColorModel} of {@code mapSize} colors. This method returns {@link DataBuffer#TYPE_BYTE} or
      * {@link DataBuffer#TYPE_USHORT}.
      */
     public static int getTransferType(final int mapSize) {

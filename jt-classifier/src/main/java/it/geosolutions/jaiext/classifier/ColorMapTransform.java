@@ -28,9 +28,6 @@ import java.awt.image.SampleModel;
  * 
  * @author Simone Giannecchini, GeoSolutions.
  * 
- * 
- * 
- * 
  * @source $URL$
  */
 public interface ColorMapTransform<T extends ColorMapTransformElement> extends

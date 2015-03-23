@@ -25,8 +25,6 @@ import it.geosolutions.jaiext.range.RangeFactory;
  * 
  * @author Simone Giannecchini, GeoSolutions
  * 
- * 
- * 
  * @source $URL$
  */
 public class DefaultLinearPiecewiseTransform1DElement extends DefaultPiecewiseTransform1DElement
@@ -274,7 +272,7 @@ public class DefaultLinearPiecewiseTransform1DElement extends DefaultPiecewiseTr
     /*
      * (non-Javadoc)
      * 
-     * @see org.geotools.referencing.piecewise.DefaultPiecewiseTransform1DElement#toString()
+     * @see DefaultPiecewiseTransform1DElement#toString()
      */
     public String toString() {
         final StringBuilder buffer = new StringBuilder(super.toString());

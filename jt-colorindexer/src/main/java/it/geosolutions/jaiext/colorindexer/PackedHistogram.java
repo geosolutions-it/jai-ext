@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.colorindexer;
 
 import static it.geosolutions.jaiext.colorindexer.ColorUtils.*;
@@ -25,13 +25,10 @@ import java.awt.image.RenderedImage;
 import java.util.Arrays;
 import java.util.Comparator;
 
-
 /**
- * Builds a histogram of a certain image making sure that we don't end up with too many entries. If
- * the unique colors in the image go above {@link Short#MAX_VALUE} the histogram will apply a bit
- * shift on each color component in order to reduce the unique color count. Most vector maps with
- * alpha channel and antialiasing don't actually need the shift, but satellite and aerial imagery
- * often does
+ * Builds a histogram of a certain image making sure that we don't end up with too many entries. If the unique colors in the image go above
+ * {@link Short#MAX_VALUE} the histogram will apply a bit shift on each color component in order to reduce the unique color count. Most vector maps
+ * with alpha channel and antialiasing don't actually need the shift, but satellite and aerial imagery often does
  * 
  * @author Andrea Aime - GeoSolutions
  * 
@@ -163,10 +160,10 @@ public class PackedHistogram {
                 tile.getPixel(x, y, pixel);
                 int red, green, blue, alpha;
 
-                if(bands == 1 || bands == 2) {
+                if (bands == 1 || bands == 2) {
                     red = green = blue = pixel[0];
                     alpha = bands == 2 ? pixel[1] : 255;
-                } else  {
+                } else {
                     red = pixel[0];
                     green = pixel[1];
                     blue = pixel[2];

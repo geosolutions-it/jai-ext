@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.rescale;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
@@ -109,7 +109,7 @@ public class RescaleOpImage extends PointOpImage {
     /** Destination value for No Data double */
     private double destinationNoDataDouble;
 
-    /** Extended ROI image*/
+    /** Extended ROI image */
     private RenderedOp srcROIImgExt;
 
     public RescaleOpImage(RenderedImage source, ImageLayout layout, Map configuration,
@@ -173,7 +173,7 @@ public class RescaleOpImage extends PointOpImage {
             Rectangle srcRect = new Rectangle(source.getMinX(), source.getMinY(),
                     source.getWidth(), source.getHeight());
             // Padding of the input ROI image in order to avoid the call of the getExtendedData() method
-            // ROI bounds are saved 
+            // ROI bounds are saved
             roiBounds = srcROIImage.getBounds();
             int deltaX0 = (roiBounds.x - srcRect.x);
             int leftP = deltaX0 > 0 ? deltaX0 : 0;
@@ -296,9 +296,9 @@ public class RescaleOpImage extends PointOpImage {
             // For each image there is a check if the rectangle is contained inside the source image;
             // if this not happen, the data is taken from the padded image.
             Raster roiRaster = null;
-            if(roiBounds.contains(srcRect)){
+            if (roiBounds.contains(srcRect)) {
                 roiRaster = srcROIImage.getData(srcRect);
-            }else{
+            } else {
                 roiRaster = srcROIImgExt.getData(srcRect);
             }
             // creation of the rasterAccessor

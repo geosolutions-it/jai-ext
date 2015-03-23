@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import javax.media.jai.ColorSpaceJAI;
 import javax.media.jai.IHSColorSpace;
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
@@ -57,19 +58,19 @@ import org.junit.Test;
 public class TestColorConvert extends TestBase {
 
     /**
-     * Synthetic with Short Sample Model!
+     * Synthetic with Short Sample Model
      * 
      * @throws IOException
      */
     @Test
-    public void Synthetic_Short() throws IOException {
+    public void testSyntheticShort() throws IOException {
 
         // /////////////////////////////////////////////////////////////////////
         //
         // This test uses a Ushort Image datatype.
         //
         // /////////////////////////////////////////////////////////////////////
-        final BufferedImage image = getSynthetic_Short();
+        final BufferedImage image = getSyntheticShortImage();
 
         ParameterBlockJAI pbj = new ParameterBlockJAI("ColorConvert");
         pbj.addSource(image);
@@ -134,7 +135,7 @@ public class TestColorConvert extends TestBase {
      * 
      * @return {@linkplain BufferedImage}
      */
-    private BufferedImage getSynthetic_Short() {
+    private BufferedImage getSyntheticShortImage() {
         final int width = 500;
         final int height = 500;
         final WritableRaster raster = RasterFactory.createBandedRaster(DataBuffer.TYPE_USHORT,
@@ -158,7 +159,7 @@ public class TestColorConvert extends TestBase {
      * @throws IOException
      */
     @Test
-    public void Synthetic_Byte() throws IOException {
+    public void testSyntheticByte() throws IOException {
 
         // /////////////////////////////////////////////////////////////////////
         //
@@ -166,7 +167,7 @@ public class TestColorConvert extends TestBase {
         //
         // /////////////////////////////////////////////////////////////////////
 
-        BufferedImage image = getSynthetic_Byte();
+        BufferedImage image = getSyntheticByteImage();
 
         ParameterBlockJAI pbj = new ParameterBlockJAI("ColorConvert");
         pbj.addSource(image);
@@ -233,7 +234,7 @@ public class TestColorConvert extends TestBase {
      * @throws IOException
      */
     @Test
-    public void Synthetic_Byte_IHS() throws IOException {
+    public void testSyntheticByteIHSColorSpace() throws IOException {
 
         // /////////////////////////////////////////////////////////////////////
         //
@@ -241,7 +242,7 @@ public class TestColorConvert extends TestBase {
         //
         // /////////////////////////////////////////////////////////////////////
 
-        final BufferedImage image = getSynthetic_Byte_IHS();
+        final BufferedImage image = getSyntheticByteImageIHSColorSpace();
 
         ParameterBlockJAI pbj = new ParameterBlockJAI("ColorConvert");
         pbj.addSource(image);
@@ -306,7 +307,7 @@ public class TestColorConvert extends TestBase {
      * 
      * @return {@linkplain BufferedImage}
      */
-    private BufferedImage getSynthetic_Byte() {
+    private BufferedImage getSyntheticByteImage() {
         final int width = 500;
         final int height = 500;
         final WritableRaster raster = RasterFactory.createBandedRaster(DataBuffer.TYPE_BYTE, width,
@@ -328,7 +329,7 @@ public class TestColorConvert extends TestBase {
      * 
      * @return {@linkplain BufferedImage}
      */
-    private BufferedImage getSynthetic_Byte_IHS() {
+    private BufferedImage getSyntheticByteImageIHSColorSpace() {
         final int width = 500;
         final int height = 500;
         final WritableRaster raster = RasterFactory.createBandedRaster(DataBuffer.TYPE_BYTE, width,
@@ -345,7 +346,7 @@ public class TestColorConvert extends TestBase {
     }
 
     /**
-     * Spearfish test-case.
+     * Tiff image test-case.
      * 
      * @throws IOException
      */
@@ -413,7 +414,7 @@ public class TestColorConvert extends TestBase {
     }
 
     /**
-     * Building an image based on Spearfish data.
+     * Reading an image based on Spearfish data.
      * 
      * @return {@linkplain BufferedImage}
      * 
@@ -426,6 +427,9 @@ public class TestColorConvert extends TestBase {
         return image;
     }
 
+    /**
+     * @return a ColorModel which contains an instance of {@link ColorSpaceJAIExt}
+     */
     private ColorModel getJAIEXTCm() {
         ColorSpace cs = new IHSColorSpaceJAIExt();
 
@@ -435,6 +439,9 @@ public class TestColorConvert extends TestBase {
         return cm;
     }
 
+    /**
+     * @return a ColorModel which contains an instance of {@link ColorSpaceJAI}
+     */
     private ColorModel getJAICm() {
         ColorSpace cs = IHSColorSpace.getInstance();
 
@@ -444,6 +451,9 @@ public class TestColorConvert extends TestBase {
         return cm;
     }
 
+    /**
+     * @return a ColorModel which contains an instance of {@link ColorSpace} different from {@link ColorSpaceJAIExt} and {@link ColorSpaceJAI}
+     */
     private ColorModel getNotJAICm() {
         ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_LINEAR_RGB);
 

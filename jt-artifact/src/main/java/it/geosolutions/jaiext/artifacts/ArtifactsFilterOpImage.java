@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.artifacts;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
@@ -30,7 +30,6 @@ import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import javax.media.jai.BorderExtender;
 import javax.media.jai.BorderExtenderConstant;
@@ -49,7 +48,8 @@ import com.sun.media.jai.util.ImageUtil;
  * An Artifacts Filter operation.
  * 
  * Given an input image and a ROI, transform the pixels along the inner BORDER of the ROI, if less than a specified Luminance threshold value, to a
- * mean of all sourrounding pixels within ROI, having Luminance greater than threshold.
+ * mean of all sourrounding pixels within ROI, having Luminance greater than threshold. It should be pointed out that users may specify a NoData Range
+ * to use in order to avoid to calculate NoData values.
  * 
  * @author Daniele Romagnoli, GeoSolutions SAS
  * @author Simone Giannecchini, GeoSolutions SAS
@@ -66,8 +66,6 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
 
     /** Constant indicating that the inner random iterators must cache the current tile position */
     public static final boolean TILE_CACHED = true;
-
-    private final static Logger LOGGER = Logger.getLogger(ArtifactsFilterOpImage.class.toString());
 
     public enum DataTypeCalculator {
         BYTE {
@@ -227,6 +225,9 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
         }
     }
 
+    /**
+     * Helper class used for accessing ROI data
+     */
     class RoiAccessor {
         RandomIter iterator;
 
@@ -273,12 +274,6 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
 
     private final static double RGB_TO_GRAY_MATRIX[][] = { { 0.114, 0.587, 0.299, 0 } };
 
-    // private RoiAccessor roiAccessor;
-
-    // private RoiAccessor thresholdRoiAccessor;
-
-    // private RandomIter iter;
-
     private final double[] backgroundValues;
 
     private final int numBands;
@@ -309,6 +304,9 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
      * @param config
      * @param sourceROI a {@link ROI} representing pixels to be restored.
      * @param backgroundValues the value of the background pixel values.
+     * @param threshold luminance threshold
+     * @param filterSize size of the filter
+     * @param nodata Range for the input NoData to check
      */
     public ArtifactsFilterOpImage(final RenderedImage source, final ImageLayout layout,
             final Map<?, ?> config, final ROI sourceROI, double[] backgroundValues,
@@ -402,9 +400,6 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
         this.sourceExtender = sourceExtensionConstant == 0.0 ? BorderExtender
                 .createInstance(BorderExtender.BORDER_ZERO) : new BorderExtenderConstant(
                 new double[] { sourceExtensionConstant });
-
-        // roiAccessor = buildRoiAccessor(sourceROI);
-        // thresholdRoiAccessor = buildRoiAccessor(thresholdRoi);
     }
 
     private RoiAccessor buildRoiAccessor(boolean threshold) {
@@ -972,8 +967,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int v = min; v <= max; v++) {
                                     boolean set = false;
 
-                                    if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                            thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                    if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                         set = true;
                                     }
                                     if (set) {
@@ -988,8 +982,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int u = min - 1; u <= max + 1; u += (filterSize + 1)) {
                                     for (int v = min - 1; v <= max + 1; v += (filterSize + 1)) {
                                         boolean set = false;
-                                        if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                                thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                        if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                             set = true;
                                         }
                                         if (set) {
@@ -1102,8 +1095,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int v = min; v <= max; v++) {
                                     boolean set = false;
 
-                                    if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                            thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                    if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                         set = true;
                                     }
                                     if (set) {
@@ -1123,8 +1115,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int u = min - 1; u <= max + 1; u += (filterSize + 1)) {
                                     for (int v = min - 1; v <= max + 1; v += (filterSize + 1)) {
                                         boolean set = false;
-                                        if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                                thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                        if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                             set = true;
                                         }
                                         if (set) {
@@ -1195,8 +1186,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int v = min; v <= max; v++) {
                                     boolean set = false;
 
-                                    if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                            thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                    if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                         set = true;
                                     }
                                     if (set) {
@@ -1211,8 +1201,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int u = min - 1; u <= max + 1; u += (filterSize + 1)) {
                                     for (int v = min - 1; v <= max + 1; v += (filterSize + 1)) {
                                         boolean set = false;
-                                        if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                                thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                        if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                             set = true;
                                         }
                                         if (set) {
@@ -1326,8 +1315,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int v = min; v <= max; v++) {
                                     boolean set = false;
 
-                                    if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                            thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                    if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                         set = true;
                                     }
                                     if (set) {
@@ -1347,8 +1335,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int u = min - 1; u <= max + 1; u += (filterSize + 1)) {
                                     for (int v = min - 1; v <= max + 1; v += (filterSize + 1)) {
                                         boolean set = false;
-                                        if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                                thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                        if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                             set = true;
                                         }
                                         if (set) {
@@ -1419,8 +1406,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int v = min; v <= max; v++) {
                                     boolean set = false;
 
-                                    if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                            thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                    if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                         set = true;
                                     }
                                     if (set) {
@@ -1435,8 +1421,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int u = min - 1; u <= max + 1; u += (filterSize + 1)) {
                                     for (int v = min - 1; v <= max + 1; v += (filterSize + 1)) {
                                         boolean set = false;
-                                        if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                                thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                        if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                             set = true;
                                         }
                                         if (set) {
@@ -1549,8 +1534,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int v = min; v <= max; v++) {
                                     boolean set = false;
 
-                                    if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                            thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                    if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                         set = true;
                                     }
                                     if (set) {
@@ -1570,8 +1554,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int u = min - 1; u <= max + 1; u += (filterSize + 1)) {
                                     for (int v = min - 1; v <= max + 1; v += (filterSize + 1)) {
                                         boolean set = false;
-                                        if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                                thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                        if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                             set = true;
                                         }
                                         if (set) {
@@ -1642,8 +1625,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int v = min; v <= max; v++) {
                                     boolean set = false;
 
-                                    if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                            thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                    if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                         set = true;
                                     }
                                     if (set) {
@@ -1658,8 +1640,7 @@ public final class ArtifactsFilterOpImage extends PointOpImage {
                                 for (int u = min - 1; u <= max + 1; u += (filterSize + 1)) {
                                     for (int v = min - 1; v <= max + 1; v += (filterSize + 1)) {
                                         boolean set = false;
-                                        if (/* contains(roiAccessor, x+i+v, y+j+u) && */contains(
-                                                thresholdRoiAccessor, x + i + v, y + j + u)) {
+                                        if (contains(thresholdRoiAccessor, x + i + v, y + j + u)) {
                                             set = true;
                                         }
                                         if (set) {

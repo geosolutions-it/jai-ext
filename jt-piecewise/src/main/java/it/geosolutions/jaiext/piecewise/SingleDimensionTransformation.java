@@ -49,8 +49,10 @@ public class SingleDimensionTransformation implements MathTransformation {
         this.offset = offset;
     }
 
+    /** Scale transformation parameter*/
     protected double scale;
 
+    /** Offset transformation parameter*/
     protected double offset;
 
     private MathTransformation inverse;
@@ -91,11 +93,21 @@ public class SingleDimensionTransformation implements MathTransformation {
         return isIdentity(0);
     }
 
+    /**
+     * Returns true if the transformation is an identity, with a tolerance value
+     */
     public boolean isIdentity(double tolerance) {
         tolerance = Math.abs(tolerance);
         return Math.abs(offset) <= tolerance && Math.abs(scale - 1) <= tolerance;
     }
 
+    /**
+     * Creates a {@link SingleDimensionTransformation} instance based on the input scale and offset
+     * 
+     * @param scale
+     * @param offset
+     * @return
+     */
     public static SingleDimensionTransformation create(double scale, double offset) {
         if (scale == 0) {
             return new ConstantTransform(offset);
@@ -110,10 +122,13 @@ public class SingleDimensionTransformation implements MathTransformation {
         if (ptDst == null) {
             ptDst = new Position();
         }
-        ptDst.setOrdinate(transform(ptSrc.getOrdinate()));
+        ptDst.setOrdinatePosition(transform(ptSrc.getOrdinatePosition()));
         return ptDst;
     }
 
+    /**
+     * {@link SingleDimensionTransformation} extension defining Constant transformations
+     */
     public static class ConstantTransform extends SingleDimensionTransformation {
 
         protected ConstantTransform(double offset) {

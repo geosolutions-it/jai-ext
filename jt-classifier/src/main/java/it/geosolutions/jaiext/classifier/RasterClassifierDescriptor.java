@@ -52,7 +52,7 @@ public class RasterClassifierDescriptor extends OperationDescriptorImpl {
                 { "LocalName", RasterClassifierOpImage.OPERATION_NAME },
                 { "Vendor", "it.geosolutions.jaiext" },
                 { "Description", "Transformation from sample to geophysics values" },
-                { "DocURL", "http://www.geotools.org/" }, { "Version", "1.0" } },
+                { "DocURL", "" }, { "Version", "1.0" } },
                 new String[] { RenderedRegistryMode.MODE_NAME }, 1, new String[] { "Domain1D",
                         "bandIndex", "roi", "nodata" }, // Argument names
                 new Class[] { ColorMapTransform.class, Integer.class, javax.media.jai.ROI.class,
@@ -103,5 +103,4 @@ public class RasterClassifierDescriptor extends OperationDescriptorImpl {
 
         return JAI.create(RasterClassifierOpImage.OPERATION_NAME, pb, hints);
     }
-
 }

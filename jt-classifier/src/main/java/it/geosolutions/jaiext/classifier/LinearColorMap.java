@@ -41,8 +41,6 @@ import javax.xml.crypto.dsig.TransformException;
  * 
  * @author Simone Giannecchini, GeoSolutions.
  * 
- * 
- * 
  * @source $URL$
  */
 public final class LinearColorMap extends AbstractList<LinearColorMapElement> implements
@@ -558,7 +556,7 @@ public final class LinearColorMap extends AbstractList<LinearColorMapElement> im
         if (ptDst == null) {
             ptDst = new Position();
         }
-        ptDst.setOrdinate(transform(ptSrc.getOrdinate()));
+        ptDst.setOrdinatePosition(transform(ptSrc.getOrdinatePosition()));
         return ptDst;
     }
 

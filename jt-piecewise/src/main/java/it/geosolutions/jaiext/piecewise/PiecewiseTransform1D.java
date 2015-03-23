@@ -22,9 +22,6 @@ package it.geosolutions.jaiext.piecewise;
  * 
  * @author Simone Giannecchini, GeoSolutions.
  * 
- * 
- * 
- * 
  * @source $URL$
  */
 public interface PiecewiseTransform1D<T extends PiecewiseTransform1DElement> extends Domain1D<T> {

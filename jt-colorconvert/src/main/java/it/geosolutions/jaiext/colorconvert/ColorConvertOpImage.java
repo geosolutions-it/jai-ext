@@ -52,9 +52,7 @@ import javax.media.jai.iterator.RandomIter;
 import com.sun.media.jai.util.ImageUtil;
 
 /**
- * An <code>OpImage</code> implementing the "ColorConvert" operation as described in <code>javax.media.jai.operator.ColorConvertDescriptor</code>.
- * 
- * 
+ * An <code>OpImage</code> implementing the "ColorConvert" operation as described in <code>ColorConvertDescriptor</code>.
  */
 public class ColorConvertOpImage extends PointOpImage {
     /** LOGGER for the operation */
@@ -132,18 +130,18 @@ public class ColorConvertOpImage extends PointOpImage {
      */
     private static synchronized ColorConvertOp getColorConvertOp(ColorSpace src, ColorSpace dst) {
         HashMap colorConvertOpBuf = null;
-
+        // Create the cache
         if (softRef == null || ((colorConvertOpBuf = (HashMap) softRef.get()) == null)) {
 
             colorConvertOpBuf = new HashMap();
             softRef = new SoftReference(colorConvertOpBuf);
         }
-
+        // Check if the operation is in cache
         ArrayList hashcode = new ArrayList(2);
         hashcode.add(0, src);
         hashcode.add(1, dst);
         ColorConvertOp op = (ColorConvertOp) colorConvertOpBuf.get(hashcode);
-
+        // Add the operation to the cache
         if (op == null) {
             op = new ColorConvertOp(src, dst, null);
             colorConvertOpBuf.put(hashcode, op);
@@ -216,6 +214,9 @@ public class ColorConvertOpImage extends PointOpImage {
      *        properties indexed by <code>String</code>s or <code>CaselessStringKey</code>s. This is simply forwarded to the superclass constructor.
      * @param layout The destination image layout.
      * @param colorModel The destination color model.
+     * @param nodata optional Nodata Range to use for check for NoData
+     * @param roi object used for reducing computation
+     * @param destNoData value to set as background
      */
     public ColorConvertOpImage(RenderedImage source, Map config, ImageLayout layout,
             ColorModel colorModel, Range nodata, ROI roi, double[] destNoData) {
@@ -449,6 +450,7 @@ public class ColorConvertOpImage extends PointOpImage {
 
         ColorSpaceJAI colorSpaceJAI = (ColorSpaceJAI) srcParam.getColorModel().getColorSpace();
         ColorSpaceJAIExt colorSpaceJAIExt;
+        // Checks on the ColorSpace
         if (colorSpaceJAI instanceof ColorSpaceJAIExt) {
             colorSpaceJAIExt = (ColorSpaceJAIExt) colorSpaceJAI;
         } else {
@@ -478,6 +480,7 @@ public class ColorConvertOpImage extends PointOpImage {
         src = convertRasterToUnsigned(src);
         ColorSpaceJAI colorSpaceJAI = (ColorSpaceJAI) dstParam.getColorModel().getColorSpace();
         ColorSpaceJAIExt colorSpaceJAIExt;
+        // Check on the ColorSpace
         if (colorSpaceJAI instanceof ColorSpaceJAIExt) {
             colorSpaceJAIExt = (ColorSpaceJAIExt) colorSpaceJAI;
         } else {
@@ -872,5 +875,4 @@ public class ColorConvertOpImage extends PointOpImage {
             return dataType;
         }
     }
-
 }

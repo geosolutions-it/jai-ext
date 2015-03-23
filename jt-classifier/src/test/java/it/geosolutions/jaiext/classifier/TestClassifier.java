@@ -62,12 +62,12 @@ public class TestClassifier extends TestBase {
     private static final int TEST_NUM = 1;
 
     /**
-     * Synthetic with Double Sample Model!
+     * Test with a synthetic image with Double Sample Model
      * 
      * @throws IOException
      */
     @Test
-    public void Synthetic_Double() throws IOException {
+    public void testSyntheticDouble() throws IOException {
 
         // /////////////////////////////////////////////////////////////////////
         //
@@ -84,7 +84,7 @@ public class TestClassifier extends TestBase {
         // just setting the values in a matrix.
         //
         // /////////////////////////////////////////////////////////////////////
-        final BufferedImage image = getSynthetic_Double();
+        final BufferedImage image = getSyntheticDoubleImage();
         for (int i = 0; i < TEST_NUM; i++) {
             // /////////////////////////////////////////////////////////////////////
             //
@@ -129,38 +129,40 @@ public class TestClassifier extends TestBase {
                 finalimage.getTiles();
             finalimage.dispose();
         }
-
     }
 
     /**
-     * Synthetic with Float Sample Model!
+     * Synthetic Image with Double Sample Model
      * 
      * @return {@linkplain BufferedImage}
      */
-    private BufferedImage getSynthetic_Double() {
+    private BufferedImage getSyntheticDoubleImage() {
         final int width = 500;
         final int height = 500;
+        // Create the raster
         final WritableRaster raster = RasterFactory.createBandedRaster(DataBuffer.TYPE_DOUBLE,
                 width, height, 1, null);
+        // Define the elements
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 raster.setSample(x, y, 0, (x + y));
             }
         }
+        // Define the colormodel
         final ColorModel cm = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_GRAY),
                 false, false, Transparency.OPAQUE, DataBuffer.TYPE_DOUBLE);
+        // Create the image
         final BufferedImage image = new BufferedImage(cm, raster, false, null);
         return image;
     }
 
     /**
-     * Building a synthetic image upon a DOUBLE sample-model.
+     * Test with a synthetic image with Float Sample Model
      * 
-     * @return {@linkplain BufferedImage}
      * @throws IOException
      */
     @Test
-    public void Synthetic_Float() throws IOException {
+    public void testSyntheticFloat() throws IOException {
 
         // /////////////////////////////////////////////////////////////////////
         //
@@ -177,7 +179,7 @@ public class TestClassifier extends TestBase {
         // just setting the values in a matrix.
         //
         // /////////////////////////////////////////////////////////////////////
-        final BufferedImage image = getSynthetic_Float();
+        final BufferedImage image = getSyntheticFloatImage();
         for (int i = 0; i < TEST_NUM; i++) {
             // /////////////////////////////////////////////////////////////////////
             //
@@ -222,26 +224,29 @@ public class TestClassifier extends TestBase {
                 finalimage.getTiles();
             finalimage.dispose();
         }
-
     }
 
     /**
-     * Building a synthetic image upon a FLOAT sample-model.
+     * Building a synthetic image upon a float Sample Model.
      * 
      * @return {@linkplain BufferedImage}
      */
-    private BufferedImage getSynthetic_Float() {
+    private BufferedImage getSyntheticFloatImage() {
         final int width = 500;
         final int height = 500;
+        // Define the Raster
         final WritableRaster raster = RasterFactory.createBandedRaster(DataBuffer.TYPE_FLOAT,
                 width, height, 1, null);
+        // Populate raster
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 raster.setSample(x, y, 0, (x + y));
             }
         }
+        // Define the colormodel
         final ColorModel cm = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_GRAY),
                 false, false, Transparency.OPAQUE, DataBuffer.TYPE_FLOAT);
+        // Create the image
         final BufferedImage image = new BufferedImage(cm, raster, false, null);
         return image;
     }
@@ -253,7 +258,7 @@ public class TestClassifier extends TestBase {
      * @throws TransformException
      */
     @Test
-    public void noDataOnly() throws IOException, TransformationException {
+    public void testNoDataOnly() throws IOException, TransformationException {
 
         // /////////////////////////////////////////////////////////////////////
         //
@@ -261,7 +266,7 @@ public class TestClassifier extends TestBase {
         // when only NoData values are known and thus explicitly mapped by the
         // user to a defined nodata DomainElement, but not the same for the
         // others.
-        // In such case we want CatrgoryLists automatically map unknown data to
+        // In such case we want CategoryLists automatically map unknown data to
         // a Passthrough DomainElement, which identically maps raster data to
         // category
         // data.
@@ -293,7 +298,7 @@ public class TestClassifier extends TestBase {
      * @throws IOException
      */
     @Test
-    public void spearfish() throws IOException {
+    public void testSpearfish() throws IOException {
 
         // /////////////////////////////////////////////////////////////////////
         //
@@ -340,7 +345,6 @@ public class TestClassifier extends TestBase {
                 finalimage.getTiles();
             finalimage.dispose();
         }
-
     }
 
     /**
@@ -363,7 +367,7 @@ public class TestClassifier extends TestBase {
      * @throws IOException
      */
     @Test
-    public void SWAN() throws IOException {
+    public void testSWAN() throws IOException {
         // /////////////////////////////////////////////////////////////////////
         //
         // This test is interesting since it can be used to simulate the
@@ -371,7 +375,7 @@ public class TestClassifier extends TestBase {
         // NoData value.
         //
         // /////////////////////////////////////////////////////////////////////
-        final RenderedImage image = getSWAN();
+        final RenderedImage image = getSWANData();
 
         for (int i = 0; i < TEST_NUM; i++) {
             final LinearColorMapElement c0 = LinearColorMapElement.create("c0", Color.green,
@@ -385,8 +389,7 @@ public class TestClassifier extends TestBase {
             final LinearColorMapElement c1c = LinearColorMapElement.create("c2", Color.yellow,
                     RangeFactory.create(0.3, false, 0.6, true), 1);
             assertFalse(c1.equals(c1b));
-            // assertTrue(c1.equals(c1c));
-            // TODO Check Why Equality fails
+            assertTrue(c1.equals(c1c));
 
             final LinearColorMapElement c3 = LinearColorMapElement.create("c3", Color.red,
                     RangeFactory.create(0.60, false, 0.90, true), 2);
@@ -435,7 +438,6 @@ public class TestClassifier extends TestBase {
                 finalimage.getTiles();
             finalimage.dispose();
         }
-
     }
 
     /**
@@ -444,7 +446,7 @@ public class TestClassifier extends TestBase {
      * @throws IOException
      */
     @Test
-    public void SWANGAP() throws IOException {
+    public void testSWANwithGap() throws IOException {
 
         // /////////////////////////////////////////////////////////////////////
         //
@@ -466,7 +468,7 @@ public class TestClassifier extends TestBase {
         // is way outside the range of the others.
         //
         // /////////////////////////////////////////////////////////////////////
-        final RenderedImage image = getSWAN();
+        final RenderedImage image = getSWANData();
 
         for (int i = 0; i < TEST_NUM; i++) {
             final LinearColorMapElement c0 = LinearColorMapElement.create("c0", Color.green,
@@ -519,7 +521,6 @@ public class TestClassifier extends TestBase {
                 finalimage.getTiles();
             finalimage.dispose();
         }
-
     }
 
     /**
@@ -528,11 +529,13 @@ public class TestClassifier extends TestBase {
      * @return {@linkplain BufferedImage}
      * 
      */
-    private RenderedImage getSWAN() {
+    private RenderedImage getSWANData() {
         final int width = 500;
         final int height = 500;
+        // Build the raster
         final WritableRaster raster = RasterFactory.createBandedRaster(DataBuffer.TYPE_DOUBLE,
                 width, height, 1, null);
+        // Populate the raster
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 if (x == y || x == -y) {
@@ -542,8 +545,10 @@ public class TestClassifier extends TestBase {
                 }
             }
         }
+        // Define the colormodel
         final ColorModel cm = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_GRAY),
                 false, false, Transparency.OPAQUE, DataBuffer.TYPE_DOUBLE);
+        // Create the image
         final BufferedImage image = new BufferedImage(cm, raster, false, null);
         return image;
     }

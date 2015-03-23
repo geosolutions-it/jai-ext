@@ -24,8 +24,6 @@ package it.geosolutions.jaiext.piecewise;
  * 
  * @author Simone Giannecchini, GeoSolutions
  * 
- * 
- * 
  * @source $URL$
  */
 public class DefaultPiecewiseTransform1D<T extends DefaultPiecewiseTransform1DElement> extends
@@ -56,7 +54,7 @@ public class DefaultPiecewiseTransform1D<T extends DefaultPiecewiseTransform1DEl
     /*
      * (non-Javadoc)
      * 
-     * @see org.opengis.referencing.operation.MathTransform1D#transform(double)
+     * @see PiecewiseTransform1D#transform(double)
      */
     public double transform(final double value) throws TransformationException {
         final T piece = findDomainElement(value);
@@ -85,9 +83,6 @@ public class DefaultPiecewiseTransform1D<T extends DefaultPiecewiseTransform1DEl
 
     /*
      * (non-Javadoc)
-     * 
-     * @see org.opengis.referencing.operation.MathTransform#transform(org.opengis.spatialschema.geometry.DirectPosition,
-     * org.opengis.spatialschema.geometry.DirectPosition)
      */
     public Position transform(final Position ptSrc, Position ptDst) throws TransformationException {
         // /////////////////////////////////////////////////////////////////////
@@ -99,7 +94,7 @@ public class DefaultPiecewiseTransform1D<T extends DefaultPiecewiseTransform1DEl
         if (ptDst == null) {
             ptDst = new Position();
         }
-        ptDst.setOrdinate(transform(ptSrc.getOrdinate()));
+        ptDst.setOrdinatePosition(transform(ptSrc.getOrdinatePosition()));
         return ptDst;
     }
 

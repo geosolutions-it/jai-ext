@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.rlookup;
 
 import java.awt.RenderingHints;
@@ -32,6 +32,10 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <p>
  * This is a variation on the JAI Lookup operation. It works with a {@linkplain RangeLookupTable} object in which each entry maps a source image value
  * range to a destination image value.
+ * 
+ * <p>
+ * Users may also define a {@link ROI} object to use for masking image areas.
+ * 
  * <p>
  * In the example below, double data values from a source image are mapped to integer values in a destination image.
  * 
@@ -99,6 +103,12 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * passed through to the destination image.</td>
  * <td>null (pass-through)</td>
  * </tr>
+ * <tr>
+ * <td>roi</td>
+ * <td>javax.media.jai.ROI</td>
+ * <td>Specifies a ROI to use for reducing computation area</td>
+ * <td>null</td>
+ * </tr>
  * </table>
  * 
  * 
@@ -158,6 +168,14 @@ public class RangeLookupDescriptor extends OperationDescriptorImpl {
 
     }
 
+    /**
+     * Creates a new {@link RenderedOp} with the RLookup operation applied.
+     * 
+     * @param table input {@link RangeLookupTable}
+     * @param defaultValue Value to set for pixels outside ROI or outside of the Table Range
+     * @param roi Input {@link ROI} to use in computation
+     * @param hints Configuration hints
+     */
     public static RenderedOp create(RenderedImage source, RangeLookupTable table,
             Number defaultValue, ROI roi, RenderingHints hints) {
         // Definition of the ParameterBlock

@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.rlookup;
 
 import it.geosolutions.jaiext.range.Range.DataType;
@@ -36,10 +36,9 @@ import javax.media.jai.RasterFactory;
 import com.sun.media.jai.opimage.RIFUtil;
 import com.sun.media.jai.util.JDKWorkarounds;
 
-
 /**
  * The image factory for the RangeLookup operation.
- *
+ * 
  * @see RangeLookupDescriptor
  * 
  * @author Michael Bedward
@@ -53,37 +52,31 @@ public class RangeLookupRIF implements RenderedImageFactory {
 
     /**
      * Create a new instance of RangeLookupOpImage in the rendered layer.
-     *
+     * 
      * @param paramBlock an instance of ParameterBlock
-     * @param renderHints useful to specify a {@link BorderExtender} and
-     * {@link ImageLayout}
+     * @param renderHints useful to specify a {@link BorderExtender} and {@link ImageLayout}
      */
-    public RenderedImage create(ParameterBlock paramBlock,
-            RenderingHints renderHints) {
+    public RenderedImage create(ParameterBlock paramBlock, RenderingHints renderHints) {
 
         final RenderedImage src = paramBlock.getRenderedSource(0);
         ImageLayout layout = RIFUtil.getImageLayoutHint(renderHints);
-        
-        final RangeLookupTable table =
-                (RangeLookupTable) paramBlock.getObjectParameter(RangeLookupDescriptor.TABLE_ARG);
+
+        final RangeLookupTable table = (RangeLookupTable) paramBlock
+                .getObjectParameter(RangeLookupDescriptor.TABLE_ARG);
 
         /*
-         * Default value may be null, indicating unmatched source values 
-         * should be passed through.
+         * Default value may be null, indicating unmatched source values should be passed through.
          */
-        final Number defaultValue = 
-                (Number) paramBlock.getObjectParameter(RangeLookupDescriptor.DEFAULT_ARG);
+        final Number defaultValue = (Number) paramBlock
+                .getObjectParameter(RangeLookupDescriptor.DEFAULT_ARG);
 
-        
         /*
          * ROI value may be null, used for reducing the active computation area.
          */
-        final ROI roi = 
-                (ROI) paramBlock.getObjectParameter(RangeLookupDescriptor.ROI_ARG);        
-        
+        final ROI roi = (ROI) paramBlock.getObjectParameter(RangeLookupDescriptor.ROI_ARG);
+
         /*
-         * Set the destination type based on the
-         * type and range of lookup table return values.
+         * Set the destination type based on the type and range of lookup table return values.
          */
         final Class<? extends Number> destClazz;
         List<LookupItem> items = table.getItems();
@@ -96,7 +89,7 @@ public class RangeLookupRIF implements RenderedImageFactory {
             int dataType = paramBlock.getRenderedSource(0).getSampleModel().getDataType();
             destClazz = DataType.classFromType(dataType);
         }
-        
+
         int dataType = -1;
         if (destClazz.equals(Short.class)) {
 
@@ -111,8 +104,8 @@ public class RangeLookupRIF implements RenderedImageFactory {
             // No negative values so USHORT can be used
             if (dataType == -1) {
                 dataType = DataBuffer.TYPE_USHORT;
-            } 
-            
+            }
+
         } else { // All data classes other than Short
             try {
                 dataType = DataType.dataTypeFromClass(destClazz);
@@ -120,7 +113,7 @@ public class RangeLookupRIF implements RenderedImageFactory {
             } catch (IllegalArgumentException ex) {
                 throw new IllegalArgumentException(
                         "Illegal destination class for this rangelookuptable:"
-                        + destClazz.toString());
+                                + destClazz.toString());
             }
         }
 
@@ -142,17 +135,13 @@ public class RangeLookupRIF implements RenderedImageFactory {
             // Get prospective destination SampleModel.
             SampleModel sampleModel = layout.getSampleModel(src);
 
-            // Create a new SampleModel 
+            // Create a new SampleModel
             int tileWidth = layout.getTileWidth(src);
             int tileHeight = layout.getTileHeight(src);
             int numBands = src.getSampleModel().getNumBands();
 
-            SampleModel csm =
-                    RasterFactory.createComponentSampleModel(sampleModel,
-                    dataType,
-                    tileWidth,
-                    tileHeight,
-                    numBands);
+            SampleModel csm = RasterFactory.createComponentSampleModel(sampleModel, dataType,
+                    tileWidth, tileHeight, numBands);
 
             layout.setSampleModel(csm);
 
@@ -160,17 +149,12 @@ public class RangeLookupRIF implements RenderedImageFactory {
             ColorModel colorModel = layout.getColorModel(null);
             if (colorModel != null
                     && !JDKWorkarounds.areCompatibleDataModels(layout.getSampleModel(null),
-                    colorModel)) {
+                            colorModel)) {
                 // Clear the mask bit if incompatible.
                 layout.unsetValid(ImageLayout.COLOR_MODEL_MASK);
             }
         }
 
-        return new RangeLookupOpImage(src,
-                renderHints,
-                layout,
-                table,
-                defaultValue,
-                roi);
+        return new RangeLookupOpImage(src, renderHints, layout, table, defaultValue, roi);
     }
 }

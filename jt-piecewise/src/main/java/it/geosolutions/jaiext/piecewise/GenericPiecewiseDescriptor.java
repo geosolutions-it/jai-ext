@@ -52,9 +52,9 @@ public class GenericPiecewiseDescriptor extends OperationDescriptorImpl {
                 { "Version", "1.0" } }, new String[] { RenderedRegistryMode.MODE_NAME }, 1,
                 new String[] { "Domain1D", "bandIndex", "roi", "nodata" }, // Argument
                                                                            // names
-                new Class[] { PiecewiseTransform1D.class, Integer.class,
-                        javax.media.jai.ROI.class, it.geosolutions.jaiext.range.Range.class }, // Argument
-                                                                                               // classes
+                new Class[] { PiecewiseTransform1D.class, Integer.class, javax.media.jai.ROI.class,
+                        it.geosolutions.jaiext.range.Range.class }, // Argument
+                                                                    // classes
                 new Object[] { NO_PARAMETER_DEFAULT, new Integer(-1), null, null }, // Default values for parameters,
                 null // No restriction on valid parameter values.
         );
@@ -63,12 +63,12 @@ public class GenericPiecewiseDescriptor extends OperationDescriptorImpl {
     /**
      * Static create method returning a new image passed by the GenericPiecewise operation
      * 
-     * @param source0
-     * @param domain1D
-     * @param bandIndex
-     * @param roi
-     * @param nodata
-     * @param hints
+     * @param source0 input image to process
+     * @param domain1D input piecewise transformation
+     * @param bandIndex index defining on which band calculation must be done
+     * @param roi {@link ROI} object used for reducing computation area
+     * @param nodata NoData {@link Range} defining NoData values
+     * @param hints Configuration Hints
      * @return
      */
     public RenderedOp create(RenderedImage source0, PiecewiseTransform1D domain1D,

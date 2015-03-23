@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.rlookup;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
@@ -40,7 +40,7 @@ import com.sun.media.jai.util.ImageUtil;
 
 /**
  * This is a variation on the JAI {@linkplain javax.media.jai.LookupDescriptor}. It works with a {@linkplain RangeLookupTable} object in which each
- * entry maps a source image value range to a destination image value.
+ * entry maps a source image value range to a destination image value. Optional {@link ROI}s may be used in computations.
  * 
  * @see RangeLookupDescriptor
  * 
@@ -60,18 +60,25 @@ public class RangeLookupOpImage extends PointOpImage {
      */
     public static final boolean TILE_CACHED = true;
 
+    /** {@link RangeLookupTable} object used for the operation */
     private final RangeLookupTable table;
 
+    /** Value to set for pixel outside {@link RangeLookupTable} range or outside ROI */
     private final Number defaultValue;
 
+    /** Optional {@link ROI} used in computation */
     private final ROI roi;
 
+    /** Boolean indicating if the default value is defined */
     private final boolean hasDefault;
 
+    /** Boolean indicating if ROI is defined */
     private boolean hasROI;
 
+    /** ROI bounds, used for a fast ROI check */
     private Rectangle roiBounds;
 
+    /** {@link PlanarImage} which represents the binarized ROI */
     private PlanarImage roiImage;
 
     /**
@@ -86,6 +93,7 @@ public class RangeLookupOpImage extends PointOpImage {
      * 
      * @param defaultValue either a value to use for all unmatched source values or null to indicate that unmatched values should pass-through to the
      *        destination
+     * @param roi {@link ROI} object used for masking image areas.
      * 
      * @see RangeLookupDescriptor
      */

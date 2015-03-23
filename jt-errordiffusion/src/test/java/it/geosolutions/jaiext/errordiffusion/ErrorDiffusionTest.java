@@ -67,12 +67,12 @@ public class ErrorDiffusionTest extends TestBase {
     private static final double TOLERANCE = 0.01d;
 
     /**
-     * Synthetic with Short Sample Model!
+     * Synthetic with Short Sample Model
      * 
      * @throws IOException
      */
     @Test
-    public void Synthetic_Short() throws IOException {
+    public void testSyntheticShort() throws IOException {
         // Create simple lookuptable
         float[] data = new float[256];
         for (int i = 0; i < 256; i++) {
@@ -82,7 +82,7 @@ public class ErrorDiffusionTest extends TestBase {
         // Create the Kernel
         KernelJAI k = KernelJAI.GRADIENT_MASK_SOBEL_VERTICAL;
 
-        final BufferedImage image = getSynthetic_Short();
+        final BufferedImage image = getSyntheticShortImage();
 
         ParameterBlockJAI pbj = new ParameterBlockJAI("ErrorDiffusion");
         pbj.addSource(image);
@@ -154,6 +154,14 @@ public class ErrorDiffusionTest extends TestBase {
         finalimage.dispose();
     }
 
+    /**
+     * Method for checking if ROI and NoData are properly set
+     * 
+     * @param finalimage
+     * @param image
+     * @param roi
+     * @param nodata
+     */
     private void checkNoDataROI(RenderedOp finalimage, RenderedImage image, ROI roi, Range nodata) {
         // Ensure the dimensions are the same
         assertEquals(finalimage.getMinX(), image.getMinX());
@@ -222,11 +230,11 @@ public class ErrorDiffusionTest extends TestBase {
     }
 
     /**
-     * Synthetic with Float Sample Model!
+     * Synthetic image with Short Sample Model
      * 
      * @return {@linkplain BufferedImage}
      */
-    private BufferedImage getSynthetic_Short() {
+    private BufferedImage getSyntheticShortImage() {
         final int width = 256;
         final int height = 256;
         final WritableRaster raster = RasterFactory.createBandedRaster(DataBuffer.TYPE_USHORT,

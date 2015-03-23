@@ -58,7 +58,7 @@ import javax.media.jai.iterator.RandomIter;
 import org.junit.Test;
 
 /**
- * Testing custom code for color reduction.
+ * Testing color indexer operation.
  * 
  * @author Simone Giannecchini, GeoSolutions SAS
  * @author Andrea Aime, GeoSolutions
@@ -119,6 +119,7 @@ public class ColorIndexerTest extends TestBase {
 
     @Test
     public void testGrayColorNoData() {
+        // Testing color indexing with Nodata
         BufferedImage image = new BufferedImage(256, 256, BufferedImage.TYPE_BYTE_GRAY);
         Graphics g = image.getGraphics();
         g.setColor(Color.WHITE);
@@ -161,6 +162,7 @@ public class ColorIndexerTest extends TestBase {
 
     @Test
     public void testFourColorROI() {
+        // Testing color indexing with ROI
         // build a transparent image
         BufferedImage image = new BufferedImage(256, 256, BufferedImage.TYPE_4BYTE_ABGR);
         Graphics g = image.getGraphics();
@@ -188,6 +190,7 @@ public class ColorIndexerTest extends TestBase {
 
     @Test
     public void testTranslatedImageTileGridROINoData() {
+        // Testing color indexing with Nodata and ROI
         BufferedImage image_ = new BufferedImage(256, 256, BufferedImage.TYPE_BYTE_GRAY);
         Graphics g = image_.createGraphics();
         g.setColor(Color.WHITE);
@@ -269,6 +272,15 @@ public class ColorIndexerTest extends TestBase {
         return image;
     }
 
+    /**
+     * Checking if NoData and ROI are defined correctly
+     * 
+     * @param indexed
+     * @param image
+     * @param roi
+     * @param nodata
+     * @param destNoData
+     */
     private void checkNoDataROI(RenderedImage indexed, RenderedImage image, ROI roi, Range nodata,
             int destNoData) {
         // Ensure the dimensions are the same

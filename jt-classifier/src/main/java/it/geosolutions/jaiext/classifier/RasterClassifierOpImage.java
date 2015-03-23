@@ -99,7 +99,7 @@ public class RasterClassifierOpImage<T extends ColorMapTransformElement> extends
         layout.setSampleModel(finalSampleModel);
         return layout;
     }
-    
+
     @Override
     protected void computeRect(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
         Raster[] sourceRasters = new Raster[1];

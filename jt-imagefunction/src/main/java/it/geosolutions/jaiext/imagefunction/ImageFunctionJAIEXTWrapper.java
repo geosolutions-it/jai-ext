@@ -25,7 +25,7 @@ import javax.media.jai.ImageFunction;
 import javax.media.jai.ROI;
 
 /**
- * Wrapper function used for wrapping {@link ImageFunction} objects
+ * Wrapper function used for wrapping {@link ImageFunction} objects in order to implement {@link ImageFunctionJAIEXT} interface.
  * 
  * @author Nicola Lagomarsini GeoSolutions
  */

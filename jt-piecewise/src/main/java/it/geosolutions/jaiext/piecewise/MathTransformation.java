@@ -25,17 +25,48 @@ package it.geosolutions.jaiext.piecewise;
  */
 public interface MathTransformation {
 
+    /**
+     * Transforms input value using the provided transformation
+     *
+     * @param value
+     * @throws TransformationException
+     */
     double transform(double value) throws TransformationException;
 
+    /**
+     * Returns the derivative value of the provided transformation
+     *
+     * @param value
+     * @throws Exception
+     */
     double derivative(double value) throws Exception;
 
+    /**
+     * Returns the input transformation dimensions
+     */
     int getSourceDimensions();
 
+    /**
+     * Returns the output transformation dimensions
+     */
     int getTargetDimensions();
 
+    /**
+     * Returns the inverse transformation of the current transform
+     */
     MathTransformation inverseTransform();
 
+    /**
+     * Indicates whether the transformation is an identity
+     */
     boolean isIdentity();
 
+    /**
+     * Transform input {@link Position} into another {@link Position} instance
+     * 
+     * @param ptSrc
+     * @param ptDst
+     * @throws TransformationException
+     */
     Position transform(Position ptSrc, Position ptDst) throws TransformationException;
 }
