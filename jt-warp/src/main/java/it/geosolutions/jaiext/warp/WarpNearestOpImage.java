@@ -92,41 +92,20 @@ final class WarpNearestOpImage extends WarpOpImage {
         // Source image data Type
         int srcDataType = sm.getDataType();
 
-        switch (srcDataType) {
-        case DataBuffer.TYPE_BYTE:
-            //destinationNoDataByte = (byte) (((byte) backgroundValues[b]) & 0xff);
-            // Creation of a lookuptable containing the values to use for no data
-            if (hasNoData) {
-				int numBands = getNumBands();
-				byteLookupTable = new byte[numBands][256];
-				for (int b = 0; b < numBands; b++) {
-					for (int i = 0; i < byteLookupTable.length; i++) {
-						byte value = (byte) i;
-						if (noDataRange.contains(value)) {
-							byteLookupTable[b][i] = (byte) backgroundValues[b];
-						} else {
-							byteLookupTable[b][i] = value;
-						}
-					}
-				}
+        // Creation of a lookuptable containing the values to use for no data
+        if (srcDataType == DataBuffer.TYPE_BYTE && hasNoData) {
+            int numBands = getNumBands();
+            byteLookupTable = new byte[numBands][256];
+            for (int b = 0; b < numBands; b++) {
+                for (int i = 0; i < byteLookupTable.length; i++) {
+                    byte value = (byte) i;
+                    if (noDataRange.contains(value)) {
+                        byteLookupTable[b][i] = (byte) backgroundValues[b];
+                    } else {
+                        byteLookupTable[b][i] = value;
+                    }
+                }
             }
-            break;
-        case DataBuffer.TYPE_USHORT:
-            //(short)backgroundValues[b] = (short) (((short) backgroundValues[b]) & 0xffff);
-            break;
-        case DataBuffer.TYPE_SHORT:
-            //(short)backgroundValues[b] = (short) backgroundValues[b];
-            break;
-        case DataBuffer.TYPE_INT:
-            //(int)backgroundValues[b] = (int) backgroundValues[b];
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            //(float)backgroundValues[b] = (float) backgroundValues[b];
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data Type");
         }
     }
 

@@ -100,22 +100,22 @@ abstract class AffineOpImage extends GeometricOpImage {
     protected ImagingListener listener;
 
     /** Destination value for No Data byte */
-    protected byte destinationNoDataByte = 0;
+    protected byte[] destinationNoDataByte;
 
     /** Destination value for No Data ushort */
-    protected short destinationNoDataUShort = 0;
+    protected short[] destinationNoDataUShort;
 
     /** Destination value for No Data short */
-    protected short destinationNoDataShort = 0;
+    protected short[] destinationNoDataShort;
 
     /** Destination value for No Data int */
-    protected int destinationNoDataInt = 0;
+    protected int[] destinationNoDataInt;
 
     /** Destination value for No Data float */
-    protected float destinationNoDataFloat = 0;
+    protected float[] destinationNoDataFloat;
 
     /** Destination value for No Data double */
-    protected double destinationNoDataDouble = 0;
+    protected double[] destinationNoDataDouble;
 
     /** Boolean for checking if the interpolator is Nearest */
     protected boolean isNearestNew = false;

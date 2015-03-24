@@ -111,9 +111,9 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
 
         // Interpolator settings
         interpolator = interp;
-        Double destNod = null;
+        double[] destNod = null;
         if (backgroundValues != null && backgroundValues.length > 0){
-        	destNod = backgroundValues[0];
+        	destNod = backgroundValues;
 		}
         if (interpolator instanceof InterpolationNearest) {
             isNearestNew=true;
@@ -121,7 +121,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             this.interp=interpN;
             interpN.setROIdata(roiBounds, roiIter);
             if(destNod == null){
-            	destNod = interpN.getDestinationNoData();
+            	destNod = new double[]{interpN.getDestinationNoData()};
             }
         } else if (interpolator instanceof InterpolationBilinear) {
             isBilinearNew=true;
@@ -129,7 +129,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             this.interp=interpB;
             interpB.setROIdata(roiBounds, roiIter);
             if(destNod == null){
-            	destNod = interpB.getDestinationNoData();
+            	destNod = new double[]{interpB.getDestinationNoData()};
             }
         } else if (interpolator instanceof InterpolationBicubic) {
             isBicubicNew=true;
@@ -137,20 +137,20 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             this.interp=interpBN;
             interpBN.setROIdata(roiBounds, roiIter);
             if(destNod == null){
-            	destNod = interpBN.getDestinationNoData();
+            	destNod = new double[]{interpBN.getDestinationNoData()};
             }
         } else if (this.backgroundValues != null) {
-        	destNod = backgroundValues[0];
+        	destNod = this.backgroundValues;
         }
 
         if(destNod == null){
-        	destNod = 0d;
+        	destNod = new double[]{0d};
         }
 
         this.destinationNoDataDouble = destNod;
         if(interpolator instanceof InterpolationNoData){
         	InterpolationNoData interpolationNoData = (InterpolationNoData)interpolator;
-			interpolationNoData.setDestinationNoData(destNod);
+			interpolationNoData.setDestinationNoData(destNod[0]);
             if(nodata != null){
             	hasNoData = true;
             	interpolationNoData.setNoDataRange(nodata);
@@ -191,19 +191,24 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
         // Selection of the destination No Data
         switch (sm.getDataType()) {
         case DataBuffer.TYPE_BYTE:
-            destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
+            destinationNoDataByte = new byte[1];
+            destinationNoDataByte[0] = (byte) (((byte) destinationNoDataDouble[0]) & 0xff);
             break;
         case DataBuffer.TYPE_USHORT:
-            destinationNoDataUShort = (short) (((short) destinationNoDataDouble) & 0xffff);
+            destinationNoDataUShort = new short[1];
+            destinationNoDataUShort[0] = (short) (((short) destinationNoDataDouble[0]) & 0xffff);
             break;
         case DataBuffer.TYPE_SHORT:
-            destinationNoDataShort = (short) destinationNoDataDouble;
+            destinationNoDataShort = new short[1];
+            destinationNoDataShort[0] = (short) destinationNoDataDouble[0];
             break;
         case DataBuffer.TYPE_INT:
-            destinationNoDataInt = (int) destinationNoDataDouble;
+            destinationNoDataInt = new int[1];
+            destinationNoDataInt[0] = (int) destinationNoDataDouble[0];
             break;
         case DataBuffer.TYPE_FLOAT:
-            destinationNoDataFloat = (float) destinationNoDataDouble;
+            destinationNoDataFloat = new float[1];
+            destinationNoDataFloat[0] = (float) destinationNoDataDouble[0];
             break;
         case DataBuffer.TYPE_DOUBLE:
             break;
@@ -750,11 +755,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             
             roiDB = roi.getDataBuffer();
         }
-        
-        
-        
-        
-        
+
         MultiPixelPackedSampleModel destSM = (MultiPixelPackedSampleModel) dest.getSampleModel();
 
         int destTransX = dest.getSampleModelTranslateX();

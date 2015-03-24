@@ -31,6 +31,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.media.jai.BorderExtender;
@@ -43,8 +44,9 @@ public class AffineNearestOpImage extends AffineOpImage {
 
     /** Nearest-Neighbor interpolator */
     protected InterpolationNearest interpN = null;
+
     /**Byte lookuptable used if no data are present*/
-    protected final byte[] byteLookupTable = new byte[256];
+    protected byte[][] byteLookupTable;
 
     /** ROI extender */
     final static BorderExtender roiExtender = BorderExtender
@@ -75,15 +77,17 @@ public class AffineNearestOpImage extends AffineOpImage {
                     .createCompatibleSampleModel(tileWidth, tileHeight);
             colorModel = srcColorModel;
         }
+        // Num Bands
+        int numBands = getSampleModel().getNumBands();
 
         // Source image data Type
         int srcDataType = sm.getDataType();
 
         // If both roiBounds and roiIter are not null, they are used in calculation
         Range nod = nodata;
-        Double destNod = null;
+        double[] destNod = null;
         if (backgroundValues != null && backgroundValues.length > 0) {
-            destNod = backgroundValues[0];
+            destNod = backgroundValues;
         }
         if (interp instanceof InterpolationNearest) {
             interpN = (InterpolationNearest) interp;
@@ -93,7 +97,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 nod = interpN.getNoDataRange();
             }
             if (destNod == null) {
-                destNod = interpN.getDestinationNoData();
+                destNod = new double[]{interpN.getDestinationNoData()};
             }
         }
         // Nodata definition
@@ -104,8 +108,15 @@ public class AffineNearestOpImage extends AffineOpImage {
         if (destNod != null) {
             destinationNoDataDouble = destNod;
         } else if (this.backgroundValues != null && this.backgroundValues.length > 0) {
-            destinationNoDataDouble = this.backgroundValues[0];
+            destinationNoDataDouble = this.backgroundValues;
         }
+        // Expand the destination nodata values if not defined
+        if(destinationNoDataDouble != null && destinationNoDataDouble.length < numBands){
+            double[] tmp = new double[numBands]; 
+            Arrays.fill(tmp, destinationNoDataDouble[0]);
+            destinationNoDataDouble = tmp;
+        }
+
         // ROIAccessor definition
         if (hasROI) {
             this.useROIAccessor = useROIAccessor;
@@ -113,44 +124,40 @@ public class AffineNearestOpImage extends AffineOpImage {
 
         // destination No Data set
         this.setDestinationNoData = setDestinationNoData;
-        this.setBackground=setDestinationNoData;
-        // Selection of the destination No Data
-        switch (srcDataType) {
-        case DataBuffer.TYPE_BYTE:
-            destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
-            // Creation of a lookuptable containing the values to use for no data
-            if (hasNoData) {
+        this.setBackground = setDestinationNoData;
+        // Create the destination No data arrays
+        destinationNoDataByte = new byte[numBands];
+        destinationNoDataShort = new short[numBands];
+        destinationNoDataUShort = new short[numBands];
+        destinationNoDataInt = new int[numBands];
+        destinationNoDataFloat = new float[numBands];
+        // Populate the arrays
+        for (int i = 0; i < numBands; i++) {
+            destinationNoDataByte[i] = (byte) ((int) destinationNoDataDouble[i] & 0xFF);
+            destinationNoDataUShort[i] = (short) (((short) destinationNoDataDouble[i]) & 0xffff);
+            destinationNoDataShort[i] = (short) destinationNoDataDouble[i];
+            destinationNoDataInt[i] = (int) destinationNoDataDouble[i];
+            destinationNoDataFloat[i] = (float) destinationNoDataDouble[i];
+        }
 
-                for (int i = 0; i < byteLookupTable.length; i++) {
-                    byte value = (byte) i;
+        // special byte case
+        if (srcDataType == DataBuffer.TYPE_BYTE && hasNoData) {
+            // Creation of a lookuptable containing the values to use for no data
+            byteLookupTable = new byte[numBands][256];
+            for (int i = 0; i < byteLookupTable[0].length; i++) {
+                byte value = (byte) i;
+                for (int b = 0; b < numBands; b++) {
                     if (noData.contains(value)) {
                         if (setDestinationNoData) {
-                            byteLookupTable[i] = destinationNoDataByte;
+                            byteLookupTable[b][i] = destinationNoDataByte[b];
                         } else {
-                            byteLookupTable[i] = 0;
+                            byteLookupTable[b][i] = 0;
                         }
                     } else {
-                        byteLookupTable[i] = value;
+                        byteLookupTable[b][i] = value;
                     }
                 }
             }
-            break;
-        case DataBuffer.TYPE_USHORT:
-            destinationNoDataUShort = (short) (((short) destinationNoDataDouble) & 0xffff);
-            break;
-        case DataBuffer.TYPE_SHORT:
-            destinationNoDataShort = (short) destinationNoDataDouble;
-            break;
-        case DataBuffer.TYPE_INT:
-            destinationNoDataInt = (int) destinationNoDataDouble;
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            destinationNoDataFloat = (float) destinationNoDataDouble;
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data Type");
         }
 
         // Definition of the possible cases that can be found
@@ -348,7 +355,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else{
@@ -385,7 +392,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -441,7 +448,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -465,7 +472,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 }
                             }
                         } else {
@@ -498,7 +505,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -556,7 +563,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -580,7 +587,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                     }
                                 }
                             } else {
@@ -593,7 +600,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             }
                         }
 
@@ -620,7 +627,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -680,7 +687,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else
@@ -690,7 +697,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 for (int x = clipMinX; x < clipMaxX; x++) {
                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
                         int value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = byteLookupTable[value&0xFF];
+                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = byteLookupTable[k2][value&0xFF];
                     }
 
                     // walk
@@ -717,7 +724,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -776,7 +783,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -799,14 +806,14 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 }
                             }
                         } else {
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                 // The interpolated value is saved in the destination array
                                 int value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = byteLookupTable[value&0xFF];
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = byteLookupTable[k2][value&0xFF];
                             }
                         }
 
@@ -833,7 +840,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -890,7 +897,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -914,20 +921,20 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                     }
                                 }
                             } else {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
                                     // The interpolated value is saved in the destination array
                                     int value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = byteLookupTable[value&0xFF];
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = byteLookupTable[k2][value&0xFF];
                                 }
                             }
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             }
                         }
                         // walk
@@ -953,7 +960,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -1073,7 +1080,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else{
@@ -1111,7 +1118,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -1167,7 +1174,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -1191,7 +1198,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 }
                             }
                         } else {
@@ -1224,7 +1231,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -1282,7 +1289,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -1306,7 +1313,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                     }
                                 }
                             } else {
@@ -1319,7 +1326,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             }
                         }
 
@@ -1346,7 +1353,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -1406,7 +1413,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else
@@ -1418,7 +1425,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         int value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
                         if (noData.contains(value)) {
                             if (setDestinationNoData) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             }
                         } else {
                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
@@ -1450,7 +1457,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -1506,7 +1513,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -1529,7 +1536,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 }
                             }
                         } else {
@@ -1538,7 +1545,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                 int value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
                                 if (noData.contains(value)) {
                                     if (setDestinationNoData) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                     }
                                 } else {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
@@ -1569,7 +1576,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -1626,7 +1633,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -1650,7 +1657,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                     }
                                 }
                             } else {
@@ -1659,7 +1666,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                     int value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
                                     if (noData.contains(value)) {
                                         if (setDestinationNoData) {
-                                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                         }
                                     } else {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
@@ -1669,7 +1676,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             }
                         }
                         // walk
@@ -1695,7 +1702,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -1814,7 +1821,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else{
@@ -1852,7 +1859,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -1908,7 +1915,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -1932,7 +1939,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 }
                             }
                         } else {
@@ -1965,7 +1972,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -2023,7 +2030,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -2047,7 +2054,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                     }
                                 }
                             } else {
@@ -2060,7 +2067,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             }
                         }
 
@@ -2087,7 +2094,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -2147,7 +2154,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else
@@ -2159,7 +2166,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         short value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
                         if (noData.contains(value)) {
                             if (setDestinationNoData) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             }
                         } else {
                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
@@ -2191,7 +2198,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -2250,7 +2257,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -2273,7 +2280,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 }
                             }
                         } else {
@@ -2282,7 +2289,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                 short value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
                                 if (noData.contains(value)) {
                                     if (setDestinationNoData) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                     }
                                 } else {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
@@ -2313,7 +2320,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -2370,7 +2377,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -2394,7 +2401,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                     }
                                 }
                             } else {
@@ -2403,7 +2410,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                     short value = srcDataArrays[k2][src_pos + bandOffsets[k2]];
                                     if (noData.contains(value)) {
                                         if (setDestinationNoData) {
-                                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                         }
                                     } else {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
@@ -2413,7 +2420,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             }
                         }
                         // walk
@@ -2439,7 +2446,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -2558,7 +2565,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else{
@@ -2596,7 +2603,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -2652,7 +2659,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -2676,7 +2683,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 }
                             }
                         } else {
@@ -2709,7 +2716,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -2767,7 +2774,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -2791,7 +2798,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                     }
                                 }
                             } else {
@@ -2804,7 +2811,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             }
                         }
 
@@ -2831,7 +2838,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -2891,7 +2898,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else
@@ -2903,7 +2910,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         short value = (short) (srcDataArrays[k2][src_pos + bandOffsets[k2]] & 0xffff);
                         if (noData.contains(value)) {
                             if (setDestinationNoData) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             }
                         } else {
                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
@@ -2935,7 +2942,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -2994,7 +3001,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -3017,7 +3024,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 }
                             }
                         } else {
@@ -3026,7 +3033,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                 short value = (short) (srcDataArrays[k2][src_pos + bandOffsets[k2]] & 0xffff);
                                 if (noData.contains(value)) {
                                     if (setDestinationNoData) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                     }
                                 } else {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
@@ -3057,7 +3064,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -3114,7 +3121,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -3138,7 +3145,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                     }
                                 }
                             } else {
@@ -3147,7 +3154,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                     short value = (short) (srcDataArrays[k2][src_pos + bandOffsets[k2]] & 0xffff);
                                     if (noData.contains(value)) {
                                         if (setDestinationNoData) {
-                                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                         }
                                     } else {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = value;
@@ -3157,7 +3164,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             }
                         }
                         // walk
@@ -3183,7 +3190,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -3303,7 +3310,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else{
@@ -3341,7 +3348,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -3397,7 +3404,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -3421,7 +3428,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 }
                             }
                         } else {
@@ -3454,7 +3461,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -3512,7 +3519,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -3536,7 +3543,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                     }
                                 }
                             } else {
@@ -3549,7 +3556,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             }
                         }
 
@@ -3576,7 +3583,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -3636,7 +3643,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else
@@ -3649,7 +3656,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (noData.contains(value)) {
                             // The destination no data value is saved in the destination array
                             if(setDestinationNoData){
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             }
                         } else {
                             // The interpolated value is saved in the destination array
@@ -3681,7 +3688,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -3740,7 +3747,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -3763,7 +3770,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 }
                             }
                         } else {
@@ -3773,7 +3780,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
                                     if(setDestinationNoData){
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                     }
                                 } else {
                                     // The interpolated value is saved in the destination array
@@ -3804,7 +3811,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -3861,7 +3868,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -3885,7 +3892,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                     }
                                 }
                             } else {
@@ -3895,7 +3902,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                     if (noData.contains(value)) {
                                         // The destination no data value is saved in the destination array
                                         if(setDestinationNoData){
-                                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                         }
                                     } else {
                                         // The interpolated value is saved in the destination array
@@ -3906,7 +3913,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             }
                         }
                         // walk
@@ -3932,7 +3939,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -4051,7 +4058,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else{
@@ -4089,7 +4096,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -4145,7 +4152,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -4169,7 +4176,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 }
                             }
                         } else {
@@ -4202,7 +4209,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -4260,7 +4267,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -4284,7 +4291,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                     }
                                 }
                             } else {
@@ -4297,7 +4304,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             }
                         }
 
@@ -4324,7 +4331,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -4384,7 +4391,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData) {
                     for (int x = dst_min_x; x < clipMinX; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 } else
@@ -4397,7 +4404,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (noData.contains(value)) {
                             // The destination no data value is saved in the destination array
                             if(setDestinationNoData){
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             }
                         } else {
                             // The interpolated value is saved in the destination array
@@ -4429,7 +4436,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                 if (setDestinationNoData && clipMinX <= clipMaxX) {
                     for (int x = clipMaxX; x < dst_max_x; x++) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++)
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                         dstPixelOffset += dstPixelStride;
                     }
                 }
@@ -4488,7 +4495,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -4511,7 +4518,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         if (w == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 }
                             }
                         } else {
@@ -4521,7 +4528,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
                                     if(setDestinationNoData){
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                     }
                                 } else {
                                     // The interpolated value is saved in the destination array
@@ -4553,7 +4560,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -4610,7 +4617,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -4634,7 +4641,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                             if (w == 0) {
                                 if (setDestinationNoData) {
                                     for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                     }
                                 }
                             } else {
@@ -4644,7 +4651,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                                     if (noData.contains(value)) {
                                         // The destination no data value is saved in the destination array
                                         if(setDestinationNoData){
-                                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                         }
                                     } else {
                                         // The interpolated value is saved in the destination array
@@ -4655,7 +4662,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                         } else if (setDestinationNoData) {
                             // The destination no data value is saved in the destination array
                             for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             }
                         }
                         // walk
@@ -4681,7 +4688,7 @@ public class AffineNearestOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }

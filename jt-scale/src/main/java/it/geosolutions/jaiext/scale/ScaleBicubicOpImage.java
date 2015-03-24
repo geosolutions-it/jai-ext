@@ -28,6 +28,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.media.jai.BorderExtender;
@@ -62,7 +63,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
     private double[] dataVd;
 
     /** Byte lookuptable used if no data are present */
-    private final byte[] byteLookupTable = new byte[256];
+    private byte[][] byteLookupTable;
 
     public ScaleBicubicOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
@@ -87,6 +88,8 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
         SampleModel sm = source.getSampleModel();
         // Source image data Type
         int srcDataType = sm.getDataType();
+        // NumBands
+        int numBands = getSampleModel().getNumBands();
 
         // selection of the inverse scale parameters both for the x and y axis
         if (invScaleXRational.num > invScaleXRational.denom) {
@@ -110,10 +113,10 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
         // If both roiBounds and roiIter are not null, they are used in calculation
         Range nod = nodata;
-        Double destNod = null;
+        double[] destNod = null;
         if (backgroundValues != null && backgroundValues.length > 0){
-        	destNod = backgroundValues[0];
-		}
+            destNod = backgroundValues;
+        }
         if (interpolator instanceof InterpolationBicubic) {
 
             isBicubicNew = true;
@@ -148,24 +151,30 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
             	nod = interpBN.getNoDataRange();
             }
             if(destNod == null){
-            	destNod = interpBN.getDestinationNoData();
+            	destNod = new double[]{interpBN.getDestinationNoData()};
             }
         }
 
         // Nodata definition
-		if (nod != null) {
-			hasNoData = true;
-			noData = nod;
-		}
-		if(destNod != null){
-			destinationNoDataDouble = destNod;
-		} else if (this.backgroundValues != null && this.backgroundValues.length > 0){
-			destinationNoDataDouble = this.backgroundValues[0];
-		}
-		// ROIAccessor definition
-		if (hasROI) {
-			this.useRoiAccessor = useRoiAccessor;
-		}
+        if (nod != null) {
+            hasNoData = true;
+            noData = nod;
+        }
+        if (destNod != null) {
+            destinationNoDataDouble = destNod;
+        } else if (this.backgroundValues != null && this.backgroundValues.length > 0) {
+            destinationNoDataDouble = this.backgroundValues;
+        }
+        // Expand the destination nodata values if not defined
+        if(destinationNoDataDouble != null && destinationNoDataDouble.length < numBands){
+            double[] tmp = new double[numBands]; 
+            Arrays.fill(tmp, destinationNoDataDouble[0]);
+            destinationNoDataDouble = tmp;
+        }
+        // ROIAccessor definition
+        if (hasROI) {
+            this.useRoiAccessor = useRoiAccessor;
+        }
         // subsample bits used for the bilinear and bicubic interpolation
         subsampleBits = interp.getSubsampleBitsH();
 
@@ -182,21 +191,32 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
         interp_left = interp.getLeftPadding();
         interp_top = interp.getTopPadding();
 
-        // Selection of the destination No Data
-        destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
-        destinationNoDataUShort = (short) (((short) destinationNoDataDouble) & 0xffff);
-        destinationNoDataShort = (short) destinationNoDataDouble;
-        destinationNoDataInt = (int) destinationNoDataDouble;
-        destinationNoDataFloat = (float) destinationNoDataDouble;
-
+        // Create the destination No data arrays
+        destinationNoDataByte = new byte[numBands];
+        destinationNoDataShort = new short[numBands];
+        destinationNoDataUShort = new short[numBands];
+        destinationNoDataInt = new int[numBands];
+        destinationNoDataFloat = new float[numBands];
+        // Populate the arrays
+        for (int i = 0; i < numBands; i++) {
+            destinationNoDataByte[i] = (byte) ((int) destinationNoDataDouble[i] & 0xFF);
+            destinationNoDataUShort[i] = (short) (((short) destinationNoDataDouble[i]) & 0xffff);
+            destinationNoDataShort[i] = (short) destinationNoDataDouble[i];
+            destinationNoDataInt[i] = (int) destinationNoDataDouble[i];
+            destinationNoDataFloat[i] = (float) destinationNoDataDouble[i];
+        }
+        // Creation of a lookuptable containing the values to use for no data
         if (hasNoData) {
-
-            for (int i = 0; i < byteLookupTable.length; i++) {
+            // Creation of a lookuptable containing the values to use for no data
+            byteLookupTable = new byte[numBands][256];
+            for (int i = 0; i < byteLookupTable[0].length; i++) {
                 byte value = (byte) i;
-                if (noData.contains(value)) {
-                    byteLookupTable[i] = destinationNoDataByte;
-                } else {
-                    byteLookupTable[i] = value;
+                for (int b = 0; b < numBands; b++) {
+                    if (noData.contains(value)) {
+                        byteLookupTable[b][i] = destinationNoDataByte[b];
+                    } else {
+                        byteLookupTable[b][i] = value;
+                    }
                 }
             }
         }
@@ -437,7 +457,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
                                 if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
+                                    dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 } else {
                                     int temp = 0;
                                     // X offset initialization
@@ -461,7 +481,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else {
                                         long sum = 0;
                                         int s = 0;
@@ -546,7 +566,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else {
                                         long sum = 0;
                                         int s = 0;
@@ -576,7 +596,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
+                                    dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -639,7 +659,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         pixelKernel[h][z] = srcData[pos + (z - 1) * srcPixelStride
                                                 + (h - 1) * srcScanlineStride] & 0xff;
 
-                                        if (byteLookupTable[(int) pixelKernel[h][z]] != destinationNoDataByte) {
+                                        if (byteLookupTable[k][(int) pixelKernel[h][z]] != destinationNoDataByte[k]) {
                                             // temp++;
                                             weight |= (1 << (4 * h + z));
                                             // weightArray[h][z] = 1;
@@ -670,7 +690,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 }
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
+                                    dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 } else {
                                     // temp = 0;
                                     weight = 0;
@@ -744,7 +764,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                     // Otherwise it takes the related value.
                                     if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else {
                                         // int tempND = 0;
                                         int tempROI = 0;
@@ -768,7 +788,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                             : 0);
                                                 }
 
-                                                if (byteLookupTable[(int) pixelKernel[h][z]] != destinationNoDataByte) {
+                                                if (byteLookupTable[k][(int) pixelKernel[h][z]] != destinationNoDataByte[k]) {
                                                     // tempND++;
                                                     weight |= (0x01 << (4 * h + z));
                                                     // weightArray[h][z] = 1;
@@ -780,7 +800,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataByte;
+                                            dstData[dstPixelOffset] = destinationNoDataByte[k];
                                         } else {
                                             long sum = 0;
                                             int s = 0;
@@ -900,7 +920,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                                 tempROI += roiIter.getSample(x0 + h - 1,
                                                         y0 + z - 1, 0) & 0xff;
 
-                                                if (byteLookupTable[(int) pixelKernel[h][z]] != destinationNoDataByte) {
+                                                if (byteLookupTable[k][(int) pixelKernel[h][z]] != destinationNoDataByte[k]) {
                                                     weight |= (0x01 << (4 * h + z));
                                                 } else {
                                                     weight &= (0xffff - (0x01 << 4 * h + z));
@@ -910,7 +930,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataByte;
+                                            dstData[dstPixelOffset] = destinationNoDataByte[k];
                                         } else {
 
                                             long sum = 0;
@@ -959,7 +979,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
 
                                     } else {
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     }
 
                                     // destination pixel offset update
@@ -1103,7 +1123,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
                                 if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else {
                                     int temp = 0;
                                     // X offset initialization
@@ -1127,7 +1147,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     } else {
                                         long sum = 0;
                                         int s = 0;
@@ -1212,7 +1232,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     } else {
                                         long sum = 0;
                                         int s = 0;
@@ -1242,7 +1262,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1326,7 +1346,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 }
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else {
                                     temp = 0;
                                     long[] tempData = bicubicInpainting(sumArray, weightVert,
@@ -1397,7 +1417,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                     // Otherwise it takes the related value.
                                     if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     } else {
                                         int tempROI = 0;
                                         // X offset initialization
@@ -1429,7 +1449,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataUShort;
+                                            dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                         } else {
 
                                             long sum = 0;
@@ -1549,7 +1569,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataUShort;
+                                            dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                         } else {
 
                                             long sum = 0;
@@ -1597,7 +1617,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
 
                                     } else {
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     }
 
                                     // destination pixel offset update
@@ -1741,7 +1761,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
                                 if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else {
                                     int temp = 0;
                                     // X offset initialization
@@ -1764,7 +1784,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     } else {
                                         long sum = 0;
                                         int s = 0;
@@ -1849,7 +1869,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     } else {
                                         long sum = 0;
                                         int s = 0;
@@ -1879,7 +1899,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1963,7 +1983,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 }
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else {
 
                                     long[] tempData = bicubicInpainting(sumArray, weightVert,
@@ -2034,7 +2054,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                     // Otherwise it takes the related value.
                                     if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     } else {
                                         int tempROI = 0;
                                         // X offset initialization
@@ -2066,7 +2086,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataShort;
+                                            dstData[dstPixelOffset] = destinationNoDataShort[k];
                                         } else {
 
                                             long sum = 0;
@@ -2185,7 +2205,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataShort;
+                                            dstData[dstPixelOffset] = destinationNoDataShort[k];
                                         } else {
 
                                             long sum = 0;
@@ -2233,7 +2253,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
 
                                     } else {
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     }
 
                                     // destination pixel offset update
@@ -2370,7 +2390,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
                                 if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataInt;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else {
                                     int temp = 0;
                                     // X offset initialization
@@ -2393,7 +2413,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     } else {
                                         long sum = 0;
                                         int s = 0;
@@ -2471,7 +2491,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     } else {
                                         long sum = 0;
                                         int s = 0;
@@ -2494,7 +2514,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataInt;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -2579,7 +2599,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 }
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else {
 
                                     long[] tempData = bicubicInpainting(sumArray, weightVert,
@@ -2644,7 +2664,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                     // Otherwise it takes the related value.
                                     if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     } else {
                                         int tempROI = 0;
                                         // X offset initialization
@@ -2675,7 +2695,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataInt;
+                                            dstData[dstPixelOffset] = destinationNoDataInt[k];
                                         } else {
 
                                             long sum = 0;
@@ -2788,7 +2808,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataInt;
+                                            dstData[dstPixelOffset] = destinationNoDataInt[k];
                                         } else {
 
                                             long sum = 0;
@@ -2829,7 +2849,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
 
                                     } else {
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     }
 
                                     // destination pixel offset update
@@ -2969,7 +2989,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
                                 if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else {
                                     int temp = 0;
                                     // X offset initialization
@@ -2992,7 +3012,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else {
                                         double sum = 0;
 
@@ -3074,7 +3094,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else {
                                         double sum = 0;
 
@@ -3101,7 +3121,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -3185,7 +3205,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 }
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else {
 
                                     double[] tempData = bicubicInpaintingDouble(sumArray,
@@ -3255,7 +3275,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                     // Otherwise it takes the related value.
                                     if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else {
                                         int tempROI = 0;
                                         // X offset initialization
@@ -3286,7 +3306,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataFloat;
+                                            dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                         } else {
 
                                             double sum = 0;
@@ -3403,7 +3423,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataFloat;
+                                            dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                         } else {
 
                                             double sum = 0;
@@ -3448,7 +3468,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
 
                                     } else {
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     }
 
                                     // destination pixel offset update
@@ -3581,7 +3601,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
                                 if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else {
                                     int temp = 0;
                                     // X offset initialization
@@ -3604,7 +3624,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else {
                                         double sum = 0;
 
@@ -3679,7 +3699,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                     // Control if the 16 pixel are outside the ROI
                                     if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else {
                                         double sum = 0;
 
@@ -3699,7 +3719,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -3783,7 +3803,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                 }
                                 // Control if the 16 pixel are all No Data
                                 if (weight == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else {
 
                                     double[] tempData = bicubicInpaintingDouble(sumArray,
@@ -3846,7 +3866,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                     // Otherwise it takes the related value.
                                     if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else {
                                         int tempROI = 0;
                                         // X offset initialization
@@ -3877,7 +3897,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataDouble;
+                                            dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                         } else {
 
                                             double sum = 0;
@@ -3987,7 +4007,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                         // Control if the 16 pixel are outside the ROI
                                         if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataDouble;
+                                            dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                         } else {
 
                                             double sum = 0;
@@ -4025,7 +4045,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         }
 
                                     } else {
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     }
 
                                     // destination pixel offset update
