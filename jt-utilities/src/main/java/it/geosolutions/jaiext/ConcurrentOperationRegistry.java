@@ -255,7 +255,6 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
                 LOGGER.log(Level.FINEST, "Registered descriptor for the operation: "
                         + descriptor.getName());
             }
-        }finally {
             // If the collection is present, then it is updated
             if(collection != null && changed && descriptor instanceof OperationDescriptor){
                 OperationItem item = new OperationItem((OperationDescriptor) descriptor);
@@ -265,6 +264,16 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
                             + descriptor.getName()  + " to the registry operation list");
                 }
             }
+        }catch(Exception e){
+            // Remove logging for OperationDescriptor registration
+            if(e.getMessage().contains("A descriptor is already registered against the name")){
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    LOGGER.log(Level.FINEST, e.getMessage());
+                }
+            } else {
+                throw new RuntimeException(e);
+            }
+        }finally {
             writeLock.unlock();
         }
     }
@@ -281,7 +290,6 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
                 LOGGER.log(Level.FINEST, "Unregistered descriptor for the operation: "
                         + descriptor.getName());
             }
-        } finally {
             // If the collection is present, then it is updated
             if(collection != null && changed && descriptor instanceof OperationDescriptor){
                 OperationItem item = new OperationItem((OperationDescriptor) descriptor);
@@ -291,6 +299,7 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
                             + descriptor.getName()  + " from the registry operation list");
                 }
             }
+        } finally {
             writeLock.unlock();
         }
     }

@@ -49,6 +49,8 @@ import javax.media.jai.registry.RenderedRegistryMode;
  */
 public class JAIExt {
 
+    private static final JAI DEFAULT_INSTANCE = JAI.getDefaultInstance();
+
     public static final String OPERATION_CONST_NAME = "operationConst";
 
     public static final String ALGEBRIC_NAME = "algebric";
@@ -180,7 +182,7 @@ public class JAIExt {
             ConcurrentOperationRegistry initializeRegistry = (ConcurrentOperationRegistry) ConcurrentOperationRegistry.initializeRegistry();
             jaiext = new JAIExt(
                     initializeRegistry);
-            JAI.getDefaultInstance().setOperationRegistry(initializeRegistry);
+            DEFAULT_INSTANCE.setOperationRegistry(initializeRegistry);
         }
         return jaiext;
     }
