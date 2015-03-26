@@ -1,20 +1,20 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.artifacts;
 
 import it.geosolutions.jaiext.range.Range;
@@ -34,7 +34,8 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * A Artifacts Filter operation descriptor.
  * 
  * Given an input image and a ROI, set the values of pixels outside the ROI to the background value and transform the pixels along the BORDER of the
- * ROI, if less than a specified Luminance threshold value, to a mean of all sourrounding pixels within ROI, having Luminance greater than threshold.
+ * ROI, if less than a specified Luminance threshold value, to a mean of all surrounding pixels within ROI, having Luminance greater than threshold.
+ * It should be pointed out that users may specify a NoData Range to use in order to avoid to calculate NoData values.
  * 
  * @author Daniele Romagnoli, GeoSolutions SAS
  * @author Simone Giannecchini, GeoSolutions SAS
@@ -78,7 +79,7 @@ public class ArtifactsFilterDescriptor extends OperationDescriptorImpl {
                 new String[][] {
                         { "GlobalName", "ArtifactsFilter" },
                         { "LocalName", "ArtifactsFilter" },
-                        { "Vendor", "org.geotools.gce.imagemosaic.processing" },
+                        { "Vendor", "it.geosolutions.jaiext" },
                         { "Description",
                                 "Filter pixels along the ROI BORDER with Luminance value less than threshold" },
                         { "DocURL", "" },
@@ -125,7 +126,7 @@ public class ArtifactsFilterDescriptor extends OperationDescriptorImpl {
         return create(sourceImage, sourceRoi, backgroundValues, DEFAULT_THRESHOLD,
                 DEFAULT_FILTER_SIZE, null, hints);
     }
-    
+
     public static RenderedImage create(RenderedImage sourceImage, ROI sourceRoi,
             double[] backgroundValues, final int threshold, Range nodata, RenderingHints hints) {
         return create(sourceImage, sourceRoi, backgroundValues, threshold, DEFAULT_FILTER_SIZE,
@@ -143,16 +144,19 @@ public class ArtifactsFilterDescriptor extends OperationDescriptorImpl {
      * 
      * @param sourceImage the image to be restored
      * 
-     * @param roi a {@link ROI} defining the working area
+     * @param sourceRoi a {@link ROI} defining the working area
+     * @param backgroundValues double array used for defining background
+     * @param threshold integer value used for defining the luminance threshold
+     * @param filterSize size of the filter used for filtering artifacts
      * @param nodata a {@link Range} object defining input NoData
      * 
      * @param hints an optional RenderingHints object
      * 
-     * @return a RenderedImage with a band for each requested statistic
+     * @return a RenderedImage
      */
     public static RenderedImage create(RenderedImage sourceImage, ROI sourceRoi,
-            double[] backgroundValues, final int threshold, final int filterSize,
-            Range nodata, RenderingHints hints) {
+            double[] backgroundValues, final int threshold, final int filterSize, Range nodata,
+            RenderingHints hints) {
 
         ParameterBlockJAI pb = new ParameterBlockJAI("ArtifactsFilter",
                 RenderedRegistryMode.MODE_NAME);

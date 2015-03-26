@@ -27,9 +27,6 @@ import java.util.List;
  * 
  * @author Simone Giannecchini, GeoSolutions
  * 
- * 
- * 
- * 
  * @source $URL$
  */
 public interface Domain1D<T extends DomainElement1D> extends List<T> {

@@ -38,9 +38,8 @@ import com.sun.media.jai.util.ImageUtil;
 
 /**
  * An OpImage class to generate an image from a functional description.
- * 
  */
-final class ImageFunctionOpImage extends SourcelessOpImage {
+public class ImageFunctionOpImage extends SourcelessOpImage {
 
     /**
      * Constant indicating that the inner random iterators must pre-calculate an array of the image positions
@@ -85,6 +84,7 @@ final class ImageFunctionOpImage extends SourcelessOpImage {
     /** Rectangle defining ROI bounds */
     private Rectangle roiBounds;
 
+    /** Helper function for creating a suitable sample model for the final image */
     private static SampleModel sampleModelHelper(int numBands, ImageLayout layout) {
         SampleModel sampleModel;
         if (layout != null && layout.isValid(ImageLayout.SAMPLE_MODEL_MASK)) {
@@ -223,7 +223,7 @@ final class ImageFunctionOpImage extends SourcelessOpImage {
      * This method provides a lazy initialization of the image associated to the ROI. The method uses the Double-checked locking in order to maintain
      * thread-safety
      * 
-     * @return
+     * @return a PlanarImage representing ROI image
      */
     private PlanarImage getImage() {
         PlanarImage img = roiImage;

@@ -28,7 +28,8 @@ import java.awt.Color;
  * @author Simone Giannecchini, GeoSolutions.
  * @todo simplify
  */
-public class ConstantColorMapElement extends LinearColorMapElement implements ColorMapTransformElement {
+public class ConstantColorMapElement extends LinearColorMapElement implements
+        ColorMapTransformElement {
 
     /**
      * UID

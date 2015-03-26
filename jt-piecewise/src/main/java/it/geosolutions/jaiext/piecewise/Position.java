@@ -18,30 +18,42 @@
 package it.geosolutions.jaiext.piecewise;
 
 /**
- * Class used for indicating a position on a selected axis. Note that the position is mono dimensional
+ * Class used for indicating a position on a selected axis. Note that the position is single dimensional
  * 
  * @author Nicola Lagomarsini
  * 
  */
 public class Position {
 
-    double ordinate;
+    /** Value indicating the position on the axis */
+    double ordinatePosition;
 
     public Position() {
     }
 
-    public Position(double ordinate) {
-        this.ordinate = ordinate;
+    public Position(double ordinatePosition) {
+        this.ordinatePosition = ordinatePosition;
     }
 
-    public double getOrdinate() {
-        return ordinate;
+    /**
+     * @return the current ordinate position
+     */
+    public double getOrdinatePosition() {
+        return ordinatePosition;
     }
 
-    public void setOrdinate(double ordinate) {
-        this.ordinate = ordinate;
+    /**
+     * Sets the current ordinate position parameter
+     * 
+     * @param ordinatePosition
+     */
+    public void setOrdinatePosition(double ordinatePosition) {
+        this.ordinatePosition = ordinatePosition;
     }
 
+    /**
+     * @return the element dimension
+     */
     public int getDimension() {
         return 1;
     }

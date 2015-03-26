@@ -49,7 +49,7 @@ import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.JDKWorkarounds;
 
 /**
- * An <code>OpImage</code> implementing the error diffusion operation as described in <code>javax.media.jai.operator.ErrorDiffusionDescriptor</code>.
+ * An <code>OpImage</code> implementing the error diffusion operation as described in <code>ErrorDiffusionDescriptor</code>.
  * 
  * <p>
  * This <code>OpImage</code> performs dithering of its source image into a single band image using a specified color map and error filter. For each
@@ -57,10 +57,8 @@ import com.sun.media.jai.util.JDKWorkarounds;
  * location. The color quantization error is calculated by mapping the index back through the color map. The error in each band is then "diffused" to
  * other neighboring pixels in the source image according to the specified error filter.
  * 
- * @see javax.media.jai.ColorCube
- * @see javax.media.jai.KernelJAI
- * @see javax.media.jai.LookupTableJAI
- * 
+ * <p>
+ * Optionally users may define a ROI and a NoData Range in order to reduce computation area or mask invalid pixel values.S
  */
 public class ErrorDiffusionOpImage extends UntiledOpImage {
 

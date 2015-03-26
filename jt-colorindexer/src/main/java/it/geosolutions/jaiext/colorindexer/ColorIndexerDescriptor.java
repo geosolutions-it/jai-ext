@@ -122,6 +122,17 @@ public class ColorIndexerDescriptor extends OperationDescriptorImpl {
         return true;
     }
 
+    /**
+     * Create a new {@link RenderedOp} instance based on the "ColorIndexer" operation
+     * 
+     * @param source Input image
+     * @param indexer {@link ColorIndexer} instance to use for the operation
+     * @param roi Input {@link ROI} used for reducing computation area
+     * @param nodata NoData {@link Range} used for masking NoData values
+     * @param destNoData Value to set for the background
+     * @param hints Optional configuration hints
+     * @return A new {@link RenderedOp} instance after executing ColorIndexer operation
+     */
     public static RenderedOp create(RenderedImage source, ColorIndexer indexer, ROI roi,
             Range nodata, Integer destNoData, RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI(OPERATION_NAME, RenderedRegistryMode.MODE_NAME);

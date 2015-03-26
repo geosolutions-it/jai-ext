@@ -1,28 +1,26 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.rlookup;
 
 import it.geosolutions.jaiext.range.Range;
 
-
 /**
- * Used by {@link RangeLookupTable} to associate a source value lookup range 
- * with a destination value.
+ * Used by {@link RangeLookupTable} to associate a source value lookup range with a destination value.
  * 
  * @param <T> type of the source range
  * @param <U> type of the destination value
@@ -31,10 +29,10 @@ import it.geosolutions.jaiext.range.Range;
  * @author Simone Giannecchini, GeoSolutions
  */
 public class LookupItem<T extends Number & Comparable<? super T>, U extends Number & Comparable<? super U>> {
-    
+
     /** Lookup range */
     private final Range range;
-    
+
     /** Return value */
     private final U value;
 
@@ -52,7 +50,7 @@ public class LookupItem<T extends Number & Comparable<? super T>, U extends Numb
         this.range = range;
         this.value = value;
     }
-    
+
     /**
      * Gets the source value lookup range.
      * 
@@ -61,7 +59,7 @@ public class LookupItem<T extends Number & Comparable<? super T>, U extends Numb
     public Range getRange() {
         return range;
     }
-    
+
     /**
      * Gets the destination value.
      * 
@@ -114,5 +112,5 @@ public class LookupItem<T extends Number & Comparable<? super T>, U extends Numb
     public String toString() {
         return range.toString() + " => " + value;
     }
-    
+
 }

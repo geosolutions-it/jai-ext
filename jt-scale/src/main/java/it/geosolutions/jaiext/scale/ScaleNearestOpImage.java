@@ -28,6 +28,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.media.jai.BorderExtender;
@@ -42,7 +43,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
     protected InterpolationNearest interpN = null;
 
     /** Byte lookuptable used if no data are present */
-    protected final byte[] byteLookupTable = new byte[256];
+    protected byte[][] byteLookupTable;
 
     public ScaleNearestOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
@@ -67,6 +68,8 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         SampleModel sm = source.getSampleModel();
         // Source image data Type
         int srcDataType = sm.getDataType();
+        // NumBands
+        int numBands = getSampleModel().getNumBands();
 
         // selection of the inverse scale parameters both for the x and y axis
         if (invScaleXRational.num > invScaleXRational.denom) {
@@ -90,10 +93,10 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
         // If both roiBounds and roiIter are not null, they are used in calculation
         Range nod = nodata;
-        Double destNod = null;
+        double[] destNod = null;
         if (backgroundValues != null && backgroundValues.length > 0){
-        	destNod = backgroundValues[0];
-		}
+            destNod = backgroundValues;
+        }
         if (interp instanceof InterpolationNearest) {
             interpN = (InterpolationNearest) interp;
             this.interp = interpN;
@@ -102,23 +105,29 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             	nod = interpN.getNoDataRange();
             }
             if(destNod == null){
-            	destNod = interpN.getDestinationNoData();
+            	destNod = new double[]{interpN.getDestinationNoData()};
             }
         }
         // Nodata definition
-		if (nod != null) {
-			hasNoData = true;
-			noData = nod;
-		}
-		if(destNod != null){
-			destinationNoDataDouble = destNod;
-		} else if (this.backgroundValues != null && this.backgroundValues.length > 0){
-			destinationNoDataDouble = this.backgroundValues[0];
-		}
-		// ROIAccessor definition
-		if (hasROI) {
-			this.useRoiAccessor = useRoiAccessor;
-		}
+        if (nod != null) {
+            hasNoData = true;
+            noData = nod;
+        }
+        if (destNod != null) {
+            destinationNoDataDouble = destNod;
+        } else if (this.backgroundValues != null && this.backgroundValues.length > 0) {
+            destinationNoDataDouble = this.backgroundValues;
+        }
+        // Expand the destination nodata values if not defined
+        if(destinationNoDataDouble != null && destinationNoDataDouble.length < numBands){
+            double[] tmp = new double[numBands]; 
+            Arrays.fill(tmp, destinationNoDataDouble[0]);
+            destinationNoDataDouble = tmp;
+        }
+        // ROIAccessor definition
+        if (hasROI) {
+            this.useRoiAccessor = useRoiAccessor;
+        }
         // subsample bits used for the bilinear and bicubic interpolation
         subsampleBits = interp.getSubsampleBitsH();
 
@@ -138,20 +147,32 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         interp_left = interp.getLeftPadding();
         interp_top = interp.getTopPadding();
 
-        // Selection of the destination No Data
-        destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
-        destinationNoDataShort = (short) destinationNoDataDouble;
-        destinationNoDataUShort = (short) (((short) destinationNoDataDouble) & 0xffff);
-        destinationNoDataInt = (int) destinationNoDataDouble;
-        destinationNoDataFloat = (float) destinationNoDataDouble;
+        // Create the destination No data arrays
+        destinationNoDataByte = new byte[numBands];
+        destinationNoDataShort = new short[numBands];
+        destinationNoDataUShort = new short[numBands];
+        destinationNoDataInt = new int[numBands];
+        destinationNoDataFloat = new float[numBands];
+        // Populate the arrays
+        for (int i = 0; i < numBands; i++) {
+            destinationNoDataByte[i] = (byte) ((int) destinationNoDataDouble[i] & 0xFF);
+            destinationNoDataUShort[i] = (short) (((short) destinationNoDataDouble[i]) & 0xffff);
+            destinationNoDataShort[i] = (short) destinationNoDataDouble[i];
+            destinationNoDataInt[i] = (int) destinationNoDataDouble[i];
+            destinationNoDataFloat[i] = (float) destinationNoDataDouble[i];
+        }
         // Creation of a lookuptable containing the values to use for no data
         if (hasNoData) {
-            for (int i = 0; i < byteLookupTable.length; i++) {
+            // Creation of a lookuptable containing the values to use for no data
+            byteLookupTable = new byte[numBands][256];
+            for (int i = 0; i < byteLookupTable[0].length; i++) {
                 byte value = (byte) i;
-                if (noData.contains(value)) {
-                    byteLookupTable[i] = destinationNoDataByte;
-                } else {
-                    byteLookupTable[i] = value;
+                for (int b = 0; b < numBands; b++) {
+                    if (noData.contains(value)) {
+                        byteLookupTable[b][i] = destinationNoDataByte[b];
+                    } else {
+                        byteLookupTable[b][i] = value;
+                    }
                 }
             }
         }
@@ -357,7 +378,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (w == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
+                                    dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = srcData[pos];
@@ -397,14 +418,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     int w = roiIter.getSample(x0, y0, 0) & 0xff;
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = srcData[pos];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
+                                    dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -440,7 +461,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 int value = srcData[pos];
 
-                                dstData[dstPixelOffset] = byteLookupTable[value&0xFF];
+                                dstData[dstPixelOffset] = byteLookupTable[k][value&0xFF];
 
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -476,9 +497,9 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                     int value = srcData[pos];
 
-                                    if (byteLookupTable[value&0xFF] == destinationNoDataByte) {
+                                    if (byteLookupTable[k][value&0xFF] == destinationNoDataByte[k]) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else {
                                         int windex = (posx / dnumBands) + posyROI;
                                         int w = windex < roiDataLength ? roiDataArray[windex] & 0xff
@@ -486,10 +507,10 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                         if (w == 0) {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataByte;
+                                            dstData[dstPixelOffset] = destinationNoDataByte[k];
                                         } else {
                                             // The interpolated value is saved in the destination array
-                                            dstData[dstPixelOffset] = byteLookupTable[value&0xFF];
+                                            dstData[dstPixelOffset] = byteLookupTable[k][value&0xFF];
                                         }
                                     }
                                     // destination pixel offset update
@@ -521,9 +542,9 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     int pos = posx + posy;
                                     int value = srcData[pos];
 
-                                    if (byteLookupTable[value&0xFF] == destinationNoDataByte) {
+                                    if (byteLookupTable[k][value&0xFF] == destinationNoDataByte[k]) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else {
                                         // PixelPositions
                                         int x0 = src.getX() + posx / srcPixelStride;
@@ -534,14 +555,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                             int w = roiIter.getSample(x0, y0, 0) & 0xff;
                                             if (w == 0) {
                                                 // The destination no data value is saved in the destination array
-                                                dstData[dstPixelOffset] = destinationNoDataByte;
+                                                dstData[dstPixelOffset] = destinationNoDataByte[k];
                                             } else {
                                                 // The interpolated value is saved in the destination array
-                                                dstData[dstPixelOffset] = byteLookupTable[value&0xFF];
+                                                dstData[dstPixelOffset] = byteLookupTable[k][value&0xFF];
                                             }
                                         } else {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataByte;
+                                            dstData[dstPixelOffset] = destinationNoDataByte[k];
                                         }
                                     }
                                     // destination pixel offset update
@@ -654,7 +675,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (w == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = srcData[pos];
@@ -696,14 +717,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     w = roiIter.getSample(x0, y0, 0) & 0xffff;
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = srcData[pos];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -740,7 +761,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                             if (noData.contains(value)) {
                                 // The destination no data value is saved in the destination array
-                                dstData[dstPixelOffset] = destinationNoDataUShort;
+                                dstData[dstPixelOffset] = destinationNoDataUShort[k];
                             } else {
                                 // The interpolated value is saved in the destination array
                                 dstData[dstPixelOffset] = value;
@@ -783,14 +804,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else {
                                     windex = (posx / dnumBands) + posyROI;
                                     w = windex < roiDataLength ? roiDataArray[windex] & 0xffff : 0;
 
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = value;
@@ -830,7 +851,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
@@ -840,14 +861,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                         w = roiIter.getSample(x0, y0, 0) & 0xffff;
                                         if (w == 0) {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataUShort;
+                                            dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                         } else {
                                             // The interpolated value is saved in the destination array
                                             dstData[dstPixelOffset] = value;
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     }
                                 }
                                 // destination pixel offset update
@@ -959,7 +980,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (w == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = srcData[pos];
@@ -1001,14 +1022,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     w = roiIter.getSample(x0, y0, 0);
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = srcData[pos];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1045,7 +1066,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                             if (noData.contains(value)) {
                                 // The destination no data value is saved in the destination array
-                                dstData[dstPixelOffset] = destinationNoDataShort;
+                                dstData[dstPixelOffset] = destinationNoDataShort[k];
                             } else {
                                 // The interpolated value is saved in the destination array
                                 dstData[dstPixelOffset] = value;
@@ -1088,14 +1109,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else {
                                     windex = (posx / dnumBands) + posyROI;
                                     w = windex < roiDataLength ? roiDataArray[windex] : 0;
 
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = value;
@@ -1135,7 +1156,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
@@ -1145,14 +1166,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                         w = roiIter.getSample(x0, y0, 0);
                                         if (w == 0) {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataShort;
+                                            dstData[dstPixelOffset] = destinationNoDataShort[k];
                                         } else {
                                             // The interpolated value is saved in the destination array
                                             dstData[dstPixelOffset] = value;
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     }
                                 }
                                 // destination pixel offset update
@@ -1263,7 +1284,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (w == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataInt;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = srcData[pos];
@@ -1305,14 +1326,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     w = roiIter.getSample(x0, y0, 0);
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = srcData[pos];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataInt;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1349,7 +1370,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                             if (noData.contains(value)) {
                                 // The destination no data value is saved in the destination array
-                                dstData[dstPixelOffset] = destinationNoDataInt;
+                                dstData[dstPixelOffset] = destinationNoDataInt[k];
                             } else {
                                 // The interpolated value is saved in the destination array
                                 dstData[dstPixelOffset] = value;
@@ -1392,14 +1413,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataInt;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else {
                                     windex = (posx / dnumBands) + posyROI;
                                     w = windex < roiDataLength ? roiDataArray[windex] : 0;
 
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = value;
@@ -1439,7 +1460,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataInt;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
@@ -1449,14 +1470,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                         w = roiIter.getSample(x0, y0, 0);
                                         if (w == 0) {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataInt;
+                                            dstData[dstPixelOffset] = destinationNoDataInt[k];
                                         } else {
                                             // The interpolated value is saved in the destination array
                                             dstData[dstPixelOffset] = value;
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     }
                                 }
                                 // destination pixel offset update
@@ -1568,7 +1589,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (w == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = srcData[pos];
@@ -1610,14 +1631,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     w = roiIter.getSample(x0, y0, 0);
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = srcData[pos];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1654,7 +1675,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                             if (noData.contains(value)) {
                                 // The destination no data value is saved in the destination array
-                                dstData[dstPixelOffset] = destinationNoDataFloat;
+                                dstData[dstPixelOffset] = destinationNoDataFloat[k];
                             } else {
                                 // The interpolated value is saved in the destination array
                                 dstData[dstPixelOffset] = value;
@@ -1697,14 +1718,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else {
                                     windex = (posx / dnumBands) + posyROI;
                                     w = windex < roiDataLength ? roiDataArray[windex] : 0;
 
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = value;
@@ -1744,7 +1765,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
@@ -1754,14 +1775,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                         w = roiIter.getSample(x0, y0, 0);
                                         if (w == 0) {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataFloat;
+                                            dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                         } else {
                                             // The interpolated value is saved in the destination array
                                             dstData[dstPixelOffset] = value;
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     }
                                 }
                                 // destination pixel offset update
@@ -1873,7 +1894,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (w == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = srcData[pos];
@@ -1915,14 +1936,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                     w = roiIter.getSample(x0, y0, 0);
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = srcData[pos];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1959,7 +1980,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                             if (noData.contains(value)) {
                                 // The destination no data value is saved in the destination array
-                                dstData[dstPixelOffset] = destinationNoDataDouble;
+                                dstData[dstPixelOffset] = destinationNoDataDouble[k];
                             } else {
                                 // The interpolated value is saved in the destination array
                                 dstData[dstPixelOffset] = value;
@@ -2002,14 +2023,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else {
                                     windex = (posx / dnumBands) + posyROI;
                                     w = windex < roiDataLength ? roiDataArray[windex] : 0;
 
                                     if (w == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = value;
@@ -2049,7 +2070,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else {
                                     // PixelPositions
                                     int x0 = src.getX() + posx / srcPixelStride;
@@ -2059,14 +2080,14 @@ public class ScaleNearestOpImage extends ScaleOpImage {
                                         w = roiIter.getSample(x0, y0, 0);
                                         if (w == 0) {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataDouble;
+                                            dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                         } else {
                                             // The interpolated value is saved in the destination array
                                             dstData[dstPixelOffset] = value;
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     }
                                 }
                                 // destination pixel offset update

@@ -32,8 +32,6 @@ import java.awt.Color;
  * @author Simone Giannecchini, GeoSolutions
  * 
  * 
- * 
- * 
  * @source $URL$
  */
 public interface ColorMapTransformElement extends PiecewiseTransform1DElement {

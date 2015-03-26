@@ -49,19 +49,19 @@ public class ArtifactsFilterRIF implements RenderedImageFactory {
      * Create a new instance of ArtifactsFilterOpImage in the rendered layer.
      *
      * @param paramBlock specifies the source image, and the following parameters: 
-     * "roi", "backgroundValues", "threshold", "filterSize"
+     * "roi", "backgroundValues", "threshold", "filterSize", "nodata"
      *
      * @param renderingHints optional RenderingHints object
      */
     public RenderedImage create(ParameterBlock paramBlock, RenderingHints renderingHints) {
-
+        // Extracting source
         final RenderedImage dataImage = paramBlock.getRenderedSource(0);
-
+        // Getting the Layout
         ImageLayout layout = RIFUtil.getImageLayoutHint(renderingHints);
         if (layout == null) { 
             layout = new ImageLayout();
         }
-
+        // Getting the parameters
         final int threshold = (Integer) paramBlock.getObjectParameter(ArtifactsFilterDescriptor.THRESHOLD_ARG);
 
         final int filterSize = (Integer) paramBlock.getObjectParameter(ArtifactsFilterDescriptor.FILTERSIZE_ARG);
@@ -69,6 +69,7 @@ public class ArtifactsFilterRIF implements RenderedImageFactory {
         final double[] bgValues = (double[]) paramBlock.getObjectParameter(ArtifactsFilterDescriptor.BACKGROUND_ARG);
 
         SampleModel sm = layout.getSampleModel(null);
+        // SampleModel preparation
         if (sm == null) {
             final SampleModel dataSampleModel = dataImage.getSampleModel();
             final int dataType = dataSampleModel.getDataType();
@@ -81,7 +82,7 @@ public class ArtifactsFilterRIF implements RenderedImageFactory {
                 layout.setColorModel(cm);
             }
         }
-
+        // Getting ROI and NoData
         final ROI roi = (ROI) paramBlock.getObjectParameter(ArtifactsFilterDescriptor.ROI_ARG);
         
         final Range nodata = (Range) paramBlock.getObjectParameter(ArtifactsFilterDescriptor.NODATA_ARG);

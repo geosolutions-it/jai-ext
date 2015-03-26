@@ -40,6 +40,9 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * color quantization error below and to the right of the pixel.
  * 
  * <p>
+ * Users may also define a ROI and a NoData Range for reducing computation area or masking unwanted pixel values.
+ * 
+ * <p>
  * <table border=1>
  * <caption>Resource List</caption>
  * <tr>
@@ -56,7 +59,7 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>Vendor</td>
- * <td>com.sun.media.jai</td>
+ * <td>it.geosolutions.jaiext</td>
  * </tr>
  * <tr>
  * <td>Description</td>
@@ -64,7 +67,7 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>DocURL</td>
- * <td>http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ErrorDiffusionDescriptor.html</td>
+ * <td></td>
  * </tr>
  * <tr>
  * <td>Version</td>
@@ -72,11 +75,23 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>arg0Desc</td>
- * <td>The color map.</td>
+ * <td>Input colormap.</td>
  * </tr>
  * <tr>
  * <td>arg1Desc</td>
- * <td>The error filter kernel.</td>
+ * <td>Input errordiffusion kernel.</td>
+ * </tr>
+ * <tr>
+ * <td>arg2Desc</td>
+ * <td>Optional ROI object to use in computation.</td>
+ * </tr>
+ * <tr>
+ * <td>arg3Desc</td>
+ * <td>Optional Range of NoData values to use in computation.</td>
+ * </tr>
+ * <tr>
+ * <td>arg4Desc</td>
+ * <td>Destination No Data value used when the computation cannot be performed.</td>
  * </tr>
  * </table>
  * </p>
@@ -97,27 +112,29 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <td>errorKernel</td>
  * <td>javax.media.jai.KernelJAI</td>
  * <td>javax.media.jai.KernelJAI.ERROR_FILTER_FLOYD_STEINBERG</td>
+ * <tr>
+ * <td>roi</td>
+ * <td>javax.media.jai.ROI</td>
+ * <td>null</td>
+ * <tr>
+ * <td>nodata</td>
+ * <td>it.geosolutions.jaiext.range.Range</td>
+ * <td>null</td>
+ * <tr>
+ * <td>destNoData</td>
+ * <td>Integer</td>
+ * <td>0</td>
  * </table>
  * </p>
- * 
- * @see javax.media.jai.LookupTableJAI
- * @see javax.media.jai.KernelJAI
- * @see javax.media.jai.ColorCube
- * @see javax.media.jai.OperationDescriptor
  */
 public class ErrorDiffusionDescriptor extends OperationDescriptorImpl {
 
     /**
      * The resource strings that provide the general documentation and specify the parameter list for the "ErrorDiffusion" operation.
      */
-    private static final String[][] resources = {
-            { "GlobalName", "ErrorDiffusion" },
-            { "LocalName", "ErrorDiffusion" },
-            { "Vendor", "it.geosolutions.jaiext" },
-            { "Description", JaiI18N.getString("ErrorDiffusionDescriptor0") },
-            {
-                    "DocURL",
-                    "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ErrorDiffusionDescriptor.html" },
+    private static final String[][] resources = { { "GlobalName", "ErrorDiffusion" },
+            { "LocalName", "ErrorDiffusion" }, { "Vendor", "it.geosolutions.jaiext" },
+            { "Description", JaiI18N.getString("ErrorDiffusionDescriptor0") }, { "DocURL", "" },
             { "Version", JaiI18N.getString("DescriptorVersion") },
             { "arg0Desc", JaiI18N.getString("ErrorDiffusionDescriptor1") },
             { "arg1Desc", JaiI18N.getString("ErrorDiffusionDescriptor2") },

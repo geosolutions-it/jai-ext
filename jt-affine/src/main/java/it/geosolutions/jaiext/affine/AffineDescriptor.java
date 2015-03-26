@@ -301,7 +301,7 @@ public class AffineDescriptor extends OperationDescriptorImpl {
     private static final Object[] paramDefaults = {
         new AffineTransform(),
         Interpolation.getInstance(Interpolation.INTERP_NEAREST),
-    null, null, false, false, null
+        null, null, false, false, null
     };
 
     /** Constructor. */

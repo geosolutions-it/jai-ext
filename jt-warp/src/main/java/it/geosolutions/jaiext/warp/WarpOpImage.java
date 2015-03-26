@@ -67,21 +67,6 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
     /** Constant indicating that the inner random iterators must cache the current tile position */
     protected static final boolean TILE_CACHED = true;
 
-    /** Destination No Data value associated to Byte data type */
-    //protected byte destinationNoDataByte;
-
-    /** Destination No Data value associated to UShort/Short data type */
-    //protected short destinationNoDataShort;
-
-    /** Destination No Data value associated to Integer data type */
-    //protected int destinationNoDataInt;
-
-    /** Destination No Data value associated to Float data type */
-    //protected float destinationNoDataFloat;
-
-    /** Destination No Data value associated to Double data type */
-    //protected double destinationNoDataDouble;
-
     /** Current ROI object */
     protected final ROI roi;
 

@@ -100,34 +100,13 @@ final class WarpBilinearOpImage extends WarpOpImage {
         // Source image data Type
         int srcDataType = sm.getDataType();
 
-        switch (srcDataType) {
-        case DataBuffer.TYPE_BYTE:
-            //(byte)backgroundValues[b] = (byte) (((byte) backgroundValues[b]) & 0xff);
-            // Creation of a lookuptable containing the values to use for no data
-            if (hasNoData) {
-                booleanLookupTable = new boolean[256];
-                for (int i = 0; i < booleanLookupTable.length; i++) {
-                    byte value = (byte) i;
-                    booleanLookupTable[i] = noDataRange.contains(value);
-                }
+        // Creation of a lookuptable containing the values to use for no data
+        if (srcDataType == DataBuffer.TYPE_BYTE && hasNoData) {
+            booleanLookupTable = new boolean[256];
+            for (int i = 0; i < booleanLookupTable.length; i++) {
+                byte value = (byte) i;
+                booleanLookupTable[i] = noDataRange.contains(value);
             }
-            break;
-        case DataBuffer.TYPE_USHORT:
-            //(short)backgroundValues[b] = (short) (((short) backgroundValues[b]) & 0xffff);
-            break;
-        case DataBuffer.TYPE_SHORT:
-            //(short)backgroundValues[b] = (short) backgroundValues[b];
-            break;
-        case DataBuffer.TYPE_INT:
-            //(int)backgroundValues[b] = (int) backgroundValues[b];
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            //(float)backgroundValues[b] = (float) backgroundValues[b];
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data Type");
         }
     }
 

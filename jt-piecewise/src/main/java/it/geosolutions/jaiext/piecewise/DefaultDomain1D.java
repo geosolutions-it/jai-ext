@@ -29,8 +29,6 @@ import java.util.MissingResourceException;
  * 
  * @author Simone Giannecchini
  * 
- * 
- * 
  * @source $URL$
  */
 public class DefaultDomain1D<E extends DefaultDomainElement1D> extends AbstractList<E> implements
@@ -39,7 +37,7 @@ public class DefaultDomain1D<E extends DefaultDomainElement1D> extends AbstractL
     /*
      * (non-Javadoc)
      * 
-     * @see org.geotools.referencing.piecewise.Domain1D#getName()
+     * @see Domain1D#getName()
      */
     public synchronized String getName() {
         if (name == null) {
@@ -60,7 +58,7 @@ public class DefaultDomain1D<E extends DefaultDomainElement1D> extends AbstractL
     /*
      * (non-Javadoc)
      * 
-     * @see org.geotools.referencing.piecewise.Domain1D#getRange()
+     * @see Domain1D#getRange()
      */
     public Range getApproximateDomainRange() {
         synchronized (elements) {
@@ -367,7 +365,7 @@ public class DefaultDomain1D<E extends DefaultDomainElement1D> extends AbstractL
     /*
      * (non-Javadoc)
      * 
-     * @see org.geotools.referencing.piecewise.Domain1D#hasGaps()
+     * @see Domain1D#hasGaps()
      */
     public boolean hasGaps() {
         return hasGaps;
@@ -400,5 +398,4 @@ public class DefaultDomain1D<E extends DefaultDomainElement1D> extends AbstractL
         }
         return hashCode;
     }
-
 }

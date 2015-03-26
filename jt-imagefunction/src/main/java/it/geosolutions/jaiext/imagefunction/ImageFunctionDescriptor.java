@@ -109,6 +109,10 @@ class ImageFunctionPropertyGenerator extends PropertyGeneratorImpl {
  * "COMPLEX" as the property name.
  * 
  * <p>
+ * It should be pointed out that users can define a valid area using an input {@link ROI} object, and also can define NoData values by using an input
+ * NoData {@link Range}.
+ * 
+ * <p>
  * <table border=1>
  * <caption>Resource List</caption>
  * <tr>
@@ -133,7 +137,7 @@ class ImageFunctionPropertyGenerator extends PropertyGeneratorImpl {
  * </tr>
  * <tr>
  * <td>DocURL</td>
- * <td>http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ImageFunctionDescriptor.html</td>
+ * <td></td>
  * </tr>
  * <tr>
  * <td>Version</td>
@@ -238,36 +242,29 @@ public class ImageFunctionDescriptor extends OperationDescriptorImpl {
 
     /** Constructor. */
     public ImageFunctionDescriptor() {
-        super(
-                new String[][] {
-                        { "GlobalName", "ImageFunction" },
-                        { "LocalName", "ImageFunction" },
-                        { "Vendor", "it.geosolutions.jaiext" },
-                        { "Description", JaiI18N.getString("ImageFunctionDescriptor0") },
-                        {
-                                "DocURL",
-                                "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/ImageFunctionDescriptor.html" },
-                        { "Version", JaiI18N.getString("DescriptorVersion") },
-                        { "arg0Desc", JaiI18N.getString("ImageFunctionDescriptor1") },
-                        { "arg1Desc", JaiI18N.getString("ImageFunctionDescriptor2") },
-                        { "arg2Desc", JaiI18N.getString("ImageFunctionDescriptor3") },
-                        { "arg3Desc", JaiI18N.getString("ImageFunctionDescriptor4") },
-                        { "arg4Desc", JaiI18N.getString("ImageFunctionDescriptor5") },
-                        { "arg5Desc", JaiI18N.getString("ImageFunctionDescriptor6") },
-                        { "arg6Desc", JaiI18N.getString("ImageFunctionDescriptor7") },
-                        { "arg6Desc", JaiI18N.getString("ImageFunctionDescriptor8") },
-                        { "arg6Desc", JaiI18N.getString("ImageFunctionDescriptor9") },
-                        { "arg6Desc", JaiI18N.getString("ImageFunctionDescriptor10") } }, 0,
-                new Class[] { javax.media.jai.ImageFunction.class, java.lang.Integer.class,
-                        java.lang.Integer.class, java.lang.Float.class, java.lang.Float.class,
-                        java.lang.Float.class, java.lang.Float.class, javax.media.jai.ROI.class,
-                        it.geosolutions.jaiext.range.Range.class, java.lang.Float.class },
-                new String[] { "function", "width", "height", "xScale", "yScale", "xTrans",
-                        "yTrans", "roi", "nodata", "destNoData" }, new Object[] {
-                        NO_PARAMETER_DEFAULT, NO_PARAMETER_DEFAULT, NO_PARAMETER_DEFAULT,
-                        new Float(1.0F), new Float(1.0F), // unity scale
-                        new Float(0.0F), new Float(0.0F), // zero translation
-                        null, null, new Float(0.0F) });
+        super(new String[][] { { "GlobalName", "ImageFunction" }, { "LocalName", "ImageFunction" },
+                { "Vendor", "it.geosolutions.jaiext" },
+                { "Description", JaiI18N.getString("ImageFunctionDescriptor0") }, { "DocURL", "" },
+                { "Version", JaiI18N.getString("DescriptorVersion") },
+                { "arg0Desc", JaiI18N.getString("ImageFunctionDescriptor1") },
+                { "arg1Desc", JaiI18N.getString("ImageFunctionDescriptor2") },
+                { "arg2Desc", JaiI18N.getString("ImageFunctionDescriptor3") },
+                { "arg3Desc", JaiI18N.getString("ImageFunctionDescriptor4") },
+                { "arg4Desc", JaiI18N.getString("ImageFunctionDescriptor5") },
+                { "arg5Desc", JaiI18N.getString("ImageFunctionDescriptor6") },
+                { "arg6Desc", JaiI18N.getString("ImageFunctionDescriptor7") },
+                { "arg6Desc", JaiI18N.getString("ImageFunctionDescriptor8") },
+                { "arg6Desc", JaiI18N.getString("ImageFunctionDescriptor9") },
+                { "arg6Desc", JaiI18N.getString("ImageFunctionDescriptor10") } }, 0, new Class[] {
+                javax.media.jai.ImageFunction.class, java.lang.Integer.class,
+                java.lang.Integer.class, java.lang.Float.class, java.lang.Float.class,
+                java.lang.Float.class, java.lang.Float.class, javax.media.jai.ROI.class,
+                it.geosolutions.jaiext.range.Range.class, java.lang.Float.class }, new String[] {
+                "function", "width", "height", "xScale", "yScale", "xTrans", "yTrans", "roi",
+                "nodata", "destNoData" }, new Object[] { NO_PARAMETER_DEFAULT,
+                NO_PARAMETER_DEFAULT, NO_PARAMETER_DEFAULT, new Float(1.0F), new Float(1.0F), // unity scale
+                new Float(0.0F), new Float(0.0F), // zero translation
+                null, null, new Float(0.0F) });
     }
 
     /**

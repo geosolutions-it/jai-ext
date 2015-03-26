@@ -18,7 +18,6 @@
 package it.geosolutions.jaiext.affine;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Point;
@@ -32,6 +31,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.media.jai.BorderExtender;
@@ -39,6 +39,8 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+
+import com.sun.media.jai.util.ImageUtil;
 
 public class AffineBicubicOpImage extends AffineOpImage {
 
@@ -52,7 +54,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
     protected InterpolationBicubic interpBN = null;
 
     /** Byte lookuptable used if no data are present */
-    protected final byte[] byteLookupTable = new byte[256];
+    protected byte[][] byteLookupTable;
 
     /** ROI extender */
     final static BorderExtender roiExtender = BorderExtender
@@ -105,20 +107,22 @@ public class AffineBicubicOpImage extends AffineOpImage {
         // ColorModel as the source.
         // Note, in this case, the source should have an integral data type.
         ColorModel srcColorModel = source.getColorModel();
-        if (srcColorModel instanceof IndexColorModel) {
+        if (srcColorModel instanceof IndexColorModel  && ImageUtil.isBinary(sm)) {
             sampleModel = source.getSampleModel()
                     .createCompatibleSampleModel(tileWidth, tileHeight);
             colorModel = srcColorModel;
         }
+        // NumBands
+        int numBands = getSampleModel().getNumBands();
 
         // Source image data Type
         int srcDataType = sm.getDataType();
 
         // If both roiBounds and roiIter are not null, they are used in calculation
         Range nod = nodata;
-        Double destNod = null;
+        double[] destNod = null;
         if (backgroundValues != null && backgroundValues.length > 0) {
-            destNod = backgroundValues[0];
+            destNod = backgroundValues;
         }
         if (interp instanceof InterpolationBicubic) {
             interpBN = (InterpolationBicubic) interp;
@@ -158,7 +162,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                 nod = interpBN.getNoDataRange();
             }
             if (destNod == null) {
-                destNod = interpBN.getDestinationNoData();
+                destNod = new double[]{interpBN.getDestinationNoData()};
             }
         }
 
@@ -170,7 +174,13 @@ public class AffineBicubicOpImage extends AffineOpImage {
         if (destNod != null) {
             destinationNoDataDouble = destNod;
         } else if (this.backgroundValues != null && this.backgroundValues.length > 0) {
-            destinationNoDataDouble = this.backgroundValues[0];
+            destinationNoDataDouble = this.backgroundValues;
+        }
+        // Expand the destination nodata values if not defined
+        if(destinationNoDataDouble != null && destinationNoDataDouble.length < numBands){
+            double[] tmp = new double[numBands]; 
+            Arrays.fill(tmp, destinationNoDataDouble[0]);
+            destinationNoDataDouble = tmp;
         }
         // ROIAccessor definition
         if (hasROI) {
@@ -180,46 +190,42 @@ public class AffineBicubicOpImage extends AffineOpImage {
         // destination No Data set
         this.setDestinationNoData = setDestinationNoData;
         this.setBackground = setDestinationNoData;
-        // Selection of the destination No Data
-        switch (srcDataType) {
-        case DataBuffer.TYPE_BYTE:
-            destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
-            // Creation of a lookuptable containing the values to use for no data
-            if (hasNoData) {
+     // Create the destination No data arrays
+        destinationNoDataByte = new byte[numBands];
+        destinationNoDataShort = new short[numBands];
+        destinationNoDataUShort = new short[numBands];
+        destinationNoDataInt = new int[numBands];
+        destinationNoDataFloat = new float[numBands];
+        // Populate the arrays
+        for (int i = 0; i < numBands; i++) {
+            destinationNoDataByte[i] = (byte) ((int) destinationNoDataDouble[i] & 0xFF);
+            destinationNoDataUShort[i] = (short) (((short) destinationNoDataDouble[i]) & 0xffff);
+            destinationNoDataShort[i] = (short) destinationNoDataDouble[i];
+            destinationNoDataInt[i] = (int) destinationNoDataDouble[i];
+            destinationNoDataFloat[i] = (float) destinationNoDataDouble[i];
+        }
 
-                for (int i = 0; i < byteLookupTable.length; i++) {
-                    byte value = (byte) i;
+        // special byte case
+        if (srcDataType == DataBuffer.TYPE_BYTE && hasNoData) {
+            // Creation of a lookuptable containing the values to use for no data
+            byteLookupTable = new byte[numBands][256];
+            for (int i = 0; i < byteLookupTable[0].length; i++) {
+                byte value = (byte) i;
+                for (int b = 0; b < numBands; b++) {
                     if (noData.contains(value)) {
                         if (setDestinationNoData) {
-                            byteLookupTable[i] = destinationNoDataByte;
+                            byteLookupTable[b][i] = destinationNoDataByte[b];
                         } else {
-                            byteLookupTable[i] = 0;
-                            if (i != 0) {
-                                byteLookupTable[0] = 1;
+                            byteLookupTable[b][i] = 0;
+                            if(i !=0){
+                                byteLookupTable[b][0] = 1;    
                             }
                         }
                     } else {
-                        byteLookupTable[i] = value;
+                        byteLookupTable[b][i] = value;
                     }
                 }
             }
-            break;
-        case DataBuffer.TYPE_USHORT:
-            destinationNoDataUShort = (short) (((short) destinationNoDataDouble) & 0xffff);
-            break;
-        case DataBuffer.TYPE_SHORT:
-            destinationNoDataShort = (short) destinationNoDataDouble;
-            break;
-        case DataBuffer.TYPE_INT:
-            destinationNoDataInt = (int) destinationNoDataDouble;
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            destinationNoDataFloat = (float) destinationNoDataDouble;
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data Type");
         }
 
         // Definition of the possible cases that can be found
@@ -433,7 +439,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                         }
 
                     }
@@ -512,7 +518,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -538,7 +544,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 }
                             }
                         } else {
@@ -570,7 +576,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -628,7 +634,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -679,7 +685,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -704,7 +710,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 }
                             }
                         } else {
@@ -731,7 +737,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -789,7 +795,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -863,7 +869,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                     int sample = bandDataArray[pos + (z - 1) * srcPixelStride
                                             + (h - 1) * srcScanlineStride + bandOffsets[k2] ] & 0xff;
                                     pixelKernel[h][z] = sample;
-                                    if (byteLookupTable[sample] != destinationNoDataByte) {
+                                    if (byteLookupTable[k2][sample] != destinationNoDataByte[k2]) {
                                         weight |= (1 << (4 * h + z));
                                         // weightArray[h][z] = 1;
                                     } else {
@@ -892,7 +898,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             } else {
 
                                 tempData = bicubicInpainting(sumArray, weightVert, emptyArray);
@@ -918,7 +924,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                         }
                     }
 
@@ -1005,7 +1011,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -1030,7 +1036,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 }
                             }
                         } else {
@@ -1057,7 +1063,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                                     : 0);
                                         }
 
-                                        if (byteLookupTable[(int) pixelKernel[h][z]] != destinationNoDataByte) {
+                                        if (byteLookupTable[k2][(int) pixelKernel[h][z]] != destinationNoDataByte[k2]) {
                                             weight |= (1 << (4 * h + z));
                                             // weightArray[h][z] = 1;
                                         } else {
@@ -1068,7 +1074,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 }
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -1146,7 +1152,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -1203,7 +1209,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -1226,7 +1232,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 }
                             }
                         } else {
@@ -1248,7 +1254,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                         tmpROI += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
 
-                                        if (byteLookupTable[(int) pixelKernel[h][z]] != destinationNoDataByte) {
+                                        if (byteLookupTable[k2][(int) pixelKernel[h][z]] != destinationNoDataByte[k2]) {
                                             weight |= (1 << (4 * h + z));
                                         } else {
                                             weight &= (0xffff - (1 << 4 * h + z));
@@ -1257,7 +1263,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 }
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -1333,7 +1339,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -1468,7 +1474,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                         }
 
                     }
@@ -1547,7 +1553,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -1573,7 +1579,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 }
                             }
                         } else {
@@ -1605,7 +1611,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -1664,7 +1670,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -1715,7 +1721,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -1740,7 +1746,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 }
                             }
                         } else {
@@ -1767,7 +1773,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -1826,7 +1832,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -1923,7 +1929,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             } else {
                                 long[] tempData = bicubicInpainting(sumArray, weightVert,
                                         emptyArray);
@@ -1949,7 +1955,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                         }
                     }
 
@@ -2035,7 +2041,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -2060,7 +2066,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 }
                             }
                         } else {
@@ -2096,7 +2102,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 }
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -2173,7 +2179,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -2230,7 +2236,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -2253,7 +2259,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 }
                             }
                         } else {
@@ -2284,7 +2290,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 }
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -2361,7 +2367,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -2496,7 +2502,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                         }
 
                     }
@@ -2575,7 +2581,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -2601,7 +2607,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 }
                             }
                         } else {
@@ -2633,7 +2639,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -2692,7 +2698,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -2743,7 +2749,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -2768,7 +2774,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 }
                             }
                         } else {
@@ -2795,7 +2801,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -2854,7 +2860,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -2952,7 +2958,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             } else {
                                 long[] tempData = bicubicInpainting(sumArray, weightVert,
                                         emptyArray);
@@ -2978,7 +2984,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                         }
                     }
 
@@ -3064,7 +3070,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -3089,7 +3095,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 }
                             }
                         } else {
@@ -3125,7 +3131,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 }
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -3202,7 +3208,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -3259,7 +3265,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -3282,7 +3288,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 }
                             }
                         } else {
@@ -3313,7 +3319,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 }
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -3390,7 +3396,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -3518,7 +3524,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                         }
 
                     }
@@ -3597,7 +3603,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -3623,7 +3629,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 }
                             }
                         } else {
@@ -3655,7 +3661,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -3707,7 +3713,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -3758,7 +3764,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -3783,7 +3789,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 }
                             }
                         } else {
@@ -3810,7 +3816,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -3862,7 +3868,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -3959,7 +3965,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             } else {
                                 long[] tempData = bicubicInpainting(sumArray, weightVert,
                                         emptyArray);
@@ -3978,7 +3984,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                         }
                     }
 
@@ -4064,7 +4070,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -4089,7 +4095,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 }
                             }
                         } else {
@@ -4125,7 +4131,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 }
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -4195,7 +4201,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -4252,7 +4258,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -4275,7 +4281,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 }
                             }
                         } else {
@@ -4306,7 +4312,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 }
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -4376,7 +4382,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -4501,7 +4507,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                         }
 
                     }
@@ -4580,7 +4586,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -4606,7 +4612,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 }
                             }
                         } else {
@@ -4636,7 +4642,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -4684,7 +4690,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -4735,7 +4741,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -4760,7 +4766,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 }
                             }
                         } else {
@@ -4785,7 +4791,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -4834,7 +4840,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -4932,7 +4938,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             } else {
                                 double[] tempData = bicubicInpaintingDouble(sumArray, weightVert,
                                         emptyArray);
@@ -4950,7 +4956,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                         }
                     }
 
@@ -5036,7 +5042,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -5061,7 +5067,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 }
                             }
                         } else {
@@ -5096,7 +5102,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 }
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -5163,7 +5169,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -5220,7 +5226,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -5243,7 +5249,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 }
                             }
                         } else {
@@ -5274,7 +5280,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Control if the 16 pixel are outside the ROI
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -5341,7 +5347,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -5466,7 +5472,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                         }
 
                     }
@@ -5545,7 +5551,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -5571,7 +5577,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 }
                             }
                         } else {
@@ -5601,7 +5607,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -5649,7 +5655,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -5700,7 +5706,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -5725,7 +5731,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 }
                             }
                         } else {
@@ -5750,7 +5756,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                                 // Control if the 16 pixel are outside the ROI
                                 if (tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 } else {
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
                                         // Row temporary sum initialization
@@ -5799,7 +5805,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -5896,7 +5902,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
 
                             // Control if the 16 pixel are all No Data
                             if (weight == 0) {
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             } else {
                                 double[] tempData = bicubicInpaintingDouble(sumArray, weightVert,
                                         emptyArray);
@@ -5914,7 +5920,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         }
                     } else if (setDestinationNoData) {
                         for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                            dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                         }
                     }
 
@@ -6000,7 +6006,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -6025,7 +6031,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (baseIndex > roiDataLength || roiDataArray[baseIndex] == 0) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 }
                             }
                         } else {
@@ -6060,7 +6066,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 }
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -6127,7 +6133,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }
@@ -6184,7 +6190,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData) {
                         for (int x = dst_min_x; x < clipMinX; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     } else
@@ -6207,7 +6213,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                         if (!roiBounds.contains(x0, y0)) {
                             if (setDestinationNoData) {
                                 for (int k2 = 0; k2 < dst_num_bands; k2++) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 }
                             }
                         } else {
@@ -6238,7 +6244,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 // Control if the 16 pixel are outside the ROI
                                 // Control if the 16 pixel are outside the ROI
                                 if (weight == 0 || tmpROI == 0) {
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 } else {
 
                                     for (int h = 0; h < KERNEL_LINE_DIM; h++) {
@@ -6305,7 +6311,7 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     if (setDestinationNoData && clipMinX <= clipMaxX) {
                         for (int x = clipMaxX; x < dst_max_x; x++) {
                             for (int k2 = 0; k2 < dst_num_bands; k2++)
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                             dstPixelOffset += dstPixelStride;
                         }
                     }

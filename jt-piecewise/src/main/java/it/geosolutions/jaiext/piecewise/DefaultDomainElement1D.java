@@ -25,8 +25,6 @@ import it.geosolutions.jaiext.range.RangeFactory;
  * 
  * @author Simone Giannecchini, GeoSolutions.
  * 
- * 
- * 
  * @source $URL$
  */
 public class DefaultDomainElement1D implements DomainElement1D {
@@ -109,10 +107,6 @@ public class DefaultDomainElement1D implements DomainElement1D {
      * @see DomainElement1D#contains(double)
      */
     public boolean contains(double value) {
-        // return (value <= inputMaximum && value >= inputMinimum)
-        // || (Double.isNaN(value) && (Double.doubleToRawLongBits(value) ==
-        // Double
-        // .doubleToRawLongBits(inputMinimum)));
         return (value <= inputMaximum && value >= inputMinimum)
                 || (Double.doubleToRawLongBits(value) == Double.doubleToRawLongBits(inputMinimum));
 
@@ -353,5 +347,4 @@ public class DefaultDomainElement1D implements DomainElement1D {
         buffer.append("\n").append("input range=").append(range);
         return buffer.toString();
     }
-
 }

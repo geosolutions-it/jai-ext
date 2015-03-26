@@ -60,6 +60,10 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * By default, the destination image bounds, data type, and number of bands are the same as those of the source image.
  * 
  * <p>
+ * Optionally users may define a NoData Range or a ROI in order to mask unwanted values or to reduce active area calculation
+ * 
+ * 
+ * <p>
  * <table border=1>
  * <caption>Resource List</caption>
  * <tr>
@@ -136,7 +140,7 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * <tr>
  * <td>destNoData</td>
  * <td>double[]</td>
- * <td>new doulbe[]{0.0}</td>
+ * <td>new double[]{0.0}</td>
  * </tr>
  * </table>
  * </p>
@@ -194,9 +198,9 @@ public class ColorConvertDescriptor extends OperationDescriptorImpl {
     public static RenderedOp create(RenderedImage source0, ColorModel colorModel, ROI roi,
             Range nodata, double[] destinationNoData, RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI("ColorConvert", RenderedRegistryMode.MODE_NAME);
-
+        // Setting source
         pb.setSource("source0", source0);
-
+        // Setting parameters
         pb.setParameter("colorModel", colorModel);
         pb.setParameter("roi", roi);
         pb.setParameter("nodata", nodata);
@@ -228,9 +232,9 @@ public class ColorConvertDescriptor extends OperationDescriptorImpl {
             ROI roi, Range nodata, double[] destinationNoData, RenderingHints hints) {
         ParameterBlockJAI pb = new ParameterBlockJAI("ColorConvert",
                 RenderableRegistryMode.MODE_NAME);
-
+        // Setting source
         pb.setSource("source0", source0);
-
+        // Setting parameters
         pb.setParameter("colorModel", colorModel);
         pb.setParameter("roi", roi);
         pb.setParameter("nodata", nodata);

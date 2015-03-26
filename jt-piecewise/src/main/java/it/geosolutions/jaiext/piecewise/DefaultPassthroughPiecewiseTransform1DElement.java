@@ -29,8 +29,8 @@ import it.geosolutions.jaiext.range.RangeFactory;
  * @author Simone Giannecchini, GeoSolutions
  * @author Alessio Fabiani, GeoSolutions
  */
-public class DefaultPassthroughPiecewiseTransform1DElement extends DefaultPiecewiseTransform1DElement
-        implements PiecewiseTransform1DElement {
+public class DefaultPassthroughPiecewiseTransform1DElement extends
+        DefaultPiecewiseTransform1DElement implements PiecewiseTransform1DElement {
 
     /**
      * A generated Serial Version UID.
@@ -87,16 +87,16 @@ public class DefaultPassthroughPiecewiseTransform1DElement extends DefaultPiecew
         if (ptDst == null) {
             ptDst = new Position();
         }
-        final double value = ptSrc.getOrdinate();
+        final double value = ptSrc.getOrdinatePosition();
         checkContainment(value);
-        ptDst.setOrdinate(transform(value));
+        ptDst.setOrdinatePosition(transform(value));
         return ptDst;
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see org.opengis.referencing.operation.MathTransform#getSourceDimensions()
+     * @see DefaultPiecewiseTransform1DElement#getSourceDimensions()
      */
     public int getSourceDimensions() {
         return 1;
@@ -105,7 +105,7 @@ public class DefaultPassthroughPiecewiseTransform1DElement extends DefaultPiecew
     /*
      * (non-Javadoc)
      * 
-     * @see org.opengis.referencing.operation.MathTransform#getTargetDimensions()
+     * @see DefaultPiecewiseTransform1DElement#getTargetDimensions()
      */
     public int getTargetDimensions() {
         return 1;
@@ -114,7 +114,7 @@ public class DefaultPassthroughPiecewiseTransform1DElement extends DefaultPiecew
     /*
      * (non-Javadoc)
      * 
-     * @see org.opengis.referencing.operation.MathTransform#inverse()
+     * @see DefaultPiecewiseTransform1DElement#inverse()
      */
     public MathTransformation inverse() throws NoninvertibleTransformException {
         return SingleDimensionTransformation.IDENTITY;
@@ -123,7 +123,7 @@ public class DefaultPassthroughPiecewiseTransform1DElement extends DefaultPiecew
     /*
      * (non-Javadoc)
      * 
-     * @see org.opengis.referencing.operation.MathTransform#isIdentity()
+     * @see DefaultPiecewiseTransform1DElement#isIdentity()
      */
     public boolean isIdentity() {
         return true;

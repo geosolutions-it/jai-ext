@@ -39,6 +39,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.media.jai.BorderExtender;
@@ -82,7 +83,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     private boolean useROIAccessor;
 
     /** Destination No Data value */
-    private double destinationNoData;
+    private double[] destinationNoData;
 
     /** Width of the interpolation kernel */
     private int interp_width;
@@ -196,39 +197,45 @@ public class AffineGeneralOpImage extends AffineOpImage {
         // Interpolator settings
         interpolator = interp;
         // If both roiBounds and roiIter are not null, they are used in calculation
-        Double destNod = null;
-        if (destNoData != null && destNoData.length > 0){
-        	destNod = destNoData[0];
-		}
+        double[] destNod = null;
+        if (destNoData != null && destNoData.length > 0) {
+            destNod = destNoData;
+        }
         if (interpolator instanceof InterpolationNearest) {
             interpN = (InterpolationNearest) interpolator;
             interpN.setROIdata(roiBounds, roiIter);
             if(destNod == null){
-            	destNod = interpN.getDestinationNoData();
+            	destNod = new double[]{interpN.getDestinationNoData()};
             }
         } else if (interpolator instanceof InterpolationBilinear) {
             interpB = (InterpolationBilinear) interpolator;
             interpB.setROIdata(roiBounds, roiIter);
             if(destNod == null){
-            	destNod = interpB.getDestinationNoData();
+            	destNod = new double[]{interpB.getDestinationNoData()};
             }
         } else if (interpolator instanceof InterpolationBicubic) {
             interpBN = (InterpolationBicubic) interpolator;
             interpBN.setROIdata(roiBounds, roiIter);
             if (destNod == null) {
-                destNod = interpN.getDestinationNoData();
+                destNod = new double[]{interpN.getDestinationNoData()};
             }
         } else if (backgroundValues != null) {
-            destNod = backgroundValues[0];
+            destNod = backgroundValues;
         }
-
+        // Define number of bands
+        int numBands = getSampleModel().getNumBands();
         if (destNod == null) {
-            destNod = 0d;
+            destNod = new double[numBands];
+        }
+        if(destNod.length < numBands){
+            double[] tmp = new double[numBands]; 
+            Arrays.fill(tmp, destNod[0]);
+            destNod = tmp;
         }
         this.destinationNoData = destNod;
         if (interpolator instanceof InterpolationNoData) {
             InterpolationNoData interpolationNoData = (InterpolationNoData) interpolator;
-            interpolationNoData.setDestinationNoData(destNod);
+            interpolationNoData.setDestinationNoData(destNod[0]);
             if (nodata != null) {
                 hasNoData = true;
                 interpolationNoData.setNoDataRange(nodata);
@@ -237,7 +244,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
         }
 
         // this value is used for binary images
-        black = ((int) this.destinationNoData) & 1;
+        black = ((int) this.destinationNoData[0]) & 1;
 
         // subsample bits used for the bilinear and bicubic interpolation
         subsampleBits = interp.getSubsampleBitsH();
@@ -283,7 +290,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
         // if it is outside the source bounds
         double[] destinationNoDataArray = new double[dstBandNum];
         for (int i = 0; i < dstBandNum; i++) {
-            destinationNoDataArray[i] = destinationNoData;
+            destinationNoDataArray[i] = destinationNoData[i];
         }
 
         //
@@ -671,7 +678,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
                     // If the pixel is outside bounds and is possible to set
                 } else if (setDestinationNoData) {
                     for (int k = 0; k < dst_num_bands; k++) {
-                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = (byte) destinationNoData;
+                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = (byte) destinationNoData[k];
                     }
 
                 }
@@ -1134,7 +1141,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
                     // If the pixel is outside bounds and is possible to set
                 } else if (setDestinationNoData) {
                     for (int k = 0; k < dst_num_bands; k++) {
-                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = (short) destinationNoData;
+                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = (short) destinationNoData[k];
                     }
                 }
 
@@ -1595,7 +1602,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
                     // If the pixel is outside bounds and is possible to set
                 } else if (setDestinationNoData) {
                     for (int k = 0; k < dst_num_bands; k++) {
-                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = (short) destinationNoData;
+                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = (short) destinationNoData[k];
                     }
                 }
 
@@ -1846,7 +1853,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
                     // If the pixel is outside bounds and is possible to set
                 } else if (setDestinationNoData) {
                     for (int k = 0; k < dst_num_bands; k++) {
-                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = (int) destinationNoData;
+                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = (int) destinationNoData[k];
                     }
                 }
 
@@ -2292,7 +2299,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
                     // If the pixel is outside bounds and is possible to set
                 } else if (setDestinationNoData) {
                     for (int k = 0; k < dst_num_bands; k++) {
-                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = (float) destinationNoData;
+                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = (float) destinationNoData[k];
                     }
                 }
 
@@ -2529,7 +2536,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
                     // If the pixel is outside bounds and is possible to set
                 } else if (setDestinationNoData) {
                     for (int k = 0; k < dst_num_bands; k++) {
-                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = destinationNoData;
+                        dstDataArrays[k][dstPixelOffset + dstBandOffsets[k]] = destinationNoData[k];
                     }
                 }
 

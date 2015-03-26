@@ -21,13 +21,14 @@ import it.geosolutions.jaiext.range.Range;
 
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
+import java.awt.image.renderable.ContextualRenderedImageFactory;
 import java.awt.image.renderable.ParameterBlock;
 
 import javax.media.jai.CRIFImpl;
 import javax.media.jai.ROI;
 
 /**
- * Slightly modified version of the existing Color inversion operation
+ * {@link ContextualRenderedImageFactory} used for creating a new {@link ColorIndexerOpImage} instance
  * 
  * @author Simone Giannecchini, GeoSolutions SAS
  * 

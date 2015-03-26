@@ -26,7 +26,13 @@ import java.awt.image.IndexColorModel;
  */
 public interface ColorIndexer {
 
+    /**
+     * @return the {@link IndexColorModel} related to the {@link ColorIndexer} instance
+     */
     public IndexColorModel toIndexColorModel();
 
+    /**
+     * @return the closest integer palette value related to the input rgba elements
+     */
     public int getClosestIndex(int r, int g, int b, int a);
 }

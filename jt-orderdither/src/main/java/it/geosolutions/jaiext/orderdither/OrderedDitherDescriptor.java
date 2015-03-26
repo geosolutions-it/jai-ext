@@ -79,7 +79,7 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * </tr>
  * <tr>
  * <td>DocURL</td>
- * <td>http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/OrderedDitherDescriptor.html</td>
+ * <td></td>
  * </tr>
  * <tr>
  * <td>Version</td>
@@ -143,21 +143,15 @@ public class OrderedDitherDescriptor extends OperationDescriptorImpl {
 
     /** Constructor. */
     public OrderedDitherDescriptor() {
-        super(
-                new String[][] {
-                        { "GlobalName", "OrderedDither" },
-                        { "LocalName", "OrderedDither" },
-                        { "Vendor", "it.geosolutions.jaiext" },
-                        { "Description", JaiI18N.getString("OrderedDitherDescriptor0") },
-                        {
-                                "DocURL",
-                                "http://java.sun.com/products/java-media/jai/forDevelopers/jai-apidocs/javax/media/jai/operator/OrderedDitherDescriptor.html" },
-                        { "Version", JaiI18N.getString("DescriptorVersion") },
-                        { "arg0Desc", JaiI18N.getString("OrderedDitherDescriptor1") },
-                        { "arg1Desc", JaiI18N.getString("OrderedDitherDescriptor2") },
-                        { "arg2Desc", JaiI18N.getString("OrderedDitherDescriptor3") },
-                        { "arg3Desc", JaiI18N.getString("OrderedDitherDescriptor4") },
-                        { "arg4Desc", JaiI18N.getString("OrderedDitherDescriptor5") } },
+        super(new String[][] { { "GlobalName", "OrderedDither" }, { "LocalName", "OrderedDither" },
+                { "Vendor", "it.geosolutions.jaiext" },
+                { "Description", JaiI18N.getString("OrderedDitherDescriptor0") }, { "DocURL", "" },
+                { "Version", JaiI18N.getString("DescriptorVersion") },
+                { "arg0Desc", JaiI18N.getString("OrderedDitherDescriptor1") },
+                { "arg1Desc", JaiI18N.getString("OrderedDitherDescriptor2") },
+                { "arg2Desc", JaiI18N.getString("OrderedDitherDescriptor3") },
+                { "arg3Desc", JaiI18N.getString("OrderedDitherDescriptor4") },
+                { "arg4Desc", JaiI18N.getString("OrderedDitherDescriptor5") } },
                 new String[] { "rendered" }, 1, new String[] { "colorMap", "ditherMask", "roi",
                         "nodata", "destNoData" }, new Class[] { javax.media.jai.ColorCube.class,
                         javax.media.jai.KernelJAI[].class, javax.media.jai.ROI.class,

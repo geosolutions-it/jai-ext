@@ -43,8 +43,8 @@ import org.junit.Test;
  * Unit test for testing OrderedDither operation with ROI and No Data.
  */
 public class OrderedDitherTest extends TestBase {
-
-    private static final double TOLERANCE = 0.01d;
+    /** Tolerance value for double comparison */
+    public static final double TOLERANCE = 0.01d;
 
     /** Images used for testing */
     private static RenderedImage[] testImages;
@@ -263,6 +263,15 @@ public class OrderedDitherTest extends TestBase {
         orderedDither.dispose();
     }
 
+    /**
+     * Method for checking if ROI and NoData are handled correctly
+     * 
+     * @param finalimage
+     * @param image
+     * @param roi
+     * @param nodata
+     * @param colorCube
+     */
     private void checkNoDataROI(RenderedOp finalimage, RenderedImage image, ROI roi, Range nodata,
             ColorCube colorCube) {
         // Ensure the dimensions are the same

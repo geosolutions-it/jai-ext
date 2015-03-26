@@ -25,8 +25,6 @@ import it.geosolutions.jaiext.range.RangeFactory;
  * 
  * @author Simone Giannecchini, GeoSolutions
  * 
- * 
- * 
  * @source $URL$
  */
 public class DefaultPiecewiseTransform1DElement extends DefaultDomainElement1D implements
@@ -194,32 +192,26 @@ public class DefaultPiecewiseTransform1DElement extends DefaultDomainElement1D i
         if (ptDst == null) {
             ptDst = new Position();
         }
-        ptDst.setOrdinate(transform(ptSrc.getOrdinate()));
+        ptDst.setOrdinatePosition(transform(ptSrc.getOrdinatePosition()));
         return ptDst;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.opengis.referencing.operation.MathTransform#getSourceDimensions()
+    /**
+     * Returns the input transformation dimensions
      */
     public int getSourceDimensions() {
         return transform.getSourceDimensions();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.opengis.referencing.operation.MathTransform#getTargetDimensions()
+    /**
+     * Returns the output transformation dimensions
      */
     public int getTargetDimensions() {
         return transform.getTargetDimensions();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.opengis.referencing.operation.MathTransform#inverse()
+    /**
+     * Returns the inverse of this {@link MathTransformation} instance
      */
     public synchronized MathTransformation inverse() throws NoninvertibleTransformException {
         if (inverse != null)
@@ -230,10 +222,8 @@ public class DefaultPiecewiseTransform1DElement extends DefaultDomainElement1D i
         return inverse;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.opengis.referencing.operation.MathTransform#isIdentity()
+    /**
+     * Defines if the transformation is an identity
      */
     public boolean isIdentity() {
         return transform.isIdentity();

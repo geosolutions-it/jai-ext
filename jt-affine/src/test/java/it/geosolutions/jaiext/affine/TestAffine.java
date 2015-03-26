@@ -267,8 +267,8 @@ public class TestAffine extends TestBase {
                 testROI(dataType, testTile, interpNear);
 
                 // Check minimum and maximum value for a tile
-                int xFirstTile = destinationIMG.getMinTileX();
-                int ySecondTile = destinationIMG.getMinTileY();
+                int xFirstTile = destinationIMG.getMinTileX() + destinationIMG.getNumXTiles() - 1;
+                int ySecondTile = destinationIMG.getMinTileY() + destinationIMG.getNumYTiles() - 1;
 
                 Raster simpleTile = destinationIMG.getTile(xFirstTile, ySecondTile);
 
@@ -299,8 +299,8 @@ public class TestAffine extends TestBase {
                 testROI(dataType, testTile, interpNear);
 
                 // Check minimum and maximum value for a tile
-                int xFirstTile = destinationIMG.getMinTileX();
-                int ySecondTile = destinationIMG.getMinTileY();
+                int xFirstTile = destinationIMG.getMinTileX() + destinationIMG.getNumXTiles() - 1;
+                int ySecondTile = destinationIMG.getMinTileY() + destinationIMG.getNumYTiles() - 1;
 
                 Raster simpleTile = destinationIMG.getTile(xFirstTile, ySecondTile);
 
@@ -338,8 +338,8 @@ public class TestAffine extends TestBase {
                 testROI(dataType, testTile, interpNear);
 
                 // Check minimum and maximum value for a tile
-                int xFirstTile = destinationIMG.getMinTileX() + destinationIMG.getNumXTiles() - 1;
-                int ySecondTile = destinationIMG.getMinTileY() + 1;
+                int xFirstTile = destinationIMG.getMinTileX() + 1; //+ destinationIMG.getNumXTiles() - 1;
+                int ySecondTile = destinationIMG.getMinTileY()+ 1;
 
                 Raster simpleTile = destinationIMG.getTile(xFirstTile, ySecondTile);
 
@@ -407,7 +407,7 @@ public class TestAffine extends TestBase {
         int tileminY = simpleTile.getMinY();
         int tileWidth = tileminX + simpleTile.getWidth();
         int tileHeight = tileminY + simpleTile.getHeight();
-
+        
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
         case DataBuffer.TYPE_USHORT:
@@ -429,9 +429,11 @@ public class TestAffine extends TestBase {
                 }
             }
             // Check if the values are not max and minimum value
-            assertFalse(minValue == maxValue);
+            //assertFalse(minValue == maxValue);
             assertFalse(minValue == Integer.MAX_VALUE);
             assertFalse(maxValue == Integer.MIN_VALUE);
+            assertEquals(minValue, destinationNoData, 1E-6);
+            assertEquals(maxValue, destinationNoData, 1E-6);
             break;
         case DataBuffer.TYPE_FLOAT:
             float minValuef = Float.MAX_VALUE;
@@ -455,9 +457,11 @@ public class TestAffine extends TestBase {
                 }
             }
             // Check if the values are not max and minimum value
-            assertFalse((int) minValuef == (int) maxValuef);
+            //assertFalse((int) minValuef == (int) maxValuef);
             assertFalse(minValuef == Float.MAX_VALUE);
             assertFalse(maxValuef == -Float.MAX_VALUE);
+            assertEquals(minValuef, destinationNoData, 1E-6);
+            assertEquals(maxValuef, destinationNoData, 1E-6);
             break;
         case DataBuffer.TYPE_DOUBLE:
             double minValued = Double.MAX_VALUE;
@@ -481,9 +485,11 @@ public class TestAffine extends TestBase {
                 }
             }
             // Check if the values are not max and minimum value
-            assertFalse((int) minValued == (int) maxValued);
+            //assertFalse((int) minValued == (int) maxValued);
             assertFalse(minValued == Double.MAX_VALUE);
             assertFalse(maxValued == -Double.MAX_VALUE);
+            assertEquals(minValued, destinationNoData, 1E-6);
+            assertEquals(maxValued, destinationNoData, 1E-6);
             break;
         default:
             throw new IllegalArgumentException("Wrong data type");

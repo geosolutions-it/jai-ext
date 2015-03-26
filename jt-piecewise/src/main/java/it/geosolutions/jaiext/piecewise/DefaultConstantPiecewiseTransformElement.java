@@ -28,8 +28,9 @@ import java.io.Serializable;
  * @author Simone Giannecchini, GeoSolutions
  * 
  */
-public class DefaultConstantPiecewiseTransformElement extends DefaultLinearPiecewiseTransform1DElement
-        implements PiecewiseTransform1DElement, Comparable<DomainElement1D>, Serializable {
+public class DefaultConstantPiecewiseTransformElement extends
+        DefaultLinearPiecewiseTransform1DElement implements PiecewiseTransform1DElement,
+        Comparable<DomainElement1D>, Serializable {
 
     /**
      * UID

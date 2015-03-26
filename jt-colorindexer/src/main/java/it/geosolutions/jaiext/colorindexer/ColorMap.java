@@ -310,6 +310,9 @@ public final class ColorMap implements Iterable<ColorEntry> {
         scanCount = 0;
     }
 
+    /**
+     * Class representing a single {@link ColorMap} entry
+     */
     public static final class ColorEntry {
         int color;
 
@@ -330,6 +333,9 @@ public final class ColorMap implements Iterable<ColorEntry> {
 
     }
 
+    /**
+     * {@link Iterator} implementation for the {@link ColorMap}  entries
+     */
     final class ColorEntryIterator implements Iterator<ColorEntry> {
 
         int idx = 0;

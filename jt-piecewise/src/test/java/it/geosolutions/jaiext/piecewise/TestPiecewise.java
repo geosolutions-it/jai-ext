@@ -53,9 +53,6 @@ import org.junit.Test;
  * 
  * @author Simone Giannecchini, GeoSolutions.
  * 
- * 
- * 
- * 
  * @source $URL$
  */
 public class TestPiecewise extends TestBase {
@@ -217,7 +214,8 @@ public class TestPiecewise extends TestBase {
         Assert.assertTrue(e0 instanceof DefaultConstantPiecewiseTransformElement);
         // checks
         Assert.assertEquals(0.0, e0.transform(3), 0.0);
-        Assert.assertEquals(3, e0.inverse().transform(new Position(0), null).getOrdinate(), 0);
+        Assert.assertEquals(3, e0.inverse().transform(new Position(0), null).getOrdinatePosition(),
+                0);
 
         transform = new DefaultPiecewiseTransform1D<DefaultPiecewiseTransform1DElement>(
                 new DefaultPiecewiseTransform1DElement[] { e0 });
@@ -486,7 +484,7 @@ public class TestPiecewise extends TestBase {
      * @throws TransformationException
      */
     @Test
-    public void lookupByte() throws IOException, TransformationException {
+    public void lookupByteData() throws IOException, TransformationException {
 
         // /////////////////////////////////////////////////////////////////////
         //
@@ -576,7 +574,7 @@ public class TestPiecewise extends TestBase {
      * @throws IOException
      */
     @Test
-    public void logarithmic() throws IOException {
+    public void logarithmicTransform() throws IOException {
         JAI.getDefaultInstance().getTileScheduler().setParallelism(1);
         // /////////////////////////////////////////////////////////////////////
         //

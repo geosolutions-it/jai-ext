@@ -28,6 +28,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.media.jai.BorderExtender;
@@ -44,7 +45,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
     protected boolean dataINT = false;
 
     /** Byte lookuptable used if no data are present */
-    protected final byte[] byteLookupTable = new byte[256];
+    protected byte[][] byteLookupTable;
 
     /** Bilinear interpolator */
     protected InterpolationBilinear interpB = null;
@@ -72,6 +73,8 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         SampleModel sm = source.getSampleModel();
         // Source image data Type
         int srcDataType = sm.getDataType();
+        // NumBands
+        int numBands = getSampleModel().getNumBands();
 
         // selection of the inverse scale parameters both for the x and y axis
         if (invScaleXRational.num > invScaleXRational.denom) {
@@ -95,10 +98,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
         // If both roiBounds and roiIter are not null, they are used in calculation
         Range nod = nodata;
-        Double destNod = null;
+        double[] destNod = null;
         if (backgroundValues != null && backgroundValues.length > 0){
-        	destNod = backgroundValues[0];
-		}
+            destNod = backgroundValues;
+        }
         if (interp instanceof InterpolationBilinear) {
         	isBilinearNew = true;
             interpB = (InterpolationBilinear) interp;
@@ -108,23 +111,29 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             	nod = interpB.getNoDataRange();
             }
             if(destNod == null){
-            	destNod = interpB.getDestinationNoData();
+            	destNod = new double[]{interpB.getDestinationNoData()};
             }
         }
         // Nodata definition
-		if (nod != null) {
-			hasNoData = true;
-			noData = nod;
-		}
-		if(destNod != null){
-			destinationNoDataDouble = destNod;
-		} else if (this.backgroundValues != null && this.backgroundValues.length > 0){
-			destinationNoDataDouble = this.backgroundValues[0];
-		}
-		// ROIAccessor definition
-		if (hasROI) {
-			this.useRoiAccessor = useRoiAccessor;
-		}
+        if (nod != null) {
+            hasNoData = true;
+            noData = nod;
+        }
+        if (destNod != null) {
+            destinationNoDataDouble = destNod;
+        } else if (this.backgroundValues != null && this.backgroundValues.length > 0) {
+            destinationNoDataDouble = this.backgroundValues;
+        }
+        // Expand the destination nodata values if not defined
+        if(destinationNoDataDouble != null && destinationNoDataDouble.length < numBands){
+            double[] tmp = new double[numBands]; 
+            Arrays.fill(tmp, destinationNoDataDouble[0]);
+            destinationNoDataDouble = tmp;
+        }
+        // ROIAccessor definition
+        if (hasROI) {
+            this.useRoiAccessor = useRoiAccessor;
+        }
         // subsample bits used for the bilinear and bicubic interpolation
         subsampleBits = interp.getSubsampleBitsH();
 
@@ -145,23 +154,34 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         interp_left = interp.getLeftPadding();
         interp_top = interp.getTopPadding();
 
-        // Selection of the destination No Data
-        destinationNoDataByte = (byte) (((byte) destinationNoDataDouble) & 0xff);
-        destinationNoDataUShort = (short) (((short) destinationNoDataDouble) & 0xffff);
-        destinationNoDataShort = (short) destinationNoDataDouble;
-        destinationNoDataInt = (int) destinationNoDataDouble;
-        destinationNoDataFloat = (float) destinationNoDataDouble;
-        dataINT= srcDataType == DataBuffer.TYPE_BYTE;
+        // Create the destination No data arrays
+        destinationNoDataByte = new byte[numBands];
+        destinationNoDataShort = new short[numBands];
+        destinationNoDataUShort = new short[numBands];
+        destinationNoDataInt = new int[numBands];
+        destinationNoDataFloat = new float[numBands];
+        // Populate the arrays
+        for (int i = 0; i < numBands; i++) {
+            destinationNoDataByte[i] = (byte) ((int) destinationNoDataDouble[i] & 0xFF);
+            destinationNoDataUShort[i] = (short) (((short) destinationNoDataDouble[i]) & 0xffff);
+            destinationNoDataShort[i] = (short) destinationNoDataDouble[i];
+            destinationNoDataInt[i] = (int) destinationNoDataDouble[i];
+            destinationNoDataFloat[i] = (float) destinationNoDataDouble[i];
+        }
+        // Creation of a lookuptable containing the values to use for no data
         if (hasNoData) {
-
-            for (int i = 0; i < byteLookupTable.length; i++) {
+            // Creation of a lookuptable containing the values to use for no data
+            byteLookupTable = new byte[numBands][256];
+            for (int i = 0; i < byteLookupTable[0].length; i++) {
                 byte value = (byte) i;
-                if (noData.contains(value)) {
-                    byteLookupTable[i] = destinationNoDataByte;
-                } else {
-                    byteLookupTable[i] = value;
+                for (int b = 0; b < numBands; b++) {
+                    if (noData.contains(value)) {
+                        byteLookupTable[b][i] = destinationNoDataByte[b];
+                    } else {
+                        byteLookupTable[b][i] = value;
+                    }
                 }
-            }                
+            }
         }
                
         
@@ -403,10 +423,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         : 0;
 
                                 if (baseIndex > roiDataLength || w00 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
+                                    dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
+                                    dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 } else {
                                     // Perform the bilinear interpolation
                                     final int s0 = (s01 - s00) * xfrac[i] + (s00 << subsampleBits);
@@ -473,11 +493,11 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
+                                    dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -529,33 +549,33 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 s11 = srcData[posx + srcPixelStride + posy
                                         + srcScanlineStride] & 0xff;
 
-                                if (byteLookupTable[s00] == destinationNoDataByte) {
+                                if (byteLookupTable[k][s00] == destinationNoDataByte[k]) {
                                     w00 = 0;
                                 } else {
                                     w00 = 1;
                                 }
-                                if (byteLookupTable[s01] == destinationNoDataByte) {
+                                if (byteLookupTable[k][s01] == destinationNoDataByte[k]) {
                                     w01 = 0;
                                 } else {
                                     w01 = 1;
                                 }
-                                if (byteLookupTable[s10] == destinationNoDataByte) {
+                                if (byteLookupTable[k][s10] == destinationNoDataByte[k]) {
                                     w10 = 0;
                                 } else {
                                     w10 = 1;
                                 }
-                                if (byteLookupTable[s11] == destinationNoDataByte) {
+                                if (byteLookupTable[k][s11] == destinationNoDataByte[k]) {
                                     w11 = 0;
                                 } else {
                                     w11 = 1;
                                 }
                                                                
                                 if ((w00+w01+w10+w11)==0) {
-                                    dstData[dstPixelOffset] = destinationNoDataByte;
+                                    dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 } else {
                                     // compute value
                                     dstData[dstPixelOffset] = (byte) (computeValue(s00, s01, s10,
-                                            s11, w00,w01,w10,w11, xfrac[i], yfrac[j]) & 0xff);
+                                            s11, w00,w01,w10,w11, xfrac[i], yfrac[j], k) & 0xff);
                                 }
 
                                 // destination pixel offset update
@@ -610,28 +630,28 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             : 0;
 
                                     if (baseIndex > roiDataLength || w00 == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else {
 
-                                        if (byteLookupTable[s00] == destinationNoDataByte) {
+                                        if (byteLookupTable[k][s00] == destinationNoDataByte[k]) {
                                             w00 = 0;
                                         } else {
                                             w00 = 1;
                                         }
-                                        if (byteLookupTable[s01] == destinationNoDataByte) {
+                                        if (byteLookupTable[k][s01] == destinationNoDataByte[k]) {
                                             w01 = 0;
                                         } else {
                                             w01 = 1;
                                         }
-                                        if (byteLookupTable[s10] == destinationNoDataByte) {
+                                        if (byteLookupTable[k][s10] == destinationNoDataByte[k]) {
                                             w10 = 0;
                                         } else {
                                             w10 = 1;
                                         }
-                                        if (byteLookupTable[s11] == destinationNoDataByte) {
+                                        if (byteLookupTable[k][s11] == destinationNoDataByte[k]) {
                                             w11 = 0;
                                         } else {
                                             w11 = 1;
@@ -639,7 +659,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = (byte) (computeValue(s00, s01,
-                                                s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j]) & 0xff);
+                                                s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k) & 0xff);
                                     }
                                     // destination pixel offset update
                                     dstPixelOffset += dstPixelStride;
@@ -689,22 +709,22 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final int s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride] & 0xff;
 
-                                            if (byteLookupTable[s00] == destinationNoDataByte) {
+                                            if (byteLookupTable[k][s00] == destinationNoDataByte[k]) {
                                                 w00 = 0;
                                             } else {
                                                 w00 = 1;
                                             }
-                                            if (byteLookupTable[s01] == destinationNoDataByte) {
+                                            if (byteLookupTable[k][s01] == destinationNoDataByte[k]) {
                                                 w01 = 0;
                                             } else {
                                                 w01 = 1;
                                             }
-                                            if (byteLookupTable[s10] == destinationNoDataByte) {
+                                            if (byteLookupTable[k][s10] == destinationNoDataByte[k]) {
                                                 w10 = 0;
                                             } else {
                                                 w10 = 1;
                                             }
-                                            if (byteLookupTable[s11] == destinationNoDataByte) {
+                                            if (byteLookupTable[k][s11] == destinationNoDataByte[k]) {
                                                 w11 = 0;
                                             } else {
                                                 w11 = 1;
@@ -713,15 +733,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             // compute value
                                             dstData[dstPixelOffset] = (byte) (computeValue(s00,
                                                     s01, s10, s11, w00, w01, w10, w11, xfrac[i],
-                                                    yfrac[j]) & 0xff);
+                                                    yfrac[j], k) & 0xff);
 
                                         } else {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataByte;
+                                            dstData[dstPixelOffset] = destinationNoDataByte[k];
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataByte;
+                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     }
 
                                     // destination pixel offset update
@@ -855,10 +875,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         : 0;
 
                                 if (baseIndex > roiDataLength || w00 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else {
                                     // Perform the bilinear interpolation
                                     final int s0 = (s01 - s00) * xfrac[i] + (s00 << subsampleBits);
@@ -925,11 +945,11 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -988,11 +1008,11 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 }
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataUShort;
+                                    dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else {
                                     // compute value
                                     dstData[dstPixelOffset] = (short) (computeValue(s00, s01, s10,
-                                            s11, w00, w01, w10, w11, xfrac[i], yfrac[j]) & 0xffff);
+                                            s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k) & 0xffff);
                                 }
 
                                 // destination pixel offset update
@@ -1048,10 +1068,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             : 0;
 
                                     if (baseIndex > roiDataLength || w00 == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     } else {
                                         if (noData.contains(s00)) {
                                             w00 = 0;
@@ -1076,7 +1096,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = (short) (computeValue(s00, s01,
-                                                s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j]) & 0xffff);
+                                                s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k) & 0xffff);
                                     }
                                     // destination pixel offset update
                                     dstPixelOffset += dstPixelStride;
@@ -1151,15 +1171,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             // compute value
                                             dstData[dstPixelOffset] = (short) (computeValue(s00,
                                                     s01, s10, s11, w00, w01, w10, w11, xfrac[i],
-                                                    yfrac[j]) & 0xffff);
+                                                    yfrac[j], k) & 0xffff);
 
                                         } else {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataUShort;
+                                            dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataUShort;
+                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     }
 
                                     // destination pixel offset update
@@ -1294,10 +1314,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         : 0;
 
                                 if (baseIndex > roiDataLength || w00 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else {
                                     // Perform the bilinear interpolation
                                     final int s0 = (s01 - s00) * xfrac[i] + (s00 << subsampleBits);
@@ -1364,11 +1384,11 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1427,11 +1447,11 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 }
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataShort;
+                                    dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else {
                                     // compute value
                                     dstData[dstPixelOffset] = (short) (computeValue(s00, s01, s10,
-                                            s11, w00, w01, w10, w11, xfrac[i], yfrac[j]));
+                                            s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k));
                                 }
 
                                 // destination pixel offset update
@@ -1482,10 +1502,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     int w11 = w11index < roiDataLength ? roiDataArray[w11index] : 0;
 
                                     if (baseIndex > roiDataLength || w00 == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     } else {
                                         if (noData.contains(s00)) {
                                             w00 = 0;
@@ -1510,7 +1530,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = (short) (computeValue(s00, s01,
-                                                s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j]));
+                                                s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k));
                                     }
                                     // destination pixel offset update
                                     dstPixelOffset += dstPixelStride;
@@ -1585,15 +1605,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             // compute value
                                             dstData[dstPixelOffset] = (short) (computeValue(s00,
                                                     s01, s10, s11, w00, w01, w10, w11, xfrac[i],
-                                                    yfrac[j]));
+                                                    yfrac[j], k));
 
                                         } else {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataShort;
+                                            dstData[dstPixelOffset] = destinationNoDataShort[k];
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataShort;
+                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     }
 
                                     // destination pixel offset update
@@ -1728,14 +1748,14 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         : 0;
 
                                 if (baseIndex > roiDataLength || w00 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataInt;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataInt;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = (computeValue(s00, s01, s10, s11, 1,
-                                            1, 1, 1, xfrac[i], yfrac[j]));
+                                            1, 1, 1, xfrac[i], yfrac[j], k));
                                 }
 
                                 // destination pixel offset update
@@ -1784,15 +1804,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                                 + srcScanlineStride];
                                         // compute value
                                         dstData[dstPixelOffset] = (computeValue(s00, s01, s10, s11,
-                                                1, 1, 1, 1, xfrac[i], yfrac[j]));
+                                                1, 1, 1, 1, xfrac[i], yfrac[j], k));
 
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataInt;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1851,11 +1871,11 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 }
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataInt;
+                                    dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else {
                                     // compute value
                                     dstData[dstPixelOffset] = (computeValue(s00, s01, s10, s11,
-                                            w00, w01, w10, w11, xfrac[i], yfrac[j]));
+                                            w00, w01, w10, w11, xfrac[i], yfrac[j], k));
                                 }
 
                                 // destination pixel offset update
@@ -1906,10 +1926,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     int w11 = w11index < roiDataLength ? roiDataArray[w11index] : 0;
 
                                     if (baseIndex > roiDataLength || w00 == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     } else {
                                         if (noData.contains(s00)) {
                                             w00 = 0;
@@ -1934,7 +1954,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = (computeValue(s00, s01, s10, s11,
-                                                w00, w01, w10, w11, xfrac[i], yfrac[j]));
+                                                w00, w01, w10, w11, xfrac[i], yfrac[j], k));
                                     }
                                     // destination pixel offset update
                                     dstPixelOffset += dstPixelStride;
@@ -2007,15 +2027,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                                             // compute value
                                             dstData[dstPixelOffset] = (computeValue(s00, s01, s10,
-                                                    s11, w00, w01, w10, w11, xfrac[i], yfrac[j]));
+                                                    s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k));
 
                                         } else {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataInt;
+                                            dstData[dstPixelOffset] = destinationNoDataInt[k];
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataInt;
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     }
 
                                     // destination pixel offset update
@@ -2151,10 +2171,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         : 0;
 
                                 if (baseIndex > roiDataLength || w00 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else {
                                     // Perform the bilinear interpolation
                                     final float s0 = (s01 - s00) * xfrac[i] + s00;
@@ -2219,11 +2239,11 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -2285,12 +2305,12 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 }
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataFloat;
+                                    dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else {
                                     // compute value
                                     dstData[dstPixelOffset] = (float) computeValueDouble(s00, s01,
                                             s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j],
-                                            dataType);
+                                            dataType, k);
                                 }
 
                                 // destination pixel offset update
@@ -2341,10 +2361,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     int w11 = w11index < roiDataLength ? roiDataArray[w11index] : 0;
 
                                     if (baseIndex > roiDataLength || w00 == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else {
 
                                         if (noData.contains(s00)) {
@@ -2374,7 +2394,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = (float) computeValueDouble(s00,
                                                 s01, s10, s11, w00, w01, w10, w11, xfrac[i],
-                                                yfrac[j], dataType);
+                                                yfrac[j], dataType, k);
                                     }
                                     // destination pixel offset update
                                     dstPixelOffset += dstPixelStride;
@@ -2452,15 +2472,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             // compute value
                                             dstData[dstPixelOffset] = (float) computeValueDouble(
                                                     s00, s01, s10, s11, w00, w01, w10, w11,
-                                                    xfrac[i], yfrac[j], dataType);
+                                                    xfrac[i], yfrac[j], dataType, k);
 
                                         } else {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataFloat;
+                                            dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataFloat;
+                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     }
 
                                     // destination pixel offset update
@@ -2595,10 +2615,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         : 0;
 
                                 if (baseIndex > roiDataLength || w00 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else {
                                     // Perform the bilinear interpolation
                                     final double s0 = (s01 - s00) * xfrac[i] + s00;
@@ -2663,11 +2683,11 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -2729,11 +2749,11 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 }
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                    dstData[dstPixelOffset] = destinationNoDataDouble;
+                                    dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else {
                                     // compute value
                                     dstData[dstPixelOffset] = computeValueDouble(s00, s01, s10,
-                                            s11, w00, w01, w10, w11, xfrac[i], yfrac[j], dataType);
+                                            s11, w00, w01, w10, w11, xfrac[i], yfrac[j], dataType, k);
                                 }
 
                                 // destination pixel offset update
@@ -2784,10 +2804,10 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     int w11 = w11index < roiDataLength ? roiDataArray[w11index] : 0;
 
                                     if (baseIndex > roiDataLength || w00 == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else {
                                         if (noData.contains(s00)) {
                                             w00 = 0;
@@ -2816,7 +2836,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = computeValueDouble(s00, s01, s10,
                                                 s11, w00, w01, w10, w11, xfrac[i], yfrac[j],
-                                                dataType);
+                                                dataType, k);
                                     }
                                     // destination pixel offset update
                                     dstPixelOffset += dstPixelStride;
@@ -2894,15 +2914,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             // compute value
                                             dstData[dstPixelOffset] = computeValueDouble(s00, s01,
                                                     s10, s11, w00, w01, w10, w11, xfrac[i],
-                                                    yfrac[j], dataType);
+                                                    yfrac[j], dataType, k);
 
                                         } else {
                                             // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataDouble;
+                                            dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataDouble;
+                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     }
 
                                     // destination pixel offset update
@@ -3169,7 +3189,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
     /* Private method for calculate bilinear interpolation for byte, short/ushort, integer dataType */
     private int computeValue(int s00, int s01, int s10, int s11, int w00, int w01, int w10,
-            int w11, int xfrac, int yfrac) {
+            int w11, int xfrac, int yfrac, int k) {
 
         int s0 = 0;
         int s1 = 0;
@@ -3194,13 +3214,13 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         if (w0z && w1z) {
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
-                return destinationNoDataByte;
+                return destinationNoDataByte[k];
             case DataBuffer.TYPE_USHORT:
-                return destinationNoDataUShort;
+                return destinationNoDataUShort[k];
             case DataBuffer.TYPE_SHORT:
-                return destinationNoDataShort;
+                return destinationNoDataShort[k];
             case DataBuffer.TYPE_INT:
-                return destinationNoDataInt;
+                return destinationNoDataInt[k];
             }
         }
 
@@ -3330,7 +3350,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
     /* Private method for calculate bilinear interpolation for float/double dataType */
     private double computeValueDouble(double s00, double s01, double s10, double s11, double w00,
-            double w01, double w10, double w11, double xfrac, double yfrac, int dataType) {
+            double w01, double w10, double w11, double xfrac, double yfrac, int dataType, int k) {
 
         double s0 = 0;
         double s1 = 0;
@@ -3343,9 +3363,9 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
             switch (dataType) {
             case DataBuffer.TYPE_FLOAT:
-                return destinationNoDataFloat;
+                return destinationNoDataFloat[k];
             case DataBuffer.TYPE_DOUBLE:
-                return destinationNoDataDouble;
+                return destinationNoDataDouble[k];
             }
         }
 

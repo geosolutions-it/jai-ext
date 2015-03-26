@@ -26,9 +26,6 @@ package it.geosolutions.jaiext.piecewise;
  * @see MathTransformation
  * @see DomainElement1D
  * 
- * 
- * 
- * 
  * @source $URL$
  */
 public interface PiecewiseTransform1DElement extends DomainElement1D {

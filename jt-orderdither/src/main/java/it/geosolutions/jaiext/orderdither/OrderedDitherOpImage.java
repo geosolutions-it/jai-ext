@@ -50,14 +50,11 @@ import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.JDKWorkarounds;
 
 /**
- * An <code>OpImage</code> implementing the ordered dither operation as described in <code>javax.media.jai.operator.OrderedDitherDescriptor</code>.
+ * An <code>OpImage</code> implementing the ordered dither operation as described in <code>OrderedDitherDescriptor</code>.
  * 
  * <p>
- * This <code>OpImage</code> performs dithering of its source image into a single band image using a specified color cube and dither mask.
- * 
- * @see javax.media.jai.KernelJAI
- * @see javax.media.jai.ColorCube
- * 
+ * This <code>OpImage</code> performs dithering of its source image into a single band image using a specified color cube and dither mask. Optional
+ * ROI and NoData will be taken into account during processing.
  */
 public class OrderedDitherOpImage extends PointOpImage {
 
@@ -284,6 +281,9 @@ public class OrderedDitherOpImage extends PointOpImage {
      *        <i>n</i>th element of the array contains a <code>KernelJAI</code> object which represents the dither mask matrix for the corresponding
      *        band. All <code>KernelJAI</code> objects in the array must have the same dimensions and contain floating point values between 0.0F and
      *        1.0F.
+     * @param roi Optional {@link ROI} used for masking raster areas
+     * @param nodata NoData {@link Range} used for masking unwanted pixel values
+     * @param destNoData Value to set as background
      */
     public OrderedDitherOpImage(RenderedImage source, Map config, ImageLayout layout,
             ColorCube colorMap, KernelJAI[] ditherMask, ROI roi, Range nodata, double destNoData) {
@@ -342,6 +342,9 @@ public class OrderedDitherOpImage extends PointOpImage {
         }
     }
 
+    /**
+     * Initialization of the LookupTable used for checking if a byte value is a NoData
+     */
     private void initNoDataLUT() {
         // init the table
         lut = new boolean[256];

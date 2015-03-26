@@ -68,6 +68,15 @@ public class ImageFunctionTest extends TestBase {
         checkNoDataROI(transformed, roi, nodata, xScale, yScale);
     }
 
+    /**
+     * Method for checking if NoData and ROI are correctly handled
+     * 
+     * @param finalimage
+     * @param roi
+     * @param nodata
+     * @param deltaX
+     * @param deltaY
+     */
     private void checkNoDataROI(RenderedOp finalimage, ROI roi, Range nodata, float deltaX,
             float deltaY) {
 

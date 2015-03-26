@@ -30,8 +30,8 @@ import java.util.Arrays;
 public class PiecewiseUtilities {
 
     /**
-	 * 
-	 */
+     * Private Constructor, it cannot be instantiated
+     */
     private PiecewiseUtilities() {
     }
 

@@ -37,6 +37,21 @@ import javax.media.jai.RenderedOp;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/**
+ * Test class used for comparing the JAI ErrorDiffusion operation with the JAI-EXT one. Users may define how many benchmark cycles
+ * to do, how many not-benchmark cycles to do and other variables, like ROI/NoData use.
+ * The parameters to define (as JVM options -D..)are:
+ * <ul>
+ * <li>JAI.Ext.BenchmarkCycles  indicating how many benchmark cycles must be executed</li>
+ * <li>JAI.Ext.NotBenchmarkCycles  indicating how many cycles must be executed before doing the test</li>
+ * <li>JAI.Ext.OldDescriptor(true/false)  indicating if the old JAI operation must be done</li>
+ * <li>JAI.Ext.RangeUsed(true/false)  indicating if nodata check must be done (only for jai-ext)</li>
+ * <li>JAI.Ext.ROIUsed(true/false)  indicating if roi check must be done (only for jai-ext)</li>
+ * </ul>
+ * 
+ * @author Nicola Lagomarsini geosolutions
+ *
+ */
 public class ComparisonTest extends TestBase {
 
     /** Number of benchmark iterations (Default 1) */
@@ -271,6 +286,5 @@ public class ComparisonTest extends TestBase {
         if (imageCalculated instanceof RenderedOp) {
             ((RenderedOp) imageCalculated).dispose();
         }
-
     }
 }

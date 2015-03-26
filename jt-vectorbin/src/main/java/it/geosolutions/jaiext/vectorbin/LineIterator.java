@@ -1,22 +1,21 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/   
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.vectorbin;
-
 
 import java.awt.geom.AffineTransform;
 
@@ -24,13 +23,12 @@ import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.LinearRing;
 
-
 /**
- * A path iterator for the LiteShape class, specialized to iterate over
- * LineString object. This class was ported back and simplified from GeoTools, with permission from the author(s)
- *
+ * A path iterator for the LiteShape class, specialized to iterate over LineString object. This class was ported back and simplified from GeoTools,
+ * with permission from the author(s)
+ * 
  * @author Andrea Aime
- * @author simone giannecchini  
+ * @author simone giannecchini
  */
 public final class LineIterator extends AbstractLiteIterator {
     /** Transform applied on the coordinates during iteration */
@@ -38,7 +36,7 @@ public final class LineIterator extends AbstractLiteIterator {
 
     /** The array of coordinates that represents the line geometry */
     private CoordinateSequence coordinates = null;
-    
+
     /** Current line coordinate */
     private int currentCoord = 0;
 
@@ -48,17 +46,19 @@ public final class LineIterator extends AbstractLiteIterator {
     /** True if the line is a ring */
     private boolean isClosed;
 
-	private int coordinateCount;
+    /** Number of coordinates */
+    private int coordinateCount;
 
-	private static final AffineTransform NO_TRANSFORM = new AffineTransform();
+    /** Identity transform */
+    private static final AffineTransform NO_TRANSFORM = new AffineTransform();
 
-	public LineIterator() {
-	    
-	}
-	
+    public LineIterator() {
+
+    }
+
     /**
      * Creates a new instance of LineIterator
-     *
+     * 
      * @param ls The line string the iterator will use
      * @param at The affine transform applied to coordinates during iteration
      */
@@ -87,9 +87,9 @@ public final class LineIterator extends AbstractLiteIterator {
 
     /**
      * Returns the winding rule for determining the interior of the path.
-     *
+     * 
      * @return the winding rule.
-     *
+     * 
      * @see #WIND_EVEN_ODD
      * @see #WIND_NON_ZERO
      */
@@ -99,17 +99,16 @@ public final class LineIterator extends AbstractLiteIterator {
 
     /**
      * Tests if the iteration is complete.
-     *
-     * @return <code>true</code> if all the segments have been read;
-     *         <code>false</code> otherwise.
+     * 
+     * @return <code>true</code> if all the segments have been read; <code>false</code> otherwise.
      */
     public boolean isDone() {
         return done;
     }
 
     /**
-     * Moves the iterator to the next segment of the path forwards along the primary direction of
-     * traversal as long as there are more points in that direction.
+     * Moves the iterator to the next segment of the path forwards along the primary direction of traversal as long as there are more points in that
+     * direction.
      */
     public void next() {
         if (((currentCoord == (coordinateCount - 1)) && !isClosed)

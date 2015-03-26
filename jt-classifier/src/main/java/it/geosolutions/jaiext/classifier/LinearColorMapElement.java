@@ -39,16 +39,14 @@ import java.util.Arrays;
  * @see LinearColorMap.LinearColorMapType
  * @author Simone Giannecchini, GeoSolutions
  * 
- * 
- * 
  * @source $URL$
  */
 public class LinearColorMapElement extends DefaultLinearPiecewiseTransform1DElement implements
         PiecewiseTransform1DElement, ColorMapTransformElement {
 
     /**
-	 * 
-	 */
+     * UID
+     */
     private static final long serialVersionUID = 2216106857184603629L;
 
     /**
