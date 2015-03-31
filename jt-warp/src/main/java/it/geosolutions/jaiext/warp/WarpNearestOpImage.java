@@ -97,7 +97,7 @@ final class WarpNearestOpImage extends WarpOpImage {
             int numBands = getNumBands();
             byteLookupTable = new byte[numBands][256];
             for (int b = 0; b < numBands; b++) {
-                for (int i = 0; i < byteLookupTable.length; i++) {
+                for (int i = 0; i < byteLookupTable[0].length; i++) {
                     byte value = (byte) i;
                     if (noDataRange.contains(value)) {
                         byteLookupTable[b][i] = (byte) backgroundValues[b];

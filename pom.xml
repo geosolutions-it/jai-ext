@@ -10,8 +10,8 @@
     <java.lib>${env.JAVA_HOME}/jre/lib/ext</java.lib>
     <extensive.tests>false</extensive.tests>
     <interactive.tests>false</interactive.tests>
-    <test.maxHeapSize>1024M</test.maxHeapSize>
-	<test.maxPermSize>1024m</test.maxPermSize>
+    <test.maxHeapSize>512m</test.maxHeapSize>
+	<test.maxPermSize>512m</test.maxPermSize>
     <jt.version>1.2.0</jt.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.8.1</junit.version>
