@@ -139,10 +139,24 @@
 			  it.geosolutions.jaiext.utilities
 			  it.geosolutions.jaiext.warp,
 			  it.geosolutions.jaiext.zonal,
-			  it.geosolutions.jaiext.squareroot
+			  it.geosolutions.jaiext.squareroot,
+			  it.geosolutions.jaiext.bandcombine,
+			  it.geosolutions.jaiext.bandselect,
+			  it.geosolutions.jaiext.binarize,
+			  it.geosolutions.jaiext.classifier,
+			  it.geosolutions.jaiext.colorconvert,
+			  it.geosolutions.jaiext.colorindxer,
+			  it.geosolutions.jaiext.errordiffusion,
+			  it.geosolutions.jaiext.format,
+			  it.geosolutions.jaiext.squareroot,
+			  it.geosolutions.jaiext.imagefunction,
+			  it.geosolutions.jaiext.orderdither,
+			  it.geosolutions.jaiext.piecewise,
+			  it.geosolutions.jaiext.rlookup,
+			  it.geosolutions.jaiext.vectorbin
 			  </includeGroupIds>
               <includeArtifactIds>
-			  concurrent-tile-cache,
+			  jt-concurrent-tile-cache,
 			  jt-affine,
 			  jt-algebra,
 			  jt-bandmerge,
@@ -161,7 +175,20 @@
 			  jt-utilities,
 			  jt-warp,
 			  jt-zonal,
-			  square-root
+			  jt-square-root,
+			  jt-bandcombine,
+			  jt-bandselect,
+			  jt-binarize,
+			  jt-classifier,
+			  jt-colorconvert,
+			  jt-colorindxer,
+			  jt-errordiffusion,
+			  jt-format,
+			  jt-imagefunction,
+			  jt-orderdither,
+			  jt-piecewise,
+			  jt-rlookup,
+			  jt-vectorbin
 			  </includeArtifactIds>
             </configuration>
           </execution>
