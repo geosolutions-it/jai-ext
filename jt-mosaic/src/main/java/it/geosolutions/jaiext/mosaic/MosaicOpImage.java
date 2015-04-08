@@ -18,13 +18,9 @@
 package it.geosolutions.jaiext.mosaic;
 
 import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
@@ -483,7 +479,8 @@ public class MosaicOpImage extends OpImage {
                     pb.set(pads[3], 3);
                     pb.set(zeroBorderExtender, 4);
                     // Setting of the padded ROI image to the associated bean
-                    imageBeans[i].setRoiImage(JAI.create("border", pb));
+                    RenderedOp create = JAI.create("border", pb);
+                    imageBeans[i].setRoiImage(create);
                 } else {
                     imageBeans[i].setRoiImage(roiIMG);
                 }
@@ -496,9 +493,6 @@ public class MosaicOpImage extends OpImage {
 
                 hasNoData[i] = true;
                 imageBeans[i].setSourceNoData(noDataRange);
-                //if(noDataRange.getDataType().getDataType()!=dataType){
-                    //noDataRange = RangeFactory.convert(noDataRange, dataType);
-                //}
 
                 if (dataType == DataBuffer.TYPE_BYTE) {
                     // selection of the no data range for byte values
@@ -905,6 +899,9 @@ public class MosaicOpImage extends OpImage {
 
                             if (!isData) {
                                 setDestinationFlag = false;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
 
                                 switch (weightTypesUsed[s]) {
@@ -1002,6 +999,9 @@ public class MosaicOpImage extends OpImage {
                             }
                             if (!isData) {
                                 weight = 0F;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
                                 switch (weightTypesUsed[s]) {
                                 case WEIGHT_TYPE_ALPHA:
@@ -1234,6 +1234,9 @@ public class MosaicOpImage extends OpImage {
 
                             if (!isData) {
                                 setDestinationFlag = false;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
 
                                 switch (weightTypesUsed[s]) {
@@ -1333,6 +1336,9 @@ public class MosaicOpImage extends OpImage {
                             }
                             if (!isData) {
                                 weight = 0F;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
                                 switch (weightTypesUsed[s]) {
                                 case WEIGHT_TYPE_ALPHA:
@@ -1563,6 +1569,9 @@ public class MosaicOpImage extends OpImage {
 
                             if (!isData) {
                                 setDestinationFlag = false;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
 
                                 switch (weightTypesUsed[s]) {
@@ -1662,6 +1671,9 @@ public class MosaicOpImage extends OpImage {
                             }
                             if (!isData) {
                                 weight = 0F;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
                                 switch (weightTypesUsed[s]) {
                                 case WEIGHT_TYPE_ALPHA:
@@ -1892,6 +1904,9 @@ public class MosaicOpImage extends OpImage {
 
                             if (!isData) {
                                 setDestinationFlag = false;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
 
                                 switch (weightTypesUsed[s]) {
@@ -1991,6 +2006,9 @@ public class MosaicOpImage extends OpImage {
                             }
                             if (!isData) {
                                 weight = 0F;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
                                 switch (weightTypesUsed[s]) {
                                 case WEIGHT_TYPE_ALPHA:
@@ -2224,6 +2242,9 @@ public class MosaicOpImage extends OpImage {
 
                             if (!isData) {
                                 setDestinationFlag = false;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
 
                                 switch (weightTypesUsed[s]) {
@@ -2325,6 +2346,9 @@ public class MosaicOpImage extends OpImage {
                             }
                             if (!isData) {
                                 weight = 0F;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
                                 switch (weightTypesUsed[s]) {
                                 case WEIGHT_TYPE_ALPHA:
@@ -2559,6 +2583,9 @@ public class MosaicOpImage extends OpImage {
 
                             if (!isData) {
                                 setDestinationFlag = false;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
 
                                 switch (weightTypesUsed[s]) {
@@ -2660,6 +2687,9 @@ public class MosaicOpImage extends OpImage {
                             }
                             if (!isData) {
                                 weight = 0F;
+                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                    aPixelOffsets[s] += alfaPixelStride[s];
+                                }
                             } else {
                                 switch (weightTypesUsed[s]) {
                                 case WEIGHT_TYPE_ALPHA:
