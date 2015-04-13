@@ -67,7 +67,7 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
     static String JAI_REGISTRY_FILE = "META-INF/javax.media.jai.registryFile.jai";
 
     /** Name of the other registryfile.jai */
-    static String USR_REGISTRY_FILE = "META-INF/registryFile.jai";
+    static String USR_REGISTRY_FILE = "META-INF/registryFile.jaiext";
 
     /** String associated to the vendor key */
     static final String VENDOR_NAME = "Vendor";

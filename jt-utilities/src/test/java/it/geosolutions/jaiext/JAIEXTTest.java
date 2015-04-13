@@ -50,10 +50,10 @@ public class JAIEXTTest {
     @BeforeClass
     public static void setup() throws FileNotFoundException, IOException {
         final File inputJAIFile = TestData.file(JAIEXTTest.class, "META-INF" + File.separator
-                + "registryFile2.jai");
+                + "registryFile2.jaiext");
         newJAIFile = new File(inputJAIFile.getParentFile().getParentFile().getParentFile()
                 .getParentFile().getParentFile().getParentFile(), "META-INF" + File.separator
-                + "registryFile.jai");
+                + "registryFile.jaiext");
         FileUtils.copyFile(inputJAIFile, newJAIFile);
 
         // Setting of the operation registry

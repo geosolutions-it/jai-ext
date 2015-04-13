@@ -19,6 +19,8 @@ package it.geosolutions.jaiext.vectorbin;
 
 import static org.junit.Assert.assertEquals;
 
+import it.geosolutions.jaiext.testclasses.TestBase;
+
 import java.awt.Dimension;
 import java.awt.image.Raster;
 
@@ -41,7 +43,7 @@ import org.junit.Test;
  * @author Michael Bedward
  * @author Andrea Aime
  */
-public class VectorBinarizeTest {
+public class VectorBinarizeTest extends TestBase{
 
     private static final GeometryFactory gf = new GeometryFactory();
 
@@ -50,7 +52,7 @@ public class VectorBinarizeTest {
     WKTReader reader = new WKTReader(gf);
 
     @Before
-    public void setup() {
+    public void setupTileSize() {
         JAI.setDefaultTileSize(new Dimension(TILE_WIDTH, TILE_WIDTH));
     }
 
