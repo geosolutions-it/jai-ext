@@ -1092,7 +1092,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
                 }
                 return values[0];
             }
-        },SUBTRACT_FROM(13, 0, false) {
+        },SUBTRACT_FROM(13, 0, true) {
             @Override
             public byte calculate(byte... values) {
                 int length = values.length;
