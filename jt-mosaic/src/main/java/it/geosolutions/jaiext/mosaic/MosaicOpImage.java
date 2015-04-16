@@ -1219,7 +1219,8 @@ public class MosaicOpImage extends OpImage {
                             }
                             // The source valuse are initialized only for the switch
                             // method
-                            short sourceValueUshort = (short) (sBandDataUshort[s][sPixelOffsets[s]] & 0xffff);
+                            short value = sBandDataUshort[s][sPixelOffsets[s]];
+                            int sourceValueUshort = (value & 0xffff);
                             // Offset update
                             sPixelOffsets[s] += srcPixelStride[s];
 
@@ -1259,7 +1260,7 @@ public class MosaicOpImage extends OpImage {
                             // destination one and exit from the cycle after
                             // incrementing the offset
                             if (setDestinationFlag) {
-                                dBandDataUshort[dPixelOffset] = sourceValueUshort;
+                                dBandDataUshort[dPixelOffset] = value;
 
                                 for (int k = s + 1; k < sourcesNumber; k++) {
                                     if (dataRA != null) {

@@ -113,7 +113,8 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
 
             // First load all the REGISTRY_FILEs that are found in
             // the specified class loader.
-            Enumeration<URL> en = ClassLoader.getSystemResources(USR_REGISTRY_FILE);
+            ClassLoader loader = registry.getClass().getClassLoader();
+            Enumeration<URL> en = loader.getResources(USR_REGISTRY_FILE);
             // Creation of another OperationCollection instance to use for storing all the 
             OperationCollection changed = new OperationCollection(registry);
             // Loop on all the registryFile.jai files
