@@ -274,8 +274,8 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
     private void computeRectByte(final Raster source, final WritableRaster dest,
             final Rectangle destRect, RandomIter roiIter, boolean roiContainsTile) {
 
-        int srcX = source.getMinX();
-        int srcY = source.getMinY();
+        int srcX = destRect.x;
+        int srcY = destRect.y;
 
         // Input position parameters
         int x0 = srcX;
@@ -397,8 +397,8 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
     private void computeRectGeneral(final Raster source, final WritableRaster dest,
             final Rectangle destRect, RandomIter roiIter, boolean roiContainsTile) {
 
-        int srcX = source.getMinX();
-        int srcY = source.getMinY();
+        int srcX = destRect.x;
+        int srcY = destRect.y;
 
         // Input position parameters
         int x0 = srcX;
