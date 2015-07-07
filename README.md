@@ -31,10 +31,13 @@ We have created two public mailing lists for JAI-Ext one for Developers and one 
 ## Professional Support
 JAI-Ext has been developed by [**GeoSolutions**](http://www.geo-solutions.it) as an internal effort to replace Oracle JAI operations which are basically unsupported at the time of writing. 
 
+# Contributing
 We welcome contributions in any form:
 
 * pull requests for new features
 * pull requests for bug fixes
 * pull requests for documentation
 * funding for any combination of the above
+* 
+For more information check [this](https://github.com/geosolutions-it/jai-ext/blob/master/CONTRIBUTING.md) page
 
