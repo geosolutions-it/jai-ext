@@ -38,6 +38,6 @@ We welcome contributions in any form:
 * pull requests for bug fixes
 * pull requests for documentation
 * funding for any combination of the above
-* 
+
 For more information check [this](https://github.com/geosolutions-it/jai-ext/blob/master/CONTRIBUTING.md) page
 
