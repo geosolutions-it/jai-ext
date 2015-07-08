@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
 *    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+*    Copyright 2014 - 2015 GeoSolutions
 
 
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,13 +17,15 @@
 */
 package it.geosolutions.jaiext.mosaic;
 
-import it.geosolutions.jaiext.range.Range;
-
+import java.awt.image.ColorModel;
 import java.awt.image.RenderedImage;
 import java.io.Serializable;
 
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
+import javax.media.jai.RasterFormatTag;
+
+import it.geosolutions.jaiext.range.Range;
 
 /**
  * This class implements a Java Bean used as input values container of the for the MosaicOpImage2 class. Inside this class are contained the
@@ -54,8 +56,14 @@ public class ImageMosaicBean implements Serializable {
 
     private Range sourceNoData;
 
+    RasterFormatTag rasterFormatTag;
+
     public RenderedImage getImage() {
         return image;
+    }
+
+    public ColorModel getColorModel() {
+        return image.getColorModel();
     }
 
     public void setImage(RenderedImage image) {
@@ -96,5 +104,19 @@ public class ImageMosaicBean implements Serializable {
 
     // default constructor
     public ImageMosaicBean() {
+    }
+
+    /**
+     * @return the rasterFormatTag
+     */
+    public RasterFormatTag getRasterFormatTag() {
+        return rasterFormatTag;
+    }
+
+    /**
+     * @param rasterFormatTag the rasterFormatTag to set
+     */
+    public void setRasterFormatTag(RasterFormatTag rasterFormatTag) {
+        this.rasterFormatTag = rasterFormatTag;
     }
 }

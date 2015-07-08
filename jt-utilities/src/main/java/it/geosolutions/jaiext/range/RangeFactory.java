@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
  *    http://www.geo-solutions.it/
- *    Copyright 2014 GeoSolutions
+ *    Copyright 2014 - 2015 GeoSolutions
 
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,10 +21,14 @@ import java.awt.image.DataBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import it.geosolutions.jaiext.range.Range.DataType;
+
 /**
- * This class is a factory class which creates a {@link Range} object for the specific data type. This Range can have 2 bounds or be a single-point
- * range. If the 2 bound values are equal and almost one of them is included, then a single-point range is created, else an exception is thrown. If
- * the minimum bound value is bigger than the maximum value, then the 2 numbers are inverted at the Range creation time.
+ * This class is a factory class which creates a {@link Range} object for the specific data type.
+ * This Range can have 2 bounds or be a single-point range. If the 2 bound values are equal and
+ * almost one of them is included, then a single-point range is created, else an exception is
+ * thrown. If the minimum bound value is bigger than the maximum value, then the 2 numbers are
+ * inverted at the Range creation time.
  */
 public class RangeFactory {
 
@@ -53,7 +57,8 @@ public class RangeFactory {
     }
 
     // Integer data
-    public static Range create(int minValue, boolean minIncluded, int maxValue, boolean maxIncluded) {
+    public static Range create(int minValue, boolean minIncluded, int maxValue,
+            boolean maxIncluded) {
         return new RangeInt(minValue, minIncluded, maxValue, maxIncluded);
     }
 
@@ -154,7 +159,7 @@ public class RangeFactory {
     }
 
     public static Range convert(Range input, int dataType) {
-        if(input == null){
+        if (input == null) {
             return null;
         }
         // If already double do nothing
@@ -164,7 +169,7 @@ public class RangeFactory {
 
         boolean minIncluded = input.isMinIncluded();
         boolean maxIncluded = input.isMaxIncluded();
-        
+
         Number min = input.getMin();
         Number max = input.getMax();
 
@@ -178,9 +183,11 @@ public class RangeFactory {
         case DataBuffer.TYPE_INT:
             return new RangeInt(min.intValue(), minIncluded, max.intValue(), maxIncluded);
         case DataBuffer.TYPE_FLOAT:
-            return new RangeFloat(min.floatValue(), minIncluded, max.floatValue(), maxIncluded, input.isNanIncluded());
+            return new RangeFloat(min.floatValue(), minIncluded, max.floatValue(), maxIncluded,
+                    input.isNanIncluded());
         case DataBuffer.TYPE_DOUBLE:
-            return new RangeDouble(min.floatValue(), minIncluded, max.floatValue(), maxIncluded, input.isNanIncluded());
+            return new RangeDouble(min.floatValue(), minIncluded, max.floatValue(), maxIncluded,
+                    input.isNanIncluded());
         default:
             return null;
         }
@@ -355,5 +362,46 @@ public class RangeFactory {
 
     public static boolean equals(double d1, double d2) {
         return Math.abs(d1 - d2) < TOLERANCE;
+    }
+
+    /**
+     * Casts the give range to a target data type, or returns the original range in case the range
+     * and target data type are the same
+     * 
+     * @param range
+     * @param targetType
+     * @return
+     */
+    public static Range cast(Range range, DataType targetType) {
+        if (range.getDataType() == targetType) {
+            return range;
+        }
+
+        switch (targetType) {
+        case BYTE:
+            return RangeFactory.create(range.getMin().byteValue(), range.getMax().byteValue());
+
+        case SHORT:
+            return RangeFactory.create(range.getMin().shortValue(), range.getMax().shortValue());
+
+        case USHORT:
+            return RangeFactory.create((short) (range.getMin().intValue() & 0xFFF),
+                    (short) (range.getMax().shortValue() & 0xFFF));
+
+        case INTEGER:
+            return RangeFactory.create(range.getMin().intValue(), range.getMax().intValue());
+
+        case LONG:
+            return RangeFactory.create(range.getMin().longValue(), range.getMax().longValue());
+
+        case FLOAT:
+            return RangeFactory.create(range.getMin().floatValue(), range.getMax().floatValue());
+
+        case DOUBLE:
+            return RangeFactory.create(range.getMin().doubleValue(), range.getMax().doubleValue());
+
+        default:
+            throw new IllegalArgumentException("Unexpected data type " + targetType);
+        }
     }
 }
