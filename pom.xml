@@ -517,7 +517,7 @@
           <!--fork>${fork.javac}</fork--> 
           <maxmem>${javac.maxHeapSize}</maxmem>
           <compilerArgs>
-			<arg>-XX:MaxPermSize=256m</arg>
+			<arg>-J-XX:MaxPermSize=256m</arg>
           </compilerArgs>
         </configuration>
       </plugin>

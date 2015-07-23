@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
 *    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+*    Copyright 2014 - 2015 GeoSolutions
 
 
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,17 @@
 */
 package it.geosolutions.jaiext.mosaic;
 
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
+import java.awt.image.IndexColorModel;
+import java.awt.image.MultiPixelPackedSampleModel;
+import java.awt.image.PackedColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
@@ -37,6 +43,7 @@ import javax.media.jai.BorderExtender;
 import javax.media.jai.BorderExtenderConstant;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
+import javax.media.jai.LookupTableJAI;
 import javax.media.jai.OpImage;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
@@ -48,14 +55,22 @@ import javax.media.jai.operator.MosaicType;
 
 import com.sun.media.jai.util.ImageUtil;
 
+import it.geosolutions.jaiext.lookup.LookupTable;
+import it.geosolutions.jaiext.lookup.LookupTableFactory;
+import it.geosolutions.jaiext.range.Range;
+
 /**
- * This class takes an array of <code>RenderedImage</code> and creates a mosaic of them. If the image pixels are No Data values, they are not
- * calculated and the MosaicOpimage searches for the pixels of the other source images in the same location. If all the pixels in the same location
- * are No Data, the destination image pixel will be a destination No Data value. This feature is combined with the ROI support and alpha channel
- * support(leaved unchanged). No Data support has been added both in the BLEND and OVERLAY mosaic type. The MosaicOpimage behavior is equal to that of
- * the old MosaicOpimage, the only difference is the No Data support. The input values of the first one are different because a Java Bean is used for
- * storing all of them in a unique block instead of different variables as the second one. This Java Bean is described in the ImageMosaicBean class.
- * Inside this class, other Java Beans are used for simplifying the image data transport between the various method.
+ * This class takes an array of <code>RenderedImage</code> and creates a mosaic of them. If the
+ * image pixels are No Data values, they are not calculated and the MosaicOpimage searches for the
+ * pixels of the other source images in the same location. If all the pixels in the same location
+ * are No Data, the destination image pixel will be a destination No Data value. This feature is
+ * combined with the ROI support and alpha channel support(leaved unchanged). No Data support has
+ * been added both in the BLEND and OVERLAY mosaic type. The MosaicOpimage behavior is equal to that
+ * of the old MosaicOpimage, the only difference is the No Data support. The input values of the
+ * first one are different because a Java Bean is used for storing all of them in a unique block
+ * instead of different variables as the second one. This Java Bean is described in the
+ * ImageMosaicBean class. Inside this class, other Java Beans are used for simplifying the image
+ * data transport between the various method.
  */
 // @SuppressWarnings("unchecked")
 public class MosaicOpImage extends OpImage {
@@ -77,7 +92,8 @@ public class MosaicOpImage extends OpImage {
     private boolean roiPresent;
 
     /**
-     * Boolean for checking if the alpha channel is used only for bitmask or for weighting every pixel with is alpha value associated
+     * Boolean for checking if the alpha channel is used only for bitmask or for weighting every
+     * pixel with is alpha value associated
      */
     private boolean isAlphaBitmaskUsed;
 
@@ -90,72 +106,90 @@ public class MosaicOpImage extends OpImage {
     /** Border extender for the ROI or alpha channel data */
     private BorderExtender zeroBorderExtender;
 
-    /** No data values for the destination image if the pixel of the same location are no Data (Byte) */
+    /**
+     * No data values for the destination image if the pixel of the same location are no Data (Byte)
+     */
     private byte[] destinationNoDataByte;
 
-    /** No data values for the destination image if the pixel of the same location are no Data (UShort) */
+    /**
+     * No data values for the destination image if the pixel of the same location are no Data
+     * (UShort)
+     */
     private short[] destinationNoDataUShort;
 
-    /** No data values for the destination image if the pixel of the same location are no Data (Short) */
+    /**
+     * No data values for the destination image if the pixel of the same location are no Data
+     * (Short)
+     */
     private short[] destinationNoDataShort;
 
-    /** No data values for the destination image if the pixel of the same location are no Data (Integer) */
+    /**
+     * No data values for the destination image if the pixel of the same location are no Data
+     * (Integer)
+     */
     private int[] destinationNoDataInt;
 
-    /** No data values for the destination image if the pixel of the same location are no Data (Float) */
+    /**
+     * No data values for the destination image if the pixel of the same location are no Data
+     * (Float)
+     */
     private float[] destinationNoDataFloat;
 
-    /** No data values for the destination image if the pixel of the same location are no Data (Double) */
+    /**
+     * No data values for the destination image if the pixel of the same location are no Data
+     * (Double)
+     */
     private double[] destinationNoDataDouble;
 
-    /** Table used for checking no data values. The first index indicates the source, the second the band, the third the value */
+    /**
+     * Table used for checking no data values. The first index indicates the source, the second the
+     * band, the third the value
+     */
     protected byte[][][] byteLookupTable;
 
-    /** Boolean array indicating which source images has No Data and not*/
+    /** Boolean array indicating which source images has No Data and not */
     private final boolean[] hasNoData;
-    
+
+    /** The format tag for the destination image */
+    private RasterFormatTag rasterFormatTag;
+
     /** Enumerator for the type of mosaic weigher */
     public enum WeightType {
         WEIGHT_TYPE_ALPHA, WEIGHT_TYPE_ROI, WEIGHT_TYPE_NODATA;
 
     }
 
-    /** Static method for providing a valid layout to the OpImage constructor */
-    private static final ImageLayout checkLayout(List sources, ImageLayout layout) {
+    /**
+     * Static method for providing a valid layout to the OpImage constructor
+     * 
+     * @param noDatas
+     */
+    private static final ImageLayout checkLayout(List sources, ImageLayout layout,
+            Range[] noDatas) {
 
         // Variable Initialization
-        RenderedImage sourceImage = null;
         SampleModel targetSampleModel = null;
+        ColorModel targetColorModel = null;
 
         // Source number
         int numSources = sources.size();
-
         if (numSources > 0) {
             // The sample model and the color model are taken from the first image
-            sourceImage = (RenderedImage) sources.get(0);
-            targetSampleModel = sourceImage.getSampleModel();
+            ImageLayout tmp = getTargetSampleColorModel(sources, noDatas);
+            targetColorModel = tmp.getColorModel(null);
+            targetSampleModel = tmp.getSampleModel(null);
         } else if (layout != null // If there is no Images check the validity of the layout
                 && layout.isValid(ImageLayout.WIDTH_MASK | ImageLayout.HEIGHT_MASK
                         | ImageLayout.SAMPLE_MODEL_MASK)) {
-            // The sample model and the color model are taken from layout.
+            // The sample model and the color model are taken from layout, we don't replace it
             targetSampleModel = layout.getSampleModel(null);
-            if (targetSampleModel == null) {
-                throw new IllegalArgumentException("No sample model present");
-            }
         } else {// Not valid layout
             throw new IllegalArgumentException("Layout not valid");
         }
 
-        // Datatype, band number and sample size are taken from sample model
-        int dataType = targetSampleModel.getDataType();
-        int bandNumber = targetSampleModel.getNumBands();
-        int sampleSize = targetSampleModel.getSampleSize(0);
-
-        // If the sample size is not the same it throws an IllegalArgumentException
-        for (int i = 1; i < bandNumber; i++) {
-            if (targetSampleModel.getSampleSize(i) != sampleSize) {
-                throw new IllegalArgumentException("Sample size is not the same for every band");
-            }
+        // get color and sample model
+        if (targetSampleModel == null) {
+            throw new IllegalArgumentException("No sample model present");
         }
 
         // If the source number is less than one the layout is cloned and returned
@@ -163,30 +197,11 @@ public class MosaicOpImage extends OpImage {
             return (ImageLayout) layout.clone();
         }
 
-        // All the source image are checked if datatype, band number
-        // and sample size are equal to those of the first image
-        for (int i = 1; i < numSources; i++) {
-            RenderedImage sourceData = (RenderedImage) sources.get(i);
-            SampleModel sourceSampleModel = sourceData.getSampleModel();
-
-            if (sourceSampleModel.getDataType() != dataType) {
-                throw new IllegalArgumentException("Data type is not the same for every source");
-            } else if (sourceSampleModel.getNumBands() != bandNumber) {
-                throw new IllegalArgumentException("Bands number is not the same for every source");
-            }
-
-            for (int j = 0; j < bandNumber; j++) {
-                if (sourceSampleModel.getSampleSize(j) != sampleSize) {
-                    throw new IllegalArgumentException("Sample size is not the same for every band");
-                }
-            }
-        }
-
         // If the layout is null a new one is created, else it is cloned. This new
         // layout
         // is the layout for all the images
-        ImageLayout mosaicLayout = layout == null ? new ImageLayout() : (ImageLayout) layout
-                .clone();
+        ImageLayout mosaicLayout = layout == null ? new ImageLayout()
+                : (ImageLayout) layout.clone();
 
         // A new Rectangle is calculated for storing the union of all the image
         // bounds
@@ -199,10 +214,11 @@ public class MosaicOpImage extends OpImage {
             // If the layout is not valid the mosaic bounds are calculated from
             // every image bounds
         } else if (numSources > 0) {
-            mosaicBounds.setBounds(sourceImage.getMinX(), sourceImage.getMinY(),
-                    sourceImage.getWidth(), sourceImage.getHeight());
+            RenderedImage source = (RenderedImage) sources.get(0);
+            mosaicBounds.setBounds(source.getMinX(), source.getMinY(), source.getWidth(),
+                    source.getHeight());
             for (int i = 1; i < numSources; i++) {
-                RenderedImage source = (RenderedImage) sources.get(i);
+                source = (RenderedImage) sources.get(i);
                 Rectangle sourceBounds = new Rectangle(source.getMinX(), source.getMinY(),
                         source.getWidth(), source.getHeight());
                 mosaicBounds = mosaicBounds.union(sourceBounds);
@@ -214,37 +230,192 @@ public class MosaicOpImage extends OpImage {
         mosaicLayout.setMinY(mosaicBounds.y);
         mosaicLayout.setWidth(mosaicBounds.width);
         mosaicLayout.setHeight(mosaicBounds.height);
-
-        // This control checks if the new layout is valid
-        if (mosaicLayout.isValid(ImageLayout.SAMPLE_MODEL_MASK)) {
-            SampleModel destSampleModel = mosaicLayout.getSampleModel(null);
-
-            // If the destination image sample model has a band number or data type
-            // or sample size from
-            // those of the first image, the new layout sample model is unset.
-            boolean unsetSampleModel = destSampleModel.getNumBands() != bandNumber
-                    || destSampleModel.getDataType() != dataType;
-            for (int i = 0; !unsetSampleModel && i < bandNumber; i++) {
-                if (destSampleModel.getSampleSize(i) != sampleSize) {
-                    unsetSampleModel = true;
-                }
-            }
-            if (unsetSampleModel) {
-                mosaicLayout.unsetValid(ImageLayout.SAMPLE_MODEL_MASK);
-            }
+        mosaicLayout.setSampleModel(targetSampleModel);
+        if (targetColorModel != null) {
+            mosaicLayout.setColorModel(targetColorModel);
         }
 
         return mosaicLayout;
     }
 
+    private static ImageLayout getTargetSampleColorModel(List sources, Range[] noDatas) {
+        final int numSources = sources.size();
+
+        // get first image as reference
+        RenderedImage first = (RenderedImage) sources.get(0);
+        ColorModel firstColorModel = first.getColorModel();
+        SampleModel firstSampleModel = first.getSampleModel();
+
+        // starting point image layout
+        ImageLayout result = new ImageLayout();
+        result.setSampleModel(firstSampleModel);
+        // easy case
+        if (numSources == 1) {
+            return result;
+        }
+
+        // See if they all are the same
+        int firstDataType = firstSampleModel.getDataType();
+        int firstBands = firstSampleModel.getNumBands();
+        int firstSampleSize = firstSampleModel.getSampleSize()[0];
+        boolean heterogeneous = false;
+        boolean hasIndexedColorModels = firstColorModel instanceof IndexColorModel;
+        boolean hasComponentColorModels = firstColorModel instanceof ComponentColorModel;
+        boolean hasPackedColorModels = firstColorModel instanceof PackedColorModel;
+        boolean hasUnrecognizedColorModels = !hasComponentColorModels && !hasIndexedColorModels
+                && !hasPackedColorModels;
+        boolean hasUnsupportedTypes = false;
+        int maxBands = firstBands;
+        for (int i = 1; i < numSources; i++) {
+            RenderedImage source = (RenderedImage) sources.get(i);
+            SampleModel sourceSampleModel = source.getSampleModel();
+            ColorModel sourceColorModel = source.getColorModel();
+            int sourceBands = sourceSampleModel.getNumBands();
+            int sourceDataType = sourceSampleModel.getDataType();
+            if (sourceDataType == DataBuffer.TYPE_UNDEFINED) {
+                hasUnsupportedTypes = true;
+            }
+
+            if (sourceBands > maxBands) {
+                maxBands = sourceBands;
+            }
+
+            if (sourceColorModel instanceof IndexColorModel) {
+                hasIndexedColorModels = true;
+            } else if (sourceColorModel instanceof ComponentColorModel) {
+                hasComponentColorModels = true;
+            } else if (sourceColorModel instanceof PackedColorModel) {
+                hasPackedColorModels = true;
+            } else {
+                hasUnrecognizedColorModels = true;
+            }
+
+            if (sourceDataType != firstDataType || sourceBands != firstBands) {
+                heterogeneous = true;
+            }
+
+            for (int j = 0; j < sourceBands; j++) {
+                if (sourceSampleModel.getSampleSize(j) != firstSampleSize) {
+                    heterogeneous = true;
+                }
+            }
+        }
+        // see how many types we're dealing with
+        int colorModelsTypes = (hasIndexedColorModels ? 1 : 0) + (hasComponentColorModels ? 1 : 0)
+                + (hasPackedColorModels ? 1 : 0);
+        // if uniform, we have it easy
+        if (!heterogeneous && colorModelsTypes == 1) {
+            if (hasIndexedColorModels) {
+                boolean uniformPalettes = hasUniformPalettes(sources, noDatas);
+                if (!uniformPalettes) {
+                    // force RGB expansion
+                    setRGBLayout(result, first);
+                }
+            }
+            return result;
+        }
+
+        if (hasUnrecognizedColorModels || hasUnsupportedTypes) {
+            throw new IllegalArgumentException("Cannot mosaic the input images, "
+                    + "the mix of provided color and sample models is not supported");
+        }
+        
+        // all gray?
+        if (maxBands == 1 && !hasIndexedColorModels) {
+            // push for the largest type
+            SampleModel sm = firstSampleModel;
+            for (int i = 1; i < numSources; i++) {
+                RenderedImage source = (RenderedImage) sources.get(i);
+                SampleModel sourceSampleModel = source.getSampleModel();
+                int sourceDataType = sourceSampleModel.getDataType();
+                if (sourceDataType > sm.getDataType()) {
+                    sm = sourceSampleModel;
+                }
+            }
+            result.setSampleModel(sm);
+        } else {
+            // take a leap of faith and assume we can manage this with a RGB output
+            setRGBLayout(result, first);
+        }
+
+        return result;
+    }
+
+    private static void setRGBLayout(ImageLayout result, RenderedImage reference) {
+        ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);
+        int[] nBits = { 8, 8, 8 };
+        ColorModel cm = new ComponentColorModel(cs, nBits, false, false, Transparency.OPAQUE,
+                DataBuffer.TYPE_BYTE);
+        SampleModel sm = cm.createCompatibleSampleModel(reference.getSampleModel().getWidth(),
+                reference.getSampleModel().getWidth());
+        result.setColorModel(cm);
+        result.setSampleModel(sm);
+    }
+
+    private static boolean hasUniformPalettes(List sources, Range[] noDatas) {
+        // all indexed, but are the palettes the same?
+        RenderedImage first = (RenderedImage) sources.get(0);
+        Range firstNoData = noDatas != null ? noDatas[0] : null;
+        IndexColorModel reference = (IndexColorModel) first.getColorModel();
+        int mapSize = reference.getMapSize();
+        byte[] reference_reds = new byte[mapSize];
+        byte[] reference_greens = new byte[mapSize];
+        byte[] reference_blues = new byte[mapSize];
+        byte[] reference_alphas = new byte[mapSize];
+        byte[] reds = new byte[mapSize];
+        byte[] greens = new byte[mapSize];
+        byte[] blues = new byte[mapSize];
+        byte[] alphas = new byte[mapSize];
+        reference.getReds(reference_reds);
+        reference.getGreens(reference_greens);
+        reference.getBlues(reference_blues);
+        reference.getAlphas(reference_alphas);
+        boolean uniformPalettes = true;
+        final int numSources = sources.size();
+        for (int i = 1; i < numSources; i++) {
+            RenderedImage source = (RenderedImage) sources.get(i);
+
+            // we need the nodata to be uniform too, if we want to avoid color expansion
+            Range noData = noDatas == null ? null : noDatas[i];
+            if (firstNoData == null) {
+                if (noData != null) {
+                    return false;
+                }
+            } else {
+                if (noData == null || !noData.equals(firstNoData)) {
+                    return false;
+                }
+            }
+
+            IndexColorModel sourceColorModel = (IndexColorModel) source.getColorModel();
+            if (!sourceColorModel.equals(reference) || sourceColorModel.getMapSize() != mapSize) {
+                uniformPalettes = false;
+                break;
+            }
+            // the above does not compare the rgb(a) arrays, do it
+            sourceColorModel.getReds(reds);
+            sourceColorModel.getGreens(greens);
+            sourceColorModel.getBlues(blues);
+            sourceColorModel.getAlphas(alphas);
+            if (!Arrays.equals(reds, reference_reds) || !Arrays.equals(greens, reference_greens)
+                    || !Arrays.equals(blues, reference_blues)
+                    || !Arrays.equals(alphas, reference_alphas)) {
+                uniformPalettes = false;
+                break;
+            }
+        }
+        return uniformPalettes;
+    }
+
     /**
-     * This constructor takes the source images, the layout, the rendering hints, and the parameters and initialize variables.
+     * This constructor takes the source images, the layout, the rendering hints, and the parameters
+     * and initialize variables.
      */
     public MosaicOpImage(List sources, ImageLayout layout, Map renderingHints,
             MosaicType mosaicTypeSelected, PlanarImage[] alphaImgs, ROI[] rois,
             double[][] thresholds, double[] destinationNoData, Range[] noDatas) {
         // OpImage constructor
-        super((Vector) sources, checkLayout(sources, layout), renderingHints, true);
+        super((Vector) sources, checkLayout(sources, layout, noDatas), renderingHints, true);
 
         // Stores the data passed by the parameterBlock
         this.numBands = sampleModel.getNumBands();
@@ -283,14 +454,20 @@ public class MosaicOpImage extends OpImage {
             this.destinationNoDataDouble = DEFAULT_DESTINATION_NO_DATA_VALUE;
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
+                this.destinationNoDataInt = new int[numSources];
+                Arrays.fill(this.destinationNoDataInt, Integer.MIN_VALUE);
                 this.destinationNoDataByte = new byte[numSources];
-                Arrays.fill(this.destinationNoDataByte, (byte)0);
+                Arrays.fill(this.destinationNoDataByte, (byte) 0);
                 break;
             case DataBuffer.TYPE_USHORT:
+                this.destinationNoDataInt = new int[numSources];
+                Arrays.fill(this.destinationNoDataInt, Integer.MIN_VALUE);
                 this.destinationNoDataUShort = new short[numSources];
-                Arrays.fill(this.destinationNoDataUShort, (short)0);
+                Arrays.fill(this.destinationNoDataUShort, (short) 0);
                 break;
             case DataBuffer.TYPE_SHORT:
+                this.destinationNoDataInt = new int[numSources];
+                Arrays.fill(this.destinationNoDataInt, Integer.MIN_VALUE);
                 this.destinationNoDataShort = new short[numSources];
                 Arrays.fill(this.destinationNoDataShort, Short.MIN_VALUE);
                 break;
@@ -303,7 +480,7 @@ public class MosaicOpImage extends OpImage {
                 Arrays.fill(this.destinationNoDataFloat, -Float.MAX_VALUE);
                 break;
             case DataBuffer.TYPE_DOUBLE:
-            	Arrays.fill(this.destinationNoDataDouble, -Double.MAX_VALUE);
+                Arrays.fill(this.destinationNoDataDouble, -Double.MAX_VALUE);
                 break;
             default:
                 throw new IllegalArgumentException("Wrong data Type");
@@ -325,6 +502,10 @@ public class MosaicOpImage extends OpImage {
                         this.destinationNoDataByte[i] = (byte) (destinationNoData[i]);
                     }
                 }
+                this.destinationNoDataInt = new int[numBands];
+                for (int i = 0; i < destinationNoDataInt.length; i++) {
+                    destinationNoDataInt[i] = destinationNoDataByte[i];
+                }
                 break;
             case DataBuffer.TYPE_USHORT:
                 this.destinationNoDataUShort = new short[numBands];
@@ -333,8 +514,13 @@ public class MosaicOpImage extends OpImage {
                             (short) ((short) (destinationNoData[0]) & 0xffff));
                 } else {
                     for (int i = 0; i < numBands; i++) {
-                        this.destinationNoDataUShort[i] = (short) ((short) (destinationNoData[i]) & 0xffff);
+                        this.destinationNoDataUShort[i] = (short) ((short) (destinationNoData[i])
+                                & 0xffff);
                     }
+                }
+                this.destinationNoDataInt = new int[numBands];
+                for (int i = 0; i < destinationNoDataInt.length; i++) {
+                    destinationNoDataInt[i] = destinationNoDataUShort[i];
                 }
                 break;
             case DataBuffer.TYPE_SHORT:
@@ -345,6 +531,10 @@ public class MosaicOpImage extends OpImage {
                     for (int i = 0; i < numBands; i++) {
                         this.destinationNoDataShort[i] = (short) destinationNoData[i];
                     }
+                }
+                this.destinationNoDataInt = new int[numBands];
+                for (int i = 0; i < destinationNoDataInt.length; i++) {
+                    destinationNoDataInt[i] = destinationNoDataShort[i];
                 }
                 break;
             case DataBuffer.TYPE_INT:
@@ -375,14 +565,14 @@ public class MosaicOpImage extends OpImage {
         }
 
         // Value for filling the image border
-        double sourceExtensionBorder = (noDatas != null && noDatas.length > 0 && noDatas[0] != null) ? noDatas[0]
-                .getMin().doubleValue() : destinationNoDataDouble[0];
+        double sourceExtensionBorder = (noDatas != null && noDatas.length > 0 && noDatas[0] != null)
+                ? noDatas[0].getMin().doubleValue() : destinationNoDataDouble[0];
 
         // BorderExtender used for filling the image border with the above
         // sourceExtensionBorder
-        this.sourceBorderExtender = sourceExtensionBorder == 0.0 ? BorderExtender
-                .createInstance(BorderExtender.BORDER_ZERO) : new BorderExtenderConstant(
-                new double[] { sourceExtensionBorder });
+        this.sourceBorderExtender = sourceExtensionBorder == 0.0
+                ? BorderExtender.createInstance(BorderExtender.BORDER_ZERO)
+                : new BorderExtenderConstant(new double[] { sourceExtensionBorder });
 
         hasNoData = new boolean[numSources];
 
@@ -402,7 +592,7 @@ public class MosaicOpImage extends OpImage {
         // and has the same sample model of the source images. Also wrap all the source,
         // Alpha and ROI images(if present) with a Border operator in order to avoid
         // the call of the getExtendedData() method.
-
+        RasterFormatTag[] tags = getRasterFormatTags();
         for (int i = 0; i < numSources; i++) {
             // Selection of the i-th source.
             RenderedImage img = getSourceImage(i);
@@ -443,7 +633,7 @@ public class MosaicOpImage extends OpImage {
                     pb.set(pads[3], 3);
                     pb.set(zeroBorderExtender, 4);
                     // Setting of the padded alpha to the associated bean
-                    //imageBeans[i].setAlphaChannel(JAI.create("border", pb));
+                    // imageBeans[i].setAlphaChannel(JAI.create("border", pb));
                     RenderedOp create = JAI.create("border", pb);
                     imageBeans[i].setAlphaChannel(create);
                 } else {
@@ -487,22 +677,66 @@ public class MosaicOpImage extends OpImage {
                 imageBeans[i].setRoi(roi);
             }
 
+            // set the raster tag
+            imageBeans[i].setRasterFormatTag(tags[i]);
+
+            // prepare to handle nodata, if any is available
             Range noDataRange = nodataExists ? noDatas[i] : null;
-
             if (noDataRange != null) {
-
                 hasNoData[i] = true;
-                imageBeans[i].setSourceNoData(noDataRange);
+                RenderedImage image = imageBeans[i].getImage();
+                Range expandedNoDataRage = RasterAccessorExt.expandNoData(noDataRange, tags[i],
+                        image, this);
+                imageBeans[i].setSourceNoData(expandedNoDataRage);
+                
+                if (RasterAccessorExt.isPaletteExpansionRequired(image, tags[i].getFormatTagID())) {
+                    // no way to guarantee that the index in the palette can be turned into a RGB
+                    // nodata, just a few cases where it breaks:
+                    // - the palette has a color in the nodata element that's a valid one
+                    // - the palette uses a color that's the output nodata as a valid value
+                    // We turn the nodata into a ROI, and if the ROI is already set, we intersect it
+                    
+                    // force a binary image
+                    ImageLayout il = new ImageLayout();
+                    byte[] arr = { (byte) 0, (byte) 0xff };
+                    ColorModel binaryCm = new IndexColorModel(1, 2, arr, arr, arr);
+                    SampleModel binarySm = new MultiPixelPackedSampleModel(DataBuffer.TYPE_BYTE,
+                            image.getWidth(), image.getHeight(), 1);
+                    il.setColorModel(binaryCm);
+                    il.setSampleModel(binarySm);
+                    RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, il);
+                    hints.put(JAI.KEY_TRANSFORM_ON_COLORMAP, false);
 
-                if (dataType == DataBuffer.TYPE_BYTE) {
+                    LookupTableJAI lt = buildNoDataLookupTable(dataType, noDataRange);
+
+                    ParameterBlock pb = new ParameterBlock();
+                    pb.setSource(image, 0);
+                    pb.set(lt, 0);
+                    RenderedOp noDataMask = JAI.create("lookup", pb, hints);
+                    noDataMask.getTile(0, 0);
+
+                    ROI noDataRoi = new ROI(noDataMask);
+                    if (imageBeans[i].getRoi() == null) {
+                        roiPresent = true;
+                        imageBeans[i].setRoi(noDataRoi);
+                        imageBeans[i].setRoiImage(noDataRoi.getAsImage());
+                    } else {
+                        ROI intersection = imageBeans[i].getRoi().intersect(noDataRoi);
+                        imageBeans[i].setRoi(intersection);
+                        imageBeans[i].setRoiImage(intersection.getAsImage());
+                    }
+                    // we transformed the nodata into the ROI
+                    imageBeans[i].setSourceNoData(null);
+                    hasNoData[i] = false;
+                } else if (dataType == DataBuffer.TYPE_BYTE) {
                     // selection of the no data range for byte values
-                    Range noDataByte = noDataRange;
+                    Range noDataByte = expandedNoDataRage;
 
-                    // The lookup table is filled with the related no data or valid data for every value
+                    // The lookup table is filled with the related no data or valid data for every
+                    // value
                     for (int b = 0; b < numBands; b++) {
                         for (int z = 0; z < byteLookupTable[i][0].length; z++) {
-                            //byte value = (byte) z;
-                            if (noDataByte.contains(z)) {
+                            if (noDataByte != null && noDataByte.contains(z)) {
                                 byteLookupTable[i][b][z] = destinationNoDataByte[b];
                             } else {
                                 byteLookupTable[i][b][z] = (byte) z;
@@ -511,7 +745,11 @@ public class MosaicOpImage extends OpImage {
                     }
                 }
             }
+
         }
+
+        // compute the destination tag
+        rasterFormatTag = tags[getNumSources()];
 
         if (!this.isAlphaBitmaskUsed) {
             for (int i = 0; i < numSources; i++) {
@@ -523,8 +761,49 @@ public class MosaicOpImage extends OpImage {
         }
     }
 
-	/**
-     * Method for calculating the padding between the total mosaic bounds and the bounds of the input source.
+    private LookupTable buildNoDataLookupTable(int dataType, Range noDataRange) {
+        byte[] table;
+        switch (dataType) {
+        case DataBuffer.TYPE_BYTE:
+            table = new byte[256];
+            for (int i = 0; i < table.length; i++) {
+                if (noDataRange.contains((byte) (i & 0xFF))) {
+                    table[i] = 0;
+                } else {
+                    table[i] = 1;
+                }
+            }
+            break;
+        case DataBuffer.TYPE_USHORT:
+            table = new byte[65536];
+            for (int i = 0; i < table.length; i++) {
+                if (noDataRange.contains((short) (i & 0xFFFF))) {
+                    table[i] = 0;
+                } else {
+                    table[i] = 1;
+                }
+            }
+            break;
+        default:
+            throw new IllegalArgumentException(
+                    "Unable to handle a index color model based on data type " + dataType);
+        }
+
+        return LookupTableFactory.create(table);
+    }
+
+    private RasterFormatTag[] getRasterFormatTags() {
+        final int numSources = getNumSources();
+        RenderedImage[] sources = new RenderedImage[numSources];
+        for (int i = 0; i < numSources; i++) {
+            sources[i] = getSourceImage(i);
+        }
+        return RasterAccessorExt.findCompatibleTags(sources, this);
+    }
+
+    /**
+     * Method for calculating the padding between the total mosaic bounds and the bounds of the
+     * input source.
      * 
      * @param src
      * @param totalBounds
@@ -545,16 +824,17 @@ public class MosaicOpImage extends OpImage {
             // no padding return null
             return null;
         }
-        return new int[]{leftP, rightP, topP, bottomP};
+        return new int[] { leftP, rightP, topP, bottomP };
     }
 
     /**
-     * This method overrides the OpImage compute tile method and calculates the mosaic operation for the selected tile.
+     * This method overrides the OpImage compute tile method and calculates the mosaic operation for
+     * the selected tile.
      */
     public Raster computeTile(int tileX, int tileY) {
         // The destination raster is created as WritableRaster
-        WritableRaster destRaster = createWritableRaster(sampleModel, new Point(tileXToX(tileX),
-                tileYToY(tileY)));
+        WritableRaster destRaster = createWritableRaster(sampleModel,
+                new Point(tileXToX(tileX), tileYToY(tileY)));
 
         // This method calculates the tile active area.
         Rectangle destRectangle = getTileRect(tileX, tileY);
@@ -563,6 +843,8 @@ public class MosaicOpImage extends OpImage {
         // Initialization of a new RasterBean for passing all the raster information
         // to the compute rect method
         Raster[] sourceRasters = new Raster[numSources];
+        RasterFormatTag[] sourceTags = new RasterFormatTag[numSources];
+        ColorModel[] sourceColorModels = new ColorModel[numSources];
         Raster[] alphaRasters = new Raster[numSources];
         Raster[] roiRasters = new Raster[numSources];
         Range[] noDataRanges = new Range[numSources];
@@ -582,6 +864,8 @@ public class MosaicOpImage extends OpImage {
             }
             // Raster bean initialization
             sourceRasters[i] = data;
+            sourceTags[i] = imageBeans[i].getRasterFormatTag();
+            sourceColorModels[i] = imageBeans[i].getColorModel();
             noDataRanges[i] = imageBeans[i].getSourceNoData();
             // If the data are present then we can check if Alpha and ROI are present
             if (data != null) {
@@ -600,8 +884,8 @@ public class MosaicOpImage extends OpImage {
 
         }
         // For the given source destination rasters, the mosaic is calculated
-        computeRect(sourceRasters, destRaster, destRectangle, alphaRasters, roiRasters,
-                noDataRanges);
+        computeRect(sourceRasters, sourceTags, sourceColorModels, destRaster, destRectangle,
+                alphaRasters, roiRasters, noDataRanges);
 
         // Tile recycling if the Recycle is present
         for (int i = 0; i < numSources; i++) {
@@ -619,37 +903,23 @@ public class MosaicOpImage extends OpImage {
 
     }
 
-    private void computeRect(Raster[] sourceRasters, WritableRaster destRaster,
-            Rectangle destRectangle, Raster[] alphaRasters, Raster[] roiRasters,
-            Range[] noDataRanges) {
+    private void computeRect(Raster[] sourceRasters, RasterFormatTag[] rasterFormatTags,
+            ColorModel[] sourceColorModels, WritableRaster destRaster, Rectangle destRectangle,
+            Raster[] alphaRasters, Raster[] roiRasters, Range[] noDataRanges) {
 
         int sourcesNumber = sourceRasters.length;
-        // Put all non-null sources in a list.
-        ArrayList<Raster> listRasterSource = new ArrayList<Raster>(sourcesNumber);
-        for (int i = 0; i < sourcesNumber; i++) {
-            if (sourceRasters[i] != null) {
-                listRasterSource.add(sourceRasters[i]);
+
+        // if all null, just return a constant image
+        int nullCount = 0;
+        for (Raster raster : sourceRasters) {
+            if (raster == null) {
+                nullCount++;
             }
         }
-
-        // Fill with the destinationNoData and return if no sources.
-        int notNullSources = listRasterSource.size();
-        if (notNullSources == 0) {
+        if (nullCount == sourcesNumber) {
             ImageUtil.fillBackground(destRaster, destRectangle, destinationNoDataDouble);
             return;
         }
-
-        // All the sample models are stored for using a compatible RasterAccessor
-        // Format Tag ID
-        SampleModel[] sourceSampleModels = new SampleModel[notNullSources];
-        for (int i = 0; i < notNullSources; i++) {
-            sourceSampleModels[i] = ((Raster) listRasterSource.get(i)).getSampleModel();
-        }
-
-        // The best compatible formaTagID is returned from the sources and
-        // destination sample models
-        int rasterAccessFormatTagID = RasterAccessor.findCompatibleTag(sourceSampleModels,
-                destRaster.getSampleModel());
 
         // Creates source accessors bean array (a new bean)
         RasterBeanAccessor[] sourceAccessorsArrayBean = new RasterBeanAccessor[sourcesNumber];
@@ -658,16 +928,13 @@ public class MosaicOpImage extends OpImage {
             // RasterAccessorBean temporary file
             RasterBeanAccessor helpAccessor = new RasterBeanAccessor();
             if (sourceRasters[i] != null) {
-                RasterFormatTag formatTag = new RasterFormatTag(sourceRasters[i].getSampleModel(),
-                        rasterAccessFormatTagID);
-
-                helpAccessor.setDataRasterAccessor(new RasterAccessor(sourceRasters[i],
-                        destRectangle, formatTag, null));
+                helpAccessor.setDataRasterAccessor(new RasterAccessorExt(sourceRasters[i],
+                        destRectangle, rasterFormatTags[i], sourceColorModels[i], getNumBands(),
+                        getSampleModel().getDataType()));
 
             }
             Raster alphaRaster = alphaRasters[i];
             if (alphaRaster != null) {
-
                 SampleModel alphaSampleModel = alphaRaster.getSampleModel();
                 int alphaFormatTagID = RasterAccessor.findCompatibleTag(null, alphaSampleModel);
                 RasterFormatTag alphaFormatTag = new RasterFormatTag(alphaSampleModel,
@@ -680,12 +947,11 @@ public class MosaicOpImage extends OpImage {
             helpAccessor.setSourceNoDataRangeRasterAccessor(noDataRanges[i]);
 
             sourceAccessorsArrayBean[i] = helpAccessor;
-
         }
 
         // Create dest accessor.
         RasterAccessor destinationAccessor = new RasterAccessor(destRaster, destRectangle,
-                new RasterFormatTag(destRaster.getSampleModel(), rasterAccessFormatTagID), null);
+                rasterFormatTag, null);
         // This method calculates the mosaic of the source images and stores the
         // result in the destination
         // accessor
@@ -894,7 +1160,8 @@ public class MosaicOpImage extends OpImage {
                             // the flag checks if the pixel is a noData
                             boolean isData = true;
                             if (hasNoData[s]) {
-                                isData = !(byteLookupTable[s][b][sourceValueByte&0xFF] == destinationNoDataByte[b]);
+                                isData = !(byteLookupTable[s][b][sourceValueByte
+                                        & 0xFF] == destinationNoDataByte[b]);
                             }
 
                             if (!isData) {
@@ -995,7 +1262,8 @@ public class MosaicOpImage extends OpImage {
                             // is set to 1 or 0 if the pixel has
                             // or not a No Data value
                             if (hasNoData[s]) {
-                                isData = !(byteLookupTable[s][b][sourceValueByte&0xFF] == destinationNoDataByte[b]);
+                                isData = !(byteLookupTable[s][b][sourceValueByte
+                                        & 0xFF] == destinationNoDataByte[b]);
                             }
                             if (!isData) {
                                 weight = 0F;
@@ -1014,8 +1282,8 @@ public class MosaicOpImage extends OpImage {
                                     aPixelOffsets[s] += alfaPixelStride[s];
                                     break;
                                 case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0 ? 1.0F
-                                            : 0.0F;
+                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                            ? 1.0F : 0.0F;
                                     break;
                                 default:
                                     weight = 1.0F;
@@ -1037,8 +1305,8 @@ public class MosaicOpImage extends OpImage {
                             dBandDataByte[dPixelOffset] = destinationNoDataByte[b];
 
                         } else {
-                            dBandDataByte[dPixelOffset] = ImageUtil.clampRoundByte(numerator
-                                    / denominator);
+                            dBandDataByte[dPixelOffset] = ImageUtil
+                                    .clampRoundByte(numerator / denominator);
                         }
                         // Offset update
                         dPixelOffset += dstPixelStride;
@@ -1319,7 +1587,8 @@ public class MosaicOpImage extends OpImage {
 
                             // The source valuse are initialized only for the switch
                             // method
-                            short sourceValueUshort = (short) (sBandDataUshort[s][sPixelOffsets[s]] & 0xffff);
+                            short sourceValueUshort = (short) (sBandDataUshort[s][sPixelOffsets[s]]
+                                    & 0xffff);
                             // Offset update
                             sPixelOffsets[s] += srcPixelStride[s];
                             // The weight is calculated for every pixel
@@ -1352,8 +1621,8 @@ public class MosaicOpImage extends OpImage {
                                     aPixelOffsets[s] += alfaPixelStride[s];
                                     break;
                                 case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0 ? 1.0F
-                                            : 0.0F;
+                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                            ? 1.0F : 0.0F;
                                     break;
                                 default:
                                     weight = 1.0F;
@@ -1375,8 +1644,8 @@ public class MosaicOpImage extends OpImage {
                             dBandDataUshort[dPixelOffset] = destinationNoDataUShort[b];
 
                         } else {
-                            dBandDataUshort[dPixelOffset] = ImageUtil.clampRoundUShort(numerator
-                                    / denominator);
+                            dBandDataUshort[dPixelOffset] = ImageUtil
+                                    .clampRoundUShort(numerator / denominator);
                         }
                         // Offset update
                         dPixelOffset += dstPixelStride;
@@ -1687,8 +1956,8 @@ public class MosaicOpImage extends OpImage {
                                     aPixelOffsets[s] += alfaPixelStride[s];
                                     break;
                                 case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0 ? 1.0F
-                                            : 0.0F;
+                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                            ? 1.0F : 0.0F;
                                     break;
                                 default:
                                     weight = 1.0F;
@@ -1710,8 +1979,8 @@ public class MosaicOpImage extends OpImage {
                             dBandDataShort[dPixelOffset] = destinationNoDataShort[b];
 
                         } else {
-                            dBandDataShort[dPixelOffset] = ImageUtil.clampRoundShort(numerator
-                                    / denominator);
+                            dBandDataShort[dPixelOffset] = ImageUtil
+                                    .clampRoundShort(numerator / denominator);
                         }
                         // Offset update
                         dPixelOffset += dstPixelStride;
@@ -2022,8 +2291,8 @@ public class MosaicOpImage extends OpImage {
                                     aPixelOffsets[s] += alfaPixelStride[s];
                                     break;
                                 case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0 ? 1.0F
-                                            : 0.0F;
+                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                            ? 1.0F : 0.0F;
                                     break;
                                 default:
                                     weight = 1.0F;
@@ -2045,8 +2314,8 @@ public class MosaicOpImage extends OpImage {
                             dBandDataInt[dPixelOffset] = destinationNoDataInt[b];
 
                         } else {
-                            dBandDataInt[dPixelOffset] = ImageUtil.clampRoundInt(numerator
-                                    / denominator);
+                            dBandDataInt[dPixelOffset] = ImageUtil
+                                    .clampRoundInt(numerator / denominator);
                         }
                         // Offset update
                         dPixelOffset += dstPixelStride;
@@ -2342,7 +2611,7 @@ public class MosaicOpImage extends OpImage {
                                 Range noDataRangeFloat = (srcBean[s]
                                         .getSourceNoDataRangeRasterAccessor());
                                 if (noDataRangeFloat != null) {
-                                    isData = !(noDataRangeFloat.contains(sourceValueFloat)); 
+                                    isData = !(noDataRangeFloat.contains(sourceValueFloat));
                                 }
                             }
                             if (!isData) {
@@ -2362,8 +2631,8 @@ public class MosaicOpImage extends OpImage {
                                     aPixelOffsets[s] += alfaPixelStride[s];
                                     break;
                                 case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0 ? 1.0F
-                                            : 0.0F;
+                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                            ? 1.0F : 0.0F;
                                     break;
                                 default:
                                     weight = 1.0F;
@@ -2387,8 +2656,8 @@ public class MosaicOpImage extends OpImage {
                             dBandDataFloat[dPixelOffset] = destinationNoDataFloat[b];
 
                         } else {
-                            dBandDataFloat[dPixelOffset] = ImageUtil.clampFloat(numerator
-                                    / denominator);
+                            dBandDataFloat[dPixelOffset] = ImageUtil
+                                    .clampFloat(numerator / denominator);
                         }
                         // Offset update
                         dPixelOffset += dstPixelStride;
@@ -2703,8 +2972,8 @@ public class MosaicOpImage extends OpImage {
                                     aPixelOffsets[s] += alfaPixelStride[s];
                                     break;
                                 case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0 ? 1.0F
-                                            : 0.0F;
+                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                            ? 1.0F : 0.0F;
                                     break;
                                 default:
                                     weight = 1.0F;

@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
  *    http://www.geo-solutions.it/
- *    Copyright 2014 GeoSolutions
+ *    Copyright 2014 - 2015 GeoSolutions
 
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,16 +19,12 @@ package it.geosolutions.jaiext.mosaic;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.Serializable;
 import java.util.List;
@@ -47,6 +43,10 @@ import javax.media.jai.operator.TranslateDescriptor;
 import javax.media.jai.util.ImagingException;
 
 import org.junit.Test;
+
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.testclasses.TestBase;
 
 /**
  * This test class is used for checking the functionality of the MosaicOpImage.
@@ -792,148 +792,6 @@ public class MosaicTest extends TestBase {
 	}
 
 	@Test
-	public void testExceptionImagesSameSampleSize() {
-		TestBean testBean = createBean3Images(0, true, false);
-
-		// start image array
-		RenderedImage[] mosaicArray = new RenderedImage[3];
-
-		// Creates an array for the destination band values
-		double[] destinationValues = { testBean.getDestinationNoData()[0] };
-
-		// Getting the rois, alphabands
-		PlanarImage[] alphas = testBean.getAlphas();
-		ROI[] rois = testBean.getRois();
-		Range[] nd = testBean.getSourceNoDataRange3Bands();
-
-		ImageLayout layout = (ImageLayout) hints.get(JAI.KEY_IMAGE_LAYOUT);
-
-		int width = 15;
-		int heigth = 15;
-
-		layout.setSampleModel(new SampleModel(DataBuffer.TYPE_INT, width,
-				heigth, 2) {
-
-			public void setSample(int x, int y, int b, int s, DataBuffer data) {
-
-			}
-
-			public void setDataElements(int x, int y, Object obj,
-					DataBuffer data) {
-
-			}
-
-			public int getSampleSize(int band) {
-				if (band == 0) {
-					return 1;
-				} else if (band == 1) {
-					return 2;
-				}
-				return 0;
-
-			}
-
-			public int[] getSampleSize() {
-				return new int[] { 1, 2 };
-			}
-
-			public int getSample(int x, int y, int b, DataBuffer data) {
-				return 0;
-			}
-
-			public int getNumDataElements() {
-				return 0;
-			}
-
-			public Object getDataElements(int x, int y, Object obj,
-					DataBuffer data) {
-				return null;
-			}
-
-			public SampleModel createSubsetSampleModel(int[] bands) {
-				return null;
-			}
-
-			public DataBuffer createDataBuffer() {
-				return null;
-			}
-
-			public SampleModel createCompatibleSampleModel(int w, int h) {
-				return null;
-			}
-		});
-
-		RenderingHints renderingHints = new RenderingHints(
-				JAI.KEY_IMAGE_LAYOUT, layout);
-
-		mosaicArray = new RenderedImage[0];
-
-		// MosaicNoData operation
-		RenderedImage image5 = MosaicDescriptor.create(mosaicArray,
-				DEFAULT_MOSAIC_TYPE, alphas, rois, null, destinationValues, nd,
-				renderingHints);
-		// ensure exception
-		boolean exception = false;
-		try {
-			image5.getTile(0, 0);
-		} catch (ImagingException e) {
-			assertTrue(e.getRootCause().getMessage()
-					.contains("Sample size is not the same for every band"));
-			LOGGER.log(Level.INFO, "Sample size is not the same for every band");
-			exception = true;
-		}
-		// check the exception
-		assertTrue(exception);
-
-	}
-
-	@Test
-	public void testExceptionImagesSameBandNum() {
-		TestBean testBean = createBean3Images(0, true, false);
-
-		// start image array
-		RenderedImage[] mosaicArray = new RenderedImage[2];
-
-		// Creates an array for the destination band values
-		double[] destinationValues = { testBean.getDestinationNoData()[0] };
-
-		// Getting the rois, alphabands
-		PlanarImage[] alphas = testBean.getAlphas();
-		ROI[] rois = testBean.getRois();
-		Range[] nd = testBean.getSourceNoDataRange3Bands();
-
-		ImageLayout layout = (ImageLayout) hints.get(JAI.KEY_IMAGE_LAYOUT);
-		RenderingHints renderingHints = new RenderingHints(
-				JAI.KEY_IMAGE_LAYOUT, layout);
-		Number[] exampleData = { 15, 15 };
-		mosaicArray[0] = getSyntheticUniformTypeImage(exampleData, null,
-				DataBuffer.TYPE_INT, 3, DataDisplacement.DATA_DATA, true, false);
-		mosaicArray[1] = getSyntheticUniformTypeImage(exampleData, null,
-				DataBuffer.TYPE_INT, 1, DataDisplacement.DATA_DATA, false,
-				false);
-
-		// MosaicNoData operation
-		RenderedImage image5 = MosaicDescriptor.create(mosaicArray,
-				DEFAULT_MOSAIC_TYPE, alphas, rois, null, destinationValues, nd,
-				renderingHints);
-
-		// ensure exception
-		boolean exception = false;		
-		try {
-			image5.getTile(0, 0);
-		} catch (ImagingException e) {
-			assertTrue(e.getRootCause().getMessage()
-					.contains("Bands number is not the same for every source"));
-			LOGGER.log(Level.INFO,
-					"Bands number is not the same for every source");
-			exception = true;
-		}
-		// check the exception
-		assertTrue(exception);
-
-	}
-
-	@Test
 	public void testExceptionImagesSameSizeSourcesAndNoData() {
 		TestBean testBean = createBean3Images(0, true, false);
 
@@ -1147,8 +1005,8 @@ public class MosaicTest extends TestBase {
 				arrayPixel3Band = testExecution3Image(testBean, 3, overlay);
 
 				if (!overlay) {
-					double centerValue = (double) ((secondValue.doubleValue() + sixthValue
-							.doubleValue()) / 2);
+					double centerValue = (secondValue.doubleValue() + sixthValue
+							.doubleValue()) / 2;
 					if (dataType < 4) {
 						centerValue += 1;
 					}
