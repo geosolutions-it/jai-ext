@@ -379,26 +379,33 @@ public class RangeFactory {
 
         switch (targetType) {
         case BYTE:
-            return RangeFactory.create(range.getMin().byteValue(), range.getMax().byteValue());
+            return RangeFactory.create(range.getMin().byteValue(), range.isMinIncluded(),
+                    range.getMax().byteValue(), range.isMaxIncluded);
 
         case SHORT:
-            return RangeFactory.create(range.getMin().shortValue(), range.getMax().shortValue());
+            return RangeFactory.create(range.getMin().shortValue(), range.isMinIncluded(),
+                    range.getMax().shortValue(), range.isMaxIncluded);
 
         case USHORT:
             return RangeFactory.create((short) (range.getMin().intValue() & 0xFFF),
-                    (short) (range.getMax().shortValue() & 0xFFF));
+                    range.isMinIncluded(), (short) (range.getMax().shortValue() & 0xFFF),
+                    range.isMaxIncluded);
 
         case INTEGER:
-            return RangeFactory.create(range.getMin().intValue(), range.getMax().intValue());
+            return RangeFactory.create(range.getMin().intValue(), range.isMinIncluded(),
+                    range.getMax().intValue(), range.isMaxIncluded);
 
         case LONG:
-            return RangeFactory.create(range.getMin().longValue(), range.getMax().longValue());
+            return RangeFactory.create(range.getMin().longValue(), range.isMinIncluded(),
+                    range.getMax().longValue(), range.isMaxIncluded);
 
         case FLOAT:
-            return RangeFactory.create(range.getMin().floatValue(), range.getMax().floatValue());
+            return RangeFactory.create(range.getMin().floatValue(), range.isMinIncluded(),
+                    range.getMax().floatValue(), range.isMaxIncluded);
 
         case DOUBLE:
-            return RangeFactory.create(range.getMin().doubleValue(), range.getMax().doubleValue());
+            return RangeFactory.create(range.getMin().doubleValue(), range.isMinIncluded(),
+                    range.getMax().doubleValue(), range.isMaxIncluded);
 
         default:
             throw new IllegalArgumentException("Unexpected data type " + targetType);

@@ -376,7 +376,7 @@ public abstract class Range {
 
     @Override
     public int hashCode() {
-        int result = (int) 37;
+        int result = 37;
             result += getDataType().getClass().hashCode();
             result = hash(isMaxIncluded, result);
             result = hash(isMinIncluded, result);
@@ -396,5 +396,22 @@ public abstract class Range {
     
     public static int hash(long value, int seed) {
         return seed * PRIME_NUMBER + (((int) value) ^ ((int) (value >>> 32)));
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder(getClass().getSimpleName());
+        if (isMinIncluded()) {
+            sb.append("[");
+        } else {
+            sb.append("]");
+        }
+        sb.append(getMin()).append(", ").append(getMax());
+        if (isMaxIncluded()) {
+            sb.append("]");
+        } else {
+            sb.append("[");
+        }
+        return sb.toString();
     }
 }
