@@ -388,6 +388,19 @@ public class MosaicOpImage extends OpImage {
             }
 
             IndexColorModel sourceColorModel = (IndexColorModel) source.getColorModel();
+
+            // check the basics
+            if (reference.getNumColorComponents() != sourceColorModel.getNumColorComponents()) {
+                throw new IllegalArgumentException("Cannot mosaic togheter images with index "
+                        + "color models having different numbers of color components:\n "
+                        + reference + "\n" + sourceColorModel);
+            }
+
+            // if not the same color space, then we need to expand
+            if (!reference.getColorSpace().equals(reference.getColorSpace())) {
+                return false;
+            }
+
             if (!sourceColorModel.equals(reference) || sourceColorModel.getMapSize() != mapSize) {
                 uniformPalettes = false;
                 break;
@@ -721,7 +734,7 @@ public class MosaicOpImage extends OpImage {
                         imageBeans[i].setRoi(noDataRoi);
                         imageBeans[i].setRoiImage(noDataRoi.getAsImage());
                     } else {
-                        ROI intersection = imageBeans[i].getRoi().intersect(noDataRoi);
+                        ROI intersection = noDataRoi.intersect(imageBeans[i].getRoi());
                         imageBeans[i].setRoi(intersection);
                         imageBeans[i].setRoiImage(intersection.getAsImage());
                     }
@@ -767,7 +780,7 @@ public class MosaicOpImage extends OpImage {
         case DataBuffer.TYPE_BYTE:
             table = new byte[256];
             for (int i = 0; i < table.length; i++) {
-                if (noDataRange.contains((byte) (i & 0xFF))) {
+                if (noDataRange.contains(i)) {
                     table[i] = 0;
                 } else {
                     table[i] = 1;
@@ -777,7 +790,7 @@ public class MosaicOpImage extends OpImage {
         case DataBuffer.TYPE_USHORT:
             table = new byte[65536];
             for (int i = 0; i < table.length; i++) {
-                if (noDataRange.contains((short) (i & 0xFFFF))) {
+                if (noDataRange.contains(i)) {
                     table[i] = 0;
                 } else {
                     table[i] = 1;
