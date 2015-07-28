@@ -237,7 +237,8 @@ public class RasterAccessorExt extends RasterAccessor {
             int max = noData.getMax().intValue();
             byte scaledMin = (byte) (shortToByte(min) & 0xFF);
             byte scaledMax = (byte) (shortToByte(max) & 0xFF);
-            return RangeFactory.create(scaledMin, scaledMax);
+            return RangeFactory.create(scaledMin, noData.isMinIncluded(), scaledMax,
+                    noData.isMaxIncluded());
         } else if (rft.getNumBands() == 1
                 && (rft.getFormatTagID() & GRAY_EXPANSION_MASK) == GRAY_SCALE) {
             if (targetDataType == DataBuffer.TYPE_USHORT
@@ -246,7 +247,8 @@ public class RasterAccessorExt extends RasterAccessor {
                 int max = noData.getMax().intValue();
                 int expandedMin = byteToShort(min);
                 int expandedMax = byteToShort(max);
-                return RangeFactory.create(expandedMin, expandedMax);
+                return RangeFactory.create(expandedMin, noData.isMinIncluded(), expandedMax,
+                        noData.isMaxIncluded());
             } else {
                 throw new IllegalArgumentException("Cannot perform gray rescaling from data type "
                         + sourceDataType + " to data type " + targetDataType);
