@@ -31,7 +31,7 @@ import org.junit.Test;
 
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
-import it.geosolutions.jaiext.range.RangeUshort;
+import it.geosolutions.jaiext.range.RangeInt;
 
 public class RasterAccessorExtTest {
 
@@ -44,10 +44,10 @@ public class RasterAccessorExtTest {
 
         Range range = RangeFactory.create(Float.NEGATIVE_INFINITY, false, 1f, false);
         Range expanded = RasterAccessorExt.expandNoData(range, tags[0], byteGray, ushortGray);
-        assertThat(expanded, instanceOf(RangeUshort.class));
-        assertEquals(0, expanded.getMin().intValue());
+        assertThat(expanded, instanceOf(RangeInt.class));
+        assertEquals(-2147483648, expanded.getMin().intValue());
         assertFalse(expanded.isMinIncluded());
-        assertEquals(1, expanded.getMax().intValue());
+        assertEquals(257, expanded.getMax().intValue());
         assertFalse(expanded.isMaxIncluded());
     }
 }
