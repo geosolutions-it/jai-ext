@@ -6,11 +6,11 @@
 	<parent>
 		<groupId>it.geosolutions.jaiext</groupId>
 		<artifactId>jaiext</artifactId>
-		<version>$version</version>
+		<version>1.0.4</version>
 	</parent>
 	<groupId>it.geosolutions.jaiext.piecewise</groupId>
 	<artifactId>jt-piecewise</artifactId>
-	<version>$version</version>
+	<version>1.0.4</version>
 	<name>jt-piecewise</name>
 	<url>http://maven.apache.org</url>
 	<properties>

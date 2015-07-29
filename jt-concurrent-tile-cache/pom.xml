@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>it.geosolutions.jaiext</groupId>
 		<artifactId>jaiext</artifactId>
-		<version>$version</version>
+		<version>1.0.4</version>
 	</parent>
 	<groupId>it.geosolutions.jaiext.concurrent-tile-cache</groupId>
 	<artifactId>jt-concurrent-tile-cache</artifactId>
