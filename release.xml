@@ -3,12 +3,11 @@
   <target name="release">
     <property name="version" value="$version" />
 
-    <property file="../release.properties" />
-
     <property name="host" value="demo.geo-solutions.it" />
     <property name="remoteReleasesPath" value="${path}" />
-    <property name="user" value="${USR}" />
-    <property name="password" value="${PSW}" />
+    <property name="user" value="${deployUser}" />
+    <property name="keyfile" value="${deployKeyFile}" />
+    <property name="scpPort" value="${deployScpPort}" />
 
     <!-- Prepare deployment folder -->
     <delete includeEmptyDirs="true" dir="deploy" />
@@ -24,11 +23,10 @@
      <copy file="target/release/jai-ext-${version}-src.zip" toFile="deploy/jai-ext-${version}-sources.zip" />
      
      <!-- transfer to Remote-->
-     <scp todir="${user}:${password}@${host}:${remoteReleasesPath}/${version}" trust="true">
+     <scp port="${scpPort}" keyfile="${keyfile}" todir="${user}@${host}:${remoteReleasesPath}/${version}" trust="true">
        <fileset dir="deploy">
          <include name="*"/>
        </fileset>
      </scp>
   </target>
 </project>
-
