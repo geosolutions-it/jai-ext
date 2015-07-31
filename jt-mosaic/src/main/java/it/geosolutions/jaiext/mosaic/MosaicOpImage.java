@@ -251,6 +251,7 @@ public class MosaicOpImage extends OpImage {
         result.setSampleModel(firstSampleModel);
         // easy case
         if (numSources == 1) {
+            result.setColorModel(firstColorModel);
             return result;
         }
 

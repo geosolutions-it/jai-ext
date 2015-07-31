@@ -28,7 +28,6 @@ import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 
 import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.Range.DataType;
 import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
@@ -252,28 +251,6 @@ public class RasterAccessorExt extends RasterAccessor {
             } else {
                 throw new IllegalArgumentException("Cannot perform gray rescaling from data type "
                         + sourceDataType + " to data type " + targetDataType);
-            }
-        } else if (!isPaletteExpansionRequired(sourceImage, formatTagID)) {
-            // handle data type expansion/reduction (palette expansion is manually handled
-            // in the pixel extraction
-            switch (targetDataType) {
-            case DataBuffer.TYPE_BYTE:
-                return RangeFactory.cast(noData, DataType.BYTE);
-
-            case DataBuffer.TYPE_SHORT:
-                return RangeFactory.cast(noData, DataType.SHORT);
-
-            case DataBuffer.TYPE_USHORT:
-                return RangeFactory.cast(noData, DataType.USHORT);
-
-            case DataBuffer.TYPE_INT:
-                return RangeFactory.cast(noData, DataType.INTEGER);
-
-            case DataBuffer.TYPE_FLOAT:
-                return RangeFactory.cast(noData, DataType.FLOAT);
-
-            case DataBuffer.TYPE_DOUBLE:
-                return RangeFactory.cast(noData, DataType.DOUBLE);
             }
         }
 
