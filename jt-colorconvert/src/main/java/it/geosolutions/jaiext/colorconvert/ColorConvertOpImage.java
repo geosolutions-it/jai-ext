@@ -17,10 +17,6 @@
  */
 package it.geosolutions.jaiext.colorconvert;
 
-import it.geosolutions.jaiext.iterators.RandomIterFactory;
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.color.ColorSpace;
@@ -50,6 +46,10 @@ import javax.media.jai.RasterFactory;
 import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.ImageUtil;
+
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * An <code>OpImage</code> implementing the "ColorConvert" operation as described in <code>ColorConvertDescriptor</code>.
@@ -191,10 +191,10 @@ public class ColorConvertOpImage extends PointOpImage {
             range = 255;
             break;
         case DataBuffer.TYPE_SHORT:
-            range = Short.MAX_VALUE - (int) Short.MIN_VALUE;
+            range = Short.MAX_VALUE - Short.MIN_VALUE;
             break;
         case DataBuffer.TYPE_USHORT:
-            range = Short.MAX_VALUE - (int) Short.MIN_VALUE;
+            range = Short.MAX_VALUE - Short.MIN_VALUE;
             break;
         case DataBuffer.TYPE_INT:
             range = Integer.MAX_VALUE - (long) Integer.MIN_VALUE;
@@ -555,8 +555,9 @@ public class ColorConvertOpImage extends PointOpImage {
 
         int rectYMax = destRect.y + destRect.height;
         int rectXMax = destRect.x + destRect.width;
-        int numComponents = srcColorSpace.getNumComponents();
-        float[] srcPixel = new float[numComponents];
+        int srcNumComponents = srcColorSpace.getNumComponents();
+        int dstNumComponents = dstColorSpace.getNumComponents();
+        float[] srcPixel = new float[srcNumComponents];
         float[] xyzPixel;
         float[] dstPixel;
         // Conversion from input value to Double range in order to check the input values
@@ -574,7 +575,7 @@ public class ColorConvertOpImage extends PointOpImage {
                     srcPixel = src.getPixel(x, y, srcPixel);
                     if (!srcFloat) {
                         // Normalize the source samples.
-                        for (int i = 0; i < numComponents; i++) {
+                        for (int i = 0; i < srcNumComponents; i++) {
                             srcPixel[i] = (srcPixel[i] - srcMinValue) / srcRange;
                         }
                     }
@@ -585,7 +586,7 @@ public class ColorConvertOpImage extends PointOpImage {
 
                     if (!dstFloat) {
                         // Scale the destination samples.
-                        for (int i = 0; i < numComponents; i++) {
+                        for (int i = 0; i < dstNumComponents; i++) {
                             dstPixel[i] = (dstPixel[i] * dstRange + dstMinValue);
                         }
                     }
@@ -602,7 +603,7 @@ public class ColorConvertOpImage extends PointOpImage {
                         srcPixel = src.getPixel(x, y, srcPixel);
                         if (!srcFloat) {
                             // Normalize the source samples.
-                            for (int i = 0; i < numComponents; i++) {
+                            for (int i = 0; i < srcNumComponents; i++) {
                                 srcPixel[i] = (srcPixel[i] - srcMinValue) / srcRange;
                             }
                         }
@@ -613,7 +614,7 @@ public class ColorConvertOpImage extends PointOpImage {
 
                         if (!dstFloat) {
                             // Scale the destination samples.
-                            for (int i = 0; i < numComponents; i++) {
+                            for (int i = 0; i < dstNumComponents; i++) {
                                 dstPixel[i] = (dstPixel[i] * dstRange + dstMinValue);
                             }
                         }
@@ -629,7 +630,7 @@ public class ColorConvertOpImage extends PointOpImage {
 
                     // NoData Check
                     boolean valid = true;
-                    for (int i = 0; i < numComponents && valid; i++) {
+                    for (int i = 0; i < srcNumComponents && valid; i++) {
                         valid &= !(noData.contains((double) srcPixel[i]));
                     }
 
@@ -638,7 +639,7 @@ public class ColorConvertOpImage extends PointOpImage {
                     } else {
                         if (!srcFloat) {
                             // Normalize the source samples.
-                            for (int i = 0; i < numComponents; i++) {
+                            for (int i = 0; i < srcNumComponents; i++) {
                                 srcPixel[i] = (srcPixel[i] - srcMinValue) / srcRange;
                             }
                         }
@@ -649,7 +650,7 @@ public class ColorConvertOpImage extends PointOpImage {
 
                         if (!dstFloat) {
                             // Scale the destination samples.
-                            for (int i = 0; i < numComponents; i++) {
+                            for (int i = 0; i < dstNumComponents; i++) {
                                 dstPixel[i] = (dstPixel[i] * dstRange + dstMinValue);
                             }
                         }
@@ -668,7 +669,7 @@ public class ColorConvertOpImage extends PointOpImage {
                         srcPixel = src.getPixel(x, y, srcPixel);
                         // NoData Check
                         boolean valid = true;
-                        for (int i = 0; i < numComponents && valid; i++) {
+                        for (int i = 0; i < srcNumComponents && valid; i++) {
                             valid &= !(noData.contains((double) srcPixel[i]));
                         }
 
@@ -677,7 +678,7 @@ public class ColorConvertOpImage extends PointOpImage {
                         } else {
                             if (!srcFloat) {
                                 // Normalize the source samples.
-                                for (int i = 0; i < numComponents; i++) {
+                                for (int i = 0; i < srcNumComponents; i++) {
                                     srcPixel[i] = (srcPixel[i] - srcMinValue) / srcRange;
                                 }
                             }
@@ -688,7 +689,7 @@ public class ColorConvertOpImage extends PointOpImage {
 
                             if (!dstFloat) {
                                 // Scale the destination samples.
-                                for (int i = 0; i < numComponents; i++) {
+                                for (int i = 0; i < dstNumComponents; i++) {
                                     dstPixel[i] = (dstPixel[i] * dstRange + dstMinValue);
                                 }
                             }
@@ -758,7 +759,7 @@ public class ColorConvertOpImage extends PointOpImage {
             convertBufferToSigned(buf, type);
 
             if (ras instanceof WritableRaster)
-                tempRas = (WritableRaster) ras;
+                tempRas = ras;
             else
                 tempRas = createTempWritableRaster(ras);
             tempRas.setPixels(minX, minY, w, h, buf);

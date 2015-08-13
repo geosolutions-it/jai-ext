@@ -17,13 +17,12 @@
  */
 package it.geosolutions.jaiext.colorconvert;
 
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-import it.geosolutions.jaiext.testclasses.TestBase;
-import it.geosolutions.jaiext.testclasses.TestData;
-import it.geosolutions.rendered.viewer.RenderedImageBrowser;
+import static org.junit.Assert.assertEquals;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.Transparency;
 import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
@@ -45,7 +44,14 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
 
+import org.jaitools.imageutils.ImageLayout2;
 import org.junit.Test;
+
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.testclasses.TestBase;
+import it.geosolutions.jaiext.testclasses.TestData;
+import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 /**
  * Test class for the ColorConvert operation
@@ -410,7 +416,39 @@ public class TestColorConvert extends TestBase {
         else
             finalimage.getTiles();
         finalimage.dispose();
+    }
 
+    @Test
+    public void testExpandGrayCaseC() {
+        // create gray indexed image
+        BufferedImage bi = new BufferedImage(10, 10, BufferedImage.TYPE_BYTE_GRAY);
+        Graphics2D gr = bi.createGraphics();
+        gr.setColor(Color.GRAY);
+        gr.fillRect(0, 0, 10, 10);
+        gr.dispose();
+
+        // create a RGB color model
+        final ColorModel cm = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB),
+                false, false, Transparency.OPAQUE, bi.getSampleModel().getDataType());
+
+        // set the destination image layout
+        final ImageLayout2 il = new ImageLayout2(bi);
+        il.setColorModel(cm);
+        il.setSampleModel(cm.createCompatibleSampleModel(bi.getWidth(), bi.getHeight()));
+        RenderingHints ri = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, il);
+
+        // perform color expansion
+        ParameterBlockJAI pbj = new ParameterBlockJAI("ColorConvert");
+        pbj.addSource(bi);
+        pbj.setParameter("colorModel", cm);
+        pbj.setParameter("noData", RangeFactory.create(-1, -1));
+        RenderedOp finalimage = JAI.create("ColorConvert", pbj, ri);
+
+        int[] pixel = new int[3];
+        finalimage.getData().getPixel(0, 0, pixel);
+        assertEquals(128, pixel[0]);
+        assertEquals(128, pixel[1]);
+        assertEquals(128, pixel[2]);
     }
 
     /**
