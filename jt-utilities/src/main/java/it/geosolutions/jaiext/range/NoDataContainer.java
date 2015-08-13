@@ -1,7 +1,6 @@
 package it.geosolutions.jaiext.range;
 
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
+import java.util.Arrays;
 
 /**
  * Simple class containing the NoData value/s to pass as a property object
@@ -52,5 +51,11 @@ public class NoDataContainer {
 
     public Range getAsRange() {
         return nodataR;
+    }
+
+    @Override
+    public String toString() {
+        return "NoDataContainer [nodataR=" + nodataR + ", array=" + Arrays.toString(array)
+                + ", singleValue=" + singleValue + "]";
     }
 }

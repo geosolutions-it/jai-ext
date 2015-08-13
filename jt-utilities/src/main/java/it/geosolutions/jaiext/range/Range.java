@@ -231,6 +231,8 @@ public abstract class Range {
         return minCheck && maxCheck;
     }
 
+    public abstract Range intersection(Range other);
+
     public abstract Range union(Range other);
 
     /** Returns the Range data Type */

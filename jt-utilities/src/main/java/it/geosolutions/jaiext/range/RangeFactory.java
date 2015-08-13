@@ -165,27 +165,19 @@ public class RangeFactory {
             return input;
         }
 
-        boolean minIncluded = input.isMinIncluded();
-        boolean maxIncluded = input.isMaxIncluded();
-
-        Number min = input.getMin();
-        Number max = input.getMax();
-
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
-            return new RangeByte(min.byteValue(), minIncluded, max.byteValue(), maxIncluded);
+            return RangeByte.FULL_RANGE.intersection(input);
         case DataBuffer.TYPE_USHORT:
-            return new RangeUshort(min.shortValue(), minIncluded, max.shortValue(), maxIncluded);
+            return RangeUshort.FULL_RANGE.intersection(input);
         case DataBuffer.TYPE_SHORT:
-            return new RangeShort(min.shortValue(), minIncluded, max.shortValue(), maxIncluded);
+            return RangeShort.FULL_RANGE.intersection(input);
         case DataBuffer.TYPE_INT:
-            return new RangeInt(min.intValue(), minIncluded, max.intValue(), maxIncluded);
+            return RangeInt.FULL_RANGE.intersection(input);
         case DataBuffer.TYPE_FLOAT:
-            return new RangeFloat(min.floatValue(), minIncluded, max.floatValue(), maxIncluded,
-                    input.isNanIncluded());
+            return RangeFloat.FULL_RANGE.intersection(input);
         case DataBuffer.TYPE_DOUBLE:
-            return new RangeDouble(min.floatValue(), minIncluded, max.floatValue(), maxIncluded,
-                    input.isNanIncluded());
+            return RangeDouble.FULL_RANGE.intersection(input);
         default:
             return null;
         }
@@ -310,52 +302,7 @@ public class RangeFactory {
     }
 
     public static Range intersect(Range r1, Range r2) {
-        // Initial checks
-        if (r1.contains(r2)) {
-            return r2;
-        }
-
-        if (r2.contains(r1)) {
-            return r1;
-        }
-        // Checks on the bounds
-
-        double min1 = r1.getMin().doubleValue();
-        double min2 = r2.getMin().doubleValue();
-        double max1 = r1.getMax().doubleValue();
-        double max2 = r2.getMax().doubleValue();
-
-        // Checks on the comparison between the min and max
-        boolean minmin = equals(min1, min2);
-        boolean maxmax = equals(max1, max2);
-        boolean minmax = equals(min1, max2);
-        boolean maxmin = equals(max1, min2);
-
-        // Check on the single point comparison
-        if (minmax && r1.isMinIncluded() && r2.isMaxIncluded()) {
-            return RangeFactory.create(min1, min1);
-        }
-        if (maxmin && r1.isMaxIncluded() && r2.isMinIncluded()) {
-            return RangeFactory.create(min2, min2);
-        }
-
-        if ((min1 > max2 || min2 > max1)) {
-            return null;
-        }
-        // More precise checks
-        boolean min1Used = min1 > min2;
-        boolean max1Used = max1 < max2;
-
-        double minN = min1Used || minmin ? min1 : min2;
-        double maxN = max1Used || maxmax ? max1 : max2;
-
-        boolean minIncluded = (minmin && r1.isMinIncluded() && r2.isMinIncluded())
-                || (min1Used ? r1.isMinIncluded() : r2.isMinIncluded());
-
-        boolean maxIncluded = (maxmax && r1.isMaxIncluded() && r2.isMaxIncluded())
-                || (max1Used ? r1.isMaxIncluded() : r2.isMaxIncluded());
-
-        return RangeFactory.create(minN, minIncluded, maxN, maxIncluded);
+        return r1.intersection(r2);
     }
 
     public static boolean equals(double d1, double d2) {

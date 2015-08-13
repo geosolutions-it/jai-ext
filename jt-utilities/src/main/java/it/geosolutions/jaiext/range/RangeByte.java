@@ -22,6 +22,8 @@ import it.geosolutions.jaiext.utilities.ImageUtilities;
  * This class is a subclass of the {@link Range} class handling byte data.
  */
 public class RangeByte extends Range {
+    
+    public static RangeByte FULL_RANGE = new RangeByte((byte) 0, true, (byte) (255 & 0xFF), true);
 
     /** Minimum range bound */
     private final int minValue;
@@ -122,9 +124,9 @@ public class RangeByte extends Range {
     }
     
     public Range union(Range other){
-        if(this.contains(other)){
+        if (this.contains(other)) {
             return this;
-        } else if(other.contains(this)){
+        } else if (other.contains(this)) {
             return other;
         }
         
@@ -151,5 +153,44 @@ public class RangeByte extends Range {
         }
         
         return new RangeByte((byte)finalMin, minIncluded, (byte)finalMax, maxIncluded);
+    }
+
+    @Override
+    public Range intersection(Range other) {
+        if (other.getDataType() == getDataType()) {
+            if (other.contains(this)) {
+                return this;
+            } else if (this.contains(other)) {
+                return other;
+            }
+        }
+
+        int minOther = other.getMin().intValue();
+        int maxOther = other.getMax().intValue();
+
+        int finalMin = minValue;
+        int finalMax = maxValue;
+
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+
+        if (minOther > minValue) {
+            finalMin = minOther;
+            minIncluded = other.isMinIncluded();
+        } else if (minOther == minValue) {
+            minIncluded &= other.isMinIncluded();
+        }
+        if (maxOther < maxValue) {
+            finalMax = maxOther;
+            maxIncluded = other.isMaxIncluded();
+        } else if (maxOther == maxValue) {
+            maxIncluded &= other.isMaxIncluded();
+        }
+
+        if (finalMax < finalMin || (finalMax == finalMin && !minIncluded && !maxIncluded)) {
+            return null;
+        }
+
+        return new RangeByte((byte) finalMin, minIncluded, (byte) finalMax, maxIncluded);
     }
 }

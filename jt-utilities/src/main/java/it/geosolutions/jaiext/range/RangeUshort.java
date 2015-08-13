@@ -24,6 +24,8 @@ import it.geosolutions.jaiext.utilities.ImageUtilities;
  */
 public class RangeUshort extends Range {
 
+    public static RangeUshort FULL_RANGE = new RangeUshort(0, true, 65535, true);
+
     /** Minimum range bound */
     private final int minValue;
 
@@ -33,7 +35,7 @@ public class RangeUshort extends Range {
     /** Boolean indicating if the maximum bound is included */
     private final boolean isPoint;
 
-    RangeUshort(short minValue, boolean minIncluded, short maxValue, boolean maxIncluded) {
+    RangeUshort(int minValue, boolean minIncluded, int maxValue, boolean maxIncluded) {
         super(minIncluded, maxIncluded);
     	int valueMin = minValue & 0xFFFF;
         int valueMax = maxValue & 0xFFFF;
@@ -155,5 +157,44 @@ public class RangeUshort extends Range {
         }
         
         return new RangeUshort((short)finalMin, minIncluded, (short)finalMax, maxIncluded);
+    }
+
+    @Override
+    public Range intersection(Range other) {
+        if (other.getDataType() == getDataType()) {
+            if (other.contains(this)) {
+                return this;
+            } else if (this.contains(other)) {
+                return other;
+            }
+        }
+
+        int minOther = other.getMin().intValue();
+        int maxOther = other.getMax().intValue();
+
+        int finalMin = minValue;
+        int finalMax = maxValue;
+
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+
+        if (minOther > minValue) {
+            finalMin = minOther;
+            minIncluded = other.isMinIncluded();
+        } else if (minOther == minValue) {
+            minIncluded &= other.isMinIncluded();
+        }
+        if (maxOther < maxValue) {
+            finalMax = maxOther;
+            maxIncluded = other.isMaxIncluded();
+        } else if (maxOther == maxValue) {
+            maxIncluded &= other.isMaxIncluded();
+        }
+
+        if (finalMax < finalMin || (finalMax == finalMin && !minIncluded && !maxIncluded)) {
+            return null;
+        }
+
+        return new RangeUshort((short) finalMin, minIncluded, (short) finalMax, maxIncluded);
     }
 }

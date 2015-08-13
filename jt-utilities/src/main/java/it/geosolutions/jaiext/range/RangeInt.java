@@ -23,6 +23,10 @@ import it.geosolutions.jaiext.utilities.ImageUtilities;
  * This class is a subclass of the {@link Range} class handling Integer data.
  */
 public class RangeInt extends Range {
+
+    public static RangeInt FULL_RANGE = new RangeInt(Integer.MIN_VALUE, true, Integer.MAX_VALUE,
+            true);
+
     /** Minimum range bound */
     private final int minValue;
 
@@ -147,6 +151,45 @@ public class RangeInt extends Range {
             maxIncluded |= other.isMaxIncluded();
         }
         
+        return new RangeInt(finalMin, minIncluded, finalMax, maxIncluded);
+    }
+
+    @Override
+    public Range intersection(Range other) {
+        if (other.getDataType() == getDataType()) {
+            if (other.contains(this)) {
+                return this;
+            } else if (this.contains(other)) {
+                return other;
+            }
+        }
+
+        int minOther = other.getMin().intValue();
+        int maxOther = other.getMax().intValue();
+
+        int finalMin = minValue;
+        int finalMax = maxValue;
+
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+
+        if (minOther > minValue) {
+            finalMin = minOther;
+            minIncluded = other.isMinIncluded();
+        } else if (minOther == minValue) {
+            minIncluded &= other.isMinIncluded();
+        }
+        if (maxOther < maxValue) {
+            finalMax = maxOther;
+            maxIncluded = other.isMaxIncluded();
+        } else if (maxOther == maxValue) {
+            maxIncluded &= other.isMaxIncluded();
+        }
+
+        if (finalMax < finalMin || (finalMax == finalMin && !minIncluded && !maxIncluded)) {
+            return null;
+        }
+
         return new RangeInt(finalMin, minIncluded, finalMax, maxIncluded);
     }
 }

@@ -25,6 +25,7 @@ import it.geosolutions.jaiext.utilities.ImageUtilities;
  */
 public class RangeLong extends Range {
 
+    public static RangeLong FULL_RANGE = new RangeLong(Long.MIN_VALUE, true, Long.MAX_VALUE, true);
     
     /** Minimum range bound */
     private final long minValue;
@@ -150,6 +151,45 @@ public class RangeLong extends Range {
             maxIncluded |= other.isMaxIncluded();
         }
         
+        return new RangeLong(finalMin, minIncluded, finalMax, maxIncluded);
+    }
+
+    @Override
+    public Range intersection(Range other) {
+        if (other.getDataType() == getDataType()) {
+            if (other.contains(this)) {
+                return this;
+            } else if (this.contains(other)) {
+                return other;
+            }
+        }
+
+        long minOther = other.getMin().longValue();
+        long maxOther = other.getMax().longValue();
+
+        long finalMin = minValue;
+        long finalMax = maxValue;
+
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+
+        if (minOther > minValue) {
+            finalMin = minOther;
+            minIncluded = other.isMinIncluded();
+        } else if (minOther == minValue) {
+            minIncluded &= other.isMinIncluded();
+        }
+        if (maxOther < maxValue) {
+            finalMax = maxOther;
+            maxIncluded = other.isMaxIncluded();
+        } else if (maxOther == maxValue) {
+            maxIncluded &= other.isMaxIncluded();
+        }
+
+        if (finalMax < finalMin || (finalMax == finalMin && !minIncluded && !maxIncluded)) {
+            return null;
+        }
+
         return new RangeLong(finalMin, minIncluded, finalMax, maxIncluded);
     }
 }

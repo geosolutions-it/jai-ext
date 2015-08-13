@@ -25,6 +25,9 @@ import it.geosolutions.jaiext.utilities.ImageUtilities;
  */
 public class RangeDouble extends Range {
 
+    public static RangeDouble FULL_RANGE = new RangeDouble(Double.NEGATIVE_INFINITY, true,
+            Double.POSITIVE_INFINITY, true, true);
+
     /** Minimum range bound */
     private final double minValue;
 
@@ -205,6 +208,48 @@ public class RangeDouble extends Range {
         
         boolean isNaNIncluded = this.isNaN() || other.isNaN() || this.isNanIncluded() || other.isNanIncluded();
         
+        return new RangeDouble(finalMin, minIncluded, finalMax, maxIncluded, isNaNIncluded);
+    }
+
+    @Override
+    public Range intersection(Range other) {
+        if (other.getDataType() == getDataType()) {
+            if (other.contains(this)) {
+                return this;
+            } else if (this.contains(other)) {
+                return other;
+            }
+        }
+
+        double minOther = other.getMin().doubleValue();
+        double maxOther = other.getMax().doubleValue();
+
+        double finalMin = minValue;
+        double finalMax = maxValue;
+
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+
+        if (minOther > minValue) {
+            finalMin = minOther;
+            minIncluded = other.isMinIncluded();
+        } else if (minOther == minValue) {
+            minIncluded &= other.isMinIncluded();
+        }
+        if (maxOther < maxValue) {
+            finalMax = maxOther;
+            maxIncluded = other.isMaxIncluded();
+        } else if (maxOther == maxValue) {
+            maxIncluded &= other.isMaxIncluded();
+        }
+
+        if (finalMax < finalMin || (finalMax == finalMin && !minIncluded && !maxIncluded)) {
+            return null;
+        }
+
+        boolean isNaNIncluded = this.isNaN() && other.isNaN() && this.isNanIncluded()
+                && other.isNanIncluded();
+
         return new RangeDouble(finalMin, minIncluded, finalMax, maxIncluded, isNaNIncluded);
     }
 }

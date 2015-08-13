@@ -185,46 +185,6 @@ public class RangeTest {
 
     private static DoubleRange rangeCommonsDpoint;
 
-//    private static NumberRange<Byte> rangeGeoToolsB;
-//
-//    private static NumberRange<Short> rangeGeoToolsS;
-//
-//    private static NumberRange<Integer> rangeGeoToolsI;
-//
-//    private static NumberRange<Float> rangeGeoToolsF;
-//
-//    private static NumberRange<Double> rangeGeoToolsD;
-//
-//    private static NumberRange<Byte> rangeGeoToolsBpoint;
-//
-//    private static NumberRange<Short> rangeGeoToolsSpoint;
-//
-//    private static NumberRange<Integer> rangeGeoToolsIpoint;
-//
-//    private static NumberRange<Float> rangeGeoToolsFpoint;
-//
-//    private static NumberRange<Double> rangeGeoToolsDpoint;
-
-//    private static com.google.common.collect.Range<Byte> rangeGuavaB;
-//
-//    private static com.google.common.collect.Range<Short> rangeGuavaS;
-//
-//    private static com.google.common.collect.Range<Integer> rangeGuavaI;
-//
-//    private static com.google.common.collect.Range<Float> rangeGuavaF;
-//
-//    private static com.google.common.collect.Range<Double> rangeGuavaD;
-//
-//    private static com.google.common.collect.Range<Byte> rangeGuavaBpoint;
-//
-//    private static com.google.common.collect.Range<Short> rangeGuavaSpoint;
-//
-//    private static com.google.common.collect.Range<Integer> rangeGuavaIpoint;
-//
-//    private static com.google.common.collect.Range<Float> rangeGuavaFpoint;
-//
-//    private static com.google.common.collect.Range<Double> rangeGuavaDpoint;
-
     @BeforeClass
     public static void initialSetup() { 
         arrayB = new byte[] { 0, 1, 5, 50, 100 };
@@ -1016,4 +976,60 @@ public class RangeTest {
 //                + " nsec.");
 //    }
 
+    @Test
+    public void testIntersectionValidRange() {
+        Range doubleRange = RangeFactory.create(-9999, -9999);
+        Range byteRange = RangeFactory.create(0, 255);
+        Range intersection = byteRange.intersection(doubleRange);
+        assertNull(intersection);
+    }
+
+    @Test
+    public void testIntersectionOutsideIntRangeByte() {
+        Range doubleRange = RangeFactory.create(-10e32, -10e32);
+        Range byteRange = RangeFactory.create((byte) 0, (byte) 255);
+        Range intersection = byteRange.intersection(doubleRange);
+        assertNull(intersection);
+    }
+
+    @Test
+    public void testIntersectionOutsideIntRangeShort() {
+        Range doubleRange = RangeFactory.create(-10e32, -10e32);
+        Range byteRange = RangeFactory.create((short) 0, (short) 255);
+        Range intersection = byteRange.intersection(doubleRange);
+        assertNull(intersection);
+    }
+
+    @Test
+    public void testConvert() {
+        checkRangeConversion(RangeFactory.create((byte) 255, (byte) 255));
+        checkRangeConversion(RangeFactory.create(255d, 255d));
+        checkRangeConversion(RangeFactory.create(255f, 255f));
+        checkRangeConversion(RangeFactory.create(255, 255));
+        checkRangeConversion(RangeFactory.create((short) 255, (short) 255));
+        checkRangeConversion(RangeFactory.createU((short) 255, (short) 255));
+    }
+
+    private void checkRangeConversion(Range range) {
+        checkRangeConversion(range, DataBuffer.TYPE_BYTE);
+        checkRangeConversion(range, DataBuffer.TYPE_DOUBLE);
+        checkRangeConversion(range, DataBuffer.TYPE_FLOAT);
+        checkRangeConversion(range, DataBuffer.TYPE_INT);
+        checkRangeConversion(range, DataBuffer.TYPE_SHORT);
+        checkRangeConversion(range, DataBuffer.TYPE_USHORT);
+    }
+
+    private void checkRangeConversion(Range range, int targetType) {
+        Range converted = RangeFactory.convert(range, targetType);
+        assertEquals(converted.getMin().intValue(), 255);
+        assertEquals(converted.getMax().intValue(), 255);
+        assertTrue(converted.isMinIncluded);
+        assertTrue(converted.isMaxIncluded);
+        assertEquals(targetType, converted.getDataType().getDataType());
+        if (range.getDataType().getDataType() == targetType) {
+            assertSame(range, converted);
+        } else {
+            assertNotSame(range, converted);
+        }
+    }
 }

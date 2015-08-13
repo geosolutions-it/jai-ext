@@ -23,6 +23,10 @@ import it.geosolutions.jaiext.utilities.ImageUtilities;
  * This class is a subclass of the {@link Range} class handling Short data.
  */
 public class RangeShort extends Range {
+
+    public static RangeShort FULL_RANGE = new RangeShort(Short.MIN_VALUE, true, Short.MAX_VALUE,
+            true);
+
     /** Minimum range bound */
     private final short minValue;
 
@@ -147,5 +151,44 @@ public class RangeShort extends Range {
         }
         
         return new RangeShort(finalMin, minIncluded, finalMax, maxIncluded);
+    }
+
+    @Override
+    public Range intersection(Range other) {
+        if (other.getDataType() == getDataType()) {
+            if (other.contains(this)) {
+                return this;
+            } else if (this.contains(other)) {
+                return other;
+            }
+        }
+
+        int minOther = other.getMin().intValue();
+        int maxOther = other.getMax().intValue();
+
+        int finalMin = minValue;
+        int finalMax = maxValue;
+
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+
+        if (minOther > minValue) {
+            finalMin = minOther;
+            minIncluded = other.isMinIncluded();
+        } else if (minOther == minValue) {
+            minIncluded &= other.isMinIncluded();
+        }
+        if (maxOther < maxValue) {
+            finalMax = maxOther;
+            maxIncluded = other.isMaxIncluded();
+        } else if (maxOther == maxValue) {
+            maxIncluded &= other.isMaxIncluded();
+        }
+
+        if (finalMax < finalMin || (finalMax == finalMin && !minIncluded && !maxIncluded)) {
+            return null;
+        }
+
+        return new RangeShort((short) finalMin, minIncluded, (short) finalMax, maxIncluded);
     }
 }

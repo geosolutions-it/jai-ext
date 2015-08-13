@@ -23,6 +23,10 @@ import it.geosolutions.jaiext.utilities.ImageUtilities;
  * This class is a subclass of the {@link Range} class handling float data.
  */
 public class RangeFloat extends Range {
+
+    public static RangeFloat FULL_RANGE = new RangeFloat(Float.NEGATIVE_INFINITY, true,
+            Float.POSITIVE_INFINITY, true, true);
+
     /** Minimum range bound */
     private final float minValue;
 
@@ -174,7 +178,7 @@ public class RangeFloat extends Range {
         return isNaN;
     }
     
-    public Range union(Range other){
+    public Range union(Range other) {
         if(this.contains(other)){
             return this;
         } else if(other.contains(this)){
@@ -205,6 +209,48 @@ public class RangeFloat extends Range {
         
         boolean isNaNIncluded = this.isNaN() || other.isNaN() || this.isNanIncluded() || other.isNanIncluded();
         
+        return new RangeFloat(finalMin, minIncluded, finalMax, maxIncluded, isNaNIncluded);
+    }
+
+    @Override
+    public Range intersection(Range other) {
+        if (other.getDataType() == getDataType()) {
+            if (other.contains(this)) {
+                return this;
+            } else if (this.contains(other)) {
+                return other;
+            }
+        }
+
+        float minOther = other.getMin().floatValue();
+        float maxOther = other.getMax().floatValue();
+
+        float finalMin = minValue;
+        float finalMax = maxValue;
+
+        boolean minIncluded = isMinIncluded();
+        boolean maxIncluded = isMaxIncluded();
+
+        if (minOther > minValue) {
+            finalMin = minOther;
+            minIncluded = other.isMinIncluded();
+        } else if (minOther == minValue) {
+            minIncluded &= other.isMinIncluded();
+        }
+        if (maxOther < maxValue) {
+            finalMax = maxOther;
+            maxIncluded = other.isMaxIncluded();
+        } else if (maxOther == maxValue) {
+            maxIncluded &= other.isMaxIncluded();
+        }
+
+        if (finalMax < finalMin || (finalMax == finalMin && !minIncluded && !maxIncluded)) {
+            return null;
+        }
+
+        boolean isNaNIncluded = this.isNaN() && other.isNaN() && this.isNanIncluded()
+                && other.isNanIncluded();
+
         return new RangeFloat(finalMin, minIncluded, finalMax, maxIncluded, isNaNIncluded);
     }
 }
