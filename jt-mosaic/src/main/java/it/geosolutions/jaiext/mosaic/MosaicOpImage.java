@@ -58,6 +58,7 @@ import com.sun.media.jai.util.ImageUtil;
 import it.geosolutions.jaiext.lookup.LookupTable;
 import it.geosolutions.jaiext.lookup.LookupTableFactory;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * This class takes an array of <code>RenderedImage</code> and creates a mosaic of them. If the
@@ -697,63 +698,76 @@ public class MosaicOpImage extends OpImage {
             // prepare to handle nodata, if any is available
             Range noDataRange = nodataExists ? noDatas[i] : null;
             if (noDataRange != null) {
-                hasNoData[i] = true;
+
                 RenderedImage image = imageBeans[i].getImage();
                 Range expandedNoDataRage = RasterAccessorExt.expandNoData(noDataRange, tags[i],
                         image, this);
-                imageBeans[i].setSourceNoData(expandedNoDataRage);
-                
-                if (RasterAccessorExt.isPaletteExpansionRequired(image, tags[i].getFormatTagID())) {
-                    // no way to guarantee that the index in the palette can be turned into a RGB
-                    // nodata, just a few cases where it breaks:
-                    // - the palette has a color in the nodata element that's a valid one
-                    // - the palette uses a color that's the output nodata as a valid value
-                    // We turn the nodata into a ROI, and if the ROI is already set, we intersect it
+                // convert the range to the target type, we might find it's null and if not,
+                // we'll get an optimized contains method to play against
+                int formatDataType = tags[i].getFormatTagID() & RasterAccessorExt.DATATYPE_MASK;
+                Range convertedNoDataRange = RangeFactory.convert(expandedNoDataRage,
+                        formatDataType);
+
+                if (convertedNoDataRange != null) {
+                    hasNoData[i] = true;
+                    imageBeans[i].setSourceNoData(convertedNoDataRange);
                     
-                    // force a binary image
-                    ImageLayout il = new ImageLayout();
-                    byte[] arr = { (byte) 0, (byte) 0xff };
-                    ColorModel binaryCm = new IndexColorModel(1, 2, arr, arr, arr);
-                    SampleModel binarySm = new MultiPixelPackedSampleModel(DataBuffer.TYPE_BYTE,
-                            image.getWidth(), image.getHeight(), 1);
-                    il.setColorModel(binaryCm);
-                    il.setSampleModel(binarySm);
-                    RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, il);
-                    hints.put(JAI.KEY_TRANSFORM_ON_COLORMAP, false);
+                    if (RasterAccessorExt.isPaletteExpansionRequired(image,
+                            tags[i].getFormatTagID())) {
+                        // no way to guarantee that the index in the palette can be turned into a
+                        // RGB
+                        // nodata, just a few cases where it breaks:
+                        // - the palette has a color in the nodata element that's a valid one
+                        // - the palette uses a color that's the output nodata as a valid value
+                        // We turn the nodata into a ROI, and if the ROI is already set, we
+                        // intersect it
 
-                    LookupTableJAI lt = buildNoDataLookupTable(dataType, noDataRange);
+                        // force a binary image
+                        ImageLayout il = new ImageLayout();
+                        byte[] arr = { (byte) 0, (byte) 0xff };
+                        ColorModel binaryCm = new IndexColorModel(1, 2, arr, arr, arr);
+                        SampleModel binarySm = new MultiPixelPackedSampleModel(DataBuffer.TYPE_BYTE,
+                                image.getWidth(), image.getHeight(), 1);
+                        il.setColorModel(binaryCm);
+                        il.setSampleModel(binarySm);
+                        RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, il);
+                        hints.put(JAI.KEY_TRANSFORM_ON_COLORMAP, false);
 
-                    ParameterBlock pb = new ParameterBlock();
-                    pb.setSource(image, 0);
-                    pb.set(lt, 0);
-                    RenderedOp noDataMask = JAI.create("lookup", pb, hints);
-                    noDataMask.getTile(0, 0);
+                        LookupTableJAI lt = buildNoDataLookupTable(dataType, noDataRange);
 
-                    ROI noDataRoi = new ROI(noDataMask);
-                    if (imageBeans[i].getRoi() == null) {
-                        roiPresent = true;
-                        imageBeans[i].setRoi(noDataRoi);
-                        imageBeans[i].setRoiImage(noDataRoi.getAsImage());
-                    } else {
-                        ROI intersection = noDataRoi.intersect(imageBeans[i].getRoi());
-                        imageBeans[i].setRoi(intersection);
-                        imageBeans[i].setRoiImage(intersection.getAsImage());
-                    }
-                    // we transformed the nodata into the ROI
-                    imageBeans[i].setSourceNoData(null);
-                    hasNoData[i] = false;
-                } else if (dataType == DataBuffer.TYPE_BYTE) {
-                    // selection of the no data range for byte values
-                    Range noDataByte = expandedNoDataRage;
+                        ParameterBlock pb = new ParameterBlock();
+                        pb.setSource(image, 0);
+                        pb.set(lt, 0);
+                        RenderedOp noDataMask = JAI.create("lookup", pb, hints);
+                        noDataMask.getTile(0, 0);
 
-                    // The lookup table is filled with the related no data or valid data for every
-                    // value
-                    for (int b = 0; b < numBands; b++) {
-                        for (int z = 0; z < byteLookupTable[i][0].length; z++) {
-                            if (noDataByte != null && noDataByte.contains(z)) {
-                                byteLookupTable[i][b][z] = destinationNoDataByte[b];
-                            } else {
-                                byteLookupTable[i][b][z] = (byte) z;
+                        ROI noDataRoi = new ROI(noDataMask);
+                        if (imageBeans[i].getRoi() == null) {
+                            roiPresent = true;
+                            imageBeans[i].setRoi(noDataRoi);
+                            imageBeans[i].setRoiImage(noDataRoi.getAsImage());
+                        } else {
+                            ROI intersection = noDataRoi.intersect(imageBeans[i].getRoi());
+                            imageBeans[i].setRoi(intersection);
+                            imageBeans[i].setRoiImage(intersection.getAsImage());
+                        }
+                        // we transformed the nodata into the ROI
+                        imageBeans[i].setSourceNoData(null);
+                        hasNoData[i] = false;
+                    } else if (dataType == DataBuffer.TYPE_BYTE) {
+                        // selection of the no data range for byte values
+                        Range noDataByte = expandedNoDataRage;
+
+                        // The lookup table is filled with the related no data or valid data for
+                        // every
+                        // value
+                        for (int b = 0; b < numBands; b++) {
+                            for (int z = 0; z < byteLookupTable[i][0].length; z++) {
+                                if (noDataByte != null && noDataByte.contains(z)) {
+                                    byteLookupTable[i][b][z] = destinationNoDataByte[b];
+                                } else {
+                                    byteLookupTable[i][b][z] = (byte) z;
+                                }
                             }
                         }
                     }
