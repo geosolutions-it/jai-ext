@@ -23,6 +23,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 
 import javax.media.jai.RasterFormatTag;
@@ -49,5 +51,19 @@ public class RasterAccessorExtTest {
         assertFalse(expanded.isMinIncluded());
         assertEquals(257, expanded.getMax().intValue());
         assertFalse(expanded.isMaxIncluded());
+    }
+
+    @Test
+    public void testPreserveScanlineStride() {
+        BufferedImage byteGray = new BufferedImage(10, 10, BufferedImage.TYPE_BYTE_GRAY);
+        BufferedImage rgb = new BufferedImage(10, 10, BufferedImage.TYPE_3BYTE_BGR);
+        BufferedImage subimage = byteGray.getSubimage(5, 5, 5, 5);
+        RasterFormatTag[] tags = RasterAccessorExt
+                .findCompatibleTags(new RenderedImage[] { subimage }, rgb);
+        Raster raster = subimage.getData();
+        RasterAccessorExt ra = new RasterAccessorExt(raster, raster.getBounds(),
+                tags[0],
+                subimage.getColorModel(), 3, DataBuffer.TYPE_BYTE);
+        assertEquals(10, ra.getScanlineStride());
     }
 }

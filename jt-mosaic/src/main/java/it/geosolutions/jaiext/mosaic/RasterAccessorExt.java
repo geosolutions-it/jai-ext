@@ -65,10 +65,15 @@ public class RasterAccessorExt extends RasterAccessor {
         // gray to multiband expansion
         if (rft.getNumBands() == 1 && (rft.getFormatTagID() & GRAY_EXPANSION_MASK) == GRAY_TO_RGB) {
             int newNumBands = targetBands;
-            int newBandDataOffsets[] = new int[newNumBands]; // all zero
-            int newScanlineStride = rectWidth;
-            int newPixelStride = 1;
-
+            // all zero, we are just replicating the arrays
+            int newBandDataOffsets[] = new int[newNumBands];
+            for (int i = 0; i < newBandDataOffsets.length; i++) {
+                newBandDataOffsets[i] = this.bandDataOffsets[0];
+            }
+            int newBandOffsets[] = new int[newNumBands];
+            for (int i = 0; i < newBandOffsets.length; i++) {
+                newBandOffsets[i] = this.bandOffsets[0];
+            }
 
             switch (formatTagID & DATATYPE_MASK) {
             case DataBuffer.TYPE_BYTE:
@@ -131,8 +136,6 @@ public class RasterAccessorExt extends RasterAccessor {
 
             }
             this.numBands = newNumBands;
-            this.pixelStride = newPixelStride;
-            this.scanlineStride = newScanlineStride;
             this.bandDataOffsets = newBandDataOffsets;
             this.bandOffsets = newBandDataOffsets;
         } else if (rft.getNumBands() == 1
