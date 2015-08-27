@@ -68,10 +68,10 @@ public class JAIExt {
 
     /** {@link Logger} used for Logging any excpetion or warning */
     private static final Logger LOGGER = Logger.getLogger(JAIExt.class.toString());
-    
+
     /** Set containing the mapping from/to jai/jaiext operation names*/
-    private static final HashMap<String, Set<String>> NAME_MAPPING;
-    
+    static final HashMap<String, Set<String>> NAME_MAPPING;
+
     static{
         // Instantiating the map
         NAME_MAPPING = new HashMap<String, Set<String>>();
