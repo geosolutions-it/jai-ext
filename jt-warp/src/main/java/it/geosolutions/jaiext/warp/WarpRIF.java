@@ -17,11 +17,6 @@
 */
 package it.geosolutions.jaiext.warp;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
@@ -35,6 +30,12 @@ import javax.media.jai.ROI;
 import javax.media.jai.Warp;
 
 import com.sun.media.jai.opimage.RIFUtil;
+
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * A <code>RIF</code> supporting the "Warp" operation in the rendered image layer.
@@ -76,6 +77,7 @@ public class WarpRIF implements RenderedImageFactory {
             source = temp;
         }
         Range noData = (Range) paramBlock.getObjectParameter(4);
+        noData = RangeFactory.convert(noData, source.getSampleModel().getDataType());
         if (interp instanceof InterpolationNearest || interp instanceof javax.media.jai.InterpolationNearest) {
             return new WarpNearestOpImage(source, renderHints, layout, warp, interp, roi, noData, backgroundValues);
         } else if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear) {

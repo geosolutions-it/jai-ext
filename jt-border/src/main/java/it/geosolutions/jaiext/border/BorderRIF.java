@@ -17,14 +17,18 @@
 */
 package it.geosolutions.jaiext.border;
 
-import it.geosolutions.jaiext.range.Range;
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderedImageFactory;
+
 import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
+
 import com.sun.media.jai.opimage.RIFUtil;
+
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * A <code>RIF</code> supporting the "border" operation.
@@ -54,6 +58,7 @@ public class BorderRIF implements RenderedImageFactory {
         int bottomPad = pb.getIntParameter(3);
         BorderExtender type = (BorderExtender) pb.getObjectParameter(4);
         Range noData = (Range) pb.getObjectParameter(5);
+        noData = RangeFactory.convert(noData, source.getSampleModel().getDataType());
         double destinationNoData = pb.getDoubleParameter(6);
         // Creation of the BorderOpImage instance
         return new BorderOpImage(source, renderHints, layout, leftPad, rightPad, topPad, bottomPad,

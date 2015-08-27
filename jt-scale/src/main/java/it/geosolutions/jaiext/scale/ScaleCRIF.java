@@ -17,13 +17,6 @@
 */
 package it.geosolutions.jaiext.scale;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.translate.TranslateIntOpImage;
-import it.geosolutions.jaiext.utilities.ImageUtilities;
-
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
@@ -47,6 +40,14 @@ import javax.media.jai.ScaleOpImage;
 import com.sun.media.jai.mlib.MlibScaleRIF;
 import com.sun.media.jai.opimage.CopyOpImage;
 import com.sun.media.jai.opimage.RIFUtil;
+
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.translate.TranslateIntOpImage;
+import it.geosolutions.jaiext.utilities.ImageUtilities;
 
 /**
  * @see ScaleOpImage
@@ -81,6 +82,7 @@ public class ScaleCRIF extends CRIFImpl {
         Interpolation interp = (Interpolation) paramBlock.getObjectParameter(4);
         // Get the Nodata Range
         Range nodata = (Range) paramBlock.getObjectParameter(7);
+        nodata = RangeFactory.convert(nodata, source.getSampleModel().getDataType());
 
         // Get the backgroundValues
         double[] backgroundValues = (double[]) paramBlock.getObjectParameter(8);
@@ -251,10 +253,10 @@ public class ScaleCRIF extends CRIFImpl {
         float trans_y = paramBlock.getFloatParameter(3);
 
         // Get the source dimensions
-        float x0 = (float) source.getMinX();
-        float y0 = (float) source.getMinY();
-        float w = (float) source.getWidth();
-        float h = (float) source.getHeight();
+        float x0 = source.getMinX();
+        float y0 = source.getMinY();
+        float w = source.getWidth();
+        float h = source.getHeight();
 
         // Forward map the source using x0, y0, w and h
         float d_x0 = x0 * scale_x + trans_x;

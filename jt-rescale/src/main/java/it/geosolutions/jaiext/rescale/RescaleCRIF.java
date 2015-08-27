@@ -17,8 +17,6 @@
  */
 package it.geosolutions.jaiext.rescale;
 
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
@@ -28,6 +26,9 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.ROI;
 
 import com.sun.media.jai.opimage.RIFUtil;
+
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * This RenderedImageFactory class is called by the JAI.create("Rescaling") method for returning a new instance of the RescaleOpImage class. The
@@ -50,12 +51,13 @@ public class RescaleCRIF extends CRIFImpl {
         double[] scales = (double[]) pb.getObjectParameter(0);
         double[] offsets = (double[]) pb.getObjectParameter(1);
         ROI roi = (ROI) pb.getObjectParameter(2);
-        Range rangeND = (Range) pb.getObjectParameter(3);
+        Range noData = (Range) pb.getObjectParameter(3);
+        noData = RangeFactory.convert(noData, source.getSampleModel().getDataType());
         boolean useRoiAccessor = (Boolean) pb.getObjectParameter(4);
         double destinationNoData = pb.getDoubleParameter(5);
         // Creation of the new image
         return new RescaleOpImage(source, layout, hints, scales, offsets, destinationNoData, roi,
-                rangeND, useRoiAccessor);
+                noData, useRoiAccessor);
     }
 
 }

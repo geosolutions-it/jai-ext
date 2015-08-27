@@ -17,9 +17,6 @@
 */
 package it.geosolutions.jaiext.stats;
 
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.stats.Statistics.StatsType;
-
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
@@ -29,6 +26,10 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.ROI;
 
 import com.sun.media.jai.opimage.RIFUtil;
+
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.stats.Statistics.StatsType;
 
 /**
  * Simple class that provides the RenderedImage create operation by calling a subclass of the {@link StatisticsOpImage}. The input parameters are:
@@ -48,6 +49,7 @@ public class StatisticsRIF implements RenderedImageFactory {
         int yPeriod = pb.getIntParameter(1);
         ROI roi = (ROI) pb.getObjectParameter(2);
         Range noData = (Range) pb.getObjectParameter(3);
+        noData = RangeFactory.convert(noData, source.getSampleModel().getDataType());
         boolean useROIAccessor = (Boolean) pb.getObjectParameter(4);
         int[] bands = (int[]) pb.getObjectParameter(5);
         StatsType[] statsTypes = (StatsType[]) pb.getObjectParameter(6);

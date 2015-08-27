@@ -17,9 +17,6 @@
 */
 package it.geosolutions.jaiext.crop;
 
-import it.geosolutions.jaiext.mosaic.MosaicOpImage;
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.RenderingHints.Key;
@@ -39,6 +36,10 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.operator.MosaicDescriptor;
 
 import com.sun.media.jai.opimage.RIFUtil;
+
+import it.geosolutions.jaiext.mosaic.MosaicOpImage;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * The image factory for the Crop operator.
@@ -68,6 +69,7 @@ public class CropCRIF implements RenderedImageFactory {
         float height = paramBlock.getFloatParameter(CropDescriptor.HEIGHT_ARG);
         ROI roi = (ROI) paramBlock.getObjectParameter(CropDescriptor.ROI_ARG);
         Range noData = (Range) paramBlock.getObjectParameter(CropDescriptor.NO_DATA_ARG);
+        noData = RangeFactory.convert(noData, image.getSampleModel().getDataType());
         double[] destNoData = (double[]) paramBlock.getObjectParameter(CropDescriptor.DEST_NO_DATA_ARG);
         
         // only leave tile cache and tile scheduler (we can't instantiate directly RenderingHints
