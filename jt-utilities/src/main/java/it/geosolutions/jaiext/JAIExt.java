@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
  *    http://www.geo-solutions.it/
- *    Copyright 2014 GeoSolutions
+ *    Copyright 2014 - 2015 GeoSolutions
 
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -168,20 +168,34 @@ public class JAIExt {
         mediaLibAvailable = mediaLib;
     }
  
-    private static final String JAI_EXT_VENDOR = "it.geosolutions.jaiext";
+    /** 
+     * Initialization of the {@link JAIExt} instance.
+     * Default behavior is using JAIExt operations
+     */
+    public synchronized static void initJAIEXT() {
+        initJAIEXT(true);
+    }
 
     /** Initialization of the {@link JAIExt} instance */
-    public synchronized static void initJAIEXT() {
-        if (jaiext == null) {
-            jaiext = getJAIEXT();
+    public synchronized static void initJAIEXT(boolean useJaiExtOps) {
+        initJAIEXT(useJaiExtOps, false);
+    }
+
+    /** Initialization of the {@link JAIExt} instance */
+    public synchronized static void initJAIEXT(boolean useJaiExtOps, boolean forceReInit) {
+        if (jaiext == null || forceReInit) {
+            jaiext = getJAIEXT(useJaiExtOps, forceReInit);
         }
     }
 
     private synchronized static JAIExt getJAIEXT() {
-        if (jaiext == null) {
-            ConcurrentOperationRegistry initializeRegistry = (ConcurrentOperationRegistry) ConcurrentOperationRegistry.initializeRegistry();
-            jaiext = new JAIExt(
-                    initializeRegistry);
+        return getJAIEXT(true, false);
+    }
+
+    private synchronized static JAIExt getJAIEXT(boolean useJaiExtOps, boolean forceReInit) {
+        if (jaiext == null || forceReInit) {
+            ConcurrentOperationRegistry initializeRegistry = (ConcurrentOperationRegistry) ConcurrentOperationRegistry.initializeRegistry(useJaiExtOps);
+            jaiext = new JAIExt(initializeRegistry);
             DEFAULT_INSTANCE.setOperationRegistry(initializeRegistry);
         }
         return jaiext;
@@ -189,7 +203,7 @@ public class JAIExt {
     
     public static void registerAllOperations(boolean jaiextOperations) {
         JAIExt je = getJAIEXT();
-        
+
         if(jaiextOperations){
             List<OperationItem> jaiextOps = getJAIEXTOperations();
             for(OperationItem item : jaiextOps){
@@ -624,7 +638,7 @@ public class JAIExt {
             if(operationItem == null){
                 return false;
             }
-            return operationItem.getVendor().equalsIgnoreCase(JAI_EXT_VENDOR);
+            return operationItem.getVendor().equalsIgnoreCase(ConcurrentOperationRegistry.JAIEXT_PRODUCT);
         } finally {
             readLock.unlock();
         }
