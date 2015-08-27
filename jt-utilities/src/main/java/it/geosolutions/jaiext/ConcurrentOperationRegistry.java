@@ -33,6 +33,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
@@ -133,6 +134,9 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
             // Substitute the JAIEXT operations only if required
             if (useJaiExtOps) {
                 input.substituteOperations(changed);
+            } else {
+                OperationCollection uniqueOperations = input.getUniqueOperations(changed);
+                input.substituteOperations(uniqueOperations);
             }
             // Set the Collection inside the registry file
             registry.setOperationCollection(input);
@@ -1085,6 +1089,29 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
                 // Insert the new Item inside the map
                 map.put(item.getName(), item);
             }
+        }
+
+        /**
+         * This method returns a new {@link OperationCollection} containing
+         * operations which are present in this collection but aren't
+         * available in the external one nor in the operation groups
+         * (Such as algebric group for add, subtract, divide, multiply,...)
+         * 
+         * @param external
+         */
+        OperationCollection getUniqueOperations(OperationCollection external) {
+            Map<String, OperationItem> externalMap = external.map;
+            // Iteration on all the new operations and registration of them
+            Collection<OperationItem> externalItems = externalMap.values();
+            OperationCollection uniqueOperations = new OperationCollection(registry);
+            Set<String> groupingNames = JAIExt.NAME_MAPPING.keySet();
+            for (OperationItem item : externalItems) {
+                String name = item.getName();
+                if (!map.containsKey(name) && !groupingNames.contains(name)) {
+                    uniqueOperations.add(item);
+                }
+            }
+            return uniqueOperations;
         }
 
         /**
