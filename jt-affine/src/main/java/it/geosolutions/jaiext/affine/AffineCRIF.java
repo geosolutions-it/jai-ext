@@ -17,17 +17,6 @@
  */
 package it.geosolutions.jaiext.affine;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.scale.ScaleBicubicOpImage;
-import it.geosolutions.jaiext.scale.ScaleBilinearOpImage;
-import it.geosolutions.jaiext.scale.ScaleGeneralOpImage;
-import it.geosolutions.jaiext.scale.ScaleNearestOpImage;
-import it.geosolutions.jaiext.translate.TranslateIntOpImage;
-import it.geosolutions.jaiext.utilities.ImageUtilities;
-
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
@@ -51,6 +40,18 @@ import javax.media.jai.ROI;
 import com.sun.media.jai.mlib.MlibAffineRIF;
 import com.sun.media.jai.opimage.CopyOpImage;
 import com.sun.media.jai.opimage.RIFUtil;
+
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.scale.ScaleBicubicOpImage;
+import it.geosolutions.jaiext.scale.ScaleBilinearOpImage;
+import it.geosolutions.jaiext.scale.ScaleGeneralOpImage;
+import it.geosolutions.jaiext.scale.ScaleNearestOpImage;
+import it.geosolutions.jaiext.translate.TranslateIntOpImage;
+import it.geosolutions.jaiext.utilities.ImageUtilities;
 
 /**
  * @since EA4
@@ -95,6 +96,7 @@ public class AffineCRIF extends CRIFImpl {
         
         // Get the Nodata Range
         Range nodata = (Range) paramBlock.getObjectParameter(6);
+        nodata = RangeFactory.convert(nodata, source.getSampleModel().getDataType());
 
         // Get the boolean useROIAccessor (by default set to false)
         boolean useROIAccessor = false;
@@ -337,10 +339,10 @@ public class AffineCRIF extends CRIFImpl {
         //
         if ((tr[0] > 0.0) && (tr[2] == 0.0) && (tr[1] == 0.0) && (tr[3] > 0.0)) {
             // Get the source dimensions
-            float x0 = (float) source.getMinX();
-            float y0 = (float) source.getMinY();
-            float w = (float) source.getWidth();
-            float h = (float) source.getHeight();
+            float x0 = source.getMinX();
+            float y0 = source.getMinY();
+            float w = source.getWidth();
+            float h = source.getHeight();
 
             // Forward map the source using x0, y0, w and h
             float d_x0 = x0 * (float) tr[0] + (float) tr[4];
@@ -356,10 +358,10 @@ public class AffineCRIF extends CRIFImpl {
         //
         // Get sx0,sy0 coordinates and width & height of the source
         //
-        float sx0 = (float) source.getMinX();
-        float sy0 = (float) source.getMinY();
-        float sw = (float) source.getWidth();
-        float sh = (float) source.getHeight();
+        float sx0 = source.getMinX();
+        float sy0 = source.getMinY();
+        float sw = source.getWidth();
+        float sh = source.getHeight();
 
         //
         // The 4 points (clockwise order) are

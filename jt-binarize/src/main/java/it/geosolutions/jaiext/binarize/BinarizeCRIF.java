@@ -17,8 +17,6 @@
  */
 package it.geosolutions.jaiext.binarize;
 
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ContextualRenderedImageFactory;
@@ -29,6 +27,9 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.ROI;
 
 import com.sun.media.jai.opimage.RIFUtil;
+
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * {@link ContextualRenderedImageFactory} implementation used for creating a new {@link BinarizeOpImage} instance.
@@ -56,6 +57,7 @@ public class BinarizeCRIF extends CRIFImpl {
         double threshold = pb.getDoubleParameter(0);
         ROI roi = (ROI) pb.getObjectParameter(1);
         Range nodata = (Range) pb.getObjectParameter(2);
+        nodata = RangeFactory.convert(nodata, src.getSampleModel().getDataType());
 
         return new BinarizeOpImage(src, renderHints, layout, threshold, roi, nodata);
     }

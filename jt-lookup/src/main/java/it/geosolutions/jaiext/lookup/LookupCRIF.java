@@ -17,8 +17,6 @@
 */
 package it.geosolutions.jaiext.lookup;
 
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
@@ -28,6 +26,9 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.ROI;
 
 import com.sun.media.jai.opimage.RIFUtil;
+
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * Simple class that provides the RenderedImage create operation by calling the LookupOpImage. The input parameters are: ParameterBlock,
@@ -53,6 +54,7 @@ public class LookupCRIF extends CRIFImpl {
         double destinationNoData = pb.getDoubleParameter(1);
         ROI roi = (ROI) pb.getObjectParameter(2);
         Range noData = (Range) pb.getObjectParameter(3);
+        noData = RangeFactory.convert(noData, source.getSampleModel().getDataType());
         boolean useRoiAccessor = (Boolean) pb.getObjectParameter(4);
         // Creation of the lookup image
         return new LookupOpImage(source, layout, renderHints, table, destinationNoData, roi,
