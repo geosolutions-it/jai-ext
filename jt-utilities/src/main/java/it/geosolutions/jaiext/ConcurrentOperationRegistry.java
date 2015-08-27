@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
- *    Copyright 2014 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 - 2015 GeoSolutions
 
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -85,6 +85,10 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
     private static final Logger LOGGER = Logger.getLogger(ConcurrentOperationRegistry.class.toString());
 
     public static OperationRegistry initializeRegistry() {
+        return initializeRegistry(true);
+    }
+
+    public static OperationRegistry initializeRegistry(boolean useJaiExtOps) {
         try {
             // URL associated to the default JAI registryfile.jai
             InputStream url = PropertyUtil.getFileFromClasspath(JAI_REGISTRY_FILE);
@@ -126,8 +130,10 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
             changed = changed.filter(JAIEXT_PRODUCT);
             // Copy the available JAIEXT operations
             registry.jaiExtMap = changed.copy().map;
-            // Substitute the JAIEXT operations
-            input.substituteOperations(changed);
+            // Substitute the JAIEXT operations only if required
+            if (useJaiExtOps) {
+                input.substituteOperations(changed);
+            }
             // Set the Collection inside the registry file
             registry.setOperationCollection(input);
             // Return the registry
