@@ -11,7 +11,7 @@ More informations can be found at the [JAI-EXT Wiki](https://github.com/geosolut
 # Build Status for importance Branches
 [ ![Codeship Status for geosolutions-it/jai-ext](https://codeship.com/projects/86e202f0-98df-0132-03ae-025e58d57d52/status?branch=master)](https://codeship.com/projects/63483) 
 [![Build Status](https://travis-ci.org/geosolutions-it/jai-ext.svg)](https://travis-ci.org/geosolutions-it/jai-ext)
-[![Coverage Status](https://coveralls.io/repos/geosolutions-it/jai-ext/badge.svg?branch=master&service=github)](https://coveralls.io/github/geosolutions-it/jai-ext?branch=master)
+[![Coverage Status](https://coveralls.io/repos/geosolutions-it/jai-ext/badge.svg?branch=master)](https://coveralls.io/github/geosolutions-it/jai-ext?branch=master)
 
 # License
 The JAI-EXT project is licensed with the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
