@@ -9,7 +9,9 @@ JAI-EXT is an open-source project which aims to extend the [JAI](http://en.wikip
 More informations can be found at the [JAI-EXT Wiki](https://github.com/geosolutions-it/jai-ext/wiki)
 
 # Build Status for importance Branches
-[ ![Codeship Status for geosolutions-it/jai-ext](https://codeship.com/projects/86e202f0-98df-0132-03ae-025e58d57d52/status?branch=master)](https://codeship.com/projects/63483) [![Build Status](https://travis-ci.org/geosolutions-it/jai-ext.svg)](https://travis-ci.org/geosolutions-it/jai-ext) [![Coverage Status](https://coveralls.io/repos/geosolutions-it/jai-ext/badge.svg?branch=master&service=github)](https://coveralls.io/github/geosolutions-it/jai-ext?branch=master)
+[ ![Codeship Status for geosolutions-it/jai-ext](https://codeship.com/projects/86e202f0-98df-0132-03ae-025e58d57d52/status?branch=master)](https://codeship.com/projects/63483) 
+[![Build Status](https://travis-ci.org/geosolutions-it/jai-ext.svg)](https://travis-ci.org/geosolutions-it/jai-ext)
+[![Coverage Status](https://coveralls.io/repos/geosolutions-it/jai-ext/badge.svg?branch=master&service=github)](https://coveralls.io/github/geosolutions-it/jai-ext?branch=master)
 
 # License
 The JAI-EXT project is licensed with the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
