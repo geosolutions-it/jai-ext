@@ -13,4 +13,4 @@ notifications:
   email: false
   on_failure: never
 after_success:
-  - coveralls
+ - mvn clean cobertura:cobertura coveralls:report

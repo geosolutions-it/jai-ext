@@ -533,6 +533,29 @@
           <argLine>-Xmx${test.maxHeapSize} -XX:MaxPermSize=${test.maxPermSize} -enableassertions -Dtest.extensive=${extensive.tests} -Dtest.interactive=${interactive.tests}</argLine>
          </configuration>
       </plugin>
+	  
+		<!-- ======================================================= -->
+		<!--                        Code Coverage                    -->
+		<!-- ======================================================= -->	  
+		<plugin>
+			<groupId>org.codehaus.mojo</groupId>
+			<artifactId>cobertura-maven-plugin</artifactId>
+			<version>2.7</version>
+			<configuration>
+			<format>xml</format>
+			<maxmem>256m</maxmem>
+			<!-- aggregated reports for multi-module projects -->
+			<aggregate>true</aggregate>
+			</configuration>
+		</plugin>	  
+		<plugin>
+			<groupId>org.eluder.coveralls</groupId>
+			<artifactId>coveralls-maven-plugin</artifactId>
+			<version>4.0.0</version>
+			<configuration>
+				<repoToken>xtDTxQb9ObVls86kvaZWlsX6xAl6B1RVk</repoToken>
+			</configuration>
+		</plugin>
       
       <!--Test Jar plugin -->
       <plugin>
