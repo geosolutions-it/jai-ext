@@ -52,12 +52,6 @@
 			<artifactId>jt-lookup</artifactId>
 			<version>${project.version}</version>
 			<scope>test</scope>
-		</dependency>	
-		<dependency>
-			<groupId>it.geosolutions.jaiext.bandcombine</groupId>
-			<artifactId>jt-bandcombine</artifactId>
-			<version>${project.version}</version>
-			<scope>test</scope>
-		</dependency>				
+		</dependency>			
 	</dependencies>
 </project>
