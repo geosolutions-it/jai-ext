@@ -12,3 +12,5 @@ script:
 notifications:
   email: false
   on_failure: never
+after_success:
+  - coveralls
