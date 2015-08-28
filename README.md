@@ -8,7 +8,7 @@ JAI-EXT is an open-source project which aims to extend the [JAI](http://en.wikip
 
 More informations can be found at the [JAI-EXT Wiki](https://github.com/geosolutions-it/jai-ext/wiki)
 
-Build Status for importance Branches
+# Build Status for importance Branches
 * Master  [ ![Codeship Status for geosolutions-it/jai-ext](https://codeship.com/projects/86e202f0-98df-0132-03ae-025e58d57d52/status?branch=master)](https://codeship.com/projects/63483)
 
 # License
