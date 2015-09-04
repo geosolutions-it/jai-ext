@@ -123,7 +123,7 @@ public class RenderedImageBrowser extends JPanel
             try
             {
                 op.getWidth();
-                renderingName = op.getCurrentRendering().getClass().getSimpleName();
+                renderingName = op.getCurrentRendering().getClass().getName();
             }
             catch (Exception ignored)
             {
