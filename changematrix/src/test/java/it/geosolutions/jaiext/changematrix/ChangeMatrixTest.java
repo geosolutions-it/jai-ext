@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.changematrix;
 
 import it.geosolutions.jaiext.changematrix.ChangeMatrixDescriptor.ChangeMatrix;
+import it.geosolutions.jaiext.testclasses.TestData;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -45,7 +46,6 @@ import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.ConstantDescriptor;
 import javax.media.jai.operator.CropDescriptor;
 
-import it.geosolutions.jaiext.testclasses.TestData;
 import org.junit.Test;
 
 /**
@@ -289,8 +289,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         final File file0;
         final File file6;
         try {
-            file0 = TestData.file(SpeedChangeMatrixTest.class, "clc2000_L3_100m_small.tif");
-            file6 = TestData.file(SpeedChangeMatrixTest.class, "clc2006_L3_100m_small.tif");
+            file0 = TestData.file(this, "clc2000_L3_100m_small.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_small.tif");
         } catch (FileNotFoundException f) {
             throw new IllegalArgumentException("Input files are not present!");
         } catch (IOException f) {
@@ -305,10 +305,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         classes.add(FIFTH_CLASS_VALUE);
         final ChangeMatrix cm = new ChangeMatrix(classes);
 
-        final RenderedOp source = JAI.create("ImageRead", file6);// new
-                                                                 // File("d:/data/unina/clc2006_L3_100m.tif"));
-        final RenderedOp reference = JAI.create("ImageRead", file0);// new
-                                                                    // File("d:/data/unina/clc2000_L3_100m.tif"));
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
 
         final ImageLayout layout = new ImageLayout();
         layout.setTileHeight(256).setTileWidth(100);
@@ -420,14 +418,6 @@ public class ChangeMatrixTest extends org.junit.Assert {
         assertEquals(0, cm.retrievePairOccurrences(37, 1));
         assertEquals(129, cm.retrievePairOccurrences(37, 36));
         assertEquals(1720, cm.retrievePairOccurrences(37, 37));
-
-        // // spit out results
-        // for(Integer ref: classes){
-        // for(Integer now: classes){
-        // System.out.println("["+ref+","+now+"]("+cm.retrievePairOccurrences(ref,
-        // now)+")");
-        // }
-        // }
     }
 
     /**
@@ -438,8 +428,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         final File file0;
         final File file6;
         try {
-            file0 = TestData.file(SpeedChangeMatrixTest.class, "clc2000_L3_100m_small.tif");
-            file6 = TestData.file(SpeedChangeMatrixTest.class, "clc2006_L3_100m_small.tif");
+            file0 = TestData.file(this, "clc2000_L3_100m_small.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_small.tif");
         } catch (FileNotFoundException f) {
             throw new IllegalArgumentException("Input files are not present!");
         } catch (IOException f) {
@@ -454,10 +444,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         classes.add(FIFTH_CLASS_VALUE);
         final ChangeMatrix cm = new ChangeMatrix(classes);
 
-        final RenderedOp source = JAI.create("ImageRead", file6);// new
-                                                                 // File("d:/data/unina/clc2006_L3_100m.tif"));
-        final RenderedOp reference = JAI.create("ImageRead", file0);// new
-                                                                    // File("d:/data/unina/clc2000_L3_100m.tif"));
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
 
         // create roi
         final Rectangle roi = new Rectangle(reference.getBounds());
@@ -588,8 +576,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         final File file0;
         final File file6;
         try {
-            file0 = TestData.file(SpeedChangeMatrixTest.class, "clc2000_L3_100m_small.tif");
-            file6 = TestData.file(SpeedChangeMatrixTest.class, "clc2006_L3_100m_small.tif");
+            file0 = TestData.file(this, "clc2000_L3_100m_small.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_small.tif");
         } catch (FileNotFoundException f) {
             throw new IllegalArgumentException("Input files are not present!");
         } catch (IOException f) {
@@ -604,10 +592,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         classes.add(FIFTH_CLASS_VALUE);
         final ChangeMatrix cm = new ChangeMatrix(classes);
 
-        final RenderedOp source = JAI.create("ImageRead", file6);// new
-                                                                 // File("d:/data/unina/clc2006_L3_100m.tif"));
-        final RenderedOp reference = JAI.create("ImageRead", file0);// new
-                                                                    // File("d:/data/unina/clc2000_L3_100m.tif"));
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
 
         // create roi
         final Rectangle roi = new Rectangle(reference.getBounds());
@@ -739,8 +725,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         final File file0;
         final File file6;
         try {
-            file0 = TestData.file(SpeedChangeMatrixTest.class, "clc2000_L3_100m_small.tif");
-            file6 = TestData.file(SpeedChangeMatrixTest.class, "clc2006_L3_100m_small.tif");
+            file0 = TestData.file(this, "clc2000_L3_100m_small.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_small.tif");
         } catch (FileNotFoundException f) {
             throw new IllegalArgumentException("Input files are not present!");
         } catch (IOException f) {
@@ -755,10 +741,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         classes.add(FIFTH_CLASS_VALUE);
         final ChangeMatrix cm = new ChangeMatrix(classes);
 
-        final RenderedOp inputSource = JAI.create("ImageRead", file6);// new
-                                                                 // File("d:/data/unina/clc2006_L3_100m.tif"));
-        final RenderedOp inputReference = JAI.create("ImageRead", file0);// new
-                                                                    // File("d:/data/unina/clc2000_L3_100m.tif"));
+        final RenderedOp inputSource = JAI.create("ImageRead", file6);
+        final RenderedOp inputReference = JAI.create("ImageRead", file0);
 
         // create roi
         final Rectangle roi = new Rectangle(inputReference.getBounds());
@@ -898,8 +882,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         final File file0;
         final File file6;
         try {
-            file0 = TestData.file(SpeedChangeMatrixTest.class, "clc2000_L3_100m_small_short.tif");
-            file6 = TestData.file(SpeedChangeMatrixTest.class, "clc2006_L3_100m_small_short.tif");
+            file0 = TestData.file(this, "clc2000_L3_100m_small_short.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_small_short.tif");
         } catch (FileNotFoundException f) {
             throw new IllegalArgumentException("Input files are not present!");
         } catch (IOException f) {
@@ -914,10 +898,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         classes.add(FIFTH_CLASS_VALUE);
         final ChangeMatrix cm = new ChangeMatrix(classes);
 
-        final RenderedOp source = JAI.create("ImageRead", file6);// new
-        // File("d:/data/unina/clc2006_L3_100m.tif"));
-        final RenderedOp reference = JAI.create("ImageRead", file0);// new
-        // File("d:/data/unina/clc2000_L3_100m.tif"));
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
 
         final ImageLayout layout = new ImageLayout();
         layout.setTileHeight(256).setTileWidth(100);
@@ -1029,15 +1011,6 @@ public class ChangeMatrixTest extends org.junit.Assert {
         assertEquals(0, cm.retrievePairOccurrences(37, 1));
         assertEquals(129, cm.retrievePairOccurrences(37, 36));
         assertEquals(1720, cm.retrievePairOccurrences(37, 37));
-
-        // // spit out results
-        // for(Integer ref: classes){
-        // for(Integer now: classes){
-        // System.out.println("["+ref+","+now+"]("+cm.retrievePairOccurrences(ref,
-        // now)+")");
-        // }
-        // }
-
     }
 
     /**
@@ -1049,8 +1022,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         final File file0;
         final File file6;
         try {
-            file0 = TestData.file(SpeedChangeMatrixTest.class, "clc2000_L3_100m_smaller_int.tif");
-            file6 = TestData.file(SpeedChangeMatrixTest.class, "clc2006_L3_100m_smaller_int.tif");
+            file0 = TestData.file(this, "clc2000_L3_100m_smaller_int.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_smaller_int.tif");
         } catch (FileNotFoundException f) {
             throw new IllegalArgumentException("Input files are not present!");
         } catch (IOException f) {
@@ -1065,10 +1038,8 @@ public class ChangeMatrixTest extends org.junit.Assert {
         classes.add(FIFTH_CLASS_VALUE);
         final ChangeMatrix cm = new ChangeMatrix(classes);
 
-        final RenderedOp source = JAI.create("ImageRead", file6);// new
-        // File("d:/data/unina/clc2006_L3_100m.tif"));
-        final RenderedOp reference = JAI.create("ImageRead", file0);// new
-        // File("d:/data/unina/clc2000_L3_100m.tif"));
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
 
         final ImageLayout layout = new ImageLayout();
         layout.setTileHeight(256).setTileWidth(100);
@@ -1180,22 +1151,12 @@ public class ChangeMatrixTest extends org.junit.Assert {
         assertEquals(0, cm.retrievePairOccurrences(37, 1));
         assertEquals(32, cm.retrievePairOccurrences(37, 36));
         assertEquals(429, cm.retrievePairOccurrences(37, 37));
-
-        // // spit out results
-        // for(Integer ref: classes){
-        // for(Integer now: classes){
-        // System.out.println("["+ref+","+now+"]("+cm.retrievePairOccurrences(ref,
-        // now)+")");
-        // }
-        // }
-
     }
 
     /**
      * Test on Byte images.
      */
     @Test
-    // @Ignore
     public void completeTestByteToByteDatatype() throws Exception {
 
         final Set<Integer> classes = new HashSet<Integer>();
@@ -1280,7 +1241,6 @@ public class ChangeMatrixTest extends org.junit.Assert {
      * Test on byte images which returns an image with Integer data type.
      */
     @Test
-    // @Ignore
     public void completeTestByteToIntDatatype() throws Exception {
 
         final Set<Integer> classes = new HashSet<Integer>();
@@ -1365,7 +1325,6 @@ public class ChangeMatrixTest extends org.junit.Assert {
      * Test on Ushort images.
      */
     @Test
-    // @Ignore
     public void completeTestUShortToUShortDatatype() throws Exception {
 
         final Set<Integer> classes = new HashSet<Integer>();
@@ -1535,7 +1494,6 @@ public class ChangeMatrixTest extends org.junit.Assert {
      * Test on short images which returns an image with Integer data type.
      */
     @Test
-    // @Ignore
     public void completeTestShortToIntDatatype() throws Exception {
 
         final Set<Integer> classes = new HashSet<Integer>();
@@ -1615,6 +1573,145 @@ public class ChangeMatrixTest extends org.junit.Assert {
         result.dispose();
         source.dispose();
         reference.dispose();
+    }
+    
+    /**
+     * Test on Integer images computing the area of the changed classes.
+     */
+    @Test
+    public void testIntDatatypeAreaComputationNotDouble() throws Exception {
+        final File file0;
+        final File file6;
+        final File file7;
+        try {
+            file0 = TestData.file(this, "clc2000_L3_100m_smaller_int.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_smaller_int.tif");
+            file7 = TestData.file(this, "clc2006_L3_100m_smaller_int.tif");
+        } catch (FileNotFoundException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        } catch (IOException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        }
+    
+        final Set<Integer> classes = new HashSet<Integer>();
+        classes.add(FIRST_CLASS_VALUE);
+        classes.add(SECOND_CLASS_VALUE);
+        classes.add(THIRD_CLASS_VALUE);
+        classes.add(FOURTH_CLASS_VALUE);
+        classes.add(FIFTH_CLASS_VALUE);
+        final ChangeMatrix cm = new ChangeMatrix(classes);
+    
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
+        final RenderedOp area = JAI.create("ImageRead", file7);
+    
+        //force the tiles layout to 256x100
+        final ImageLayout layout = new ImageLayout();
+        layout.setTileHeight(256).setTileWidth(100);
+        
+        final RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+        final ParameterBlockJAI pbj = new ParameterBlockJAI("ChangeMatrix");
+        pbj.addSource(reference);
+        pbj.addSource(source);
+        pbj.setParameter("result", cm);
+        pbj.setParameter("pixelMultiplier", PIXEL_MULTIPLIER);
+        pbj.setParameter("area", area);
+        final RenderedOp result = JAI.create("ChangeMatrix", pbj, hints);
+        try{
+            result.getWidth();
+            assertTrue("we should have got an exception as the image types have multiple bands!", false);
+        }
+        catch(Exception e){
+            //it's ok, we used an Integer area image so we got an exception
+            assertEquals("Unable to process area image as it has a non double data type", e.getCause().getCause().getMessage());
+        }
+    }
+    
+    /**
+     * Test on Integer images computing the area of the changed classes.
+     */
+    @Test
+    public void testIntDatatypeAreaComputation() throws Exception {
+        final File file0;
+        final File file6;
+        final File file7;
+        try {
+            file0 = TestData.file(this, "clc2000_L3_100m_smaller_int.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_smaller_int.tif");
+            file7 = TestData.file(this, "clc2006_L3_100m_smaller_int.tif");
+        } catch (FileNotFoundException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        } catch (IOException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        }
+    
+        final Set<Integer> classes = new HashSet<Integer>();
+        classes.add(FIRST_CLASS_VALUE);
+        classes.add(SECOND_CLASS_VALUE);
+        classes.add(THIRD_CLASS_VALUE);
+        classes.add(FOURTH_CLASS_VALUE);
+        classes.add(FIFTH_CLASS_VALUE);
+        final ChangeMatrix cm = new ChangeMatrix(classes);
+    
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
+        final RenderedOp area = JAI.create("ImageRead", file7);
+    
+        //force the tiles layout to 256x100
+        final ImageLayout layout = new ImageLayout();
+        layout.setTileHeight(256).setTileWidth(100);
+        //Convert the area image format to double
+        ParameterBlockJAI pb = new ParameterBlockJAI("Format");
+        pb.addSource(area);
+        pb.setParameter("dataType", DataBuffer.TYPE_DOUBLE);
+        final RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+        final RenderedOp areaDouble = JAI.create("Format", pb, hints);
+        
+        final ParameterBlockJAI pbj = new ParameterBlockJAI("ChangeMatrix");
+        pbj.addSource(reference);
+        pbj.addSource(source);
+        pbj.setParameter("result", cm);
+        pbj.setParameter("pixelMultiplier", PIXEL_MULTIPLIER);
+        pbj.setParameter("area", areaDouble);
+        final RenderedOp result = JAI.create("ChangeMatrix", pbj, hints);
+        result.getWidth();                   // values would be accumulated as the file was written
+    
+        // try to write the resulting image before disposing the sources
+        final File out = File.createTempFile("chm", "result.tif");
+        out.deleteOnExit();
+        ImageIO.write(result, "tiff", out);
+    
+        result.dispose();
+        source.dispose();
+        reference.dispose();
+    
+        // check values of the change matrix
+        // Since we used as the area image the reference image, we expect results values = numPixelChanged * referenceClass, f.e. 280 = 8 * 35
+        assertEquals(0, cm.retrieveTotalArea(0, 0), 0);
+        assertEquals(0, cm.retrieveTotalArea(0, 35), 0);
+        assertEquals(0, cm.retrieveTotalArea(0, 1), 0);
+        assertEquals(0, cm.retrieveTotalArea(0, 36), 0);
+        assertEquals(0, cm.retrieveTotalArea(0, 37), 0);
+        assertEquals(0, cm.retrieveTotalArea(35, 0), 0);
+        assertEquals(280, cm.retrieveTotalArea(35, 35), 0);
+        assertEquals(0, cm.retrieveTotalArea(35, 1), 0);
+        assertEquals(0, cm.retrieveTotalArea(35, 36), 0);
+        assertEquals(0, cm.retrieveTotalArea(35, 37), 0);
+        assertEquals(0, cm.retrieveTotalArea(1, 0), 0);
+        assertEquals(0, cm.retrieveTotalArea(1, 35), 0);
+        assertEquals(5, cm.retrieveTotalArea(1, 1), 0);
+        assertEquals(0, cm.retrieveTotalArea(1, 36), 0);
+        assertEquals(0, cm.retrieveTotalArea(1, 37), 0);
+        assertEquals(0, cm.retrieveTotalArea(36, 0), 0);
+        assertEquals(0, cm.retrieveTotalArea(36, 35), 0);
+        assertEquals(0, cm.retrieveTotalArea(36, 1), 0);
+        assertEquals(61992, cm.retrieveTotalArea(36, 36), 0);
+        assertEquals(407, cm.retrieveTotalArea(36, 37), 0);
+        assertEquals(0, cm.retrieveTotalArea(37, 0), 0);
+        assertEquals(0, cm.retrieveTotalArea(37, 35), 0);
+        assertEquals(0, cm.retrieveTotalArea(37, 1), 0);
+        assertEquals(1152, cm.retrieveTotalArea(37, 36), 0);
+        assertEquals(15873, cm.retrieveTotalArea(37, 37), 0);
     }
 
 }

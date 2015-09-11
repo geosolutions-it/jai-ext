@@ -90,10 +90,22 @@ public class ChangeMatrixRIF implements RenderedImageFactory {
         // Get the Area Image
         RenderedImage area = (RenderedImage) paramBlock
                 .getObjectParameter(ChangeMatrixDescriptor.AREA_MAP_INDEX);
+        if(area != null){
+            if (area.getSampleModel().getNumBands() > 1) {
+                throw new IllegalArgumentException(
+                        "Unable to process area image with more than one band (source[0])");
+            }
+            final int areaDataType = area.getSampleModel().getDataType();
+            if (areaDataType != DataBuffer.TYPE_DOUBLE) {
+                throw new IllegalArgumentException(
+                        "Unable to process area image as it has a non double data type");
+            }
+        }
         
         ImageLayout layout = RIFUtil.getImageLayoutHint(renderHints);
-        if (layout == null)
+        if (layout == null){
             layout = new ImageLayout();
+        }
 
         // result
         final ChangeMatrix result = (ChangeMatrix) paramBlock

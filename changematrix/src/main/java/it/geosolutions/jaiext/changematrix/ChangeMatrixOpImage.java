@@ -51,7 +51,6 @@ import com.sun.media.jai.util.ImageUtil;
  */
 @SuppressWarnings("unchecked")
 public class ChangeMatrixOpImage extends PointOpImage {
-    // private static final int BACKGROUND_VALUE = 0;
 
     /** Maximum value for Unsigned Short images */
     private static final int USHORT_MAX_VALUE = Short.MAX_VALUE - Short.MIN_VALUE;
@@ -231,7 +230,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
                 Raster data = areaMap.getTile(tileX, tileY);
                 RenderedImage[] srcs = new RenderedImage[]{getSourceImage(0), getSourceImage(1), areaMap};
                 RasterFormatTag[] tags = RasterAccessor.findCompatibleTags(srcs , this);
-                RasterAccessor s3 = new RasterAccessor(data, destRect, tags[2], null) ;
+                RasterAccessor s3 = new RasterAccessor(data, destRect, tags[2], null);
                 src3LineStride = s3.getScanlineStride();
                 src3PixelStride = s3.getPixelStride();
                 src3BandOffset = s3.getBandOffsets()[0];
