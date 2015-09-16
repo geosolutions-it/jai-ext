@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.changematrix;
 
 import it.geosolutions.jaiext.changematrix.ChangeMatrixDescriptor.ChangeMatrix;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -132,9 +133,11 @@ public class ChangeMatrixRIF implements RenderedImageFactory {
             }
         }
         
+        Range noDataRange = (Range)paramBlock.getObjectParameter(ChangeMatrixDescriptor.NODATA);
+        
         //Pixel Multiplier value
         int pixelMultiplier = paramBlock.getIntParameter(ChangeMatrixDescriptor.PIXEL_MULTY_ARG_INDEX);
         
-        return new ChangeMatrixOpImage(reference, now, area, renderHints, layout, roi, pixelMultiplier, result);
+        return new ChangeMatrixOpImage(reference, now, area, renderHints, layout, roi, pixelMultiplier, result, noDataRange);
     }
 }

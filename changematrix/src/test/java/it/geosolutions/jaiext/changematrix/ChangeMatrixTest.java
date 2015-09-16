@@ -18,6 +18,8 @@
 package it.geosolutions.jaiext.changematrix;
 
 import it.geosolutions.jaiext.changematrix.ChangeMatrixDescriptor.ChangeMatrix;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestData;
 
 import java.awt.Point;
@@ -283,7 +285,6 @@ public class ChangeMatrixTest extends org.junit.Assert {
      * Test on byte images which returns an image with Short data type.
      */
     @Test
-    // @Ignore
     public void completeTestByteToShortDatatype() throws Exception {
 
         final File file0;
@@ -1242,7 +1243,7 @@ public class ChangeMatrixTest extends org.junit.Assert {
      */
     @Test
     public void completeTestByteToIntDatatype() throws Exception {
-
+    
         final Set<Integer> classes = new HashSet<Integer>();
         classes.add(FIRST_CLASS_VALUE);
         classes.add(SECOND_CLASS_VALUE);
@@ -1250,12 +1251,12 @@ public class ChangeMatrixTest extends org.junit.Assert {
         classes.add(FOURTH_CLASS_VALUE);
         classes.add(FIFTH_CLASS_VALUE);
         final ChangeMatrix cm = new ChangeMatrix(classes);
-
+    
         RenderedOp reference = ConstantDescriptor.create(Float.valueOf(800), Float.valueOf(600),
                 new Byte[] { Byte.valueOf((byte) 1) }, null);
         RenderedOp source = ConstantDescriptor.create(Float.valueOf(800), Float.valueOf(600),
                 new Byte[] { Byte.valueOf((byte) 0) }, null);
-
+    
         final ImageLayout layout = new ImageLayout();
         layout.setTileHeight(256).setTileWidth(100);
         final RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
@@ -1268,7 +1269,7 @@ public class ChangeMatrixTest extends org.junit.Assert {
         result.getTiles();
         cm.freeze(); // stop changing the computations! If we did not do this new
                      // values would be accumulated as the file was written
-
+    
         // CONTROL ON THE DATA TYPE
         int initialDataType = reference.getSampleModel().getDataType();
         int finalDataType = result.getSampleModel().getDataType();
@@ -1276,24 +1277,24 @@ public class ChangeMatrixTest extends org.junit.Assert {
                 DataBuffer.TYPE_BYTE);
         assertEquals("The final data type should have been Integer!", finalDataType,
                 DataBuffer.TYPE_INT);
-
+    
         // CONTROL ON THE IMAGE PIXEL VALUES
-
+    
         int minX = result.getMinX();
         int minY = result.getMinY();
-
+    
         int maxX = result.getMaxX();
         int maxY = result.getMaxY();
-
+    
         int resultValue = 0;
         int resultExpected = 0;
         int referenceValue = 0;
         int sourceValue = 0;
-
+    
         Raster referenceTile;
         Raster sourceTile;
         Raster resultTile;
-
+    
         for (int x = minX; x < maxX; x++) {
             for (int y = minY; y < maxY; y++) {
                 // Selection of the tiles associated with this position
@@ -1310,12 +1311,12 @@ public class ChangeMatrixTest extends org.junit.Assert {
                 assertEquals(resultExpected, resultValue);
             }
         }
-
+    
         // try to write the resulting image before disposing the sources
         final File out = File.createTempFile("chm", "result.tif");
         out.deleteOnExit();
         ImageIO.write(result, "tiff", out);
-
+    
         result.dispose();
         source.dispose();
         reference.dispose();
@@ -1713,5 +1714,303 @@ public class ChangeMatrixTest extends org.junit.Assert {
         assertEquals(1152, cm.retrieveTotalArea(37, 36), 0);
         assertEquals(15873, cm.retrieveTotalArea(37, 37), 0);
     }
+    
+    /** Test the control about the presence of classes into NoData range */
+    @Test
+    public void testNoDataChecks() throws Exception {
+        final File file0;
+        final File file6;
+        try {
+            file0 = TestData.file(this, "clc2000_L3_100m_smaller_int.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_smaller_int.tif");
+        } catch (FileNotFoundException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        } catch (IOException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        }
 
+        final Set<Integer> classes = new HashSet<Integer>();
+        classes.add(FIRST_CLASS_VALUE);
+        classes.add(SECOND_CLASS_VALUE);
+        classes.add(THIRD_CLASS_VALUE);
+        classes.add(FOURTH_CLASS_VALUE);
+        classes.add(FIFTH_CLASS_VALUE);
+        
+        Range noData = RangeFactory.create(FIFTH_CLASS_VALUE-1, false, FIFTH_CLASS_VALUE+1, false);
+        
+        final ChangeMatrix cm = new ChangeMatrix(classes);
+
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
+
+        final ImageLayout layout = new ImageLayout();
+        layout.setTileHeight(256).setTileWidth(100);
+        final RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+        final ParameterBlockJAI pbj = new ParameterBlockJAI("ChangeMatrix");
+        pbj.addSource(reference);
+        pbj.addSource(source);
+        pbj.setParameter("result", cm);
+        pbj.setParameter("pixelMultiplier", PIXEL_MULTIPLIER);
+        pbj.setParameter("noData", noData);
+        final RenderedOp result = JAI.create("ChangeMatrix", pbj, hints);
+        try{
+            result.getWidth();
+        }
+        catch(Exception e){
+            assertEquals("One or more provided classes are contained in the NoData range", e.getCause().getCause().getMessage());
+        }
+
+        
+    }
+    
+    /** Test NoData management on Integer images. */
+    @Test
+    public void nodataTestIntDatatype() throws Exception {
+        final File file0;
+        final File file6;
+        try {
+            file0 = TestData.file(this, "clc2000_L3_100m_smaller_int.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_smaller_int.tif");
+        } catch (FileNotFoundException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        } catch (IOException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        }
+
+        final Set<Integer> classes = new HashSet<Integer>();
+        classes.add(FIRST_CLASS_VALUE);
+        classes.add(SECOND_CLASS_VALUE);
+        classes.add(THIRD_CLASS_VALUE);
+        classes.add(FOURTH_CLASS_VALUE);
+        
+        Range noData = RangeFactory.create(FIFTH_CLASS_VALUE-1, false, FIFTH_CLASS_VALUE+1, false);
+        
+        final ChangeMatrix cm = new ChangeMatrix(classes);
+
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
+
+        final ImageLayout layout = new ImageLayout();
+        layout.setTileHeight(256).setTileWidth(100);
+        final RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+        final ParameterBlockJAI pbj = new ParameterBlockJAI("ChangeMatrix");
+        pbj.addSource(reference);
+        pbj.addSource(source);
+        pbj.setParameter("result", cm);
+        pbj.setParameter("pixelMultiplier", PIXEL_MULTIPLIER);
+        pbj.setParameter("noData", noData);
+        final RenderedOp result = JAI.create("ChangeMatrix", pbj, hints);
+        result.getWidth();
+
+        // CONTROL ON THE DATA TYPE
+        int initialDataType = reference.getSampleModel().getDataType();
+        int finalDataType = result.getSampleModel().getDataType();
+        assertEquals("The initial data type should have been Integer!", initialDataType,
+                DataBuffer.TYPE_INT);
+        assertEquals("The final data type should have been Integer!", finalDataType,
+                DataBuffer.TYPE_INT);
+
+        // try to write the resulting image before disposing the sources
+        final File out = File.createTempFile("chm", "result.tif");
+        out.deleteOnExit();
+        ImageIO.write(result, "tiff", out);
+
+        result.dispose();
+        source.dispose();
+        reference.dispose();
+
+        // check values of the change matrix
+        assertEquals(22021, cm.retrievePairOccurrences(0, 0));
+        assertEquals(0, cm.retrievePairOccurrences(0, 35));
+        assertEquals(0, cm.retrievePairOccurrences(0, 1));
+        assertEquals(0, cm.retrievePairOccurrences(0, 36));
+        assertEquals(0, cm.retrievePairOccurrences(0, Integer.MIN_VALUE));
+        assertEquals(0, cm.retrievePairOccurrences(35, 0));
+        assertEquals(8, cm.retrievePairOccurrences(35, 35));
+        assertEquals(0, cm.retrievePairOccurrences(35, 1));
+        assertEquals(0, cm.retrievePairOccurrences(35, 36));
+        assertEquals(0, cm.retrievePairOccurrences(35, Integer.MIN_VALUE));
+        assertEquals(0, cm.retrievePairOccurrences(1, 0));
+        assertEquals(0, cm.retrievePairOccurrences(1, 35));
+        assertEquals(5, cm.retrievePairOccurrences(1, 1));
+        assertEquals(0, cm.retrievePairOccurrences(1, 36));
+        assertEquals(0, cm.retrievePairOccurrences(1, Integer.MIN_VALUE));
+        assertEquals(0, cm.retrievePairOccurrences(36, 0));
+        assertEquals(0, cm.retrievePairOccurrences(36, 35));
+        assertEquals(0, cm.retrievePairOccurrences(36, 1));
+        assertEquals(1722, cm.retrievePairOccurrences(36, 36));
+        assertEquals(11, cm.retrievePairOccurrences(36, Integer.MIN_VALUE));
+        assertEquals(1, cm.retrievePairOccurrences(Integer.MIN_VALUE, 0));
+        assertEquals(0, cm.retrievePairOccurrences(Integer.MIN_VALUE, 35));
+        assertEquals(0, cm.retrievePairOccurrences(Integer.MIN_VALUE, 1));
+        assertEquals(32, cm.retrievePairOccurrences(Integer.MIN_VALUE, 36));
+        assertEquals(429, cm.retrievePairOccurrences(Integer.MIN_VALUE, Integer.MIN_VALUE));
+    }
+
+    /**
+     * Test on Short images.
+     */
+    @Test
+    public void nodataTestShortDatatype() throws Exception {
+        final File file0;
+        final File file6;
+        try {
+            file0 = TestData.file(this, "clc2000_L3_100m_small_short.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_small_short.tif");
+        } catch (FileNotFoundException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        } catch (IOException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        }
+    
+        final Set<Integer> classes = new HashSet<Integer>();
+        classes.add(FIRST_CLASS_VALUE);
+        classes.add(SECOND_CLASS_VALUE);
+        classes.add(THIRD_CLASS_VALUE);
+        classes.add(FOURTH_CLASS_VALUE);
+        
+        Range noData = RangeFactory.create(FIFTH_CLASS_VALUE-1, false, FIFTH_CLASS_VALUE+1, false);
+        
+        final ChangeMatrix cm = new ChangeMatrix(classes);
+    
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
+    
+        final ParameterBlockJAI pbj = new ParameterBlockJAI("ChangeMatrix");
+        pbj.addSource(reference);
+        pbj.addSource(source);
+        pbj.setParameter("result", cm);
+        pbj.setParameter("pixelMultiplier", PIXEL_MULTIPLIER);
+        pbj.setParameter("noData", noData);
+        final RenderedOp result = JAI.create("ChangeMatrix", pbj, null);
+        result.getWidth();
+    
+        // CONTROL ON THE DATA TYPE
+        int initialDataType = reference.getSampleModel().getDataType();
+        int finalDataType = result.getSampleModel().getDataType();
+        assertEquals("The initial data type should have been Short!", initialDataType,
+                DataBuffer.TYPE_SHORT);
+        assertEquals("The final data type should have been Short!", finalDataType,
+                DataBuffer.TYPE_SHORT);
+    
+        // try to write the resulting image before disposing the sources
+        final File out = File.createTempFile("chm", "result.tif");
+        out.deleteOnExit();
+        ImageIO.write(result, "tiff", out);
+    
+        result.dispose();
+        source.dispose();
+        reference.dispose();
+    
+     // check values of the change matrix
+        assertEquals(88022, cm.retrievePairOccurrences(0, 0));
+        assertEquals(0, cm.retrievePairOccurrences(0, 35));
+        assertEquals(0, cm.retrievePairOccurrences(0, 1));
+        assertEquals(0, cm.retrievePairOccurrences(0, 36));
+        assertEquals(0, cm.retrievePairOccurrences(0, Integer.MIN_VALUE));
+        assertEquals(0, cm.retrievePairOccurrences(35, 0));
+        assertEquals(36, cm.retrievePairOccurrences(35, 35));
+        assertEquals(0, cm.retrievePairOccurrences(35, 1));
+        assertEquals(0, cm.retrievePairOccurrences(35, 36));
+        assertEquals(0, cm.retrievePairOccurrences(35, Integer.MIN_VALUE));
+        assertEquals(0, cm.retrievePairOccurrences(1, 0));
+        assertEquals(0, cm.retrievePairOccurrences(1, 35));
+        assertEquals(18, cm.retrievePairOccurrences(1, 1));
+        assertEquals(1, cm.retrievePairOccurrences(1, 36));
+        assertEquals(0, cm.retrievePairOccurrences(1, Integer.MIN_VALUE));
+        assertEquals(0, cm.retrievePairOccurrences(36, 0));
+        assertEquals(1, cm.retrievePairOccurrences(36, 35));
+        assertEquals(1, cm.retrievePairOccurrences(36, 1));
+        assertEquals(6930, cm.retrievePairOccurrences(36, 36));
+        assertEquals(58, cm.retrievePairOccurrences(36, Integer.MIN_VALUE));
+        assertEquals(3, cm.retrievePairOccurrences(Integer.MIN_VALUE, 0));
+        assertEquals(1, cm.retrievePairOccurrences(Integer.MIN_VALUE, 35));
+        assertEquals(0, cm.retrievePairOccurrences(Integer.MIN_VALUE, 1));
+        assertEquals(129, cm.retrievePairOccurrences(Integer.MIN_VALUE, 36));
+        assertEquals(1720, cm.retrievePairOccurrences(Integer.MIN_VALUE, Integer.MIN_VALUE));
+    }
+
+    /**
+     * Test on byte images which returns an image with Short data type.
+     */
+    @Test
+    public void nodataTestByteToShortDatatype() throws Exception {
+    
+        final File file0;
+        final File file6;
+        try {
+            file0 = TestData.file(this, "clc2000_L3_100m_small.tif");
+            file6 = TestData.file(this, "clc2006_L3_100m_small.tif");
+        } catch (FileNotFoundException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        } catch (IOException f) {
+            throw new IllegalArgumentException("Input files are not present!");
+        }
+    
+        final Set<Integer> classes = new HashSet<Integer>();
+        classes.add(FIRST_CLASS_VALUE);
+        classes.add(SECOND_CLASS_VALUE);
+        classes.add(THIRD_CLASS_VALUE);
+        classes.add(FOURTH_CLASS_VALUE);
+        
+        Range noData = RangeFactory.create(FIFTH_CLASS_VALUE-1, false, FIFTH_CLASS_VALUE+1, false);
+        
+        final ChangeMatrix cm = new ChangeMatrix(classes);
+    
+        final RenderedOp source = JAI.create("ImageRead", file6);
+        final RenderedOp reference = JAI.create("ImageRead", file0);
+    
+        final ParameterBlockJAI pbj = new ParameterBlockJAI("ChangeMatrix");
+        pbj.addSource(reference);
+        pbj.addSource(source);
+        pbj.setParameter("noData", noData);
+        pbj.setParameter("result", cm);
+        pbj.setParameter("pixelMultiplier", PIXEL_MULTIPLIER);
+        final RenderedOp result = JAI.create("ChangeMatrix", pbj, null);
+        result.getWidth();
+    
+        // CONTROL ON THE DATA TYPE
+        int initialDataType = reference.getSampleModel().getDataType();
+        int finalDataType = result.getSampleModel().getDataType();
+        assertEquals("The initial data type should have been Byte!", initialDataType,
+                DataBuffer.TYPE_BYTE);
+        assertEquals("The final data type should have been Short!", finalDataType,
+                DataBuffer.TYPE_SHORT);
+    
+        // try to write the resulting image before disposing the sources
+        final File out = File.createTempFile("chm", "result.tif");
+        out.deleteOnExit();
+        ImageIO.write(result, "tiff", out);
+    
+        result.dispose();
+        source.dispose();
+        reference.dispose();
+    
+        // check values of the change matrix
+        assertEquals(88022, cm.retrievePairOccurrences(0, 0));
+        assertEquals(0, cm.retrievePairOccurrences(0, 35));
+        assertEquals(0, cm.retrievePairOccurrences(0, 1));
+        assertEquals(0, cm.retrievePairOccurrences(0, 36));
+        assertEquals(0, cm.retrievePairOccurrences(0, Integer.MIN_VALUE));
+        assertEquals(0, cm.retrievePairOccurrences(35, 0));
+        assertEquals(36, cm.retrievePairOccurrences(35, 35));
+        assertEquals(0, cm.retrievePairOccurrences(35, 1));
+        assertEquals(0, cm.retrievePairOccurrences(35, 36));
+        assertEquals(0, cm.retrievePairOccurrences(35, Integer.MIN_VALUE));
+        assertEquals(0, cm.retrievePairOccurrences(1, 0));
+        assertEquals(0, cm.retrievePairOccurrences(1, 35));
+        assertEquals(18, cm.retrievePairOccurrences(1, 1));
+        assertEquals(1, cm.retrievePairOccurrences(1, 36));
+        assertEquals(0, cm.retrievePairOccurrences(1, Integer.MIN_VALUE));
+        assertEquals(0, cm.retrievePairOccurrences(36, 0));
+        assertEquals(1, cm.retrievePairOccurrences(36, 35));
+        assertEquals(1, cm.retrievePairOccurrences(36, 1));
+        assertEquals(6930, cm.retrievePairOccurrences(36, 36));
+        assertEquals(58, cm.retrievePairOccurrences(36, Integer.MIN_VALUE));
+        assertEquals(3, cm.retrievePairOccurrences(Integer.MIN_VALUE, 0));
+        assertEquals(1, cm.retrievePairOccurrences(Integer.MIN_VALUE, 35));
+        assertEquals(0, cm.retrievePairOccurrences(Integer.MIN_VALUE, 1));
+        assertEquals(129, cm.retrievePairOccurrences(Integer.MIN_VALUE, 36));
+        assertEquals(1720, cm.retrievePairOccurrences(Integer.MIN_VALUE, Integer.MIN_VALUE));
+    }
 }

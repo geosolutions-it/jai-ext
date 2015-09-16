@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.changematrix;
 
 import it.geosolutions.jaiext.changematrix.ChangeMatrixDescriptor.ChangeMatrix;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
 import java.awt.color.ColorSpace;
@@ -26,7 +27,6 @@ import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Map;
 
@@ -72,7 +72,13 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
     /** Image which maps the area for each pixel*/
     private final RenderedImage areaMap;
-
+    
+    /** Flag indicating if NODATA is present */
+    private final boolean hasNoData;
+    
+    /** NoData NoData range for reference and actual images */
+    private final Range noData;
+    
     /**
      * Creates a new instance.
      * 
@@ -92,7 +98,7 @@ public class ChangeMatrixOpImage extends PointOpImage {
     @SuppressWarnings("rawtypes")
     public ChangeMatrixOpImage(final RenderedImage reference, final RenderedImage now,
             final RenderedImage area, final Map config, final ImageLayout layout, ROI roi,
-            int pixelMultiplier, final ChangeMatrix result) {
+            int pixelMultiplier, final ChangeMatrix result, Range noData) {
 
         super(reference, now, layout, config, true);
         // Setting of the ChangeMatrix
@@ -175,6 +181,18 @@ public class ChangeMatrixOpImage extends PointOpImage {
         // Area grid is present
         areaGrid = area != null;
         areaMap = area;
+        
+        // is NoData range present?
+        this.hasNoData = (noData!=null)?true:false;
+        this.noData = noData;
+        if(this.hasNoData){
+            // Check if No ChangeMatrix classes set belong to NoData
+            for(Integer clazz : result.getRegisteredClasses()){
+                if(noData.contains(clazz)){
+                    throw new IllegalStateException("One or more provided classes are contained in the NoData range");
+                }
+            }
+        }
     }
 
     /**
@@ -374,12 +392,26 @@ public class ChangeMatrixOpImage extends PointOpImage {
 
                     if (noROI || tileRoi.contains(x, y)) {
                         area = areaGrid ? src3Data[src3PixelOffset] : -1;
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
+                        int pixelReference = s1[src1PixelOffset];
+                        int pixelActual = s2[src2PixelOffset];
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
-                        d[dstPixelOffset] = before + pixelMultiplier * after;
+                        int processing = before + pixelMultiplier * after;
+                        
+                        // noData checks
+                        if(hasNoData){ 
+                            boolean refNoData = noData.contains(pixelReference);
+                            boolean actualNoData = noData.contains(pixelActual);
+                            pixelReference = (refNoData)?Integer.MIN_VALUE:pixelReference;
+                            pixelActual = (actualNoData)?Integer.MIN_VALUE:pixelActual;
+                            if(refNoData||actualNoData){
+                                processing = Integer.MIN_VALUE;
+                            }
+                        }
+                        result.registerPair(pixelReference, pixelActual, area);
+                        d[dstPixelOffset] = processing;
+                        
                     } else {
-                        // we of course use 0 as NoData
-                        d[dstPixelOffset] = 0;
+                        d[dstPixelOffset] = Integer.MIN_VALUE;
                     }
 
                     src1PixelOffset += src1PixelStride;
@@ -435,7 +467,8 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
                         area = areaGrid ? src3Data[src3PixelOffset] : -1;
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
+                        int pixelReference = s1[src1PixelOffset];
+                        int pixelActual = s2[src2PixelOffset];
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
                         // Check if the processing is an allowed value
@@ -444,10 +477,22 @@ public class ChangeMatrixOpImage extends PointOpImage {
                                     "The processing result is not an allowed value for the final data type");
                         }
 
+                        // noData checks
+                        if(hasNoData){ 
+                            boolean refNoData = noData.contains(pixelReference);
+                            boolean actualNoData = noData.contains(pixelActual);
+                            pixelReference = (refNoData)?Integer.MIN_VALUE:pixelReference;
+                            pixelActual = (actualNoData)?Integer.MIN_VALUE:pixelActual;
+                            if(refNoData||actualNoData){
+                                processing = Byte.MIN_VALUE;
+                            }
+                        }
+                        
+                        result.registerPair(pixelReference, pixelActual, area);
                         d[dstPixelOffset] = (byte) processing;
+                        
                     } else {
-                        // we of course use 0 as NoData
-                        d[dstPixelOffset] = (byte) 0;
+                        d[dstPixelOffset] = Byte.MIN_VALUE;
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
@@ -501,7 +546,10 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
                         area = areaGrid ? src3Data[src3PixelOffset] : -1;
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
+                        
+                        int pixelReference = s1[src1PixelOffset];
+                        int pixelActual = s2[src2PixelOffset];
+                        
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
                         // Check if the processing is an allowed value
@@ -509,12 +557,23 @@ public class ChangeMatrixOpImage extends PointOpImage {
                             throw new RuntimeException(
                                     "The processing result is not an allowed value for the final data type");
                         }
-
+                        
+                        // noData checks
+                        if(hasNoData){ 
+                            boolean refNoData = noData.contains(pixelReference);
+                            boolean actualNoData = noData.contains(pixelActual);
+                            pixelReference = (refNoData)?Integer.MIN_VALUE:pixelReference;
+                            pixelActual = (actualNoData)?Integer.MIN_VALUE:pixelActual;
+                            if(refNoData||actualNoData){
+                                processing = Short.MIN_VALUE;
+                            }
+                        }
+                        
+                        result.registerPair(pixelReference, pixelActual, area);
                         d[dstPixelOffset] = (short) (processing);
 
                     } else {
-                        // we of course use 0 as NoData
-                        d[dstPixelOffset] = (short) 0;
+                        d[dstPixelOffset] = Short.MIN_VALUE;
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
@@ -568,12 +627,27 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
                         area = areaGrid ? src3Data[src3PixelOffset] : -1;
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
+                        
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
-                        d[dstPixelOffset] = (before + pixelMultiplier * after);
+                        int processing = (before + pixelMultiplier * after);
+                        int pixelReference = s1[src1PixelOffset]; 
+                        int pixelActual = s2[src2PixelOffset];
+                        
+                        // noData checks
+                        if(hasNoData){ 
+                            boolean refNoData = noData.contains(pixelReference);
+                            boolean actualNoData = noData.contains(pixelActual);
+                            pixelReference = (refNoData)?Integer.MIN_VALUE:pixelReference;
+                            pixelActual = (actualNoData)?Integer.MIN_VALUE:pixelActual;
+                            if(refNoData||actualNoData){
+                                processing = Integer.MIN_VALUE;
+                            }
+                        }
+                        
+                        result.registerPair(pixelReference, pixelActual, area);
+                        d[dstPixelOffset] = processing; 
                     } else {
-                        // we of course use 0 as NoData
-                        d[dstPixelOffset] = 0;
+                        d[dstPixelOffset] = Integer.MIN_VALUE;;
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
@@ -628,19 +702,33 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
                         area = areaGrid ? src3Data[src3PixelOffset] : -1;
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
+                        
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
+                        int pixelReference = s1[src1PixelOffset];
+                        int pixelActual = s2[src2PixelOffset];
+                        
+                        // noData checks
+                        if(hasNoData){ 
+                            boolean refNoData = noData.contains(pixelReference);
+                            boolean actualNoData = noData.contains(pixelActual);
+                            pixelReference = (refNoData)?Integer.MIN_VALUE:pixelReference;
+                            pixelActual = (actualNoData)?Integer.MIN_VALUE:pixelActual;
+                            if(refNoData||actualNoData){
+                                processing = 0;
+                            }
+                        }
+                        
                         // Check if the processing is an allowed value
                         if (processing > USHORT_MAX_VALUE || processing < 0) {
                             throw new RuntimeException(
                                     "The processing result is not an allowed value for the final data type");
                         }
-
+                        
+                        result.registerPair(pixelReference, pixelActual, area);
                         d[dstPixelOffset] = (short) (processing);
 
                     } else {
-                        // we of course use 0 as NoData
                         d[dstPixelOffset] = 0;
                     }
                     src1PixelOffset += src1PixelStride;
@@ -695,14 +783,28 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
                         area = areaGrid ? src3Data[src3PixelOffset] : -1;
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
+                        
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
-
+                        int pixelReference = s1[src1PixelOffset];
+                        int pixelActual = s2[src2PixelOffset];
+                        
+                        // noData checks
+                        if(hasNoData){ 
+                            boolean refNoData = noData.contains(pixelReference);
+                            boolean actualNoData = noData.contains(pixelActual);
+                            pixelReference = (refNoData)?Integer.MIN_VALUE:pixelReference;
+                            pixelActual = (actualNoData)?Integer.MIN_VALUE:pixelActual;
+                            if(refNoData||actualNoData){
+                                processing = Integer.MIN_VALUE;
+                            }
+                        }
+                        
+                        result.registerPair(pixelReference, pixelActual, area);
                         d[dstPixelOffset] = processing;
                     } else {
                         // we of course use 0 as NoData
-                        d[dstPixelOffset] = 0;
+                        d[dstPixelOffset] = Integer.MIN_VALUE;
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
@@ -757,19 +859,33 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
                         area = areaGrid ? src3Data[src3PixelOffset] : -1;
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
+                        
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
+                        int pixelReference = s1[src1PixelOffset];
+                        int pixelActual = s2[src2PixelOffset];
+                        
+                        // noData checks
+                        if(hasNoData){ 
+                            boolean refNoData = noData.contains(pixelReference);
+                            boolean actualNoData = noData.contains(pixelActual);
+                            pixelReference = (refNoData)?Integer.MIN_VALUE:pixelReference;
+                            pixelActual = (actualNoData)?Integer.MIN_VALUE:pixelActual;
+                            if(refNoData||actualNoData){
+                                processing = Short.MIN_VALUE;
+                            }
+                        }
+                        
                         // Check if the processing is an allowed value
                         if (processing > Short.MAX_VALUE || processing < Short.MIN_VALUE) {
                             throw new RuntimeException(
                                     "The processing result is not an allowed value for the final data type");
                         }
-
+                        
+                        result.registerPair(pixelReference, pixelActual, area);
                         d[dstPixelOffset] = (short) (processing);
                     } else {
-                        // we of course use 0 as NoData
-                        d[dstPixelOffset] = (byte) 0;
+                        d[dstPixelOffset] = Short.MIN_VALUE;
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
@@ -823,14 +939,28 @@ public class ChangeMatrixOpImage extends PointOpImage {
                     final int y = src1MinY + (src1PixelOffset / src1LineStride);
                     if (noROI || tileRoi.contains(x, y)) {
                         area = areaGrid ? src3Data[src3PixelOffset] : -1;
-                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
+                        
                         // If the pixel is inside the ROI, it is processed following the operation: REFERENCE_CLASS + PIXEL_MUL*SOURCE_CLASS
                         int processing = before + pixelMultiplier * after;
-
+                        int pixelReference = 0;
+                        int pixelActual = 0;
+                        
+                        // noData checks
+                        if(hasNoData){ 
+                            boolean refNoData = noData.contains(pixelReference);
+                            boolean actualNoData = noData.contains(pixelActual);
+                            pixelReference = (refNoData)?Integer.MIN_VALUE:pixelReference;
+                            pixelActual = (actualNoData)?Integer.MIN_VALUE:pixelActual;
+                            if(refNoData||actualNoData){
+                                processing = Integer.MIN_VALUE;
+                            }
+                        }
+                        
+                        result.registerPair(s1[src1PixelOffset], s2[src2PixelOffset], area);
                         d[dstPixelOffset] = processing;
                     } else {
                         // we of course use 0 as NoData
-                        d[dstPixelOffset] = 0;
+                        d[dstPixelOffset] = Integer.MIN_VALUE;
                     }
                     src1PixelOffset += src1PixelStride;
                     src2PixelOffset += src2PixelStride;
