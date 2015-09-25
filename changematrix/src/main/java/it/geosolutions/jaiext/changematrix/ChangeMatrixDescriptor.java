@@ -17,10 +17,13 @@
 */
 package it.geosolutions.jaiext.changematrix;
 
+import it.geosolutions.jaiext.range.Range;
+
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,7 +48,7 @@ import com.google.common.util.concurrent.AtomicDouble;
  * For each pair of classes <Ci,Cj> the change matrix record the number of pixels that went from Ci in the reference image to Cj in the source image.
  * If Ci and Cj are the same class that evaluates how many pixel of class Ci remain in the same class.
  * <p>
- * The operation support providing a ROI.
+ * The operation support providing a ROI and a NODATA. The transitions which involve NODATA are recorded in the result matrix using as NODATA index the minimum value accepted from the output image type.
  * <p>
  * <b>Summary of parameters:</b>
  * <table border="1", cellpadding="3">
@@ -84,6 +87,12 @@ import com.google.common.util.concurrent.AtomicDouble;
  * <td>RenderedImage</td>
  * <td>null</td>
  * <td>The reference image for the computation of changes</td>
+ * </tr>
+ * <tr>
+ * <td>noData</td>
+ * <td>Range[]</td>
+ * <td>null</td>
+ * <td>A {@link Range} which specifies a range of values used as NODATA. A null value means there are no NODATA in the images</td>
  * </tr>
  * <tr>
  * <td>result</td>
@@ -138,6 +147,11 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
             if (classes.isEmpty()) {
                 throw new IllegalArgumentException("The provided classes set is empty");
             }
+            if (classes.contains(Integer.MIN_VALUE)){
+                throw new IllegalArgumentException("The provided class value '" + Integer.MIN_VALUE + "' that is the Integer.MIN_VALUE is not accepted since is used to keep track between NoData transitions");
+            }
+            //Add this class in order to keep track between NODATA value
+            classes.add(Integer.MIN_VALUE);
 
             // build the mappings and the matrix to hold the result
 
@@ -157,7 +171,6 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
             for (Integer clazz : classes) {
                 classesMappings.put(clazz, k++);
             }
-
         }
 
         /**
@@ -235,6 +248,18 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
         public void freeze() {
             frozen = true;
         }
+        
+        /**
+         * 
+         * @return a list which represents the managed classes
+         */
+        public List<Integer> getRegisteredClasses(){
+            List<Integer> classesList = new LinkedList<Integer>();
+            for(Integer i : classesMappings.keySet()){
+                classesList.add(i.intValue());
+            }
+            return classesList;
+        }
     }
 
     /** Default value for the pixel Multiplier (Should be substituted by a value related to the input image classes ) */
@@ -254,17 +279,20 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
     
     /** Index associated to the Area Map input parameter */
     public static final int AREA_MAP_INDEX = 3;
+    
+    /** Index associated to the reference image NODATA range */
+    public static final int NODATA = 4;
 
     /** Names of all the input parameters */
-    public static final String[] PARAM_NAMES = { "roi", "result", "pixelMultiplier", "area" };
+    public static final String[] PARAM_NAMES = { "roi", "result", "pixelMultiplier", "area", "noData" };
 
     /** Classes of all the input parameters */
     private static final Class<?>[] PARAM_CLASSES = { javax.media.jai.ROI.class,
-            ChangeMatrix.class, java.lang.Integer.class, RenderedImage.class };
+            ChangeMatrix.class, java.lang.Integer.class, RenderedImage.class, Range.class };
 
     /** Default valuescfor all the input parameters */
     private static final Object[] PARAM_DEFAULTS = { (ROI) null, NO_PARAMETER_DEFAULT,
-            DEFAULT_PIXEL_MULTIPLIER, null };
+            DEFAULT_PIXEL_MULTIPLIER, null, null };
 
     /** Constructor. */
     public ChangeMatrixDescriptor() {
@@ -284,7 +312,8 @@ public class ChangeMatrixDescriptor extends OperationDescriptorImpl {
                         "result (ChangeMatrix) -"
                                 + "a sparse matrix as a Map holding the count of change pixels" },
                 { "arg2Desc", "integer value used for processing the image pixels" },
-                { "arg3Desc", "Area map" }
+                { "arg3Desc", "Area map" },
+                { "arg4Desc", "A range of values used as NODATA" }
 
         },
 

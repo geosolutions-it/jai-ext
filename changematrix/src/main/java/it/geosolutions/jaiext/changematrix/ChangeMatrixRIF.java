@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.changematrix;
 
 import it.geosolutions.jaiext.changematrix.ChangeMatrixDescriptor.ChangeMatrix;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -90,10 +91,22 @@ public class ChangeMatrixRIF implements RenderedImageFactory {
         // Get the Area Image
         RenderedImage area = (RenderedImage) paramBlock
                 .getObjectParameter(ChangeMatrixDescriptor.AREA_MAP_INDEX);
+        if(area != null){
+            if (area.getSampleModel().getNumBands() > 1) {
+                throw new IllegalArgumentException(
+                        "Unable to process area image with more than one band (source[0])");
+            }
+            final int areaDataType = area.getSampleModel().getDataType();
+            if (areaDataType != DataBuffer.TYPE_DOUBLE) {
+                throw new IllegalArgumentException(
+                        "Unable to process area image as it has a non double data type");
+            }
+        }
         
         ImageLayout layout = RIFUtil.getImageLayoutHint(renderHints);
-        if (layout == null)
+        if (layout == null){
             layout = new ImageLayout();
+        }
 
         // result
         final ChangeMatrix result = (ChangeMatrix) paramBlock
@@ -120,9 +133,11 @@ public class ChangeMatrixRIF implements RenderedImageFactory {
             }
         }
         
+        Range noDataRange = (Range)paramBlock.getObjectParameter(ChangeMatrixDescriptor.NODATA);
+        
         //Pixel Multiplier value
         int pixelMultiplier = paramBlock.getIntParameter(ChangeMatrixDescriptor.PIXEL_MULTY_ARG_INDEX);
         
-        return new ChangeMatrixOpImage(reference, now, area, renderHints, layout, roi, pixelMultiplier, result);
+        return new ChangeMatrixOpImage(reference, now, area, renderHints, layout, roi, pixelMultiplier, result, noDataRange);
     }
 }

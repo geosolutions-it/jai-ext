@@ -18,10 +18,9 @@
 			<version>${guava.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>com.carrotsearch</groupId>
-			<artifactId>junit-benchmarks</artifactId>
-			<version>0.5.0</version>
-			<scope>test</scope>
+			<groupId>it.geosolutions.jaiext.utilities</groupId>
+			<artifactId>jt-utilities</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>it.geosolutions.jaiext.utilities</groupId>
