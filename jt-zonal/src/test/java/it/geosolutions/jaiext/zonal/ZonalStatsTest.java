@@ -251,7 +251,7 @@ public class ZonalStatsTest extends TestBase {
         Rectangle rectClass = new Rectangle(classifier.getMinX(), classifier.getMinY(),
                 classifier.getWidth(), classifier.getHeight());
         // Iterator on the classifier image
-        RandomIter iterator = RandomIterFactory.create(classifier, rectClass, false, true);
+        RandomIter iterator = RandomIterFactory.create(classifier, rectClass, true, true);
 
         // No Data values
         noDataB = 50;

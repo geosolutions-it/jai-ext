@@ -17,9 +17,6 @@
 */
 package it.geosolutions.jaiext.affine;
 
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
@@ -39,6 +36,11 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+import javax.media.jai.iterator.RandomIter;
+
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
 
 public class AffineNearestOpImage extends AffineOpImage {
 
@@ -92,7 +94,7 @@ public class AffineNearestOpImage extends AffineOpImage {
         if (interp instanceof InterpolationNearest) {
             interpN = (InterpolationNearest) interp;
             this.interp = interpN;
-            interpN.setROIdata(roiBounds, roiIter);
+            interpN.setROIBounds(roiBounds);
             if (nod == null) {
                 nod = interpN.getNoDataRange();
             }
@@ -172,12 +174,6 @@ public class AffineNearestOpImage extends AffineOpImage {
 
     /** Method for evaluating the destination image tile without ROI */
     protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
-        computeRect(sources, dest, destRect, null);
-    }
-
-    /** Method for evaluating the destination image tile with ROI */
-    protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect,
-            Raster[] rois) {
         // Retrieve format tags.
         RasterFormatTag[] formatTags = getFormatTags();
         // Source image
@@ -201,15 +197,22 @@ public class AffineNearestOpImage extends AffineOpImage {
         RasterAccessor roiAccessor = null;
         // Roi raster initialization
         Raster roi = null;
+        RandomIter roiIter = null;
 
         // ROI calculation only if the roi raster is present
-        if (useROIAccessor) {
-            // Selection of the roi raster
-            roi = rois[0];
-            // creation of the rasterAccessor
-            roiAccessor = new RasterAccessor(roi, srcRect, RasterAccessor.findCompatibleTags(
-                    new RenderedImage[] { srcROIImage }, srcROIImage)[0],
-                    srcROIImage.getColorModel());
+        if (hasROI) {
+            if (useROIAccessor) {
+                if(srcROIImage.getBounds().contains(srcRect)){
+                    roi = srcROIImage.getData(srcRect);
+                } else{
+                    roi = srcROIImgExt.getData(srcRect);
+                }
+                roiAccessor = new RasterAccessor(roi, srcRect, RasterAccessor.findCompatibleTags(
+                        new RenderedImage[] { srcROIImage }, srcROIImage)[0],
+                        srcROIImage.getColorModel());
+            } else {
+                roiIter = RandomIterFactory.create(srcROIImgExt, roiRect, true, true);
+            }
         }
 
         int dataType = dest.getSampleModel().getDataType();
@@ -218,24 +221,24 @@ public class AffineNearestOpImage extends AffineOpImage {
 
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
-            byteLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor, roiAccessor);
+            byteLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor, roiAccessor, roiIter);
             break;
         case DataBuffer.TYPE_INT:
-            intLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor, roiAccessor);
+            intLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor, roiAccessor, roiIter);
             break;
         case DataBuffer.TYPE_SHORT:
-            shortLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor, roiAccessor);
+            shortLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor, roiAccessor, roiIter);
             break;
         case DataBuffer.TYPE_USHORT:
             ushortLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor,
-                    roiAccessor);
+                    roiAccessor, roiIter);
             break;
         case DataBuffer.TYPE_FLOAT:
-            floatLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor, roiAccessor);
+            floatLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor, roiAccessor, roiIter);
             break;
         case DataBuffer.TYPE_DOUBLE:
             doubleLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor,
-                    roiAccessor);
+                    roiAccessor, roiIter);
             break;
         }
 
@@ -249,7 +252,7 @@ public class AffineNearestOpImage extends AffineOpImage {
     }
 
     private void byteLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
-            int srcRectY, RasterAccessor dst, RasterAccessor roi) {
+            int srcRectY, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
         final float src_rect_x1 = src.getX();
         final float src_rect_y1 = src.getY();
@@ -973,7 +976,7 @@ public class AffineNearestOpImage extends AffineOpImage {
     }
 
     private void intLoop(int dataType, RasterAccessor src, Rectangle destRect,
-            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi) {
+            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
 
         final float src_rect_x1 = src.getX();
@@ -1714,7 +1717,7 @@ public class AffineNearestOpImage extends AffineOpImage {
     }
 
     private void shortLoop(int dataType, RasterAccessor src, Rectangle destRect,
-            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi) {
+            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
 
         final float src_rect_x1 = src.getX();
@@ -2458,7 +2461,7 @@ public class AffineNearestOpImage extends AffineOpImage {
     }
 
     private void ushortLoop(int dataType, RasterAccessor src, Rectangle destRect,
-            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi) {
+            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
 
         final float src_rect_x1 = src.getX();
@@ -3203,7 +3206,7 @@ public class AffineNearestOpImage extends AffineOpImage {
     }
 
     private void floatLoop(int dataType, RasterAccessor src, Rectangle destRect,
-            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi) {
+            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
 
         final float src_rect_x1 = src.getX();
@@ -3951,7 +3954,7 @@ public class AffineNearestOpImage extends AffineOpImage {
     }
 
     private void doubleLoop(int dataType, RasterAccessor src, Rectangle destRect,
-            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi) {
+            int srcRectX, int srcRectY, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
 
         final float src_rect_x1 = src.getX();

@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.interpolators;
 
 import it.geosolutions.jaiext.range.Range;
+import jj2000.j2k.roi.ROIDeScaler;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
@@ -69,9 +70,6 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
     /** ROI bounds used for checking the position of the pixel */
     private Rectangle roiBounds;
 
-    /** Random interator used for navigate inside the ROI and searching the pixel */
-    private RandomIter roiIter;
-
     /** Boolean for checking if the ROI Accessor must be used by the interpolator */
     private boolean useROIAccessor;
 
@@ -119,15 +117,8 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
         this.dataType = dataType;
     }
 
-    public void setROIdata(Rectangle roiBounds, RandomIter roiIter) {
-        if (roiBounds != null && roiIter != null) {
-            this.roiBounds = roiBounds;
-            this.roiIter = roiIter;
-
-        } else if ((roiBounds == null && roiIter != null) || (roiBounds != null && roiIter == null)) {
-            throw new IllegalArgumentException(
-                    "If roiBounds or roiIter are not null, so even the other must be not null");
-        }
+    public void setROIBounds(Rectangle roiBounds) {
+        this.roiBounds = roiBounds;
     }
 
     public double getDestinationNoData() {
@@ -163,7 +154,7 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
 
     /** This method performs a bilinear interpolation of a pixel inside a not-Binary image. */
     public Number interpolate(RasterAccessor src, int bandIndex, int dnumbands, int posX, int posY,
-            Number[] fracValues, Integer yValueROI, RasterAccessor roi, boolean setNoData) {
+            Number[] fracValues, Integer yValueROI, RasterAccessor roi, RandomIter roiIter, boolean setNoData) {
         // If the value must be set to NO DATA no other operation are needed.
         if (setNoData) {
             return destinationNoData;
@@ -571,7 +562,7 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
     /** This method performs a bilinear interpolation of a pixel inside a binary image. */
     public int interpolateBinary(int xNextBitNo, Number[] sourceData, int xfrac, int yfrac,
             int sourceYOffset, int sourceScanlineStride, int[] coordinates, int[] roiDataArray,
-            int roiYOffset, int roiScanlineStride) {
+            int roiYOffset, int roiScanlineStride, RandomIter roiIter) {
 
         // Shift inside the pixel element, to the adjacent bit.
         int xNextShiftNo = 0;

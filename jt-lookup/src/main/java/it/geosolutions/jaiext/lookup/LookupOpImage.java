@@ -131,15 +131,13 @@ public class LookupOpImage extends ColormapOpImage {
             pb.set(bottomP, 3);
             pb.set(roiExtender, 4);
             srcROIImgExt = JAI.create("border", pb);
-            // Creation of a RandomIterator for selecting random pixel inside the ROI
-            RandomIter roiIter = RandomIterFactory.create(srcROIImage, srcROIImage.getBounds(), false, true);
             // Boolean indicating if roi is present
             hasROI = true;
 
             // The useRoiAccessor parameter is set
             this.useRoiAccessor = useRoiAccessor;
             // Then all the ROI informations are passed to the table
-            lookupTable.setROIparams(roiBounds, roiIter, srcROIImage, useRoiAccessor);
+            lookupTable.setROIparams(roiBounds, srcROIImage, useRoiAccessor);
         } else {
             //If no ROI is present then all the ROI information are set to null.
             this.useRoiAccessor = false;

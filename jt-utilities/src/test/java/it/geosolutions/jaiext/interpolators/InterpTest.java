@@ -460,7 +460,7 @@ public class InterpTest extends TestCase {
                 interpN = new InterpolationNearest(null, useROIAccessor, destinationNoData,
                         dataType);
                 testInterpolationValue = interpN.interpolate(src[dataType], 0, 1, posx, posy,
-                        posYroi, roiAccessor, false);
+                        posYroi, roiAccessor, null, false);
             } else {
                 int x0 = src[dataType].getX() + posx / src[dataType].getPixelStride();
                 int y0 = src[dataType].getY() + (posy - src[dataType].getBandOffset(0))
@@ -471,9 +471,9 @@ public class InterpTest extends TestCase {
                 }
                 interpN = new InterpolationNearest(null, useROIAccessor, destinationNoData,
                         dataType);
-                interpN.setROIdata(roiBounds, roiIter);
+                interpN.setROIBounds(roiBounds);
                 testInterpolationValue = interpN.interpolate(src[dataType], 0, 1, posx, posy, null,
-                        null, false);
+                        null, roiIter, false);
             }
         } else {
             // Expected value
@@ -526,7 +526,7 @@ public class InterpTest extends TestCase {
 
             // Interpolation
             testInterpolationValue = interpN.interpolate(src[dataType], 0, 1, posx, posy, null,
-                    null, false);
+                    null, roiIter, false);
         }
         // Test control
         assertEquality(dataType, expected, testInterpolationValue);
@@ -1215,30 +1215,30 @@ public class InterpTest extends TestCase {
                             destinationNoData, dataType);
                     // Interpolation
                     testInterpolationValue = interpB.interpolate(src[dataType], 0, 1, posx, posy,
-                            fracvalues, posYroi, roiAccessor, false);
+                            fracvalues, posYroi, roiAccessor, roiIter, false);
                 } else {
                     interpBN = new InterpolationBicubic(subsampleBits, null,  true,
                             destinationNoData, dataType, false, precisionBits);                    
                     // Interpolation
                     testInterpolationValue = interpBN.interpolate(src[dataType], 0, 1, posx, posy,
-                            fracvalues, posYroi, roiAccessor, false);
+                            fracvalues, posYroi, roiAccessor, roiIter, false);
                 }
                 weightArray = roiAccessorCheck(dataType, pixelArray, weightArray, bilinearUsed);
             } else {
                 if (bilinearUsed) {
                     interpB = new InterpolationBilinear(subsampleBits, null,  false,
                             destinationNoData, dataType);
-                    interpB.setROIdata(roiBounds, roiIter);
+                    interpB.setROIBounds(roiBounds);
                     // Interpolation
                     testInterpolationValue = interpB.interpolate(src[dataType], 0, 1, posx, posy,
-                            fracvalues, null, null, false);
+                            fracvalues, null, null, roiIter, false);
                 } else {
                     interpBN = new InterpolationBicubic(subsampleBits, null,  false,
                             destinationNoData, dataType, false, precisionBits);
-                    interpBN.setROIdata(roiBounds, roiIter);
+                    interpBN.setROIBounds(roiBounds);
                     // Interpolation
                     testInterpolationValue = interpBN.interpolate(src[dataType], 0, 1, posx, posy,
-                            fracvalues, null, null, false);
+                            fracvalues, null, null, roiIter, false);
                 }
                 weightArray = roiBoundCheck(dataType, pixelArray, weightArray, bilinearUsed);
             }
@@ -1331,10 +1331,10 @@ public class InterpTest extends TestCase {
             // Interpolation
             if (bilinearUsed) {
                 testInterpolationValue = interpB.interpolate(src[dataType], 0, 1, posx, posy,
-                        fracvalues, null, null, false);
+                        fracvalues, null, null, roiIter, false);
             } else {
                 testInterpolationValue = interpBN.interpolate(src[dataType], 0, 1, posx, posy,
-                        fracvalues, null, null, false);
+                        fracvalues, null, null, roiIter, false);
             }
         }
         sum = sumWeight(weightArray);
@@ -1681,7 +1681,7 @@ public class InterpTest extends TestCase {
         Raster roiData = roiImage.getExtendedData(testRaster.getBounds(),
                 BorderExtender.createInstance(BorderExtender.BORDER_ZERO));
 
-        roiIter = RandomIterFactory.create(roiData, testRaster.getBounds(),false,true);
+        roiIter = RandomIterFactory.create(roiData, testRaster.getBounds(),true,true);
 
         // roi raster accessor creation
 

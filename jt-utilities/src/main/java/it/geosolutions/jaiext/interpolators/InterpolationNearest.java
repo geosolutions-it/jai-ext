@@ -45,9 +45,6 @@ public class InterpolationNearest extends Interpolation implements Interpolation
     /** ROI bounds used for checking the position of the pixel */
     private Rectangle roiBounds;
 
-    /** Random interator used for navigate inside the ROI and searching the pixel */
-    private RandomIter roiIter;
-
     /** Image data Type */
     private int dataType;
 
@@ -90,15 +87,8 @@ public class InterpolationNearest extends Interpolation implements Interpolation
         this.dataType = dataType;
     }
 
-    public void setROIdata(Rectangle roiBounds, RandomIter roiIter) {
-        if (roiBounds != null && roiIter != null) {
-            this.roiBounds = roiBounds;
-            this.roiIter = roiIter;
-
-        } else if ((roiBounds == null && roiIter != null) || (roiBounds != null && roiIter == null)) {
-            throw new IllegalArgumentException(
-                    "If roiBounds or roiIter are not null, so even the other must be not null");
-        }
+    public void setROIBounds(Rectangle roiBounds) {
+        this.roiBounds = roiBounds;
     }
 
     public double getDestinationNoData() {
@@ -134,7 +124,7 @@ public class InterpolationNearest extends Interpolation implements Interpolation
 
     // method for calculating the nearest-neighbor interpolation (no Binary data).
     public Number interpolate(RasterAccessor src, int bandIndex, int dnumband, int posx, int posy,
-            Integer yROIValue, RasterAccessor roiAccessor, boolean setNoData) {
+            Integer yROIValue, RasterAccessor roiAccessor, RandomIter roiIter, boolean setNoData) {
         // src data and destination data
         Number destData = null;
         // the destination data is set equal to the source data but could change if the ROI is present. If
@@ -267,7 +257,7 @@ public class InterpolationNearest extends Interpolation implements Interpolation
     // Interpolation operation for Binary images (coordinates are useful only if ROI is present)
     public int interpolateBinary(int xNextBitNo, Number[] sourceData, int sourceYOffset,
             int sourceScanlineStride, int[] coordinates, int[] roiDataArray, int roiYOffset,
-            int roiScanlineStride) {
+            int roiScanlineStride, RandomIter roiIter) {
         // pixel initialization
         int s = 0;
         // Shift to the selected pixel

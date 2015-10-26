@@ -17,8 +17,6 @@
 */
 package it.geosolutions.jaiext.lookup;
 
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
@@ -27,12 +25,16 @@ import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.io.Serializable;
+
 import javax.media.jai.LookupTableJAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.RasterFormatTag;
 import javax.media.jai.iterator.RandomIter;
+
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
 
 /**
  * This abstract class defines the general methods of a LookupTable. This class contains all the table informations used by its direct subclasses for
@@ -65,9 +67,6 @@ public class LookupTable extends LookupTableJAI implements Serializable {
 
     /** Rectangle containing roi bounds */
     protected Rectangle roiBounds;
-
-    /** Iterator used for iterating on the roi data */
-    protected RandomIter roiIter;
 
     /** Boolean indicating if Roi RasterAccessor must be used */
     protected boolean useROIAccessor;
@@ -375,11 +374,10 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     }
 
     /** ROI flag is set to true and the ROI fields are all filled */
-    public void setROIparams(Rectangle roiBounds, RandomIter roiIter, PlanarImage srcROIImage,
+    public void setROIparams(Rectangle roiBounds, PlanarImage srcROIImage,
             boolean useROIAccessor) {
         this.hasROI = true;
         this.roiBounds = roiBounds;
-        this.roiIter = roiIter;
         this.useROIAccessor = useROIAccessor;
         this.srcROIImage = srcROIImage;
     }
@@ -388,13 +386,12 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     public void unsetROI() {
         this.hasROI = false;
         this.roiBounds = null;
-        this.roiIter = null;
         this.srcROIImage = null;
         this.useROIAccessor = false;
     }
 
     /** Abstract method for calculating the destination tile from the source tile and an eventual ROI raster */
-    protected void lookup(Raster source, WritableRaster dst, Rectangle rect, Raster roi){
+    protected void lookup(Raster source, WritableRaster dst, Rectangle rect, Raster roi) {
         
         
         // Validate source.
@@ -446,6 +443,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
         
         // Roi rasterAccessor initialization
         RasterAccessor roiAccessor = null;
+        RandomIter roiIter = null;
         // ROI calculation only if the roi raster is present
         if (useROIAccessor) {
             // Get the source rectangle
@@ -454,6 +452,8 @@ public class LookupTable extends LookupTableJAI implements Serializable {
             roiAccessor = new RasterAccessor(roi, srcRect, RasterAccessor.findCompatibleTags(
                     new RenderedImage[] { srcROIImage }, srcROIImage)[0],
                     srcROIImage.getColorModel());
+        } else if(hasROI) {
+            roiIter = RandomIterFactory.create(srcROIImage, srcROIImage.getBounds(), true, true);
         }
 
         int srcNumBands = s.getNumBands();
@@ -584,7 +584,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, bDstData,
-                       tblOffsets, bTblData, roiAccessor, rect);
+                       tblOffsets, bTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_USHORT:
@@ -593,7 +593,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                         dstWidth, dstHeight, dstNumBands,
                         dstLineStride, dstPixelStride,
                         dstBandOffsets, bDstData,
-                        tblOffsets, bTblData, roiAccessor, rect);
+                        tblOffsets, bTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_SHORT:
@@ -602,7 +602,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, bDstData,
-                       tblOffsets, bTblData, roiAccessor, rect);
+                       tblOffsets, bTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_INT:
@@ -611,7 +611,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, bDstData,
-                       tblOffsets, bTblData, roiAccessor, rect);
+                       tblOffsets, bTblData, roiAccessor, roiIter, rect);
                 break;
             }
             break;
@@ -625,7 +625,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, sDstData,
-                       tblOffsets, sTblData, roiAccessor, rect);
+                       tblOffsets, sTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_USHORT:
@@ -634,7 +634,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                         dstWidth, dstHeight, dstNumBands,
                         dstLineStride, dstPixelStride,
                         dstBandOffsets, sDstData,
-                        tblOffsets, sTblData, roiAccessor, rect);
+                        tblOffsets, sTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_SHORT:
@@ -643,7 +643,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, sDstData,
-                       tblOffsets, sTblData, roiAccessor, rect);
+                       tblOffsets, sTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_INT:
@@ -652,7 +652,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, sDstData,
-                       tblOffsets, sTblData, roiAccessor, rect);
+                       tblOffsets, sTblData, roiAccessor, roiIter, rect);
                 break;
             }
             break;
@@ -665,7 +665,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, iDstData,
-                       tblOffsets, iTblData, roiAccessor, rect);
+                       tblOffsets, iTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_USHORT:
@@ -674,7 +674,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                         dstWidth, dstHeight, dstNumBands,
                         dstLineStride, dstPixelStride,
                         dstBandOffsets, iDstData,
-                        tblOffsets, iTblData, roiAccessor, rect);
+                        tblOffsets, iTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_SHORT:
@@ -683,7 +683,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, iDstData,
-                       tblOffsets, iTblData, roiAccessor, rect);
+                       tblOffsets, iTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_INT:
@@ -692,7 +692,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, iDstData,
-                       tblOffsets, iTblData, roiAccessor, rect);
+                       tblOffsets, iTblData, roiAccessor, roiIter, rect);
                 break;
             }
             break;
@@ -705,7 +705,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, fDstData,
-                       tblOffsets, fTblData, roiAccessor, rect);
+                       tblOffsets, fTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_USHORT:
@@ -714,7 +714,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                         dstWidth, dstHeight, dstNumBands,
                         dstLineStride, dstPixelStride,
                         dstBandOffsets, fDstData,
-                        tblOffsets, fTblData, roiAccessor, rect);
+                        tblOffsets, fTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_SHORT:
@@ -723,7 +723,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, fDstData,
-                       tblOffsets, fTblData, roiAccessor, rect);
+                       tblOffsets, fTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_INT:
@@ -732,7 +732,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, fDstData,
-                       tblOffsets, fTblData, roiAccessor, rect);
+                       tblOffsets, fTblData, roiAccessor, roiIter, rect);
                 break;
             }
             break;
@@ -745,7 +745,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, dDstData,
-                       tblOffsets, dTblData, roiAccessor, rect);
+                       tblOffsets, dTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_USHORT:
@@ -754,7 +754,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                         dstWidth, dstHeight, dstNumBands,
                         dstLineStride, dstPixelStride,
                         dstBandOffsets, dDstData,
-                        tblOffsets, dTblData, roiAccessor, rect);
+                        tblOffsets, dTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_SHORT:
@@ -763,7 +763,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, dDstData,
-                       tblOffsets, dTblData, roiAccessor, rect);
+                       tblOffsets, dTblData, roiAccessor, roiIter, rect);
                 break;
 
             case DataBuffer.TYPE_INT:
@@ -772,7 +772,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
                        dstWidth, dstHeight, dstNumBands,
                        dstLineStride, dstPixelStride,
                        dstBandOffsets, dDstData,
-                       tblOffsets, dTblData, roiAccessor, rect);
+                       tblOffsets, dTblData, roiAccessor, roiIter, rect);
                 break;
             }
             break;
@@ -789,7 +789,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             byte[][] bSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, byte[][] bDstData, int[] tblOffsets,
-            byte[][] bTblData, RasterAccessor roi, Rectangle destRect) {
+            byte[][] bTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         // Destination image bounds
         final int dst_min_x = destRect.x;
@@ -1081,7 +1081,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             byte[][] bSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, short[][] sDstData, int[] tblOffsets,
-            short[][] sTblData, RasterAccessor roi, Rectangle destRect) {
+            short[][] sTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -1324,7 +1324,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             byte[][] bSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, int[][] iDstData, int[] tblOffsets,
-            int[][] iTblData, RasterAccessor roi, Rectangle destRect) {
+            int[][] iTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -1779,7 +1779,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             byte[][] bSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, float[][] fDstData, int[] tblOffsets,
-            float[][] fTblData, RasterAccessor roi, Rectangle destRect) {
+            float[][] fTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -2023,7 +2023,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             byte[][] bSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, double[][] dDstData, int[] tblOffsets,
-            double[][] dTblData, RasterAccessor roi, Rectangle destRect) {
+            double[][] dTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -2269,7 +2269,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookupU(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, byte[][] bDstData, int[] tblOffsets,
-            byte[][] bTblData, RasterAccessor roi, Rectangle destRect) {
+            byte[][] bTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         // Destination image bounds
         final int dst_min_x = destRect.x;
@@ -2536,7 +2536,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookupU(int srcLineStride, int srcPixelStride,
             int[] srcBandOffsets, short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands,
             int dstLineStride, int dstPixelStride, int[] dstBandOffsets, short[][] sDstData,
-            int[] tblOffsets, short[][] sTblData, RasterAccessor roi, Rectangle destRect) {
+            int[] tblOffsets, short[][] sTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -2781,7 +2781,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookupU(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, int[][] iDstData, int[] tblOffsets,
-            int[][] iTblData, RasterAccessor roi, Rectangle destRect) {
+            int[][] iTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -3234,7 +3234,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookupU(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, float[][] fDstData, int[] tblOffsets,
-            float[][] fTblData, RasterAccessor roi, Rectangle destRect) {
+            float[][] fTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -3478,7 +3478,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookupU(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, double[][] dDstData, int[] tblOffsets,
-            double[][] dTblData, RasterAccessor roi, Rectangle destRect) {
+            double[][] dTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -3724,7 +3724,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, byte[][] bDstData, int[] tblOffsets,
-            byte[][] bTblData, RasterAccessor roi, Rectangle destRect) {
+            byte[][] bTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         // Destination image bounds
         final int dst_min_x = destRect.x;
@@ -3991,7 +3991,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride,
             int[] srcBandOffsets, short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands,
             int dstLineStride, int dstPixelStride, int[] dstBandOffsets, short[][] sDstData,
-            int[] tblOffsets, short[][] sTblData, RasterAccessor roi, Rectangle destRect) {
+            int[] tblOffsets, short[][] sTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -4235,7 +4235,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, int[][] iDstData, int[] tblOffsets,
-            int[][] iTblData, RasterAccessor roi, Rectangle destRect) {
+            int[][] iTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -4686,7 +4686,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, float[][] fDstData, int[] tblOffsets,
-            float[][] fTblData, RasterAccessor roi, Rectangle destRect) {
+            float[][] fTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -4930,7 +4930,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             short[][] sSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, double[][] dDstData, int[] tblOffsets,
-            double[][] dTblData, RasterAccessor roi, Rectangle destRect) {
+            double[][] dTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -5175,7 +5175,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, byte[][] bDstData, int[] tblOffsets,
-            byte[][] bTblData, RasterAccessor roi, Rectangle destRect) {
+            byte[][] bTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         // Destination image bounds
         final int dst_min_x = destRect.x;
@@ -5439,7 +5439,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride,
             int[] srcBandOffsets, int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands,
             int dstLineStride, int dstPixelStride, int[] dstBandOffsets, short[][] sDstData,
-            int[] tblOffsets, short[][] sTblData, RasterAccessor roi, Rectangle destRect) {
+            int[] tblOffsets, short[][] sTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -5683,7 +5683,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, int[][] iDstData, int[] tblOffsets,
-            int[][] iTblData, RasterAccessor roi, Rectangle destRect) {
+            int[][] iTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -6134,7 +6134,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, float[][] fDstData, int[] tblOffsets,
-            float[][] fTblData, RasterAccessor roi, Rectangle destRect) {
+            float[][] fTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;
@@ -6378,7 +6378,7 @@ public class LookupTable extends LookupTableJAI implements Serializable {
     private void lookup(int srcLineStride, int srcPixelStride, int[] srcBandOffsets,
             int[][] iSrcData, int dstWidth, int dstHeight, int dstNumBands, int dstLineStride,
             int dstPixelStride, int[] dstBandOffsets, double[][] dDstData, int[] tblOffsets,
-            double[][] dTblData, RasterAccessor roi, Rectangle destRect) {
+            double[][] dTblData, RasterAccessor roi, RandomIter roiIter, Rectangle destRect) {
 
         final int dst_min_x = destRect.x;
         final int dst_min_y = destRect.y;

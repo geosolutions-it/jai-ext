@@ -17,12 +17,6 @@
 */
 package it.geosolutions.jaiext.scale;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.interpolators.InterpolationNoData;
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -44,9 +38,17 @@ import javax.media.jai.InterpolationBicubic2;
 import javax.media.jai.InterpolationTable;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.Rational;
+
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.interpolators.InterpolationNoData;
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
 
 /**
  * This class is an extends the functionality of the ScaleOpImage class by adding the support for No Data values and by extending the ROI support for
@@ -119,7 +121,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             isNearestNew=true;
             interpN = (InterpolationNearest) interpolator;
             this.interp=interpN;
-            interpN.setROIdata(roiBounds, roiIter);
+            interpN.setROIBounds(roiBounds);
             if(destNod == null){
             	destNod = new double[]{interpN.getDestinationNoData()};
             }
@@ -127,7 +129,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             isBilinearNew=true;
             interpB = (InterpolationBilinear) interpolator;
             this.interp=interpB;
-            interpB.setROIdata(roiBounds, roiIter);
+            interpB.setROIBounds(roiBounds);
             if(destNod == null){
             	destNod = new double[]{interpB.getDestinationNoData()};
             }
@@ -135,7 +137,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             isBicubicNew=true;
             interpBN = (InterpolationBicubic) interpolator;
             this.interp=interpBN;
-            interpBN.setROIdata(roiBounds, roiIter);
+            interpBN.setROIBounds(roiBounds);
             if(destNod == null){
             	destNod = new double[]{interpBN.getDestinationNoData()};
             }
@@ -234,12 +236,6 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
     
     /** This method executes the scale operation on a selected region of the image */
     protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
-        computeRect(sources, dest, destRect, null);
-    }
-
-    protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect,
-            Raster[] rois) {
-
         // Retrieve format tags.
         RasterFormatTag[] formatTags = getFormatTags();
         // Only one source raster is used
@@ -275,21 +271,29 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
         RasterAccessor roiAccessor = null;
         // Roi raster initialization
         Raster roi = null;
-        
-        // ROI calculation only if the roi raster is present
-        if (rois != null) {
-            // Selection of the roi raster
-            roi = rois[0];
-            // creation of the rasterAccessor
-            roiAccessor = new RasterAccessor(roi, srcRect, RasterAccessor.findCompatibleTags(
-                    new RenderedImage[] { srcROIImage }, srcROIImage)[0],
-                    srcROIImage.getColorModel());
-            // ROI scanlinestride
-            roiScanlineStride = roiAccessor.getScanlineStride();
-            // Initialization of the roi y position array
-            yposRoi = new int[dheight];
+        RandomIter roiIter = null;
 
+        // ROI calculation only if the roi raster is present
+        if (hasROI) {
+            if (useRoiAccessor) {
+                if(srcROIImage.getBounds().contains(srcRect)){
+                    roi = srcROIImage.getData(srcRect);
+                } else {
+                    roi = srcROIImgExt.getData(srcRect);
+                }
+                // creation of the rasterAccessor
+                roiAccessor = new RasterAccessor(roi, srcRect, RasterAccessor.findCompatibleTags(
+                        new RenderedImage[] { srcROIImage }, srcROIImage)[0],
+                        srcROIImage.getColorModel());
+                // ROI scanlinestride
+                roiScanlineStride = roiAccessor.getScanlineStride();
+                // Initialization of the roi y position array
+                yposRoi = new int[dheight];
+            } else {
+                roiIter = RandomIterFactory.create(srcROIImgExt, roiRect, true, true);
+            }
         }
+
         // destination data type
         dataType = dest.getSampleModel().getDataType();
         // initialization of the x and y fractional values
@@ -301,14 +305,14 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
         // This methods differs only for the presence of the roi or if the image is a binary one
         if (isBinary) {
             computeLoopBynary(srcAccessor, source, dest, destRect, xpos, ypos,yposRoi, xfracvalues,
-                    yfracvalues,roi,yposRoi,srcRect.x, srcRect.y);
+                    yfracvalues,roi,yposRoi,srcRect.x, srcRect.y, roiIter);
         } else {
-            if (rois != null) {
+            if (roi != null) {
                 computeLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracvalues,
-                        yfracvalues, roiAccessor, yposRoi);
+                        yfracvalues, roiAccessor, roiIter, yposRoi);
             } else {
                 computeLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracvalues,
-                        yfracvalues,null,null);
+                        yfracvalues, null, null, null);
             }
         }
 
@@ -487,7 +491,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
 
     // Method for calculating the destination pixels without using the roiAccessor
     private void computeLoop(RasterAccessor src, Rectangle dstRect, RasterAccessor dst, int[] xpos,
-            int[] ypos, Number[] xfracvalues, Number[] yfracvalues, RasterAccessor roi,
+            int[] ypos, Number[] xfracvalues, Number[] yfracvalues, RasterAccessor roi, RandomIter roiIter,
             int[] yposRoi) {
 
         // Source PixelStride and ScanLineStride and bandOffsets
@@ -613,13 +617,13 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
 
                     if (interpBN != null) {
                         // Bicubic/Bicubic2 interpolation(must be set at the interpolator creation)
-                        s = interpBN.interpolate(src, k, dnumBands, posx, posy, fracValues, posyROI, roi, false);
+                        s = interpBN.interpolate(src, k, dnumBands, posx, posy, fracValues, posyROI, roi, roiIter, false);
                     } else if (interpB != null) {
                         // Bilinear interpolation
-                        s = interpB.interpolate(src, k, dnumBands, posx, posy, fracValues, posyROI, roi, false);
+                        s = interpB.interpolate(src, k, dnumBands, posx, posy, fracValues, posyROI, roi, roiIter, false);
                     } else if (interpN != null) {
                         // Nearest-Neighbor interpolation
-                        s = interpN.interpolate(src, k, dnumBands, posx, posy, posyROI, roi, false);
+                        s = interpN.interpolate(src, k, dnumBands, posx, posy, posyROI, roi, roiIter, false);
                     } else if (interpolator != null) {
 
                         // GENERAL CASE WITH INTERPOLATORS DIFFERENT FROM THE ABOVE ONES
@@ -721,7 +725,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
 
     private void computeLoopBynary(RasterAccessor src, Raster source, WritableRaster dest,
             Rectangle destRect, int xvalues[], int yvalues[], int yvaluesROI[],Number[] xfracvalues,
-            Number[] yfracvalues, Raster roi, int[] posYROI,int srcRectX,int srcRectY) {
+            Number[] yfracvalues, Raster roi, int[] posYROI,int srcRectX,int srcRectY, RandomIter roiIter) {
 
         int dx = destRect.x;
         int dy = destRect.y;
@@ -931,16 +935,16 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
                     xNextBitNo = sourceDataBitOffset + (x + 1 - sourceTransX);
 
                     if(interpN !=null){
-                        s = interpN.interpolateBinary(xNextBitNo,sourceData,sourceYOffset, sourceScanlineStride, coordinates,roiData, roiYOffset, roiScanlineStride);
+                        s = interpN.interpolateBinary(xNextBitNo,sourceData,sourceYOffset, sourceScanlineStride, coordinates,roiData, roiYOffset, roiScanlineStride, roiIter);
                     }else if (interpB != null) {
 
                         s = interpB.interpolateBinary(xNextBitNo, sourceData, xfrac, yfrac,
-                                sourceYOffset, sourceScanlineStride, coordinates,roiData, roiYOffset, roiScanlineStride);
+                                sourceYOffset, sourceScanlineStride, coordinates,roiData, roiYOffset, roiScanlineStride, roiIter);
 
                     } else if (interpBN != null) {
 
                         s = interpBN.interpolateBinary(xNextBitNo, sourceData, xfrac, yfrac,
-                                sourceYOffset, sourceScanlineStride, coordinates, roiData, roiYOffset, roiScanlineStride); 
+                                sourceYOffset, sourceScanlineStride, coordinates, roiData, roiYOffset, roiScanlineStride, roiIter); 
                     } else {
                         throw new UnsupportedOperationException(
                                 "Binary interpolation not supported by interpolator different from"

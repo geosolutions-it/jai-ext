@@ -150,12 +150,13 @@ abstract class AffineOpImage extends GeometricOpImage {
     protected int lpad, rpad, tpad, bpad;
     /** Source ROI */
     protected final ROI srcROI;
+    
     /** ROI image */
     protected final PlanarImage srcROIImage;
-    /** Random Iterator used iterating on the ROI data */
-    protected final RandomIter roiIter;
+
     /** Rectangle containing ROI bounds */
     protected final Rectangle roiBounds;
+    
     /** Boolean indicating if a ROI object is used */
     protected final boolean hasROI;
 
@@ -179,6 +180,11 @@ abstract class AffineOpImage extends GeometricOpImage {
 
     /** Extended ROI image*/
     protected RenderedOp srcROIImgExt;
+
+    /**
+     * The extended bounds used by the roi iterator
+     */
+    protected Rectangle roiRect;
 
     /**
      * Computes floor(num/denom) using integer arithmetic. denom must not be equal to 0.
@@ -474,7 +480,7 @@ abstract class AffineOpImage extends GeometricOpImage {
             srcROIImage = srcROI.getAsImage();
 
             // FIXME can we use smaller bounds here?
-            final Rectangle rect = new Rectangle(srcROIImage.getMinX() - lpad,
+            roiRect = new Rectangle(srcROIImage.getMinX() - lpad,
                     srcROIImage.getMinY() - tpad, srcROIImage.getWidth() + lpad + rpad,
                     srcROIImage.getHeight() + tpad + bpad);
             // Padding of the input ROI image in order to avoid the call of the getExtendedData() method
@@ -498,14 +504,11 @@ abstract class AffineOpImage extends GeometricOpImage {
             pb.set(bottomP, 3);
             pb.set(roiExtender, 4);
             srcROIImgExt = JAI.create("border", pb);
-            // ROI iterator definition
-            roiIter = RandomIterFactory.create(srcROIImgExt, rect, false, true);
             hasROI = true;
         } else {
             srcROI = null;
             srcROIImage = null;
             roiBounds = null;
-            roiIter = null;
             hasROI = false;
         }
     }
@@ -689,7 +692,6 @@ abstract class AffineOpImage extends GeometricOpImage {
         }
 
         Raster[] sources = new Raster[1];
-        Raster[] rois = new Raster[1];
 
         // SourceImage
         PlanarImage srcIMG = getSourceImage(0);
@@ -700,36 +702,16 @@ abstract class AffineOpImage extends GeometricOpImage {
         // if this not happen, the data is taken from the padded image.
         if (extender == null) {
             sources[0] = srcIMG.getData(srcRect);
-            if (hasROI && useROIAccessor) {
-                if(srcROIImage.getBounds().contains(srcRect)){
-                    rois[0] = srcROIImage.getData(srcRect);
-                }else{
-                    rois[0] = srcROIImgExt.getData(srcRect);
-                }
-            }
         } else {
             if(srcIMG.getBounds().contains(srcRect)){
                 sources[0] = srcIMG.getData(srcRect);
-            }else{
+            } else {
                 sources[0] = extendedIMG.getData(srcRect);
-            }
-
-            if (hasROI && useROIAccessor) {
-                if(srcROIImage.getBounds().contains(srcRect)){
-                    rois[0] = srcROIImage.getData(srcRect);
-                }else{
-                    rois[0] = srcROIImgExt.getData(srcRect);
-                }
             }
         }
 
         // Compute the destination tile.
-        if (hasROI && useROIAccessor) {
-            // Compute the destination tile.
-            computeRect(sources, dest, destRect, rois);
-        } else {
-            computeRect(sources, dest, destRect);
-        }
+        computeRect(sources, dest, destRect);
 
         // Recycle the source tile
         if (getSourceImage(0).overlapsMultipleTiles(srcRect)) {
@@ -739,14 +721,12 @@ abstract class AffineOpImage extends GeometricOpImage {
         return dest;
     }
 
-    protected abstract void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect,
-            Raster[] rois);
+    protected abstract void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect);
 
     @Override
     public synchronized void dispose() {
         if (srcROIImage != null) {
             srcROIImage.dispose();
-            roiIter.done();
         }
         super.dispose();
     }
