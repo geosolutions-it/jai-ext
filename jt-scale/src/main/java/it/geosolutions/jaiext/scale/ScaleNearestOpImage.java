@@ -17,9 +17,6 @@
 */
 package it.geosolutions.jaiext.scale;
 
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -36,6 +33,11 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+import javax.media.jai.iterator.RandomIter;
+
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
 
 public class ScaleNearestOpImage extends ScaleOpImage {
 
@@ -100,7 +102,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         if (interp instanceof InterpolationNearest) {
             interpN = (InterpolationNearest) interp;
             this.interp = interpN;
-            interpN.setROIdata(roiBounds, roiIter);
+            interpN.setROIBounds(roiBounds);
             if(nod == null){
             	nod = interpN.getNoDataRange();
             }
@@ -191,12 +193,6 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
     @Override
     protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
-        computeRect(sources, dest, destRect, null);
-    }
-
-    @Override
-    protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect,
-            Raster[] rois) {
         // Retrieve format tags.
         RasterFormatTag[] formatTags = getFormatTags();
         // Only one source raster is used
@@ -230,20 +226,27 @@ public class ScaleNearestOpImage extends ScaleOpImage {
         RasterAccessor roiAccessor = null;
         // Roi raster initialization
         Raster roi = null;
+        RandomIter roiIter = null;
 
         // ROI calculation only if the roi raster is present
-        if (useRoiAccessor) {
-            // Selection of the roi raster
-            roi = rois[0];
-            // creation of the rasterAccessor
-            roiAccessor = new RasterAccessor(roi, srcRect, RasterAccessor.findCompatibleTags(
-                    new RenderedImage[] { srcROIImage }, srcROIImage)[0],
-                    srcROIImage.getColorModel());
-            // ROI scanlinestride
-            roiScanlineStride = roiAccessor.getScanlineStride();
-            // Initialization of the roi y position array
-            yposRoi = new int[dheight];
-
+        if (hasROI) {
+            if (useRoiAccessor) {
+                if(srcROIImage.getBounds().contains(srcRect)){
+                    roi = srcROIImage.getData(srcRect);
+                } else {
+                    roi = srcROIImgExt.getData(srcRect);
+                }
+                // creation of the rasterAccessor
+                roiAccessor = new RasterAccessor(roi, srcRect, RasterAccessor.findCompatibleTags(
+                        new RenderedImage[] { srcROIImage }, srcROIImage)[0],
+                        srcROIImage.getColorModel());
+                // ROI scanlinestride
+                roiScanlineStride = roiAccessor.getScanlineStride();
+                // Initialization of the roi y position array
+                yposRoi = new int[dheight];
+            } else {
+                roiIter = RandomIterFactory.create(srcROIImgExt, roiRect, true, true);
+            }
         }
 
         // Initialization of the x and y fractional array
@@ -263,29 +266,29 @@ public class ScaleNearestOpImage extends ScaleOpImage {
 
         switch (dstAccessor.getDataType()) {
         case DataBuffer.TYPE_BYTE:
-            byteLoop(srcAccessor, srcRect, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            byteLoop(srcAccessor, srcRect, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi, roiIter);
             break;
         case DataBuffer.TYPE_USHORT:
-            ushortLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            ushortLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi, roiIter);
             break;
         case DataBuffer.TYPE_SHORT:
-            shortLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            shortLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi, roiIter);
             break;
         case DataBuffer.TYPE_INT:
-            intLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            intLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi, roiIter);
             break;
         case DataBuffer.TYPE_FLOAT:
-            floatLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            floatLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi, roiIter);
             break;
         case DataBuffer.TYPE_DOUBLE:
-            doubleLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi);
+            doubleLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, roiAccessor, yposRoi, roiIter);
             break;
         }
 
     }
 
     private void byteLoop(RasterAccessor src, Rectangle srcRect, Rectangle dstRect,
-            RasterAccessor dst, int[] xpos, int[] ypos, RasterAccessor roi, int[] yposRoi) {
+            RasterAccessor dst, int[] xpos, int[] ypos, RasterAccessor roi, int[] yposRoi, RandomIter roiIter) {
 
         // BandOffsets
         final int srcScanlineStride = src.getScanlineStride();
@@ -579,7 +582,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
     }
 
     private void ushortLoop(RasterAccessor src, Rectangle dstRect, RasterAccessor dst, int[] xpos,
-            int[] ypos, RasterAccessor roi, int[] yposRoi) {
+            int[] ypos, RasterAccessor roi, int[] yposRoi, RandomIter roiIter) {
 
         // BandOffsets
         int srcScanlineStride = src.getScanlineStride();
@@ -884,7 +887,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
     }
 
     private void shortLoop(RasterAccessor src, Rectangle dstRect, RasterAccessor dst, int[] xpos,
-            int[] ypos, RasterAccessor roi, int[] yposRoi) {
+            int[] ypos, RasterAccessor roi, int[] yposRoi, RandomIter roiIter) {
 
         // BandOffsets
         int srcScanlineStride = src.getScanlineStride();
@@ -1189,7 +1192,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
     }
 
     private void intLoop(RasterAccessor src, Rectangle dstRect, RasterAccessor dst, int[] xpos,
-            int[] ypos, RasterAccessor roi, int[] yposRoi) {
+            int[] ypos, RasterAccessor roi, int[] yposRoi, RandomIter roiIter) {
         // BandOffsets
         int srcScanlineStride = src.getScanlineStride();
         int srcPixelStride = src.getPixelStride();
@@ -1493,7 +1496,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
     }
 
     private void floatLoop(RasterAccessor src, Rectangle dstRect, RasterAccessor dst, int[] xpos,
-            int[] ypos, RasterAccessor roi, int[] yposRoi) {
+            int[] ypos, RasterAccessor roi, int[] yposRoi, RandomIter roiIter) {
 
         // BandOffsets
         int srcScanlineStride = src.getScanlineStride();
@@ -1798,7 +1801,7 @@ public class ScaleNearestOpImage extends ScaleOpImage {
     }
 
     private void doubleLoop(RasterAccessor src, Rectangle dstRect, RasterAccessor dst, int[] xpos,
-            int[] ypos, RasterAccessor roi, int[] yposRoi) {
+            int[] ypos, RasterAccessor roi, int[] yposRoi, RandomIter roiIter) {
 
         // BandOffsets
         int srcScanlineStride = src.getScanlineStride();

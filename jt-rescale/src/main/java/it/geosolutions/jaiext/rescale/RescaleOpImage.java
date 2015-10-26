@@ -70,9 +70,6 @@ public class RescaleOpImage extends PointOpImage {
     /** ROI image */
     private PlanarImage srcROIImage;
 
-    /** Random Iterator used iterating on the ROI data */
-    private RandomIter roiIter;
-
     /** Rectangle containing ROI bounds */
     private Rectangle roiBounds;
 
@@ -192,15 +189,12 @@ public class RescaleOpImage extends PointOpImage {
             pb.set(bottomP, 3);
             pb.set(ROI_EXTENDER, 4);
             srcROIImgExt = JAI.create("border", pb);
-            // Creation of a RandomIterator for selecting random pixel inside the ROI
-            roiIter = RandomIterFactory.create(srcROIImage, srcROIImage.getBounds(), false, true);
             // The useRoiAccessor parameter is set
             this.useROIAccessor = useROIAccessor;
         } else {
             hasROI = false;
             this.useROIAccessor = false;
             roiBounds = null;
-            roiIter = null;
             srcROIImage = null;
         }
 
@@ -291,6 +285,7 @@ public class RescaleOpImage extends PointOpImage {
 
         // ROI calculations if roiAccessor is used
         RasterAccessor roiAccessor = null;
+        RandomIter roiIter = null;
         if (useROIAccessor) {
             // Note that the getExtendedData() method is not called because the input images are padded.
             // For each image there is a check if the rectangle is contained inside the source image;
@@ -305,28 +300,30 @@ public class RescaleOpImage extends PointOpImage {
             roiAccessor = new RasterAccessor(roiRaster, srcRect, RasterAccessor.findCompatibleTags(
                     new RenderedImage[] { srcROIImage }, srcROIImage)[0],
                     srcROIImage.getColorModel());
+        } else if(hasROI) {
+            roiIter = RandomIterFactory.create(srcROIImage, srcROIImage.getBounds(), true, true);
         }
 
         int dataType = destAccessor.getDataType();
 
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
-            byteLoop(srcAccessor, destAccessor, roiAccessor);
+            byteLoop(srcAccessor, destAccessor, roiAccessor, roiIter);
             break;
         case DataBuffer.TYPE_USHORT:
-            ushortLoop(srcAccessor, destAccessor, roiAccessor);
+            ushortLoop(srcAccessor, destAccessor, roiAccessor, roiIter);
             break;
         case DataBuffer.TYPE_SHORT:
-            shortLoop(srcAccessor, destAccessor, roiAccessor);
+            shortLoop(srcAccessor, destAccessor, roiAccessor, roiIter);
             break;
         case DataBuffer.TYPE_INT:
-            intLoop(srcAccessor, destAccessor, roiAccessor);
+            intLoop(srcAccessor, destAccessor, roiAccessor, roiIter);
             break;
         case DataBuffer.TYPE_FLOAT:
-            floatLoop(srcAccessor, destAccessor, roiAccessor);
+            floatLoop(srcAccessor, destAccessor, roiAccessor, roiIter);
             break;
         case DataBuffer.TYPE_DOUBLE:
-            doubleLoop(srcAccessor, destAccessor, roiAccessor);
+            doubleLoop(srcAccessor, destAccessor, roiAccessor, roiIter);
             break;
         default:
             throw new IllegalArgumentException("Wrong data type");
@@ -340,7 +337,7 @@ public class RescaleOpImage extends PointOpImage {
 
     }
 
-    private void byteLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi) {
+    private void byteLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
         // Setup of the initial parameters
         int dstWidth = dst.getWidth();
@@ -647,7 +644,7 @@ public class RescaleOpImage extends PointOpImage {
         }
     }
 
-    private void ushortLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi) {
+    private void ushortLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
         // Setup of the initial parameters
         int dstWidth = dst.getWidth();
@@ -974,7 +971,7 @@ public class RescaleOpImage extends PointOpImage {
         }
     }
 
-    private void shortLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi) {
+    private void shortLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
         // Setup of the initial parameters
         int dstWidth = dst.getWidth();
@@ -1301,7 +1298,7 @@ public class RescaleOpImage extends PointOpImage {
         }
     }
 
-    private void intLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi) {
+    private void intLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
         // Setup of the initial parameters
         int dstWidth = dst.getWidth();
@@ -1627,7 +1624,7 @@ public class RescaleOpImage extends PointOpImage {
         }
     }
 
-    private void floatLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi) {
+    private void floatLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
         // Setup of the initial parameters
         int dstWidth = dst.getWidth();
@@ -1949,7 +1946,7 @@ public class RescaleOpImage extends PointOpImage {
         }
     }
 
-    private void doubleLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi) {
+    private void doubleLoop(RasterAccessor src, RasterAccessor dst, RasterAccessor roi, RandomIter roiIter) {
 
         // Setup of the initial parameters
         int dstWidth = dst.getWidth();

@@ -71,9 +71,6 @@ public abstract class StatisticsOpImage extends OpImage {
     /** ROI image */
     protected final PlanarImage srcROIImage;
 
-    /** Random Iterator used iterating on the ROI data */
-    protected final RandomIter roiIter;
-
     /** Rectangle containing ROI bounds */
     protected final Rectangle roiBounds;
 
@@ -195,15 +192,12 @@ public abstract class StatisticsOpImage extends OpImage {
             pb.set(bottomP, 3);
             pb.set(ROI_EXTENDER, 4);
             srcROIImgExt = JAI.create("border", pb);
-            // Creation of a RandomIterator for selecting random pixel inside the ROI
-            roiIter = RandomIterFactory.create(srcROIImage, srcROIImage.getBounds(), false, true);
             // The useRoiAccessor parameter is set
             this.useROIAccessor = useROIAccessor;
         } else {
             hasROI = false;
             this.useROIAccessor = false;
             roiBounds = null;
-            roiIter = null;
             srcROIImage = null;
         }
 
@@ -331,7 +325,7 @@ public abstract class StatisticsOpImage extends OpImage {
     }
 
     protected void byteLoop(RasterAccessor src, Rectangle srcRect, RasterAccessor roi,
-            Statistics[][] statArray) {
+            Statistics[][] statArray, RandomIter roiIter) {
 
         // Source RasterAccessor initial positions
         int srcX = src.getX();
@@ -538,7 +532,7 @@ public abstract class StatisticsOpImage extends OpImage {
     }
 
     protected void ushortLoop(RasterAccessor src, Rectangle srcRect, RasterAccessor roi,
-            Statistics[][] statArray) {
+            Statistics[][] statArray, RandomIter roiIter) {
 
         // Source RasterAccessor initial positions
         int srcX = src.getX();
@@ -752,7 +746,7 @@ public abstract class StatisticsOpImage extends OpImage {
     }
 
     protected void shortLoop(RasterAccessor src, Rectangle srcRect, RasterAccessor roi,
-            Statistics[][] statArray) {
+            Statistics[][] statArray, RandomIter roiIter) {
 
         // Source RasterAccessor initial positions
         int srcX = src.getX();
@@ -966,7 +960,7 @@ public abstract class StatisticsOpImage extends OpImage {
     }
 
     protected void intLoop(RasterAccessor src, Rectangle srcRect, RasterAccessor roi,
-            Statistics[][] statArray) {
+            Statistics[][] statArray, RandomIter roiIter) {
 
         // Source RasterAccessor initial positions
         int srcX = src.getX();
@@ -1180,7 +1174,7 @@ public abstract class StatisticsOpImage extends OpImage {
     }
 
     protected void floatLoop(RasterAccessor src, Rectangle srcRect, RasterAccessor roi,
-            Statistics[][] statArray) {
+            Statistics[][] statArray, RandomIter roiIter) {
 
         // Source RasterAccessor initial positions
         int srcX = src.getX();
@@ -1394,7 +1388,7 @@ public abstract class StatisticsOpImage extends OpImage {
     }
 
     protected void doubleLoop(RasterAccessor src, Rectangle srcRect, RasterAccessor roi,
-            Statistics[][] statArray) {
+            Statistics[][] statArray, RandomIter roiIter) {
 
         // Source RasterAccessor initial positions
         int srcX = src.getX();

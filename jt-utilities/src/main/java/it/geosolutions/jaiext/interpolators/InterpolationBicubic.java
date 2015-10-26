@@ -45,9 +45,6 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
     /** ROI bounds used for checking the position of the pixel */
     private Rectangle roiBounds;
 
-    /** Random interator used for navigate inside the ROI and searching the pixel */
-    private RandomIter roiIter;
-
     /** Boolean for checking if the ROI Accessor must be used by the interpolator */
     private boolean useROIAccessor;
 
@@ -93,15 +90,8 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
     }
 
     
-    public void setROIdata(Rectangle roiBounds, RandomIter roiIter){
-        if (roiBounds != null && roiIter != null) {
-            this.roiBounds = roiBounds;
-            this.roiIter = roiIter;
-
-        } else if ((roiBounds == null && roiIter != null) || (roiBounds != null && roiIter == null)) {
-            throw new IllegalArgumentException(
-                    "If roiBounds or roiIter are not null, so even the other must be not null");
-        }
+    public void setROIBounds(Rectangle roiBounds){
+        this.roiBounds = roiBounds;
     }
     
     public double getDestinationNoData() {
@@ -195,7 +185,7 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
     }
 
     public Number interpolate(RasterAccessor src, int bandIndex, int dnumbands, int posx, int posy,
-            Number[] fracValues, Integer yValueROI, RasterAccessor roi, boolean setNoData) {
+            Number[] fracValues, Integer yValueROI, RasterAccessor roi, RandomIter roiIter, boolean setNoData) {
         // If this pixel doesn't need any computation, destination NO DATA is returned.
         if (setNoData) {
             return destinationNoData;
@@ -1323,7 +1313,7 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
     }
 
     public int interpolateBinary(int xNextBitNo, Number[] sourceData, int xfrac, int yfrac,
-            int sourceYOffset, int sourceScanlineStride, int[] coordinates,int[] roiDataArray, int roiYOffset, int roiScanlineStride ) {
+            int sourceYOffset, int sourceScanlineStride, int[] coordinates,int[] roiDataArray, int roiYOffset, int roiScanlineStride, RandomIter roiIter) {
 
         // -----------------DATA-INITIALIZATION------------------------------------------------
 

@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.stats;
 
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import java.awt.Rectangle;
@@ -28,6 +29,7 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.ROI;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+import javax.media.jai.iterator.RandomIter;
 
 /**
  * The SimpleStatsOpImage class performs various simple statistics operations on an image. The statistical operation are indicated by the
@@ -104,6 +106,7 @@ public class SimpleStatsOpImage extends StatisticsOpImage {
 
         // ROI calculations if roiAccessor is used
         RasterAccessor roi = null;
+        RandomIter roiIter = null;
         if (useROIAccessor) {
             // Note that the getExtendedData() method is not called because the input images are padded.
             // For each image there is a check if the rectangle is contained inside the source image;
@@ -119,6 +122,8 @@ public class SimpleStatsOpImage extends StatisticsOpImage {
             roi = new RasterAccessor(roiRaster, srcRect, RasterAccessor.findCompatibleTags(
                     new RenderedImage[] { srcROIImage }, srcROIImage)[0],
                     srcROIImage.getColorModel());
+        } else if(hasROI) {
+            roiIter = RandomIterFactory.create(srcROIImage, srcROIImage.getBounds(), true, true);
         }
 
         // Creation of local objects containing the same statistics as the initials
@@ -135,22 +140,22 @@ public class SimpleStatsOpImage extends StatisticsOpImage {
         // Computation of the statistics
         switch (src.getDataType()) {
         case DataBuffer.TYPE_BYTE:
-            byteLoop(src, srcRect, roi, statArray);
+            byteLoop(src, srcRect, roi, statArray, roiIter);
             break;
         case DataBuffer.TYPE_USHORT:
-            ushortLoop(src, srcRect, roi, statArray);
+            ushortLoop(src, srcRect, roi, statArray, roiIter);
             break;
         case DataBuffer.TYPE_SHORT:
-            shortLoop(src, srcRect, roi, statArray);
+            shortLoop(src, srcRect, roi, statArray, roiIter);
             break;
         case DataBuffer.TYPE_INT:
-            intLoop(src, srcRect, roi, statArray);
+            intLoop(src, srcRect, roi, statArray, roiIter);
             break;
         case DataBuffer.TYPE_FLOAT:
-            floatLoop(src, srcRect, roi, statArray);
+            floatLoop(src, srcRect, roi, statArray, roiIter);
             break;
         case DataBuffer.TYPE_DOUBLE:
-            doubleLoop(src, srcRect, roi, statArray);
+            doubleLoop(src, srcRect, roi, statArray, roiIter);
             break;
         }
 

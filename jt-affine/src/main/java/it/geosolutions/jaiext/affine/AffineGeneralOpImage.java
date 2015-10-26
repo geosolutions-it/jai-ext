@@ -17,12 +17,6 @@
  */
 package it.geosolutions.jaiext.affine;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.interpolators.InterpolationNoData;
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -49,8 +43,16 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
+import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.ImageUtil;
+
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.interpolators.InterpolationNoData;
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
 
 public class AffineGeneralOpImage extends AffineOpImage {
 
@@ -203,19 +205,19 @@ public class AffineGeneralOpImage extends AffineOpImage {
         }
         if (interpolator instanceof InterpolationNearest) {
             interpN = (InterpolationNearest) interpolator;
-            interpN.setROIdata(roiBounds, roiIter);
+            interpN.setROIBounds(roiBounds);
             if(destNod == null){
             	destNod = new double[]{interpN.getDestinationNoData()};
             }
         } else if (interpolator instanceof InterpolationBilinear) {
             interpB = (InterpolationBilinear) interpolator;
-            interpB.setROIdata(roiBounds, roiIter);
+            interpB.setROIBounds(roiBounds);
             if(destNod == null){
             	destNod = new double[]{interpB.getDestinationNoData()};
             }
         } else if (interpolator instanceof InterpolationBicubic) {
             interpBN = (InterpolationBicubic) interpolator;
-            interpBN.setROIdata(roiBounds, roiIter);
+            interpBN.setROIBounds(roiBounds);
             if (destNod == null) {
                 destNod = new double[]{interpN.getDestinationNoData()};
             }
@@ -339,36 +341,17 @@ public class AffineGeneralOpImage extends AffineOpImage {
         // Get the source and ROI data
         if (extender == null) {
             sources[0] = srcIMG.getData(srcRect);
-            if (hasROI && useROIAccessor) {
-                if (srcROIImage.getBounds().contains(srcRect)) {
-                    rois[0] = srcROIImage.getData(srcRect);
-                } else {
-                    rois[0] = srcROIImgExt.getData(srcRect);
-                }
-            }
+            
         } else {
             if (srcIMG.getBounds().contains(srcRect)) {
                 sources[0] = srcIMG.getData(srcRect);
             } else {
                 sources[0] = extendedIMG.getData(srcRect);
             }
-
-            if (hasROI && useROIAccessor) {
-                if (srcROIImage.getBounds().contains(srcRect)) {
-                    rois[0] = srcROIImage.getData(srcRect);
-                } else {
-                    rois[0] = srcROIImgExt.getData(srcRect);
-                }
-            }
         }
 
         // Compute the destination tile.
-        if (hasROI && useROIAccessor) {
-            // Compute the destination tile.
-            computeRect(sources, dest, destRect, rois);
-        } else {
-            computeRect(sources, dest, destRect);
-        }
+        computeRect(sources, dest, destRect);
 
         // Recycle the source tile
         if (getSourceImage(0).overlapsMultipleTiles(srcRect) && !isBinary) {
@@ -378,14 +361,8 @@ public class AffineGeneralOpImage extends AffineOpImage {
         return dest;
     }
 
-    /** Method for evaluating the destination image tile without ROI */
-    protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
-        computeRect(sources, dest, destRect, null);
-    }
-
     /** Method for evaluating the destination image tile with ROI */
-    protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect,
-            Raster[] rois) {
+    protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
         // Retrieve format tags.
         RasterFormatTag[] formatTags = getFormatTags();
         // Source image
@@ -409,15 +386,22 @@ public class AffineGeneralOpImage extends AffineOpImage {
         RasterAccessor roiAccessor = null;
         // Roi raster initialization
         Raster roi = null;
+        RandomIter roiIter = null;
 
         // ROI calculation only if the roi raster is present
-        if (rois != null) {
-            // Selection of the roi raster
-            roi = rois[0];
-            // creation of the rasterAccessor
-            roiAccessor = new RasterAccessor(roi, srcRect, RasterAccessor.findCompatibleTags(
-                    new RenderedImage[] { srcROIImage }, srcROIImage)[0],
-                    srcROIImage.getColorModel());
+        if (hasROI) {
+            if (useROIAccessor) {
+                if(srcROIImage.getBounds().contains(srcRect)){
+                    roi = srcROIImage.getData(srcRect);
+                } else{
+                    roi = srcROIImgExt.getData(srcRect);
+                }
+                roiAccessor = new RasterAccessor(roi, srcRect, RasterAccessor.findCompatibleTags(
+                        new RenderedImage[] { srcROIImage }, srcROIImage)[0],
+                        srcROIImage.getColorModel());
+            } else {
+                roiIter = RandomIterFactory.create(srcROIImgExt, roiRect, true, true);
+            }
         }
 
         int dataType = dest.getSampleModel().getDataType();
@@ -427,27 +411,27 @@ public class AffineGeneralOpImage extends AffineOpImage {
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
                 byteLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor,
-                        roiAccessor);
+                        roiAccessor, roiIter);
                 break;
             case DataBuffer.TYPE_INT:
                 intLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor,
-                        roiAccessor);
+                        roiAccessor, roiIter);
                 break;
             case DataBuffer.TYPE_SHORT:
                 shortLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor,
-                        roiAccessor);
+                        roiAccessor, roiIter);
                 break;
             case DataBuffer.TYPE_USHORT:
                 ushortLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor,
-                        roiAccessor);
+                        roiAccessor, roiIter);
                 break;
             case DataBuffer.TYPE_FLOAT:
                 floatLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor,
-                        roiAccessor);
+                        roiAccessor, roiIter);
                 break;
             case DataBuffer.TYPE_DOUBLE:
                 doubleLoop(dataType, srcAccessor, destRect, srcRectX, srcRectY, dstAccessor,
-                        roiAccessor);
+                        roiAccessor, roiIter);
                 break;
             }
         } else {
@@ -455,19 +439,21 @@ public class AffineGeneralOpImage extends AffineOpImage {
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
                 byteLoopBinary(dataType, srcAccessor, source, dest, destRect, roi, srcRectX,
-                        srcRectY);
+                        srcRectY, roiIter);
                 break;
             case DataBuffer.TYPE_INT:
                 intLoopBinary(dataType, srcAccessor, source, dest, destRect, roi, srcRectX,
-                        srcRectY);
+                        srcRectY, roiIter);
                 break;
             case DataBuffer.TYPE_USHORT:
             case DataBuffer.TYPE_SHORT:
                 ushortLoopBinary(dataType, srcAccessor, source, dest, destRect, roi, srcRectX,
-                        srcRectY);
+                        srcRectY, roiIter);
                 break;
             }
         }
+        
+        
         // If the RasterAccessor object set up a temporary buffer for the
         // op to write to, tell the RasterAccessor to write that data
         // to the raster, that we're done with it.
@@ -478,7 +464,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     }
 
     private void byteLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
-            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
+            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor, RandomIter roiIter) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
         // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
@@ -614,13 +600,13 @@ public class AffineGeneralOpImage extends AffineOpImage {
                         // Control for using the defined interpolator
                         if (interpN != null) {
                             result = interpN.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    posyROI, roiAccessor, false).intValue();
+                                    posyROI, roiAccessor, roiIter, false).intValue();
                         } else if (interpB != null) {
                             result = interpB.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).intValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).intValue();
                         } else if (interpBN != null) {
                             result = interpBN.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).intValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).intValue();
                             // Case of general interpolator (ROI and No Data not supported)
                         } else {
                             // Source data array of the selected band
@@ -734,7 +720,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     }
 
     private void byteLoopBinary(int dataType, RasterAccessor src, Raster source,
-            WritableRaster dest, Rectangle destRect, Raster roi, int srcRectX, int srcRectY) {
+            WritableRaster dest, Rectangle destRect, Raster roi, int srcRectX, int srcRectY, RandomIter roiIter) {
 
         float src_rect_x1 = source.getMinX();
         float src_rect_y1 = source.getMinY();
@@ -872,15 +858,15 @@ public class AffineGeneralOpImage extends AffineOpImage {
                     if (interpN != null) {
                         s = interpN.interpolateBinary(xNextBitNo, sourceDataNum, sourceYOffset,
                                 sourceScanlineStride, coordinates, roiData, roiYOffset,
-                                roiScanlineStride);
+                                roiScanlineStride, roiIter);
                     } else if (interpB != null) {
                         s = interpB.interpolateBinary(xNextBitNo, sourceDataNum, xfrac, yfrac,
                                 sourceYOffset, sourceScanlineStride, coordinates, roiData,
-                                roiYOffset, roiScanlineStride);
+                                roiYOffset, roiScanlineStride, roiIter);
                     } else if (interpBN != null) {
                         s = interpBN.interpolateBinary(xNextBitNo, sourceDataNum, xfrac, yfrac,
                                 sourceYOffset, sourceScanlineStride, coordinates, roiData,
-                                roiYOffset, roiScanlineStride);
+                                roiYOffset, roiScanlineStride, roiIter);
                     } else {
                         throw new UnsupportedOperationException(
                                 "Binary interpolation not supported for interpolators different from"
@@ -942,7 +928,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     }
 
     private void ushortLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
-            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
+            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor, RandomIter roiIter) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
         // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
@@ -1078,13 +1064,13 @@ public class AffineGeneralOpImage extends AffineOpImage {
                         // Control for using the defined interpolator
                         if (interpN != null) {
                             result = interpN.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    posyROI, roiAccessor, false).intValue();
+                                    posyROI, roiAccessor, roiIter, false).intValue();
                         } else if (interpB != null) {
                             result = interpB.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).intValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).intValue();
                         } else if (interpBN != null) {
                             result = interpBN.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).intValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).intValue();
                             // Case of general interpolator (ROI and No Data not supported)
                         } else {
                             // Source data array of the selected band
@@ -1196,7 +1182,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     }
 
     private void ushortLoopBinary(int dataType, RasterAccessor src, Raster source,
-            WritableRaster dest, Rectangle destRect, Raster roi, int srcRectX, int srcRectY) {
+            WritableRaster dest, Rectangle destRect, Raster roi, int srcRectX, int srcRectY, RandomIter roiIter) {
 
         float src_rect_x1 = source.getMinX();
         float src_rect_y1 = source.getMinY();
@@ -1336,15 +1322,15 @@ public class AffineGeneralOpImage extends AffineOpImage {
                     if (interpN != null) {
                         s = interpN.interpolateBinary(xNextBitNo, sourceDataNum, sourceYOffset,
                                 sourceScanlineStride, coordinates, roiData, roiYOffset,
-                                roiScanlineStride);
+                                roiScanlineStride, roiIter);
                     } else if (interpB != null) {
                         s = interpB.interpolateBinary(xNextBitNo, sourceDataNum, xfrac, yfrac,
                                 sourceYOffset, sourceScanlineStride, coordinates, roiData,
-                                roiYOffset, roiScanlineStride);
+                                roiYOffset, roiScanlineStride, roiIter);
                     } else if (interpBN != null) {
                         s = interpBN.interpolateBinary(xNextBitNo, sourceDataNum, xfrac, yfrac,
                                 sourceYOffset, sourceScanlineStride, coordinates, roiData,
-                                roiYOffset, roiScanlineStride);
+                                roiYOffset, roiScanlineStride, roiIter);
                     } else {
                         throw new UnsupportedOperationException(
                                 "Binary interpolation not supported for interpolators different from"
@@ -1407,7 +1393,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     }
 
     private void shortLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
-            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
+            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor, RandomIter roiIter) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
         // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
@@ -1543,13 +1529,13 @@ public class AffineGeneralOpImage extends AffineOpImage {
                         // Control for using the defined interpolator
                         if (interpN != null) {
                             result = interpN.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    posyROI, roiAccessor, false).intValue();
+                                    posyROI, roiAccessor, roiIter, false).intValue();
                         } else if (interpB != null) {
                             result = interpB.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).intValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).intValue();
                         } else if (interpBN != null) {
                             result = interpBN.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).intValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).intValue();
                             // Case of general interpolator (ROI and No Data not supported)
                         } else {
                             // Source data array of the selected band
@@ -1658,7 +1644,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     }
 
     private void intLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
-            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
+            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor, RandomIter roiIter) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
         // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
@@ -1794,13 +1780,13 @@ public class AffineGeneralOpImage extends AffineOpImage {
                         // Control for using the defined interpolator
                         if (interpN != null) {
                             result = interpN.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    posyROI, roiAccessor, false).intValue();
+                                    posyROI, roiAccessor, roiIter, false).intValue();
                         } else if (interpB != null) {
                             result = interpB.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).intValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).intValue();
                         } else if (interpBN != null) {
                             result = interpBN.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).intValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).intValue();
                             // Case of general interpolator (ROI and No Data not supported)
                         } else {
                             // Source data array of the selected band
@@ -1908,7 +1894,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     }
 
     private void intLoopBinary(int dataType, RasterAccessor src, Raster source,
-            WritableRaster dest, Rectangle destRect, Raster roi, int srcRectX, int srcRectY) {
+            WritableRaster dest, Rectangle destRect, Raster roi, int srcRectX, int srcRectY, RandomIter roiIter) {
 
         float src_rect_x1 = source.getMinX();
         float src_rect_y1 = source.getMinY();
@@ -2046,15 +2032,15 @@ public class AffineGeneralOpImage extends AffineOpImage {
                     if (interpN != null) {
                         s = interpN.interpolateBinary(xNextBitNo, sourceDataNum, sourceYOffset,
                                 sourceScanlineStride, coordinates, roiData, roiYOffset,
-                                roiScanlineStride);
+                                roiScanlineStride, roiIter);
                     } else if (interpB != null) {
                         s = interpB.interpolateBinary(xNextBitNo, sourceDataNum, xfrac, yfrac,
                                 sourceYOffset, sourceScanlineStride, coordinates, roiData,
-                                roiYOffset, roiScanlineStride);
+                                roiYOffset, roiScanlineStride, roiIter);
                     } else if (interpBN != null) {
                         s = interpBN.interpolateBinary(xNextBitNo, sourceDataNum, xfrac, yfrac,
                                 sourceYOffset, sourceScanlineStride, coordinates, roiData,
-                                roiYOffset, roiScanlineStride);
+                                roiYOffset, roiScanlineStride, roiIter);
                     } else {
                         throw new UnsupportedOperationException(
                                 "Binary interpolation not supported for interpolators different from"
@@ -2117,7 +2103,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     }
 
     private void floatLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
-            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
+            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor, RandomIter roiIter) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
         // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
@@ -2253,13 +2239,13 @@ public class AffineGeneralOpImage extends AffineOpImage {
                         // Control for using the defined interpolator
                         if (interpN != null) {
                             s = interpN.interpolate(src, k2, dst_num_bands, posx, posyy, posyROI,
-                                    roiAccessor, false).floatValue();
+                                    roiAccessor, roiIter, false).floatValue();
                         } else if (interpB != null) {
                             s = interpB.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).floatValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).floatValue();
                         } else if (interpBN != null) {
                             s = interpBN.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).floatValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).floatValue();
                             // Case of general interpolator (ROI and No Data not supported)
                         } else {
                             // Source data array of the selected band
@@ -2354,7 +2340,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
     }
 
     private void doubleLoop(int dataType, RasterAccessor src, Rectangle destRect, int srcRectX,
-            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor) {
+            int srcRectY, RasterAccessor dst, RasterAccessor roiAccessor, RandomIter roiIter) {
 
         // Creation of the interpolation kernel for interpolators different from the Interpolation type:
         // InterpolationNearest, InterpolationBilinear, InterpolationBicubicNew.
@@ -2490,13 +2476,13 @@ public class AffineGeneralOpImage extends AffineOpImage {
                         // Control for using the defined interpolator
                         if (interpN != null) {
                             s = interpN.interpolate(src, k2, dst_num_bands, posx, posyy, posyROI,
-                                    roiAccessor, false).doubleValue();
+                                    roiAccessor, roiIter, false).doubleValue();
                         } else if (interpB != null) {
                             s = interpB.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).doubleValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).doubleValue();
                         } else if (interpBN != null) {
                             s = interpBN.interpolate(src, k2, dst_num_bands, posx, posyy,
-                                    fracValues, posyROI, roiAccessor, false).doubleValue();
+                                    fracValues, posyROI, roiAccessor, roiIter, false).doubleValue();
                             // Case of general interpolator (ROI and No Data not supported)
                         } else {
                             // Source data array of the selected band

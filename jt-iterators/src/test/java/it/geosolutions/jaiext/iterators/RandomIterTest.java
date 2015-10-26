@@ -17,13 +17,16 @@
 */
 package it.geosolutions.jaiext.iterators;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
+
 import javax.media.jai.TiledImage;
 import javax.media.jai.iterator.RandomIter;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
