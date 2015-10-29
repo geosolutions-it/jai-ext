@@ -133,7 +133,6 @@
 			  it.geosolutions.jaiext.nullop,
 			  it.geosolutions.jaiext.rescale,
 			  it.geosolutions.jaiext.scale,
-			  it.geosolutions.jaiext.scheduler,
 			  it.geosolutions.jaiext.stats,
 			  it.geosolutions.jaiext.translate,
 			  it.geosolutions.jaiext.utilities
@@ -169,7 +168,6 @@
 			  jt-nullop,
 			  jt-rescale,
 			  jt-scale,
-			  jt-scheduler,
 			  jt-stats,
 			  jt-translate,
 			  jt-utilities,
@@ -650,7 +648,6 @@
     <module>jt-border</module>
     <module>jt-algebra</module>
     <module>jt-buffer</module>
-    <module>jt-scheduler</module>
     <module>jt-binarize</module>
     <module>jt-bandcombine</module>
     <module>jt-convolve</module>
