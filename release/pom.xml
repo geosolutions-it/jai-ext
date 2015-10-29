@@ -80,11 +80,6 @@
 		<version>${project.version}</version>
     </dependency>	
 	<dependency>
-		<groupId>it.geosolutions.jaiext.scheduler</groupId>
-		<artifactId>jt-scheduler</artifactId>
-		<version>${project.version}</version>
-    </dependency>
-	<dependency>
 		<groupId>it.geosolutions.jaiext.stats</groupId>
 		<artifactId>jt-stats</artifactId>
 		<version>${project.version}</version>
