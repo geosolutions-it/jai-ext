@@ -182,13 +182,11 @@ public class TestScale extends TestBase {
         switch (interpType) {
         case NEAREST_INTERP:
             // Nearest-Neighbor
-            interp = new InterpolationNearest(noDataRange, useROIAccessor, destinationNoData,
-                    dataType);
+            interp = new javax.media.jai.InterpolationNearest();
             break;
         case BILINEAR_INTERP:
             // Bilinear
-            interp = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRange,
-                    useROIAccessor, destinationNoData, dataType);
+            interp = new javax.media.jai.InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS);
 
             if (hints != null) {
                 hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender
@@ -201,9 +199,7 @@ public class TestScale extends TestBase {
             break;
         case BICUBIC_INTERP:
             // Bicubic
-            interp = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRange,
-                    useROIAccessor, destinationNoData, dataType, bicubic2Disabled,
-                    DEFAULT_PRECISION_BITS);
+            interp = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
 
             if (hints != null) {
                 hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender

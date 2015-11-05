@@ -190,17 +190,29 @@ public class RenderedImageInfoPanel extends JPanel
         {
             histogramPanel.setImage(PlanarImage.wrapRenderedImage(image));
         }
-        viewer.setImage(image);
+        try {
+            viewer.setImage(image);
+        } catch(Exception e) {
+            viewer.setImage(null);
+            viewer.setStatusMessage("Error:" + e.getMessage());
+            e.printStackTrace();
+        }
         if (showRoi)
         {
-            if (image instanceof RenderedOp)
-            {
-                final Object object = image.getProperty("ROI");
-                if (object instanceof ROI)
+            try {
+                if (image instanceof RenderedOp)
                 {
-                    ROI roi = (ROI) object;
-                    roiViewer.setImage(roi.getAsImage());
+                    final Object object = image.getProperty("ROI");
+                    if (object instanceof ROI)
+                    {
+                        ROI roi = (ROI) object;
+                        roiViewer.setImage(roi.getAsImage());
+                    }
                 }
+            } catch(Exception e) {
+                e.printStackTrace();
+                roiViewer.setImage(null);
+                roiViewer.setStatusMessage("Error:" + e.getMessage());
             }
         }
 
@@ -215,7 +227,7 @@ public class RenderedImageInfoPanel extends JPanel
         try
         {
             image.getWidth();
-            renderingName = image.getCurrentRendering().getClass().getSimpleName();
+            renderingName = image.getCurrentRendering().getClass().getName();
         }
         catch (Exception ignored)
         {
@@ -231,7 +243,7 @@ public class RenderedImageInfoPanel extends JPanel
             }
             
         }
-        hb.dataLine("Name", image.getOperationName() + '(' + renderingName + ')');
+        hb.dataLine("Name", image.getOperationName() + " (" + renderingName + ')');
 
         hb.title("Parameters");
 

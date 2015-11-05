@@ -29,6 +29,7 @@ import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 
+import javax.media.jai.Interpolation;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
@@ -60,15 +61,11 @@ public class CoverageClassTest extends TestScale {
 
         // Interpolators initialization
         // Nearest-Neighbor
-        InterpolationNearest interpNear = new InterpolationNearest(noDataRange,
-                useROIAccessor, destinationNoData, dataType);
+        Interpolation interpNear = new javax.media.jai.InterpolationNearest();
         // Bilinear
-        InterpolationBilinear interpBil = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS,
-                noDataRange, useROIAccessor, destinationNoData, dataType);
+        Interpolation interpBil = new javax.media.jai.InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS);
         // Bicubic
-        InterpolationBicubic interpBic = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS,
-                noDataRange, useROIAccessor, destinationNoData, dataType, bicubic2Disabled,
-                DEFAULT_PRECISION_BITS);
+        Interpolation interpBic = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
 
         // ROI creation
         ROIShape roi = roiCreation();

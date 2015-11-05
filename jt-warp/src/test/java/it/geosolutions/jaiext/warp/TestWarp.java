@@ -17,18 +17,10 @@
 */
 package it.geosolutions.jaiext.warp;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-import it.geosolutions.jaiext.stats.Statistics;
-import it.geosolutions.jaiext.stats.Statistics.StatsType;
-import it.geosolutions.jaiext.stats.StatisticsDescriptor;
-import it.geosolutions.jaiext.testclasses.TestBase;
-import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -43,6 +35,14 @@ import javax.media.jai.ROI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
 import javax.media.jai.Warp;
+
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.stats.Statistics;
+import it.geosolutions.jaiext.stats.Statistics.StatsType;
+import it.geosolutions.jaiext.stats.StatisticsDescriptor;
+import it.geosolutions.jaiext.testclasses.TestBase;
+import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 
 /**
@@ -100,41 +100,6 @@ public class TestWarp extends TestBase {
         // Image data type
         int dataType = source.getSampleModel().getDataType();
 
-        // No Data Range
-        Range noDataRange = null;
-        destinationNoData = 10;
-
-        if (noDataUsed) {
-            switch (dataType) {
-            case DataBuffer.TYPE_BYTE:
-                noDataRange = RangeFactory.create(noDataValue.byteValue(), true,
-                        noDataValue.byteValue(), true);
-                break;
-            case DataBuffer.TYPE_USHORT:
-                noDataRange = RangeFactory.create(noDataValue.shortValue(), true,
-                        noDataValue.shortValue(), true);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                noDataRange = RangeFactory.create(noDataValue.shortValue(), true,
-                        noDataValue.shortValue(), true);
-                break;
-            case DataBuffer.TYPE_INT:
-                noDataRange = RangeFactory.create(noDataValue.intValue(), true,
-                        noDataValue.intValue(), true);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                noDataRange = RangeFactory.create(noDataValue.floatValue(), true,
-                        noDataValue.floatValue(), true, true);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                noDataRange = RangeFactory.create(noDataValue.doubleValue(), true,
-                        noDataValue.doubleValue(), true, true);
-                break;
-            default:
-                throw new IllegalArgumentException("Wrong data type");
-            }
-        }
-
         // ROI
         ROI roi = null;
 
@@ -155,18 +120,16 @@ public class TestWarp extends TestBase {
         switch (interpType) {
         case NEAREST_INTERP:
             // Nearest-Neighbor
-            interp = new InterpolationNearest(noDataRange, false, destinationNoData, dataType);
+            interp = new javax.media.jai.InterpolationNearest();
             break;
         case BILINEAR_INTERP:
             // Bilinear
-            interp = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRange, false,
-                    destinationNoData, dataType);
+            interp = new javax.media.jai.InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS);
 
             break;
         case BICUBIC_INTERP:
             // Bicubic
-            interp = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRange, false,
-                    destinationNoData, dataType, true, DEFAULT_PRECISION_BITS);
+            interp = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
 
             break;
         case GENERAL_INTERP:
@@ -179,7 +142,8 @@ public class TestWarp extends TestBase {
         }
 
         // Warp operation
-        destinationIMG = WarpDescriptor.create(source, warpObj, interp, null, roi, hints);
+        double[] background = new double[] {destinationNoData};
+        destinationIMG = WarpDescriptor.create(source, warpObj, interp, background, roi, hints);
 
         if (INTERACTIVE && dataType == DataBuffer.TYPE_BYTE
                 && TEST_SELECTOR == testSelect.getType()) {
@@ -210,8 +174,36 @@ public class TestWarp extends TestBase {
         assertEquals(destinationIMG.getMinY(), outputRect.y);
         assertEquals(destinationIMG.getHeight(), outputRect.width);
         assertEquals(destinationIMG.getWidth(), outputRect.height);
+        
+        // check the destination image ROI
+        if(roiUsed) {
+            Object roiProperty = destinationIMG.getProperty("ROI");
+            assertThat(roiProperty, instanceOf(ROI.class));
+            ROI destRoi = (ROI) roiProperty;
+            // we have warped the ROI
+            RenderedImage roiImage = destRoi.getAsImage();
+            assertThat(roiImage, instanceOf(RenderedOp.class));
+            RenderedOp roiOp = (RenderedOp) roiImage;
+            
+            switch (interpType) {
+            case NEAREST_INTERP:
+                assertThat(getWarpOperation(roiOp), instanceOf(WarpNearestOpImage.class));
+                break;
+            case BILINEAR_INTERP:
+                assertThat(getWarpOperation(roiOp), instanceOf(WarpBilinearOpImage.class));
+                break;
+            case BICUBIC_INTERP:
+            case GENERAL_INTERP:
+                assertThat(getWarpOperation(roiOp), instanceOf(WarpBicubicOpImage.class));
+                break;
+            default:
+                throw new IllegalArgumentException("Wrong interpolation type");
+            }
+            
+        }
 
         // Control if the final image has some data
+        destinationNoData = 10;
         StatsType[] stats = new StatsType[] { StatsType.MEAN };
         Range noData;
         switch (dataType) {
@@ -252,6 +244,15 @@ public class TestWarp extends TestBase {
 
         // Image disposal
         statistics.dispose();
+    }
+
+    private RenderedImage getWarpOperation(RenderedOp roiOp) {
+        String name = roiOp.getOperationName();
+        if("binarize".equals(name)) {
+            return roiOp.getSourceImage(0);
+        } else { 
+            return roiOp.getRendering();
+        }
     }
 
     /**
