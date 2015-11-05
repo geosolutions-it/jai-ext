@@ -307,7 +307,7 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             computeLoopBynary(srcAccessor, source, dest, destRect, xpos, ypos,yposRoi, xfracvalues,
                     yfracvalues,roi,yposRoi,srcRect.x, srcRect.y, roiIter);
         } else {
-            if (roi != null) {
+            if (hasROI) {
                 computeLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracvalues,
                         yfracvalues, roiAccessor, roiIter, yposRoi);
             } else {

@@ -17,19 +17,17 @@
 */
 package it.geosolutions.jaiext.warp;
 
-import it.geosolutions.jaiext.ConcurrentOperationRegistry;
-import it.geosolutions.jaiext.JAIExt;
-
 import java.awt.geom.AffineTransform;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 
-import javax.media.jai.JAI;
 import javax.media.jai.WarpAffine;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import it.geosolutions.jaiext.JAIExt;
 
 /**
  * Test class which extends the TestWarp class and executes all the tests with the bicubic interpolation.

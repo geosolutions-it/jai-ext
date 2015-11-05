@@ -271,10 +271,16 @@ public class ImageViewer extends JPanel
     public void setImage(RenderedImage image)
     {
         this.image = image;
-        display.setImage(image);
-        pixelIter = RandomIterFactory.create(image, null);
-        ipixel = new int[image.getSampleModel().getNumBands()];
-        dpixel = new double[image.getSampleModel().getNumBands()];
+        if(image == null) {
+            display.setVisible(false);
+            pixelIter = null;
+        } else {
+            display.setImage(image);
+            display.setVisible(true);
+            pixelIter = RandomIterFactory.create(image, null);
+            ipixel = new int[image.getSampleModel().getNumBands()];
+            dpixel = new double[image.getSampleModel().getNumBands()];
+        }
     }
 
     public ImageViewer getRelatedViewer()
@@ -285,6 +291,11 @@ public class ImageViewer extends JPanel
     public void setRelatedViewer(ImageViewer relatedViewer)
     {
         this.relatedViewer = relatedViewer;
+    }
+
+    public void setStatusMessage(String message) {
+        status.setText(message);
+        
     }
 
 }

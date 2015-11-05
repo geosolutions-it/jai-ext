@@ -35,6 +35,7 @@ import java.awt.image.RenderedImage;
 import java.io.IOException;
 
 import javax.media.jai.BorderExtender;
+import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
@@ -170,27 +171,24 @@ public class TestAffine extends TestBase {
         RenderedImage destinationIMG = null;
 
         // Interpolator initialization
-        InterpolationNearest interpN = null;
-        InterpolationBilinear interpB = null;
-        InterpolationBicubic interpBN = null;
+        Interpolation interpN = null;
+        Interpolation interpB = null;
+        Interpolation interpBN = null;
 
         // Interpolators
         switch (interpType) {
         case NEAREST_INTERP:
             // Nearest-Neighbor
-            interpN = new InterpolationNearest(noDataRange, useROIAccessor, destinationNoData,
-                    dataType);
+            interpN = new javax.media.jai.InterpolationNearest();
 
             // Affine operation
-            destinationIMG = AffineDescriptor.create(sourceImage, transform, interpN, null,
+            destinationIMG = AffineDescriptor.create(sourceImage, transform, interpN, new double[] {destinationNoData},
                     (ROI) roi, useROIAccessor, setDestinationNoData, noDataRange, hints);
-            // destinationIMG = AffineDescriptor.create(sourceImage, transform, new javax.media.jai.InterpolationNearest(), null,hints);
 
             break;
         case BILINEAR_INTERP:
             // Bilinear
-            interpB = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRange,
-                    useROIAccessor, destinationNoData, dataType);
+            interpB = new javax.media.jai.InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS);
 
             if (hints != null) {
                 hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender
@@ -201,15 +199,13 @@ public class TestAffine extends TestBase {
             }
 
             // Affine operation
-            destinationIMG = AffineDescriptor.create(sourceImage, transform, interpB, null,
+            destinationIMG = AffineDescriptor.create(sourceImage, transform, interpB, new double[] {destinationNoData},
                     (ROI) roi, useROIAccessor, setDestinationNoData, noDataRange, hints);
 
             break;
         case BICUBIC_INTERP:
             // Bicubic
-            interpBN = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRange,
-                    useROIAccessor, destinationNoData, dataType, bicubic2Disabled,
-                    DEFAULT_PRECISION_BITS);
+            interpBN = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
 
             if (hints != null) {
                 hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender
@@ -220,7 +216,7 @@ public class TestAffine extends TestBase {
             }
 
             // Affine operation
-            destinationIMG = AffineDescriptor.create(sourceImage, transform, interpBN, null,
+            destinationIMG = AffineDescriptor.create(sourceImage, transform, interpBN, new double[] {destinationNoData},
                     (ROI) roi, useROIAccessor, setDestinationNoData, noDataRange, hints);
 
             break;

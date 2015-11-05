@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
 *    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+*    Copyright 2014 - 2015 GeoSolutions
 
 
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,20 +16,16 @@
 * limitations under the License.
 */
 package it.geosolutions.jaiext.scale;
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderableImage;
 import java.util.logging.Logger;
+
 import javax.media.jai.BorderExtender;
 import javax.media.jai.GeometricOpImage;
 import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationBicubic2;
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
 import javax.media.jai.ParameterBlockJAI;
@@ -48,6 +44,10 @@ import org.jaitools.imageutils.ROIGeometry;
 
 import com.sun.media.jai.util.PropertyGeneratorImpl;
 import com.vividsolutions.jts.geom.Geometry;
+
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.range.Range;
 
 /**
  * This property generator computes the properties for the operation
@@ -112,9 +112,9 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
                                   src.getHeight() - interp.getHeight() + 1);
             } else {
                 srcBounds = new Rectangle(src.getMinX(),
-					  src.getMinY(),
-					  src.getWidth(),
-					  src.getHeight());
+                        src.getMinY(),
+                        src.getWidth(),
+                        src.getHeight());
             }
 
             // If necessary, clip the ROI to the effective source bounds.
@@ -131,73 +131,67 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
             Rectangle dstBounds = op.getBounds();
             PlanarImage roiImage = null;
             
-            if (interp instanceof InterpolationBilinear) {
-	            // Setting constant image to be scaled as a ROI
-	            
-	            ImageLayout2 layout = new ImageLayout2();
-	            int minx = (int)srcBounds.getMinX();
-	            int miny = (int)srcBounds.getMinY();
-	            int w = (int)srcBounds.getWidth();
-	            int h = (int)srcBounds.getHeight();
-	            layout.setMinX(minx);
-	            layout.setMinY(miny);
-	            layout.setWidth(w);
-	            layout.setHeight(h);
-	            RenderingHints hints = op.getRenderingHints();
-	            hints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout));
-	            
-	            final PlanarImage constantImage = ConstantDescriptor.create(new Float(w), new Float(h), new Byte[]{(byte)255}, hints); 
-	            // Scaling constant Image to get scaled roi.
-	            final BorderExtender extender = BorderExtender.createInstance(BorderExtender.BORDER_COPY);
-	            
-	            // Make sure to specify tileCache, tileScheduler, tileRecyclier, by cloning hints.
-	            RenderingHints scalingHints = op.getRenderingHints();
-	            scalingHints.remove(JAI.KEY_IMAGE_LAYOUT);
-	            
-	            if (srcROI instanceof ROIGeometry){
-	            	ROIGeometry roiGeom = (ROIGeometry) srcROI;
-	            	Geometry geom = roiGeom.getAsGeometry();
-	            	if (geom != null && !geom.isEmpty()){
-	            		constantImage.setProperty("roi", srcROI);
-	            	}
-                } else {
-	            		constantImage.setProperty("roi", srcROI);
-	            	}
-	            // Creating scaled roi by the same way (scale,translate factors, Interpolation, source ROI) we scaled the 
-	            // input image.
-//	            if (interp instanceof InterpolationBilinear){ 
-	   
-	            InterpolationBilinear interpolator=(InterpolationBilinear) interp;
-	            
-	            InterpolationBilinear interpBilinear=new InterpolationBilinear(interpolator.getSubsampleBitsH(), null, false, 0, interpolator.getDataType());	                    
-	            
-	            roiImage = new ScaleGeneralOpImage(constantImage, null,scalingHints,extender, interpBilinear,sx, sy, tx, ty,  false, null, null);
-	            
-//	            roiImage = new ScaleBilinearOpImage(constantImage, extender, scalingHints, layout, sx, sy, tx, ty, interp, false);
-	            
-	            //	            } else {
-//	            	roiImage = new ScaleNearestOpImage(constantImage, extender, scalingHints, null, sx, sy, tx, ty, interp);
-//	            }
-            } else {
-            	PlanarImage roiMod = srcROI.getAsImage();
-				ParameterBlock paramBlock = new ParameterBlock();
-				paramBlock.setSource(roiMod, 0);
-				paramBlock.add(Float.valueOf(sx));
-				paramBlock.add(Float.valueOf(sy));
-				paramBlock.add(Float.valueOf(tx));
-				paramBlock.add(Float.valueOf(ty));
-				
+            if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear) {
+                // Setting constant image to be scaled as a ROI
 
-				if (interp != null) {
-					 if(interp instanceof InterpolationBicubic){
-					    InterpolationBicubic interpBicubic=(InterpolationBicubic)interp;
-					    InterpolationBilinear interpBilinear= new InterpolationBilinear(interpBicubic.getSubsampleBitsH(), null, false, 0, interpBicubic.getDataType());
-					    paramBlock.add(interpBilinear);
-					}else{
-						paramBlock.add(interp);
-					}
-				}
-				roiImage = JAI.create("Scale", paramBlock);
+                ImageLayout2 layout = new ImageLayout2();
+                int minx = (int) srcBounds.getMinX();
+                int miny = (int) srcBounds.getMinY();
+                int w = (int) srcBounds.getWidth();
+                int h = (int) srcBounds.getHeight();
+                layout.setMinX(minx);
+                layout.setMinY(miny);
+                layout.setWidth(w);
+                layout.setHeight(h);
+                RenderingHints hints = op.getRenderingHints();
+                hints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout));
+
+                final PlanarImage constantImage = ConstantDescriptor.create(new Float(w),
+                        new Float(h), new Byte[] { (byte) 255 }, hints);
+                // Scaling constant Image to get scaled roi.
+                final BorderExtender extender = BorderExtender
+                        .createInstance(BorderExtender.BORDER_COPY);
+
+                // Make sure to specify tileCache, tileScheduler, tileRecyclier, by cloning hints.
+                RenderingHints scalingHints = op.getRenderingHints();
+                scalingHints.remove(JAI.KEY_IMAGE_LAYOUT);
+
+                if (srcROI instanceof ROIGeometry) {
+                    ROIGeometry roiGeom = (ROIGeometry) srcROI;
+                    Geometry geom = roiGeom.getAsGeometry();
+                    if (geom != null && !geom.isEmpty()) {
+                        constantImage.setProperty("roi", srcROI);
+                    }
+                } else {
+                    constantImage.setProperty("roi", srcROI);
+                }
+
+                InterpolationBilinear interpBilinear = new InterpolationBilinear(
+                        interp.getSubsampleBitsH(), null, false, 0,
+                        constantImage.getSampleModel().getDataType());
+
+                roiImage = new ScaleGeneralOpImage(constantImage, null, scalingHints, extender,
+                        interpBilinear, sx, sy, tx, ty, false, null, null);
+            } else {
+                PlanarImage roiMod = srcROI.getAsImage();
+                ParameterBlock paramBlock = new ParameterBlock();
+                paramBlock.setSource(roiMod, 0);
+                paramBlock.add(Float.valueOf(sx));
+                paramBlock.add(Float.valueOf(sy));
+                paramBlock.add(Float.valueOf(tx));
+                paramBlock.add(Float.valueOf(ty));
+
+                if (interp != null) {
+                    if (interp instanceof InterpolationBicubic || interp instanceof javax.media.jai.InterpolationBicubic) {
+                        InterpolationBilinear interpBilinear = new InterpolationBilinear(
+                                interp.getSubsampleBitsH(), null, false, 0,
+                                roiMod.getSampleModel().getDataType());
+                        paramBlock.add(interpBilinear);
+                    } else {
+                        paramBlock.add(interp);
+                    }
+                }
+                roiImage = JAI.create("Scale", paramBlock);
             }
             ROI dstROI = new ROI(roiImage, 1);
             

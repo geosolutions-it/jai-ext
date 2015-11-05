@@ -19,12 +19,6 @@ package it.geosolutions.jaiext.affine;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import it.geosolutions.jaiext.affine.AffineDescriptor;
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.testclasses.TestData;
-import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -49,6 +43,9 @@ import org.junit.Test;
 
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
+
+import it.geosolutions.jaiext.testclasses.TestData;
+import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 /**
  * This class extends the TestAffine class and tests the Affine operation on a RGB image. If the user want to see the result, must set the
@@ -195,12 +192,11 @@ public class ImageRGBTest extends TestAffine {
         switch (interpType) {
         case NEAREST_INTERP:
             // Nearest-Neighbor
-            interp = new InterpolationNearest(null, useROIAccessor, destinationNoData, dataType);
+            interp = new javax.media.jai.InterpolationNearest();
             break;
         case BILINEAR_INTERP:
             // Bilinear
-            interp = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
-                    destinationNoData, dataType);
+            interp = new javax.media.jai.InterpolationBilinear();
 
             if (hints != null) {
                 hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender
@@ -213,8 +209,7 @@ public class ImageRGBTest extends TestAffine {
             break;
         case BICUBIC_INTERP:
             // Bicubic
-            interp = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, null, useROIAccessor,
-                    destinationNoData, dataType, bicubic2Disabled, DEFAULT_PRECISION_BITS);
+            interp = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
 
             if (hints != null) {
                 hints.add(new RenderingHints(JAI.KEY_BORDER_EXTENDER, BorderExtender

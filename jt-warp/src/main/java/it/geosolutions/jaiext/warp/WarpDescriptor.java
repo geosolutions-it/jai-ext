@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.warp;
 
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.range.Range;
 
@@ -131,6 +132,8 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
             layout.setMinY(miny);
             layout.setWidth(w);
             layout.setHeight(h);
+            layout.setTileWidth(src.getTileWidth());
+            layout.setTileHeight(src.getTileHeight());
             RenderingHints hints = op.getRenderingHints();
             hints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout));
 
@@ -148,8 +151,11 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
 
             // Creating warped roi by the same way (Warp, Interpolation, source ROI) we warped the
             // input image.
-            if (interp instanceof InterpolationBilinear) {
+            if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear) {
                 roiImage = new WarpBilinearOpImage(constantImage, extender, warpingHints,
+                        null, warp, interp, srcROI,null, null);
+            } else if(interp instanceof InterpolationBicubic || interp instanceof javax.media.jai.InterpolationBicubic) {
+                roiImage = new WarpBicubicOpImage(constantImage, extender, warpingHints,
                         null, warp, interp, srcROI,null, null);
             } else {
                 roiImage = new WarpNearestOpImage(constantImage, warpingHints, null, warp,
