@@ -728,6 +728,9 @@ abstract class AffineOpImage extends GeometricOpImage {
         if (srcROIImage != null) {
             srcROIImage.dispose();
         }
+        if(extendedIMG != null) {
+            extendedIMG.dispose();
+        }
         super.dispose();
     }
 

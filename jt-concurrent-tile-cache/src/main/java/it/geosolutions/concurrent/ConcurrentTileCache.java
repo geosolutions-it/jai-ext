@@ -23,7 +23,6 @@ import java.awt.image.RenderedImage;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Observable;
-import java.util.Set;
 import java.util.Vector;
 
 import javax.media.jai.TileCache;

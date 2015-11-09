@@ -648,7 +648,6 @@ public class MosaicOpImage extends OpImage {
                     pb.set(pads[3], 3);
                     pb.set(zeroBorderExtender, 4);
                     // Setting of the padded alpha to the associated bean
-                    // imageBeans[i].setAlphaChannel(JAI.create("border", pb));
                     RenderedOp create = JAI.create("border", pb);
                     imageBeans[i].setAlphaChannel(create);
                 } else {
@@ -3063,6 +3062,28 @@ public class MosaicOpImage extends OpImage {
 
         return sourceRectangle.intersection(getBounds());
 
+    }
+    
+    @Override
+    public synchronized void dispose() {
+        if(imageBeans != null) {
+            // each of these might have been extended, make sure 
+            // to dispose all of them (the super.dispose() will dispose
+            // the sources, which eventually will re-dispose some images,
+            // but that should be fine)
+            for (ImageMosaicBean bean : imageBeans) {
+                dispose(bean.getImage());
+                dispose(bean.getRoiImage());
+                dispose(bean.getAlphaChannel());
+            }
+        }
+        super.dispose();
+    }
+
+    private void dispose(RenderedImage image) {
+        if(image instanceof RenderedOp) {
+            ((RenderedOp) image).dispose();
+        }
     }
 
     /** Java bean for saving all the rasterAccessor informations */

@@ -206,4 +206,12 @@ public class LookupOpImage extends ColormapOpImage {
             }
         }
     }
+    
+    @Override
+    public synchronized void dispose() {
+        if(srcROIImgExt != null) {
+            srcROIImgExt.dispose();
+        }
+        super.dispose();
+    }
 }

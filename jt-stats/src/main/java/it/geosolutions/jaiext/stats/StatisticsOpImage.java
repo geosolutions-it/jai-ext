@@ -284,6 +284,9 @@ public abstract class StatisticsOpImage extends OpImage {
      * When the dispose method is called, then old dispose method is performed and also the statistic container is cleared.
      */
     public void dispose() {
+        if(srcROIImgExt != null) {
+            srcROIImgExt.dispose();
+        }
         super.dispose();
         clearStatistic();
     }

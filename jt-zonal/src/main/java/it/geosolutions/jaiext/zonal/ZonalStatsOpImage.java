@@ -4970,4 +4970,12 @@ public class ZonalStatsOpImage extends OpImage {
             return super.getProperty(name);
         }
     }
+    
+    @Override
+    public synchronized void dispose() {
+        if(srcROIImgExt != null) {
+            srcROIImgExt.dispose();
+        }
+        super.dispose();
+    }
 }

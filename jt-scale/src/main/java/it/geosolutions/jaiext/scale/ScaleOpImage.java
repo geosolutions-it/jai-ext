@@ -1812,6 +1812,9 @@ public abstract class ScaleOpImage extends GeometricOpImage {
         if (srcROIImage != null) {
             srcROIImage.dispose();
         }
+        if(srcROIImgExt != null) {
+            srcROIImgExt.dispose();
+        }
         super.dispose();
     }
 

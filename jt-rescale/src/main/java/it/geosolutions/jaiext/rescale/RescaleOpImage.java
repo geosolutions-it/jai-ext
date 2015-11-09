@@ -2267,4 +2267,12 @@ public class RescaleOpImage extends PointOpImage {
             }
         }
     }
+    
+    @Override
+    public synchronized void dispose() {
+        if(srcROIImgExt != null) {
+            srcROIImgExt.dispose();
+        }
+        super.dispose();
+    }
 }
