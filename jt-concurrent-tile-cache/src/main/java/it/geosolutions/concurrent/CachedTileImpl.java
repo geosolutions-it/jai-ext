@@ -33,6 +33,11 @@ import javax.media.jai.remote.SerializableRenderedImage;
  * This class is used by ConcurrentTileCache to create an object that includes all the information associated with a tile, and is put into the cache.
  */
 public final class CachedTileImpl implements CachedTile {
+    
+    /*
+     * The shallow size of this object, the weak reference, the typical big integer keys
+     */
+    private static final long CACHED_TILE_OVERHEAD = 64 + 32 + 96 + 96;
 
     final Raster tile; // the tile
 
@@ -74,7 +79,7 @@ public final class CachedTileImpl implements CachedTile {
         imageKey = hashKey(owner);
 
         DataBuffer db = tile.getDataBuffer();
-        tileSize = db.getDataTypeSize(db.getDataType()) / 8L * db.getSize() * db.getNumBanks();
+        tileSize = db.getDataTypeSize(db.getDataType()) / 8L * db.getSize() * db.getNumBanks() + CACHED_TILE_OVERHEAD;
         updateTileTimeStamp();
 
     }
