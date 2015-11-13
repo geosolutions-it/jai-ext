@@ -188,58 +188,60 @@ public class DisplayHistogram extends JComponent implements MouseMotionListener
         g2d.drawRect(border.left, border.top, width, height);
         // Draw the histogram bars.
         g2d.setColor(barColor);
-        for (int bin = 0; bin < histogram.getNumBins(0); bin++)
-        {
-            int x = border.left + (bin * binWidth);
-            double barStarts = border.top + (height * (maxCount - counts[bin]) / (1.0 * maxCount));
-            double barEnds = Math.ceil(height * counts[bin] / (1.0 * maxCount));
-            g2d.drawRect(x, (int) barStarts, binWidth, (int) barEnds);
-        }
-        // Draw the values on the horizontal axis. We will plot only 1/8th of them.
-        g2d.setColor(marksColor);
-        g2d.setFont(fontSmall);
-
-        FontMetrics metrics = g2d.getFontMetrics();
-        int halfFontHeight = metrics.getHeight() / 2;
-        for (int bin = 0; bin <= histogram.getNumBins(0); bin++)
-        {
-            if ((bin % skipIndexes) == 0)
+        if(histogram != null) {
+            for (int bin = 0; bin < histogram.getNumBins(0); bin++)
             {
-                String label = String.valueOf((indexMultiplier * bin));
-                int textHeight = metrics.stringWidth(label); // remember it will be rotated!
-                g2d.translate(border.left + (bin * binWidth) + halfFontHeight, border.top + height + textHeight + 2);
-                g2d.rotate(-Math.PI / 2);
-                g2d.drawString(label, 0, 0);
-                g2d.rotate(Math.PI / 2);
-                g2d.translate(-(border.left + (bin * binWidth) + halfFontHeight),
-                    -(border.top + height + textHeight + 2));
+                int x = border.left + (bin * binWidth);
+                double barStarts = border.top + (height * (maxCount - counts[bin]) / (1.0 * maxCount));
+                double barEnds = Math.ceil(height * counts[bin] / (1.0 * maxCount));
+                g2d.drawRect(x, (int) barStarts, binWidth, (int) barEnds);
             }
-        }
-
-        // Draw the values on the vertical axis. Let's draw only some of them.
-        double step = (int) (maxCount / verticalTicks);
-        for (int l = 0; l <= verticalTicks; l++) // last will be done separately
-        {
-            String label;
-            if (l == verticalTicks)
+            // Draw the values on the horizontal axis. We will plot only 1/8th of them.
+            g2d.setColor(marksColor);
+            g2d.setFont(fontSmall);
+    
+            FontMetrics metrics = g2d.getFontMetrics();
+            int halfFontHeight = metrics.getHeight() / 2;
+            for (int bin = 0; bin <= histogram.getNumBins(0); bin++)
             {
-                label = String.valueOf(maxCount);
+                if ((bin % skipIndexes) == 0)
+                {
+                    String label = String.valueOf((indexMultiplier * bin));
+                    int textHeight = metrics.stringWidth(label); // remember it will be rotated!
+                    g2d.translate(border.left + (bin * binWidth) + halfFontHeight, border.top + height + textHeight + 2);
+                    g2d.rotate(-Math.PI / 2);
+                    g2d.drawString(label, 0, 0);
+                    g2d.rotate(Math.PI / 2);
+                    g2d.translate(-(border.left + (bin * binWidth) + halfFontHeight),
+                        -(border.top + height + textHeight + 2));
+                }
             }
-            else
+    
+            // Draw the values on the vertical axis. Let's draw only some of them.
+            double step = (int) (maxCount / verticalTicks);
+            for (int l = 0; l <= verticalTicks; l++) // last will be done separately
             {
-                label = String.valueOf((l * step));
+                String label;
+                if (l == verticalTicks)
+                {
+                    label = String.valueOf(maxCount);
+                }
+                else
+                {
+                    label = String.valueOf((l * step));
+                }
+    
+                int textWidth = metrics.stringWidth(label);
+                g2d.drawString(label, border.left - 2 - textWidth, border.top + height - (l * (height / verticalTicks)));
             }
-
-            int textWidth = metrics.stringWidth(label);
-            g2d.drawString(label, border.left - 2 - textWidth, border.top + height - (l * (height / verticalTicks)));
+            // Draw the title.
+            g2d.setFont(fontLarge);
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            metrics = g2d.getFontMetrics();
+    
+            int textWidth = metrics.stringWidth(title);
+            g2d.drawString(title, (border.left + width + border.right - textWidth) / 2, 28);
         }
-        // Draw the title.
-        g2d.setFont(fontLarge);
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        metrics = g2d.getFontMetrics();
-
-        int textWidth = metrics.stringWidth(title);
-        g2d.drawString(title, (border.left + width + border.right - textWidth) / 2, 28);
     }
 
     /**
@@ -273,16 +275,20 @@ public class DisplayHistogram extends JComponent implements MouseMotionListener
 
     public void setImage(PlanarImage wrapRenderedImage)
     {
-        setHistogram((Histogram) HistogramDescriptor.create(
-                wrapRenderedImage,
-                null,
-                1,
-                1,
-                new int[] { 65536 },
-                new double[] { 0 },
-                new double[] { 65535 },
-                null).getProperty("histogram"));
-
+        try {
+            setHistogram((Histogram) HistogramDescriptor.create(
+                    wrapRenderedImage,
+                    null,
+                    1,
+                    1,
+                    new int[] { 65536 },
+                    new double[] { 0 },
+                    new double[] { 65535 },
+                    null).getProperty("histogram"));
+        } catch(Exception e) {
+            e.printStackTrace();
+            setHistogram(null);
+        }
 
     }
 
