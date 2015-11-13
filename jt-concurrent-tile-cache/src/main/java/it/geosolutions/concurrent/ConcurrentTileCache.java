@@ -148,6 +148,12 @@ public class ConcurrentTileCache extends Observable implements TileCache, CacheD
     /** Add a new tile to the cache */
     public void add(RenderedImage owner, int tileX, int tileY, Raster data,
             Object tileCacheMetric) {
+        // when computation fails this method is called with a null raster,
+        // avoid logging an extra NPE
+        if(data == null) {
+            return;
+        }
+        
         // This tile is not in the cache; create a new CachedTileImpl.
         // else just update.
         Object key = CachedTileImpl.hashKey(owner, tileX, tileY);
