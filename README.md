@@ -30,10 +30,6 @@ We have created two public mailing lists for JAI-Ext one for Developers and one 
 * [**JAI-Ext Users Group**](https://groups.google.com/d/forum/jai-ext-users)
 * [**JAI-Ext Developers Group**](https://groups.google.com/d/forum/jai-ext-developers)
 
-
-## Professional Support
-JAI-Ext has been developed by [**GeoSolutions**](http://www.geo-solutions.it) as an internal effort to replace Oracle JAI operations which are basically unsupported at the time of writing. 
-
 # Contributing
 We welcome contributions in any form:
 
@@ -43,4 +39,9 @@ We welcome contributions in any form:
 * funding for any combination of the above
 
 For more information check [this](https://github.com/geosolutions-it/jai-ext/blob/master/CONTRIBUTING.md) page
+
+## Professional Support
+JAI-Ext has been developed by [**GeoSolutions**](http://www.geo-solutions.it) as an internal effort to replace Oracle JAI operations which are basically unsupported at the time of writing. 
+
+
 
