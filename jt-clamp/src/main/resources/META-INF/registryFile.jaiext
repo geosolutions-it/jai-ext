@@ -1,0 +1,11 @@
+#
+# Image descriptors
+#
+
+descriptor  it.geosolutions.jaiext.clamp.ClampDescriptor
+
+#
+# RenderedImageFactories
+#
+
+rendered  it.geosolutions.jaiext.clamp.ClampCRIF  it.geosolutions.jaiext  Clampop Clampop 
