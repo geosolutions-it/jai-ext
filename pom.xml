@@ -154,6 +154,7 @@
 			  it.geosolutions.jaiext.rlookup,
 			  it.geosolutions.jaiext.vectorbin
 			  it.geosolutions.jaiext.threshold
+			  it.geosolutions.jaiext.clamp
 			  </includeGroupIds>
               <includeArtifactIds>
 			  jt-concurrent-tile-cache,
@@ -188,7 +189,8 @@
 			  jt-piecewise,
 			  jt-rlookup,
 			  jt-vectorbin
-		          jt-threshold
+			  jt-threshold
+			  jt-clamp
 			  </includeArtifactIds>
             </configuration>
           </execution>
@@ -665,5 +667,6 @@
     <module>jt-rlookup</module>
     <module>jt-vectorbin</module>
     <module>jt-threshold</module>
+    <module>jt-clamp</module>
   </modules>
 </project>
