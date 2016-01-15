@@ -71,7 +71,7 @@ public class MeanSum extends Statistics {
             if(samples==1){
                 return sumValues; 
             }else{
-                return sumValues / (samples - 1);
+                return sumValues / samples;
             }                      
         }
     }
