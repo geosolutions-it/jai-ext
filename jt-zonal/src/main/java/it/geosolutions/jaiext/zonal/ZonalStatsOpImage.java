@@ -184,8 +184,7 @@ public class ZonalStatsOpImage extends OpImage {
         isNotIdentity = false;
         if (classPresent) {
             // source image bounds
-            sourceBounds = new Rectangle(source.getMinX(), source.getMinY(), source.getWidth(),
-                    source.getHeight());
+            sourceBounds = createBounds(source);
             if (transform == null) {
                 // If no transformation is set, the classifier bounds are the same of the image bounds
                 inverseTrans = new AffineTransform();
@@ -333,6 +332,9 @@ public class ZonalStatsOpImage extends OpImage {
             this.zoneList = new ArrayList<ZoneGeometry>(1);
 
             this.rois = new ArrayList<ROI>();
+            if (sourceBounds == null) {
+                sourceBounds = createBounds(source);
+            }
             ROI roi = new ROIShape(sourceBounds);
             this.rois.add(roi);
             // Bounds Union
@@ -472,6 +474,13 @@ public class ZonalStatsOpImage extends OpImage {
         caseA = notHasNoData && !hasROI;
         caseB = notHasNoData && hasROI;
         caseC = !notHasNoData && !hasROI;
+    }
+
+    /**
+     * Creates a rectangle from the bounds of the specified image. 
+     */
+    private Rectangle createBounds(RenderedImage source) {
+        return new Rectangle(source.getMinX(), source.getMinY(), source.getWidth(), source.getHeight());
     }
 
     public Raster computeTile(int tileX, int tileY) {

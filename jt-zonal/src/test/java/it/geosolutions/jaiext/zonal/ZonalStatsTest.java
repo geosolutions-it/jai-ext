@@ -508,6 +508,46 @@ public class ZonalStatsTest extends TestBase {
 
     }
 
+    @Test
+    /**
+     * Test building up a set of pre-defined ranges and classifying stats for each. 
+     */
+    public void testStatsEntireImageNoROI() {
+
+        // build up the ranges
+        int n = 4;
+        byte min = rangeList[0].get(0).getMin().byteValue();
+        byte max = rangeList[0].get(0).getMax().byteValue();
+        byte delta = (byte)((max - min) / n);
+
+        List<Range> ranges = new ArrayList<Range>();
+        byte b = min;
+        for (int i = 0; i < n; i++) {
+            byte c = (byte) (b + delta);
+            ranges.add(RangeFactory.create(b, true, c, i == n-1));
+
+            b = c;
+        }
+
+        // calculate stats on the entire image 
+        RenderedImage destination = ZonalStatsDescriptor.create(sourceIMG[0],
+            null,
+            null,
+            null, 
+            noDataByte,
+            null,
+            false,
+            bands,
+            new StatsType[]{StatsType.MEAN},
+            ranges,
+            true,
+            null);
+
+        List<ZoneGeometry> result = (List<ZoneGeometry>) destination.getProperty(ZonalStatsDescriptor.ZS_PROPERTY);
+        Map<Range, Statistics[]> stats = result.get(0).getStatsPerBandPerClass(0, 0);
+        assertEquals(4, stats.size());
+    }
+
     public void testZonalStats(RenderedImage source, boolean classifierUsed,
             boolean noDataRangeUsed, boolean roiUsed, boolean useROIAccessor, List<Range> rangeList) {
 
