@@ -67,8 +67,7 @@ public class MeanSum extends Statistics {
         if (simpleSum) {
             return sumValues;
         } else {
-            
-            if(samples==1){
+            if(samples==1 || sumValues == 0d){
                 return sumValues; 
             }else{
                 return sumValues / samples;
