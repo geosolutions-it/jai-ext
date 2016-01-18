@@ -141,6 +141,16 @@ public class StatisticsTest {
         assertEquals(mean, mean2, TOLERANCE);
     }
 
+    // tests mean not using a "static" (ie. not computed by the class under test) 
+    // as the expected value
+    @Test
+    public void testMeanCorrectness() {
+        MeanSum mean = new MeanSum(false);
+        mean.addSample(2);
+        mean.addSample(2);
+        assertEquals(2d, (Double)(mean.getResult()), TOLERANCE);
+    }
+
     // This test is used for checking if the min, max and extrema objects
     // have a correct behavior
     @Test
