@@ -1,6 +1,7 @@
 [ ![Codeship Status for geosolutions-it/jai-ext](https://codeship.com/projects/86e202f0-98df-0132-03ae-025e58d57d52/status?branch=master)](https://codeship.com/projects/63483) 
 [![Build Status](https://travis-ci.org/geosolutions-it/jai-ext.svg)](https://travis-ci.org/geosolutions-it/jai-ext)
 [![Build Status](http://build.geo-solutions.it/jenkins/buildStatus/icon?job=JAI-Ext-Master)](http://build.geo-solutions.it/jenkins/view/JAI/job/JAI-Ext-Master/)
+[![Build Status](http://winbuild.geo-solutions.it/jenkins/buildStatus/icon?job=JAI-Ext-Master-JDK7)](http://winbuild.geo-solutions.it/jenkins/view/JAI-Ext/job/JAI-Ext-Master-JDK7/)
 [![Coverage Status](https://coveralls.io/repos/geosolutions-it/jai-ext/badge.svg?branch=master)](https://coveralls.io/github/geosolutions-it/jai-ext?branch=master)
 JAI-EXT
 =======
