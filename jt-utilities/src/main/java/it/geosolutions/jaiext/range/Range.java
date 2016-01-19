@@ -406,13 +406,13 @@ public abstract class Range {
         if (isMinIncluded()) {
             sb.append("[");
         } else {
-            sb.append("]");
+            sb.append("(");
         }
         sb.append(getMin()).append(", ").append(getMax());
         if (isMaxIncluded()) {
             sb.append("]");
         } else {
-            sb.append("[");
+            sb.append(")");
         }
         return sb.toString();
     }
