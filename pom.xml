@@ -153,6 +153,7 @@
 			  it.geosolutions.jaiext.piecewise,
 			  it.geosolutions.jaiext.rlookup,
 			  it.geosolutions.jaiext.vectorbin
+			  it.geosolutions.jaiext.clamp
 			  </includeGroupIds>
               <includeArtifactIds>
 			  jt-concurrent-tile-cache,
@@ -187,6 +188,7 @@
 			  jt-piecewise,
 			  jt-rlookup,
 			  jt-vectorbin
+                          jt-clamp
 			  </includeArtifactIds>
             </configuration>
           </execution>
@@ -662,5 +664,6 @@
     <module>jt-imagefunction</module>
     <module>jt-rlookup</module>
     <module>jt-vectorbin</module>
+    <module>jt-clamp</module>
   </modules>
 </project>
