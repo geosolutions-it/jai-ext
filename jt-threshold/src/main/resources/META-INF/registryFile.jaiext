@@ -1,0 +1,11 @@
+#
+# Image descriptors
+#
+
+descriptor  it.geosolutions.jaiext.threshold.ThresholdDescriptor
+
+#
+# RenderedImageFactories
+#
+
+rendered  it.geosolutions.jaiext.threshold.ThresholdCRIF  it.geosolutions.jaiext  Threshold Threshold 
