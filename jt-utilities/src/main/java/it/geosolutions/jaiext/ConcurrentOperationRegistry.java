@@ -1205,11 +1205,11 @@ public final class ConcurrentOperationRegistry extends OperationRegistry {
                     try {
                         OperationItem itemNew = new OperationItem((OperationDescriptor) desc);
                         if (factory.getClass().getName().contains("Mlib")) {
-                            item.setMlibFactory(factory);
-                            item.setMlibPreference(true);
+                            itemNew.setMlibFactory(factory);
+                            itemNew.setMlibPreference(true);
                         } else {
-                            item.setFactory(factory);
-                            item.setMlibPreference(false);
+                            itemNew.setFactory(factory);
+                            itemNew.setMlibPreference(false);
                         }
                         map.put(descriptorName, itemNew);
                     } catch (IllegalArgumentException e) {
