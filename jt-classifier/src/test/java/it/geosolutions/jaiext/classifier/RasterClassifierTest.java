@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
  *    http://www.geo-solutions.it/
- *    Copyright 2014 GeoSolutions
+ *    Copyright 2014 - 2016 GeoSolutions
 
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +35,9 @@ import java.awt.image.ColorModel;
 import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
+import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -43,8 +45,10 @@ import java.io.IOException;
 
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
+import javax.media.jai.TiledImage;
 import javax.xml.crypto.dsig.TransformException;
 
 import org.junit.Test;
@@ -57,7 +61,7 @@ import org.junit.Test;
  * 
  * @source $URL$
  */
-public class TestClassifier extends TestBase {
+public class RasterClassifierTest extends TestBase {
 
     private static final int TEST_NUM = 1;
 
@@ -91,31 +95,8 @@ public class TestClassifier extends TestBase {
             // Build the categories
             //
             // /////////////////////////////////////////////////////////////////////
-            final LinearColorMapElement c0 = LinearColorMapElement.create("c0", Color.BLACK,
-                    RangeFactory.create(Double.NEGATIVE_INFINITY, false, 10, true), 0);
+            LinearColorMap list = buildCategories();
 
-            final LinearColorMapElement c1 = LinearColorMapElement.create("c2", Color.blue,
-                    RangeFactory.create(10.0, false, 100.0, true), 1);
-
-            final LinearColorMapElement c3 = LinearColorMapElement.create("c3", Color.green,
-                    RangeFactory.create(100.0, false, 300.0, true), 2);
-
-            final LinearColorMapElement c4 = LinearColorMapElement.create("c4", new Color[] {
-                    Color.green, Color.red }, RangeFactory.create(300.0, false, 400, true),
-                    RangeFactory.create(3, 1000));
-
-            final LinearColorMapElement c5 = LinearColorMapElement.create("c5", new Color[] {
-                    Color.red, Color.white }, RangeFactory.create(400.0, false, 1000, true),
-                    RangeFactory.create(1001, 2000));
-
-            final LinearColorMapElement c6 = LinearColorMapElement.create("c6", Color.red, 1001.0,
-                    2001);
-
-            final LinearColorMapElement c7 = LinearColorMapElement.create("nodata", new Color(0, 0,
-                    0, 0), RangeFactory.create(Double.NaN, Double.NaN), 2201);
-
-            final LinearColorMap list = new LinearColorMap("", new LinearColorMapElement[] { c0,
-                    c1, c3, c4, c5, c6 }, new LinearColorMapElement[] { c7 });
             // Operation creation
             final ParameterBlockJAI pbj = new ParameterBlockJAI(
                     RasterClassifierOpImage.OPERATION_NAME);
@@ -129,6 +110,31 @@ public class TestClassifier extends TestBase {
                 finalimage.getTiles();
             finalimage.dispose();
         }
+    }
+
+    @Test
+    public void testHugeDataset() throws IOException {
+        final int width = 20000;
+        final int height = 20000;
+        ColorModel cm = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_GRAY), false, false, Transparency.OPAQUE, DataBuffer.TYPE_FLOAT);
+        SampleModel sm = cm.createCompatibleSampleModel(512, 512);
+        PlanarImage image = new TiledImage(0, 0, width, height, 0, 0, sm, cm);
+        LinearColorMap list = buildCategories();
+        final ParameterBlockJAI pbj = new ParameterBlockJAI(RasterClassifierOpImage.OPERATION_NAME);
+        pbj.addSource(image);
+        pbj.setParameter("Domain1D", list);
+        final RenderedOp finalImage = JAI.create(RasterClassifierOpImage.OPERATION_NAME, pbj);
+        boolean success = true;
+        try {
+            
+            Raster raster = finalImage.getTile(0, 0);
+            assertNotNull(raster);
+        } catch (RuntimeException ie) {
+            // Before the getData fix the getTiles call was throwing an Exception
+            // due to OOM on allocating that big raster
+            success = false;
+        }
+        assertTrue(success);
     }
 
     /**
@@ -186,31 +192,7 @@ public class TestClassifier extends TestBase {
             // Build the categories
             //
             // /////////////////////////////////////////////////////////////////////
-            final LinearColorMapElement c0 = LinearColorMapElement.create("c0", Color.BLACK,
-                    RangeFactory.create(Double.NEGATIVE_INFINITY, false, 10, true), 0);
-
-            final LinearColorMapElement c1 = LinearColorMapElement.create("c2", Color.blue,
-                    RangeFactory.create(10.0f, false, 100.0f, true), 1);
-
-            final LinearColorMapElement c3 = LinearColorMapElement.create("c3", Color.green,
-                    RangeFactory.create(100.0f, false, 300.0f, true), 2);
-
-            final LinearColorMapElement c4 = LinearColorMapElement.create("c4", new Color[] {
-                    Color.green, Color.red }, RangeFactory.create(300.0f, false, 400.0f, true),
-                    RangeFactory.create(3, 1000));
-
-            final LinearColorMapElement c5 = LinearColorMapElement.create("c5", new Color[] {
-                    Color.red, Color.white }, RangeFactory.create(400.0f, false, 1000.0f, true),
-                    RangeFactory.create(1001, 2000));
-
-            final LinearColorMapElement c6 = LinearColorMapElement.create("c6", Color.red, 1001.0f,
-                    2001);
-
-            final LinearColorMapElement c7 = LinearColorMapElement.create("nodata", new Color(0, 0,
-                    0, 0), RangeFactory.create(Double.NaN, Double.NaN), 2201);
-
-            final LinearColorMap list = new LinearColorMap("", new LinearColorMapElement[] { c0,
-                    c1, c3, c4, c5, c6 }, new LinearColorMapElement[] { c7 });
+            LinearColorMap list = buildCategories();
 
             final ParameterBlockJAI pbj = new ParameterBlockJAI(
                     RasterClassifierOpImage.OPERATION_NAME);
@@ -224,6 +206,35 @@ public class TestClassifier extends TestBase {
                 finalimage.getTiles();
             finalimage.dispose();
         }
+    }
+
+    private LinearColorMap buildCategories() {
+        final LinearColorMapElement c0 = LinearColorMapElement.create("c0", Color.BLACK,
+                RangeFactory.create(Double.NEGATIVE_INFINITY, false, 10, true), 0);
+
+        final LinearColorMapElement c1 = LinearColorMapElement.create("c2", Color.blue,
+                RangeFactory.create(10.0f, false, 100.0f, true), 1);
+
+        final LinearColorMapElement c3 = LinearColorMapElement.create("c3", Color.green,
+                RangeFactory.create(100.0f, false, 300.0f, true), 2);
+
+        final LinearColorMapElement c4 = LinearColorMapElement.create("c4", new Color[] {
+                Color.green, Color.red }, RangeFactory.create(300.0f, false, 400.0f, true),
+                RangeFactory.create(3, 1000));
+
+        final LinearColorMapElement c5 = LinearColorMapElement.create("c5", new Color[] {
+                Color.red, Color.white }, RangeFactory.create(400.0f, false, 1000.0f, true),
+                RangeFactory.create(1001, 2000));
+
+        final LinearColorMapElement c6 = LinearColorMapElement.create("c6", Color.red, 1001.0f,
+                2001);
+
+        final LinearColorMapElement c7 = LinearColorMapElement.create("nodata", new Color(0, 0,
+                0, 0), RangeFactory.create(Double.NaN, Double.NaN), 2201);
+
+        final LinearColorMap list = new LinearColorMap("", new LinearColorMapElement[] { c0,
+                c1, c3, c4, c5, c6 }, new LinearColorMapElement[] { c7 });
+        return list;
     }
 
     /**

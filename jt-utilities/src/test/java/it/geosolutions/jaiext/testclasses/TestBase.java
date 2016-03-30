@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
 *    http://www.geo-solutions.it/
-*    Copyright 2014 GeoSolutions
+*    Copyright 2014 - 2016 GeoSolutions
 
 
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,6 @@
 package it.geosolutions.jaiext.testclasses;
 
 
-import it.geosolutions.jaiext.ConcurrentOperationRegistry;
 import it.geosolutions.jaiext.JAIExt;
 
 import java.awt.Rectangle;
@@ -28,7 +27,6 @@ import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 
-import javax.media.jai.JAI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.TiledImage;
 
