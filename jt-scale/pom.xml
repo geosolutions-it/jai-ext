@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>it.geosolutions.jaiext</groupId>
 		<artifactId>jaiext</artifactId>
-		<version>1.0-SNAPSHOT</version>
+		<version>1.0.9</version>
 	</parent>
 	<groupId>it.geosolutions.jaiext.scale</groupId>
 	<artifactId>jt-scale</artifactId>
