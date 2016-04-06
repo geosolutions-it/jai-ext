@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/geosolutions-it/jai-ext.svg?branch=master)](https://travis-ci.org/geosolutions-it/jai-ext)
 [ ![Codeship Status for geosolutions-it/jai-ext](https://codeship.com/projects/86e202f0-98df-0132-03ae-025e58d57d52/status?branch=master)](https://codeship.com/projects/63483) 
 [![Build Status](https://travis-ci.org/geosolutions-it/jai-ext.svg)](https://travis-ci.org/geosolutions-it/jai-ext)
 [![Build Status](http://build.geo-solutions.it/jenkins/buildStatus/icon?job=JAI-Ext-Master)](http://build.geo-solutions.it/jenkins/view/JAI/job/JAI-Ext-Master/)
