@@ -108,7 +108,7 @@ public class ScaleCRIF extends CRIFImpl {
         // image or are empty
 
         if (xScale == 1.0F && yScale == 1.0F && xTrans == 0.0F && yTrans == 0.0F
-                && (roi == null || (roi.getBounds().isEmpty() || roi.contains(sourceBounds)))) {
+                && (roi == null || (roi.getBounds().isEmpty() || roi.contains(sourceBounds)))&& (interp==null || interp instanceof InterpolationNearest) ) {
             return new CopyOpImage(source, renderHints, layout);
         }
 
@@ -120,27 +120,11 @@ public class ScaleCRIF extends CRIFImpl {
         // contain all the image or are empty
         if (xScale == 1.0F && yScale == 1.0F && (Math.abs(xTrans - (int) xTrans) < TOLERANCE)
                 && (Math.abs(yTrans - (int) yTrans) < TOLERANCE) && layout == null
-                && (roi == null || (roi.getBounds().isEmpty() || roi.contains(sourceBounds)))) {
+                && (roi == null || (roi.getBounds().isEmpty() || roi.contains(sourceBounds)))&& (interp==null || interp instanceof InterpolationNearest) ) {
             // It's an integer translate.
             return new TranslateIntOpImage(source, renderHints, (int) xTrans, (int) yTrans);
         }
 
-        try {
-            // check if we can use the native operation instead
-            // Rectangle sourceBounds = new Rectangle(source.getMinX(),
-            // source.getMinY(), source.getWidth(), source.getHeight());
-            if ((roi == null 
-                    || (ImageUtilities.isMediaLibAvailable() && (roi.getBounds().isEmpty() || roi
-                            .contains(sourceBounds)))) && (nodata == null)) {
-                RenderedImage accelerated = new MlibScaleRIF().create(paramBlock, renderHints);
-                if (accelerated != null) {
-                    return accelerated;
-                }
-            }
-        } catch (Exception e) {
-            // Eat exception and proceed with pure java approach
-        }
-        
         SampleModel sm = source.getSampleModel();
 
         boolean isBinary =  (sm instanceof MultiPixelPackedSampleModel)
