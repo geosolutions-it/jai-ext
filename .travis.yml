@@ -14,3 +14,4 @@ notifications:
   on_failure: never
 after_success:
  - mvn clean cobertura:cobertura coveralls:report
+ - python <(curl -s https://raw.githubusercontent.com/TouK/sputnik-ci/master/sputnik-ci.py)
