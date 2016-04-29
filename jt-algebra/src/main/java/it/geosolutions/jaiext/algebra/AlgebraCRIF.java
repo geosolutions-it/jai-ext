@@ -31,7 +31,7 @@ public class AlgebraCRIF extends CRIFImpl {
 
     /** Constructor. */
     public AlgebraCRIF() {
-        super("algebric");
+        super("algebric"); 
     }
 
     /**
