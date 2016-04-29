@@ -5,6 +5,8 @@
 [![Build Status](http://winbuild.geo-solutions.it/jenkins/buildStatus/icon?job=JAI-Ext-Master-JDK7)](http://winbuild.geo-solutions.it/jenkins/view/JAI-Ext/job/JAI-Ext-Master-JDK7/)
 [![Build Status](http://build.geo-solutions.it/jenkins/buildStatus/icon?job=JAI-Ext-OpenJDK7)](http://build.geo-solutions.it/jenkins/view/JAI/job/JAI-Ext-OpenJDK7/)
 [![Coverage Status](https://coveralls.io/repos/geosolutions-it/jai-ext/badge.svg?branch=master)](https://coveralls.io/github/geosolutions-it/jai-ext?branch=master)
+[![Sputnik](https://sputnik.ci/conf/badge)](https://sputnik.ci/app#/builds/simboss/jai-ext)
+
 JAI-EXT
 =======
 
