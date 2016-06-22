@@ -89,15 +89,17 @@ public class DisplayHistogram extends JComponent implements MouseMotionListener
     private void setHistogram(Histogram histogram)
     {
         this.histogram = histogram;
-        // Calculate the components dimensions.
-        width = histogram.getNumBins(0) * binWidth;
-        // Get the histogram data.
-        counts = histogram.getBins(0);
-        // Get the max and min counts.
-        maxCount = Integer.MIN_VALUE;
-        for (int c = 0; c < counts.length; c++)
-        {
-            maxCount = Math.max(maxCount, counts[c]);
+        if(histogram != null) {
+            // Calculate the components dimensions.
+            width = histogram.getNumBins(0) * binWidth;
+            // Get the histogram data.
+            counts = histogram.getBins(0);
+            // Get the max and min counts.
+            maxCount = Integer.MIN_VALUE;
+            for (int c = 0; c < counts.length; c++)
+            {
+                maxCount = Math.max(maxCount, counts[c]);
+            }
         }
         repaint();
     }
