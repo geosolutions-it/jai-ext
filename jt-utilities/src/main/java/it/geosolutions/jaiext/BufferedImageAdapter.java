@@ -74,7 +74,15 @@ public class BufferedImageAdapter extends PlanarImage {
     }
     
     public Raster getData() {
-        return image.getData();
+        final WritableRaster raster = image.getRaster();
+        if(raster.getParent() != null) {
+            // have to force a copy, otherwise we are breaking the RenderedImage contract just
+            // like BufferedImage does (the PNGJ writer actually has special code to work
+            // around that bug)
+            return image.getData(new Rectangle(0, 0, raster.getWidth(), raster.getHeight()));
+        } else {
+            return raster;
+        }
     }
 
     public Raster getData(Rectangle rect) {

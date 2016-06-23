@@ -19,7 +19,10 @@ package it.geosolutions.jaiext;
 
 import static org.junit.Assert.*;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.Raster;
 
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.BandSelectDescriptor;
@@ -64,5 +67,51 @@ public class BufferedImageAdapterTest {
         assertSame(adapter, op.getSourceObject(0));
         // no NPE (RenderedImageAdapter would blow up here)
         assertNotNull(op.getTile(op.getMinTileX(), op.getMinTileY()));
+    }
+    
+    @Test
+    public void testGetData() {
+        // color black only one part
+        BufferedImage bi = new BufferedImage(768, 768, BufferedImage.TYPE_4BYTE_ABGR);
+        Graphics2D graphics = bi.createGraphics();
+        graphics.setColor(Color.WHITE);
+        graphics.fillRect(512, 512, 256, 256);
+        graphics.dispose();
+        
+        // get a subimage where it's fully black
+        BufferedImage solidSubimage = bi.getSubimage(512, 512, 256, 256);
+        assertSolidTile(solidSubimage, 255);
+        
+        // get one that's fully transparent instead
+        BufferedImage transparentSubimage = bi.getSubimage(256, 256, 256, 256);
+        assertSolidTile(transparentSubimage, 0);
+    }
+
+    private void assertSolidTile(BufferedImage subimage, int expectedValue) {
+        // adapt
+        BufferedImageAdapter adapter = new BufferedImageAdapter(subimage);
+        // check getting a tile is fully black
+        Raster raster = adapter.getTile(0, 0);
+        checkSolidTile(raster, expectedValue);
+        // check getData
+        raster = adapter.getData();
+        checkSolidTile(raster, expectedValue);
+    }
+
+    private void checkSolidTile(Raster raster, int expectdValue) {
+        int[] pixel = new int[4];
+        assertEquals(256, raster.getWidth());
+        assertEquals(256, raster.getHeight());
+        for(int i = raster.getMinX(); i < raster.getHeight(); i++) {
+            for(int j = raster.getMinY(); i < raster.getWidth(); i++) {
+                raster.getPixel(j, i, pixel);
+                assertEquals(expectdValue, pixel[0]);
+                assertEquals(expectdValue, pixel[1]);
+                assertEquals(expectdValue, pixel[2]);
+                assertEquals(expectdValue, pixel[3]);
+            }
+        }
+        
+        
     }
 }
