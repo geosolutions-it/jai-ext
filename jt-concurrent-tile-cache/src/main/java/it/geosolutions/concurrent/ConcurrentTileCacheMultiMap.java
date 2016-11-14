@@ -76,13 +76,10 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
     /**
      * A concurrent multimap used for mapping the tile keys for each image
      */
-    private Map<Object, Set<Object>> multimap;
+    private ConcurrentHashMap<Object, Set<Object>> multimap;
 
     /** The memory capacity of the cache. */
     private long memoryCacheCapacity;
-
-    /** The current memory capacity of the cache. */
-    private AtomicLong currentCacheCapacity;
 
     /** The concurrency level of the cache. */
     private int concurrencyLevel;
@@ -98,6 +95,11 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
      */
     private final static Logger LOGGER = Logger.getLogger(ConcurrentTileCacheMultiMap.class
             .toString());
+
+    /**
+     * Memory overhead in bytes for tracking the tiles used by each image
+     */
+    private static final long TILE_TRACKING_OVERHEAD = 50;
 
     public ConcurrentTileCacheMultiMap() {
         this(DEFAULT_MEMORY_CACHE, DEFAULT_DIAGNOSTIC, DEFAULT_MEMORY_THRESHOLD,
@@ -128,6 +130,12 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
 
     /** Add a new tile to the cache */
     public void add(RenderedImage owner, int tileX, int tileY, Raster data, Object tileCacheMetric) {
+        // when computation fails this method is called with a null raster,
+        // avoid logging an extra NPE
+        if(data == null) {
+            return;
+        }
+        
         // This tile is not in the cache; create a new CachedTileImpl.
         // else just update.
 
@@ -149,8 +157,6 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
                     setChanged();
                     notifyObservers(cti);
                 }
-                // Update Cache Memory Size
-                currentCacheCapacity.addAndGet(cti_new.getTileSize());
 
                 // Update the tile action in order to notify it to the observers
                 cti_new.setAction(Actions.ADDITION);
@@ -167,6 +173,10 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
             // Atomically adds a new Map if needed and then adds a new tile inside the MultiMap.
             updateMultiMap(cti_new.key, imageKey);
         }
+    }
+
+    private long getTileSize(CachedTileImpl cti) {
+        return cti.getTileSize() + TILE_TRACKING_OVERHEAD;
     }
 
     /** Removes the selected tile from the cache */
@@ -243,20 +253,18 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
         Object imageKey = CachedTileImpl.hashKey(owner);
 
         if (diagnosticEnabled) {
-            synchronized (cacheObject) {
-                // Selection of the keys associated to the image and removal of each of them
-                Set<Object> keys = multimap.get(imageKey);
-                if (keys != null) {
-                    Iterator<Object> it = keys.iterator();
-                    while (it.hasNext()) {
-                        Object key = it.next();
-                        removeTileByKey(key);
-                    }
+            // Selection of the keys associated to the image and removal of each of them
+            Set<Object> keys = multimap.remove(imageKey);
+            if (keys != null) {
+                Iterator<Object> it = keys.iterator();
+                while (it.hasNext()) {
+                    Object key = it.next();
+                    removeTileByKey(key);
                 }
             }
         } else {
             // Get the keys associated to the image and remove them
-            Set<Object> keys = multimap.get(imageKey);
+            Set<Object> keys = multimap.remove(imageKey);
             if (keys != null) {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.fine("Removing image Tiles Image key " + imageKey);
@@ -478,7 +486,14 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
 
     /** Retrieves the current memory size of the cache */
     public long getCacheMemoryUsed() {
-        return currentCacheCapacity.get();
+        Iterator<Object> keys = cacheObject.asMap().keySet().iterator();
+        long memoryUsed = 0;
+        while (keys.hasNext()) {
+            Object key = keys.next();
+            CachedTileImpl cti = (CachedTileImpl) cacheObject.getIfPresent(key);
+            memoryUsed += getTileSize(cti);
+        }
+        return memoryUsed;
     }
 
     /** Retrieves the miss count from the cache statistics */
@@ -525,8 +540,6 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
                         } else {
                             cti.setAction(Actions.MANUAL_REMOVAL);
                         }
-                        // Update Cache Memory Size
-                        currentCacheCapacity.addAndGet(-cti.getTileSize());
                         // Removal from the multimap
                         removeTileFromMultiMap(cti);
                         setChanged();
@@ -585,7 +598,7 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
         builder.maximumWeight((long) (memoryCacheCapacity * memoryCacheThreshold))
                 .concurrencyLevel(concurrencyLevel).weigher(new Weigher<Object, CachedTileImpl>() {
                     public int weigh(Object o, CachedTileImpl cti) {
-                        return (int) cti.getTileSize();
+                        return (int) getTileSize(cti);
                     }
                 });
         // Setting of the listener
@@ -598,8 +611,6 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Building Cache");
         }
-        // Update of the Memory cache size
-        currentCacheCapacity = new AtomicLong(0);
 
         return builder.build();
     }
@@ -612,16 +623,17 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
      */
     private void updateMultiMap(Object key, Object imageKey) {
         Set<Object> tileKeys = null;
-        synchronized (cacheObject) {
-            // Check if the multimap contains the keys for the image
-            tileKeys = multimap.get(imageKey);
-            if (tileKeys == null) {
-                // If no key is present then a new KeySet is created and then added to the multimap
-                tileKeys = new ConcurrentSkipListSet<Object>();
-                multimap.put(imageKey, tileKeys);
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine("Created new Set for the image Image key " + imageKey);
-                }
+        // Check if the multimap contains the keys for the image
+        tileKeys = multimap.get(imageKey);
+        if (tileKeys == null) {
+            // If no key is present then a new KeySet is created and then added to the multimap
+            tileKeys = new ConcurrentSkipListSet<Object>();
+            Set<Object> previousTileKeys = multimap.putIfAbsent(imageKey, tileKeys);
+            if(previousTileKeys != null) {
+                tileKeys = previousTileKeys;
+            }
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Created new Set for the image Image key " + imageKey);
             }
         }
         if (LOGGER.isLoggable(Level.FINE)) {
