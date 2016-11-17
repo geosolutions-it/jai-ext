@@ -17,8 +17,6 @@
 */
 package it.geosolutions.concurrencytest;
 
-import it.geosolutions.concurrent.ConcurrentTileCache;
-
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.File;
@@ -45,6 +43,9 @@ import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
 import com.sun.media.jai.util.SunTileCache;
 
+import it.geosolutions.concurrent.ConcurrentTileCache;
+import it.geosolutions.concurrent.ConcurrentTileCacheMultiMap;
+
 public class ConcurrentCacheTest {
 
     public static final long DEFAULT_MEMORY_CAPACITY = 128 * 1024 * 1024;
@@ -57,14 +58,11 @@ public class ConcurrentCacheTest {
 
     public final static Logger LOGGER = Logger.getLogger(ConcurrentCacheTest.class.toString());
 
-    // choice of which type of tilecache is used
-    public static int DEFAULT_CACHE_USED = 2;
-
     // diagnostics
     public static boolean DEFAULT_DIAGNOSTICS = false;
 
     // multiple simultaneous operations allowed
-    public static boolean DEFAULT_MULTIOPERATIONS = true;
+    public static boolean DEFAULT_MULTIOPERATIONS = false;
 
     // choice of the concurrency Level
     public static int DEFAULT_CONCURRENCY_LEVEL = 16;
@@ -90,16 +88,15 @@ public class ConcurrentCacheTest {
     private RenderedImage image_;
 
     /** List of all used Caches */
-    public enum Caches {
-        SUN_TILE_CACHE(0, "SunTileCache"), CONCURRENT_TILE_CACHE(1, "ConcurrentTileCache"), CONCURRENT_LINKED_CACHE(
-                2, "ConcurrentLinkedCache"), CONCURRENT_CACHE(3, "ConcurrentCache"), CONCURRENT_NON_BLOCKING_CACHE(
-                4, "ConcurrentNonBlockingCache");
+    public enum CacheType {
+        SUN_TILE_CACHE(0, "SunTileCache"), CONCURRENT_TILE_CACHE(1, "ConcurrentTileCache"), CONCURRENT_MULTIMAP_TILE_CACHE(
+                2, "ConcurrentMultimapCache");
 
         private final int tileCache;
 
         private final String tileCacheString;
 
-        Caches(int value, String s) {
+        CacheType(int value, String s) {
             this.tileCache = value;
             this.tileCacheString = s;
         }
@@ -110,11 +107,6 @@ public class ConcurrentCacheTest {
 
         public String cacheName() {
             return tileCacheString;
-        }
-
-        public static String cacheString(int i) {
-            Caches[] values = Caches.values();
-            return values[i].cacheName();
         }
 
     };
@@ -129,25 +121,33 @@ public class ConcurrentCacheTest {
      */
 
     // @Test
-    public double[] testwriteImageAndWatchFlag(int cacheUsed, int concurrencyLevel,
+    public double[] testwriteImageAndWatchFlag(CacheType cacheUsed, int concurrencyLevel,
             long memoryCacheCapacity, RenderedImage img, String path, boolean diagnostics,
             boolean multipleOperations) throws IOException, InterruptedException {
         // sets the cache and is concurrency level and diagnostics if needed
         switch (cacheUsed) {
-        case 0:
+        case SUN_TILE_CACHE:
             SunTileCache sunCache = new SunTileCache();
             if (diagnostics) {
                 sunCache.enableDiagnostics();
             }
             JAI.getDefaultInstance().setTileCache(sunCache);
             break;
-        case 1:
+        case CONCURRENT_TILE_CACHE:
             ConcurrentTileCache cTileCache = new ConcurrentTileCache();
             cTileCache.setConcurrencyLevel(concurrencyLevel);
             if (diagnostics) {
                 cTileCache.enableDiagnostics();
             }
             JAI.getDefaultInstance().setTileCache(cTileCache);
+            break;
+        case CONCURRENT_MULTIMAP_TILE_CACHE:
+            ConcurrentTileCacheMultiMap cmTileCache = new ConcurrentTileCacheMultiMap();
+            cmTileCache.setConcurrencyLevel(concurrencyLevel);
+            if (diagnostics) {
+                cmTileCache.enableDiagnostics();
+            }
+            JAI.getDefaultInstance().setTileCache(cmTileCache);
             break;
         }
         JAI.getDefaultInstance().getTileCache().setMemoryCapacity(memoryCacheCapacity);
@@ -287,7 +287,7 @@ public class ConcurrentCacheTest {
     static public void main(String[] args) throws Exception {
         // initial settings
         // check if using the concurrent cache or default
-        int cacheUsed = DEFAULT_CACHE_USED;
+        CacheType cacheUsed = CacheType.CONCURRENT_MULTIMAP_TILE_CACHE;
         // sets the concurrency level
         int concurrencyLevel = DEFAULT_CONCURRENCY_LEVEL;
         // sets the memory cache capacity
@@ -305,9 +305,9 @@ public class ConcurrentCacheTest {
         boolean mainData = args != null;
         if (mainData) {
             if (args.length > 0) {
-                cacheUsed = Integer.parseInt(args[0]);
+                cacheUsed = CacheType.values()[Integer.parseInt(args[0])];
 
-                if (cacheUsed > 0) {
+                if (cacheUsed !=  CacheType.SUN_TILE_CACHE) {
                     concurrencyLevel = Integer.parseInt(args[1]);
                     memoryCacheCapacity = Long.parseLong(args[2]);
                     diagnosticEnabled = Boolean.parseBoolean(args[3]);
@@ -336,7 +336,7 @@ public class ConcurrentCacheTest {
         LOGGER.setLevel(Level.FINE);
 
         FileHandler fileTxt = new FileHandler(
-                "src/test/resources/it/geosolutions/logfiles/ConcurrentCacheTestLog.txt");
+                "target/ConcurrentCacheTestLog.txt");
         // Log Handler no used for now
         // LOGGER.addHandler(fileTxt);
 
@@ -353,8 +353,8 @@ public class ConcurrentCacheTest {
         }
 
         // showing the result
-        String stringConcurrent = " with " + Caches.cacheString(cacheUsed);
-        if (cacheUsed > 0) {
+        String stringConcurrent = " with " + cacheUsed.tileCacheString;
+        if (cacheUsed != CacheType.SUN_TILE_CACHE) {
             stringConcurrent += " and " + concurrencyLevel + " segments";
         }
         for (int f = 0; f < numTest; f++) {
@@ -389,6 +389,7 @@ public class ConcurrentCacheTest {
                     image_.getTile(tilex, tiley);
                     i++;
                 }
+                JAI.getDefaultInstance().getTileCache().removeTiles(image_);
 
                 latch.countDown();
 
@@ -405,9 +406,9 @@ public class ConcurrentCacheTest {
     /** This Runnable is used for checking the cache weigh on runtime */
     private class WeigherPeriodic implements Runnable {
 
-        private int typeCache;
+        private CacheType typeCache;
 
-        private WeigherPeriodic(int cacheUsed) {
+        private WeigherPeriodic(CacheType cacheUsed) {
             this.typeCache = cacheUsed;
         }
 
@@ -421,13 +422,13 @@ public class ConcurrentCacheTest {
                 switch (typeCache) {
                 // select the tile cache type, for the last two types no memory usage is
                 // calculated
-                case 0:
+                case SUN_TILE_CACHE:
                     SunTileCache sunCache = (SunTileCache) cache;
                     memory = sunCache.getCacheMemoryUsed();
                     break;
-                case 1:
-                    ConcurrentTileCache cTileCache = (ConcurrentTileCache) cache;
-                    memory = cTileCache.getCacheMemoryUsed();
+                case CONCURRENT_MULTIMAP_TILE_CACHE:
+                    ConcurrentTileCacheMultiMap cmTileCache = (ConcurrentTileCacheMultiMap) cache;
+                    memory = cmTileCache.getCacheMemoryUsed();
                     break;
                 }
 
