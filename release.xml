@@ -4,10 +4,11 @@
     <property name="version" value="1.0-SNAPSHOT" />
 
     <property name="host" value="demo.geo-solutions.it" />
-    <property name="remoteReleasesPath" value="${path}" />
-    <property name="user" value="${deployUser}" />
-    <property name="keyfile" value="${deployKeyFile}" />
-    <property name="scpPort" value="${deployScpPort}" />
+    <property name="remoteReleasesPath" value="fakepath" />
+    <property name="user" value="fakeuser" />
+    <property name="password" value="fakepassword" />
+    <property name="keyfile" value="/home/user/.ssh/id_rsa" />
+    <property name="port" value="22" />
 
     <!-- Prepare deployment folder -->
     <delete includeEmptyDirs="true" dir="deploy" />
@@ -23,7 +24,11 @@
      <copy file="target/release/jai-ext-${version}-src.zip" toFile="deploy/jai-ext-${version}-sources.zip" />
      
      <!-- transfer to Remote-->
-     <scp port="${scpPort}" keyfile="${keyfile}" todir="${user}@${host}:${remoteReleasesPath}/${version}" trust="true">
+     <scp todir="${user}@${host}:${remoteReleasesPath}/${version}"
+        port="${port}"
+        keyfile="${keyfile}"
+        trust="true"
+        verbose="false">
        <fileset dir="deploy">
          <include name="*"/>
        </fileset>
