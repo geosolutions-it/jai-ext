@@ -33,7 +33,7 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.io.WKTReader;
 
-import org.jaitools.jts.CoordinateSequence2D;
+import it.geosolutions.jaiext.jts.CoordinateSequence2D;
 import org.junit.Before;
 import org.junit.Test;
 
