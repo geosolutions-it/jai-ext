@@ -27,6 +27,11 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>it.geosolutions.jaiext.vectorbin</groupId>
+			<artifactId>jt-vectorbin</artifactId>
+			<version>${project.version}</version>
+		</dependency>		
+		<dependency>
 			<groupId>it.geosolutions.jaiext.translate</groupId>
 			<artifactId>jt-translate</artifactId>
 			<version>${project.version}</version>
