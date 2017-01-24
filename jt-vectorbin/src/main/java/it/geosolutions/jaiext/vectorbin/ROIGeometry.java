@@ -456,7 +456,7 @@ public class ROIGeometry extends ROI {
      * resulting image has a small memory footprint.
      * 
      * @return a new image representing this ROI
-     * @see org.jaitools.media.jai.vectorbinarize.VectorBinarizeDescriptor
+     * @see it.geosolutions.jaiext.vectorbin.VectorBinarizeDescriptor
      */
     @Override
     public PlanarImage getAsImage() {

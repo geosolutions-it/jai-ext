@@ -48,7 +48,7 @@ import javax.media.jai.Warp;
 import javax.media.jai.operator.ConstantDescriptor;
 import javax.media.jai.registry.RenderedRegistryMode;
 
-import org.jaitools.imageutils.ImageLayout2;
+import it.geosolutions.jaiext.utilities.ImageLayout2;
 
 import com.sun.media.jai.util.PropertyGeneratorImpl;
 

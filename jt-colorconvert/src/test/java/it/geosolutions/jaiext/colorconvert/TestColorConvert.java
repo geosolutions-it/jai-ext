@@ -44,7 +44,7 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
 
-import org.jaitools.imageutils.ImageLayout2;
+import it.geosolutions.jaiext.utilities.ImageLayout2;
 import org.junit.Test;
 
 import it.geosolutions.jaiext.range.Range;
