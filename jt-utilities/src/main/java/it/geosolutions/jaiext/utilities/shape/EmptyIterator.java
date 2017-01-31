@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package it.geosolutions.jaiext.vectorbin;
+package it.geosolutions.jaiext.utilities.shape;
 
 /**
  * An iterator for empty geometries. This class was ported back and simplified from GeoTools, with permission from the author(s)

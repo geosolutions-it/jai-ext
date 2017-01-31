@@ -33,13 +33,14 @@ import javax.media.jai.ImageLayout;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.SourcelessOpImage;
 
-import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.geom.TopologyException;
 import com.vividsolutions.jts.geom.prep.PreparedGeometry;
 import com.vividsolutions.jtsexample.geom.ExtendedCoordinate;
 import com.vividsolutions.jtsexample.geom.ExtendedCoordinateSequence;
+
+import it.geosolutions.jaiext.utilities.shape.LiteShape;
 
 /**
  * Creates a binary image based on tests of pixel inclusion in a polygonal {@code Geometry}. See {@link VectorBinarizeDescriptor} for details.
