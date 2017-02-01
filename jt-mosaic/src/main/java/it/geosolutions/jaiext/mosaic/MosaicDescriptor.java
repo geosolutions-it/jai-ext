@@ -33,8 +33,6 @@ import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.MosaicType;
 import javax.media.jai.registry.RenderedRegistryMode;
 
-import org.jaitools.JAITools;
-
 
 /**
  * This class is very similar to the Mosaic operation because it returns a
@@ -89,10 +87,7 @@ import org.jaitools.JAITools;
  * </p>
  * <p>
  * The no data support is provided using the <code>Range</code> class in the
- * {@link JAITools} package. This class contains one value or a group of
- * contiguous values and it is used for checking if every source pixel is
- * contained into. If <code>True</code>, it means that the selected pixel is a
- * no data value.
+ * JAI-EXT package.
  * </p>
  * <p>
  * In this Mosaic implementation the no data support has been added for

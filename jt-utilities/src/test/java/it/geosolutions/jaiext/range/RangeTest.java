@@ -21,15 +21,11 @@ import static org.junit.Assert.*;
 
 import java.awt.image.DataBuffer;
 
-import org.apache.commons.lang.math.DoubleRange;
-import org.apache.commons.lang.math.FloatRange;
-import org.apache.commons.lang.math.IntRange;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * This test-class is used for evaluating the functionalities of the {@link Range} class and its subclasses. Also this class is compared to other
- * Range classes for seeing if its <code>contain()</code> method could have a better performance than that of the other Range classes.
+ * This test-class is used for evaluating the functionalities of the {@link Range} class and its subclasses.
  * 
  * Guava Ranges are commented in order to wait to upgrade the Guava version to 14.0.1
  */
@@ -37,7 +33,7 @@ public class RangeTest {
 
     /** Number of benchmark iterations (Default 1) */
     private final static int BENCHMARK_ITERATION = Integer.getInteger("JAI.Ext.BenchmarkCycles", 1);
-
+ 
     /** Number of not benchmark iterations (Default 0) */
     private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
             "JAI.Ext.NotBenchmarkCycles", 0);
@@ -62,7 +58,7 @@ public class RangeTest {
     /** test values float */
     private static float[] arrayF;
 
-    /** test values doble */
+    /** test values double */
     private static double[] arrayD;
     
     /** test values long */
@@ -80,7 +76,7 @@ public class RangeTest {
     /** test values float speed comparison */
     private static Float[] arrayFtest;
 
-    /** test values doble speed comparison */
+    /** test values double speed comparison */
     private static Double[] arrayDtest;
 
     /** Range byte 2 bounds */
@@ -125,66 +121,6 @@ public class RangeTest {
     /** Range long 1 point */
     private static Range rangeLpoint;
 
-    private static org.jaitools.numeric.Range<Byte> rangeJTB;
-
-    private static org.jaitools.numeric.Range<Short> rangeJTS;
-
-    private static org.jaitools.numeric.Range<Integer> rangeJTI;
-
-    private static org.jaitools.numeric.Range<Float> rangeJTF;
-
-    private static org.jaitools.numeric.Range<Double> rangeJTD;
-
-    private static org.jaitools.numeric.Range<Byte> rangeJTBpoint;
-
-    private static org.jaitools.numeric.Range<Short> rangeJTSpoint;
-
-    private static org.jaitools.numeric.Range<Integer> rangeJTIpoint;
-
-    private static org.jaitools.numeric.Range<Float> rangeJTFpoint;
-
-    private static org.jaitools.numeric.Range<Double> rangeJTDpoint;
-
-    private static javax.media.jai.util.Range rangeJAIB;
-
-    private static javax.media.jai.util.Range rangeJAIS;
-
-    private static javax.media.jai.util.Range rangeJAII;
-
-    private static javax.media.jai.util.Range rangeJAIF;
-
-    private static javax.media.jai.util.Range rangeJAID;
-
-    private static javax.media.jai.util.Range rangeJAIBpoint;
-
-    private static javax.media.jai.util.Range rangeJAISpoint;
-
-    private static javax.media.jai.util.Range rangeJAIIpoint;
-
-    private static javax.media.jai.util.Range rangeJAIFpoint;
-
-    private static javax.media.jai.util.Range rangeJAIDpoint;
-
-    private static IntRange rangeCommonsB;
-
-    private static IntRange rangeCommonsS;
-
-    private static IntRange rangeCommonsI;
-
-    private static FloatRange rangeCommonsF;
-
-    private static DoubleRange rangeCommonsD;
-
-    private static IntRange rangeCommonsBpoint;
-
-    private static IntRange rangeCommonsSpoint;
-
-    private static IntRange rangeCommonsIpoint;
-
-    private static FloatRange rangeCommonsFpoint;
-
-    private static DoubleRange rangeCommonsDpoint;
-
     @BeforeClass
     public static void initialSetup() { 
         arrayB = new byte[] { 0, 1, 5, 50, 100 };
@@ -226,46 +162,6 @@ public class RangeTest {
             arrayFtest[j] = (float) (randomValue * (Float.MAX_VALUE - Float.MIN_VALUE) + Float.MIN_VALUE);
             arrayDtest[j] = (randomValue * (Double.MAX_VALUE - Double.MIN_VALUE) + Double.MIN_VALUE);
         }
-
-        // JAI tools Ranges
-        rangeJTB = org.jaitools.numeric.Range.create((byte) 1, true, (byte) 60, true);
-        rangeJTS = org.jaitools.numeric.Range.create((short) 1, true, (short) 60, true);
-        rangeJTI = org.jaitools.numeric.Range.create(1, true, 60, true);
-        rangeJTF = org.jaitools.numeric.Range.create(0.5f, true, 60.5f, true);
-        rangeJTD = org.jaitools.numeric.Range.create(1.5d, true, 60.5d, true);
-        // 1 point Ranges
-        rangeJTBpoint = org.jaitools.numeric.Range.create((byte) 5, true, (byte) 5, true);
-        rangeJTSpoint = org.jaitools.numeric.Range.create((short) 5, true, (short) 5, true);
-        rangeJTIpoint = org.jaitools.numeric.Range.create(5, true, 5, true);
-        rangeJTFpoint = org.jaitools.numeric.Range.create(5f, true, 5f, true);
-        rangeJTDpoint = org.jaitools.numeric.Range.create(5d, true, 5d, true);
-
-        // JAI Ranges
-        rangeJAIB = new javax.media.jai.util.Range(Byte.class, (byte) 1, true, (byte) 60, true);
-        rangeJAIS = new javax.media.jai.util.Range(Short.class, (short) 1, true, (short) 60, true);
-        rangeJAII = new javax.media.jai.util.Range(Integer.class, 1, true, 60, true);
-        rangeJAIF = new javax.media.jai.util.Range(Float.class, 0.5f, true, 60.5f, true);
-        rangeJAID = new javax.media.jai.util.Range(Double.class, 1.5d, true, 60.5d, true);
-        // 1 point Ranges
-        rangeJAIBpoint = new javax.media.jai.util.Range(Byte.class, (byte) 5, true, (byte) 5, true);
-        rangeJAISpoint = new javax.media.jai.util.Range(Short.class, (short) 5, true, (short) 5,
-                true);
-        rangeJAIIpoint = new javax.media.jai.util.Range(Integer.class, 5, true, 5, true);
-        rangeJAIFpoint = new javax.media.jai.util.Range(Float.class, 5f, true, 5f, true);
-        rangeJAIDpoint = new javax.media.jai.util.Range(Double.class, 5d, true, 5d, true);
-
-        // Apache Common Ranges
-        rangeCommonsB = new org.apache.commons.lang.math.IntRange((byte) 1, (byte) 60);
-        rangeCommonsS = new org.apache.commons.lang.math.IntRange((short) 1, (short) 60);
-        rangeCommonsI = new org.apache.commons.lang.math.IntRange(1, 60);
-        rangeCommonsF = new org.apache.commons.lang.math.FloatRange(0.5f, 60.5f);
-        rangeCommonsD = new org.apache.commons.lang.math.DoubleRange(1.5d, 60.5d);
-        // 1 point Ranges
-        rangeCommonsBpoint = new org.apache.commons.lang.math.IntRange(5);
-        rangeCommonsSpoint = new org.apache.commons.lang.math.IntRange(5);
-        rangeCommonsIpoint = new org.apache.commons.lang.math.IntRange(5);
-        rangeCommonsFpoint = new org.apache.commons.lang.math.FloatRange(5f);
-        rangeCommonsDpoint = new org.apache.commons.lang.math.DoubleRange(5d);
 
 //        // GeoTools Ranges
 //        rangeGeoToolsB = new org.geotools.util.NumberRange<Byte>(Byte.class, (byte) 1, (byte) 60);
@@ -409,142 +305,6 @@ public class RangeTest {
         }
     }
 
-    @Test
-    public void testJaiToolsRangeTimeByte1or2Points() {
-        if (!SINGLE_POINT) {
-            switch(TEST_SELECTOR){
-            case DataBuffer.TYPE_BYTE:
-                testJaiToolsRangeTime(rangeJTB, SINGLE_POINT,arrayBtest);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                testJaiToolsRangeTime(rangeJTS, SINGLE_POINT,arrayStest);
-                break;
-            case DataBuffer.TYPE_INT:
-                testJaiToolsRangeTime(rangeJTI, SINGLE_POINT,arrayItest);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                testJaiToolsRangeTime(rangeJTF, SINGLE_POINT,arrayFtest);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                testJaiToolsRangeTime(rangeJTD, SINGLE_POINT,arrayDtest);
-                break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
-            }
-        } else {
-            switch(TEST_SELECTOR){
-            case DataBuffer.TYPE_BYTE:
-                testJaiToolsRangeTime(rangeJTBpoint, SINGLE_POINT,arrayBtest);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                testJaiToolsRangeTime(rangeJTSpoint, SINGLE_POINT,arrayStest);
-                break;
-            case DataBuffer.TYPE_INT:
-                testJaiToolsRangeTime(rangeJTIpoint, SINGLE_POINT,arrayItest);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                testJaiToolsRangeTime(rangeJTFpoint, SINGLE_POINT,arrayFtest);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                testJaiToolsRangeTime(rangeJTDpoint, SINGLE_POINT,arrayDtest);
-                break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
-            }
-        }
-    }
-    
-    @Test
-    public void testJAIRangeTimeByte1or2Points() {
-        if (!SINGLE_POINT) {
-            switch(TEST_SELECTOR){
-            case DataBuffer.TYPE_BYTE:
-                testJAIRangeTime(rangeJAIB, SINGLE_POINT,arrayBtest);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                testJAIRangeTime(rangeJAIS, SINGLE_POINT,arrayStest);
-                break;
-            case DataBuffer.TYPE_INT:
-                testJAIRangeTime(rangeJAII, SINGLE_POINT,arrayItest);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                testJAIRangeTime(rangeJAIF, SINGLE_POINT,arrayFtest);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                testJAIRangeTime(rangeJAID, SINGLE_POINT,arrayDtest);
-                break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
-            }
-        } else {
-            switch(TEST_SELECTOR){
-            case DataBuffer.TYPE_BYTE:
-                testJAIRangeTime(rangeJAIBpoint, SINGLE_POINT,arrayBtest);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                testJAIRangeTime(rangeJAISpoint, SINGLE_POINT,arrayStest);
-                break;
-            case DataBuffer.TYPE_INT:
-                testJAIRangeTime(rangeJAIIpoint, SINGLE_POINT,arrayItest);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                testJAIRangeTime(rangeJAIFpoint, SINGLE_POINT,arrayFtest);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                testJAIRangeTime(rangeJAIDpoint, SINGLE_POINT,arrayDtest);
-                break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
-            }
-        }
-    }
-
-    @Test
-    public void testApacheCommonRangeTimeByte1or2Points() {
-
-        if (!SINGLE_POINT) {
-            switch(TEST_SELECTOR){
-            case DataBuffer.TYPE_BYTE:
-                testApacheCommonsRangeTime(rangeCommonsB, SINGLE_POINT,arrayBtest);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                testApacheCommonsRangeTime(rangeCommonsS, SINGLE_POINT,arrayStest);
-                break;
-            case DataBuffer.TYPE_INT:
-                testApacheCommonsRangeTime(rangeCommonsI, SINGLE_POINT,arrayItest);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                testApacheCommonsRangeTime(rangeCommonsF, SINGLE_POINT,arrayFtest);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                testApacheCommonsRangeTime(rangeCommonsD, SINGLE_POINT,arrayDtest);
-                break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
-            }
-        } else {
-            switch(TEST_SELECTOR){
-            case DataBuffer.TYPE_BYTE:
-                testApacheCommonsRangeTime(rangeCommonsBpoint, SINGLE_POINT,arrayBtest);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                testApacheCommonsRangeTime(rangeCommonsSpoint, SINGLE_POINT,arrayStest);
-                break;
-            case DataBuffer.TYPE_INT:
-                testApacheCommonsRangeTime(rangeCommonsIpoint, SINGLE_POINT,arrayItest);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                testApacheCommonsRangeTime(rangeCommonsFpoint, SINGLE_POINT,arrayFtest);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                testApacheCommonsRangeTime(rangeCommonsDpoint, SINGLE_POINT,arrayDtest);
-                break;
-                default:
-                    throw new IllegalArgumentException("Wrong data type");
-            }
-        }
-    }
-
 //    @Test
 //    public void testGeoToolsRangeTimeByte1or2Points() {
 //        if (!SINGLE_POINT) {
@@ -634,11 +394,7 @@ public class RangeTest {
 //                    throw new IllegalArgumentException("Wrong data type");
 //            }
 //        }
-//    }
-    
-    
-    
-    
+//    }   
     
     public void testRangeTimeByte(Range testRange, boolean isPoint) {
         int totalCycles = NOT_BENCHMARK_ITERATION + BENCHMARK_ITERATION;
@@ -668,7 +424,6 @@ public class RangeTest {
         }
         // Mean values
         double meanValue = mean / BENCHMARK_ITERATION;
-        System.out.println("Byte data");
         // Output print
         System.out.println("\nMean value for" + description + " Range : " + meanValue + " nsec.");
     }
@@ -805,110 +560,6 @@ public class RangeTest {
         System.out.println("\nMean value for" + description + " Range : " + meanValue + " nsec.");
     }
     
-    
-    
-
-    public <T extends Number & Comparable<T>>void testJaiToolsRangeTime(org.jaitools.numeric.Range<T> testRange,
-            boolean isPoint,T[] array) {
-        int totalCycles = NOT_BENCHMARK_ITERATION + BENCHMARK_ITERATION;
-        // Initialization of the statistics
-        long mean = 0;
-        for (int i = 0; i < totalCycles; i++) {
-            // Total calculation time
-            long start = System.nanoTime();
-
-            for (int j = 0; j < array.length; j++) {
-                testRange.contains(array[j]);
-            }
-            long end = System.nanoTime() - start;
-
-            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
-            if (i > NOT_BENCHMARK_ITERATION - 1) {
-                if (i == NOT_BENCHMARK_ITERATION) {
-                    mean = end;
-                } else {
-                    mean = mean + end;
-                }
-            }
-        }
-        String description = "";
-        if (isPoint) {
-            description += " a single point";
-        }
-        // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION;
-        // Output print
-        System.out.println("\nMean value for" + description + " JAITools Range : " + meanValue
-                + " nsec.");
-    }
-
-    public <T extends Number & Comparable<T>>void testJAIRangeTime(javax.media.jai.util.Range testRange, boolean isPoint,T[] array) {
-        int totalCycles = NOT_BENCHMARK_ITERATION + BENCHMARK_ITERATION;
-        // Initialization of the statistics
-        long mean = 0;
-        for (int i = 0; i < totalCycles; i++) {
-            // Total calculation time
-            long start = System.nanoTime();
-
-            for (int j = 0; j < array.length; j++) {
-                testRange.contains(array[j]);
-            }
-            long end = System.nanoTime() - start;
-
-            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
-            if (i > NOT_BENCHMARK_ITERATION - 1) {
-                if (i == NOT_BENCHMARK_ITERATION) {
-                    mean = end;
-                } else {
-                    mean = mean + end;
-                }
-            }
-        }
-        String description = "";
-        if (isPoint) {
-            description += " a single point";
-        }
-        // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION;
-        // Output print
-        System.out.println("\nMean value for" + description + " JAI Range : " + meanValue
-                + " nsec.");
-    }
-
-    public <T extends Number>void testApacheCommonsRangeTime(org.apache.commons.lang.math.Range testRange,
-            boolean isPoint, T[] array) {
-        int totalCycles = NOT_BENCHMARK_ITERATION + BENCHMARK_ITERATION;
-        // Initialization of the statistics
-        long mean = 0;
-        for (int i = 0; i < totalCycles; i++) {
-            // Total calculation time
-            long start = System.nanoTime();
-
-            for (int j = 0; j < array.length; j++) {
-                testRange.containsNumber(array[j]);
-            }
-            long end = System.nanoTime() - start;
-
-            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
-            if (i > NOT_BENCHMARK_ITERATION - 1) {
-                if (i == NOT_BENCHMARK_ITERATION) {
-                    mean = end;
-                } else {
-                    mean = mean + end;
-                }
-            }
-        }
-        String description = "";
-        if (isPoint) {
-            description += " a single point";
-        }
-        // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION;
-        // Output print
-        System.out.println("\nMean value for" + description + " Apache Common Range : " + meanValue
-                + " nsec.");
-    }
-
 //    public <T extends Number & Comparable<T>>void testGeoToolsRangeTime(org.geotools.util.Range<T> testRange, boolean isPoint, T[] array) {
 //        int totalCycles = NOT_BENCHMARK_ITERATION + BENCHMARK_ITERATION;
 //        // Initialization of the statistics

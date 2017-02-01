@@ -34,12 +34,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.jaitools</groupId>
-			<artifactId>jt-zonalstats</artifactId>
-			<version>${jt.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>it.geosolutions.jaiext.stats</groupId>
 			<artifactId>jt-stats</artifactId>
 			<version>${project.version}</version>

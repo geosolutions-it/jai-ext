@@ -234,7 +234,7 @@ class LookupPropertyGenerator extends PropertyGeneratorImpl {
  * <td>NO_PARAMETER_DEFAULT</td>
  * <tr>
  * <td>NoData</td>
- * <td>org.jaitools.numeric.Range</td>
+ * <td>it.geosolutions.jaiext.range.Range</td>
  * <td>NO_PARAMETER_DEFAULT</td>
  * <tr>
  * <td>useRoiAccessor</td>

@@ -12,7 +12,6 @@
     <interactive.tests>false</interactive.tests>
     <test.maxHeapSize>512m</test.maxHeapSize>
     <test.maxPermSize>512m</test.maxPermSize>
-    <jt.version>1.3.1</jt.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.8.1</junit.version>
     <apache.version>2.1</apache.version>
@@ -421,10 +420,10 @@
         <version>${junit.version}</version>
 		<scope>test</scope>
       </dependency>
-      <dependency>
-        <groupId>org.jaitools</groupId>
-        <artifactId>jt-utils</artifactId>
-        <version>${jt.version}</version>
+     <dependency>
+        <groupId>com.vividsolutions</groupId>
+        <artifactId>jts</artifactId>
+        <version>1.12</version>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>
@@ -454,11 +453,12 @@
  <dependency>
    <groupId>javax.media</groupId>
    <artifactId>jai_imageio</artifactId>
- </dependency>       
-<dependency>
-   <groupId>org.jaitools</groupId>
-   <artifactId>jt-utils</artifactId>
-</dependency>
+ </dependency>
+ <dependency>
+     <groupId>com.vividsolutions</groupId>
+     <artifactId>jts</artifactId>
+     <version>1.12</version>
+  </dependency>
   <dependency>
 	<groupId>junit</groupId>
 	<artifactId>junit</artifactId>
