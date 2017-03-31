@@ -20,7 +20,20 @@ package it.geosolutions.jaiext.scale;
 
 
 
+import static org.junit.Assert.*;
+
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
+import java.awt.image.RenderedImage;
+import java.awt.image.renderable.ParameterBlock;
+import java.lang.reflect.Array;
+
+import javax.media.jai.Interpolation;
+import javax.media.jai.JAI;
+
 import org.junit.Test;
+
+import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * This test-class extends the TestScale class and is used for testing the bicubic interpolation inside the Scale operation.
@@ -112,6 +125,26 @@ public class BicubicScaleTest extends TestScale{
         testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
                 ,roiPresent,InterpolationType.BICUBIC_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
         
+    }
+    
+    @Test
+    public void testInterpolationNoDataBleedByte() {
+        assertNoDataBleedByte(Interpolation.getInstance(Interpolation.INTERP_BICUBIC));
+    }
+    
+    @Test
+    public void testInterpolationNoDataBleedShort() {
+        assertNoDataBleedShort(Interpolation.getInstance(Interpolation.INTERP_BICUBIC));
+    }
+    
+    @Test
+    public void testInterpolationNoDataBleedFloat() {
+        assertNoDataBleedFloat(Interpolation.getInstance(Interpolation.INTERP_BICUBIC));
+    }
+    
+    @Test
+    public void testInterpolationNoDataBleedDouble() {
+        assertNoDataBleedDouble(Interpolation.getInstance(Interpolation.INTERP_BICUBIC));
     }
 
 }

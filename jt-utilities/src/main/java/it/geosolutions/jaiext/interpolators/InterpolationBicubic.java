@@ -73,7 +73,6 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
 
         super(1, 1, 4, 4, subsampleBits, subsampleBits, precisionBits, dataHelper(subsampleBits,
                 bicubic2Disabled), null);
-
         if (noDataRange != null) {
             this.noDataRange = noDataRange;
             this.isNotPointRange = !noDataRange.isPoint();

@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.scale;
 
+import javax.media.jai.Interpolation;
+
 import org.junit.Test;
 
 
@@ -106,4 +108,26 @@ public class BilinearScaleTest extends TestScale{
         testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
                 ,roiPresent,InterpolationType.BILINEAR_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
     }
+    
+    @Test
+    public void testInterpolationNoDataBleedByte() {
+        assertNoDataBleedByte(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
+    }
+    
+    @Test
+    public void testInterpolationNoDataBleedShort() {
+        assertNoDataBleedShort(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
+    }
+    
+    @Test
+    public void testInterpolationNoDataBleedFloat() {
+        assertNoDataBleedFloat(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
+    }
+    
+    @Test
+    public void testInterpolationNoDataBleedDouble() {
+        assertNoDataBleedDouble(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
+    }
+    
+    
 }
