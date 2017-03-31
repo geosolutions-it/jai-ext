@@ -99,7 +99,7 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
     public InterpolationBilinear(int subsampleBits, Range noDataRange, boolean useROIAccessor,
             double destinationNoData, int dataType) {
 
-        super(2, 2, 1, 1, 1, 1, subsampleBits, subsampleBits);
+        super(2, 2, 0, 1, 0, 1, subsampleBits, subsampleBits);
 
         this.subsampleBits = subsampleBits;
         round = 1 << (subsampleBits - 1);

@@ -42,6 +42,7 @@ import javax.media.jai.WarpOpImage;
 import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.Rational;
 
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.range.Range;
@@ -1020,9 +1021,18 @@ public abstract class ScaleOpImage extends GeometricOpImage {
             // Extend the Source image
             ParameterBlock pb = new ParameterBlock();
             pb.setSource(source, 0);
-            pb.set(lpad, 0);
+            int leftPadding = lpad;
+            int topPadding = tpad;
+            if (interp instanceof InterpolationBilinear || interp instanceof InterpolationBicubic) {
+                // add an extrapixel for left and top padding since the border extender will fill them
+                // with zero otherwise
+                leftPadding++;
+                topPadding++;
+
+            }
+            pb.set(leftPadding, 0);
             pb.set(rpad, 1);
-            pb.set(tpad, 2);
+            pb.set(topPadding, 2);
             pb.set(bpad, 3);
             pb.set(extender, 4);
             extendedIMG = JAI.create("border", pb);
