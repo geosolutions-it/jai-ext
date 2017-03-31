@@ -52,6 +52,9 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
     /** Bilinear interpolator */
     protected InterpolationBilinear interpB = null;
 
+    // Use weighted contribute only if the fraction is greater than the threshold.
+    private final static int FRACTION_THRESHOLD = 128;
+
     public ScaleBilinearOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor, Range nodata, double[] backgroundValues) {
@@ -101,11 +104,13 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         // If both roiBounds and roiIter are not null, they are used in calculation
         Range nod = nodata;
         double[] destNod = null;
-        if (backgroundValues != null && backgroundValues.length > 0){
-            destNod = backgroundValues;
+        double destinationNoData = nod != null? nod.getMin().doubleValue() : (backgroundValues != null && backgroundValues.length > 0)?
+                backgroundValues[0] : Double.NaN;
+        if (!Double.isNaN(destinationNoData)) {
+            destNod = new double[]{destinationNoData};
         }
         if (interp instanceof InterpolationBilinear) {
-        	isBilinearNew = true;
+            isBilinearNew = true;
             interpB = (InterpolationBilinear) interp;
             this.interp = interpB;
             interpB.setROIBounds(roiBounds);
@@ -175,12 +180,11 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             // Creation of a lookuptable containing the values to use for no data
             byteLookupTable = new byte[numBands][256];
             for (int i = 0; i < byteLookupTable[0].length; i++) {
-                byte value = (byte) i;
                 for (int b = 0; b < numBands; b++) {
-                    if (noData.contains(value)) {
+                    if (noData.contains(i)) {
                         byteLookupTable[b][i] = destinationNoDataByte[b];
                     } else {
-                        byteLookupTable[b][i] = value;
+                        byteLookupTable[b][i] = (byte) i;
                     }
                 }
             }
@@ -518,13 +522,12 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                     int w01 = 0;
                     int w10 = 0;
                     int w11 = 0;
-                    
+
                     int s00;
                     int s01;
                     int s10;
                     int s11;
-                    
-                    
+
                     // for all bands
                     for (int k = 0; k < dnumBands; k++) {
 
@@ -572,13 +575,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 } else {
                                     w11 = 1;
                                 }
-                                                               
-                                if ((w00+w01+w10+w11)==0) {
+
+                                if ((w00 + w01 + w10 + w11) != 4) {
+                                    // revisit this if we want some smoothing dealing with 
+                                    // Fraction thresholds.
                                     dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 } else {
                                     // compute value
                                     dstData[dstPixelOffset] = (byte) (computeValue(s00, s01, s10,
-                                            s11, w00,w01,w10,w11, xfrac[i], yfrac[j], k) & 0xff);
+                                            s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k) & 0xff);
                                 }
 
                                 // destination pixel offset update
@@ -3293,9 +3298,9 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 if (w0z) {
                     s0 = 0;
                 } else if (w00z) { // w01 = 1
-                    s0 = s01 * xfrac;
+                    s0 = xfrac > FRACTION_THRESHOLD  ? s01 * xfrac : 0;
                 } else if (w01z) {// w00 = 1
-                    s0 = s00 * xfracCompl;// s00;
+                    s0 = xfracCompl > FRACTION_THRESHOLD  ? s00 * xfracCompl : 0;// s00;
                 } else {// w00 = 1 & W01 = 1
                     s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
                 }
@@ -3305,18 +3310,18 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 if (w1z) {
                     s1 = 0;
                 } else if (w10z) { // w11 = 1
-                    s1 = s11 * xfrac;
+                    s1 = xfrac > FRACTION_THRESHOLD  ? s11 * xfrac : 0;
                 } else if (w11z) { // w10 = 1
-                    s1 = s10 * xfracCompl;// - (s10 * xfrac); //s10;
+                    s1 = xfracCompl > FRACTION_THRESHOLD  ? s10 * xfracCompl : 0;// - (s10 * xfrac); //s10;
                 } else {
                     s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
                 }
 
                 if (w0z) {
-                    s = (s1 * yfrac + round2) >> shift2;
+                    s = yfrac > FRACTION_THRESHOLD  ? ((s1 * yfrac + round2) >> shift2) : 0;
                 } else {
                     if (w1z) {
-                        s = (s0 * yfracCompl + round2) >> shift2;
+                        s = yfracCompl > FRACTION_THRESHOLD ? ((s0 * yfracCompl + round2) >> shift2) : 0;
                     } else {
                         s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
                     }
