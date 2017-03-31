@@ -39,6 +39,7 @@ import com.sun.media.jai.util.ImageUtil;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.NoDataContainer;
 import it.geosolutions.jaiext.range.Range;
 
 public class ScaleBicubicOpImage extends ScaleOpImage {
@@ -222,7 +223,10 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                 }
             }
         }
-
+        if (destinationNoDataDouble != null) {
+            setProperty(NoDataContainer.GC_NODATA, new NoDataContainer(destinationNoDataDouble));
+        }
+        
         // Definition of the possible cases that can be found
         // caseA = no ROI nor No Data
         // caseB = ROI present but No Data not present

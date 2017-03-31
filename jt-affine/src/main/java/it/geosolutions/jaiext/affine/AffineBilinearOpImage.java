@@ -19,6 +19,7 @@ package it.geosolutions.jaiext.affine;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.NoDataContainer;
 import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Point;
@@ -165,7 +166,9 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 }
             }
         }
-
+        if (destinationNoDataDouble != null) {
+            setProperty(NoDataContainer.GC_NODATA, new NoDataContainer(destinationNoDataDouble));
+        }
         // Definition of the possible cases that can be found
         // caseA = no ROI nor No Data
         // caseB = ROI present but No Data not present
