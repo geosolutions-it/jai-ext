@@ -169,6 +169,13 @@ public abstract class TestBase {
     /** Simple method for image creation */
     public static RenderedImage createTestImage(int dataType, int width, int height, Number noDataValue,
             boolean isBinary, int bands, Number validData) {
+        // parameter block initialization
+        int tileW = width / 8;
+        int tileH = height / 8;
+        int imageDim = width * height;
+
+        
+        
         // This values could be used for fill all the image
         byte valueB = validData != null ? validData.byteValue() : 64;
         short valueUS = validData != null ? validData.shortValue() : Short.MAX_VALUE / 4;
@@ -179,12 +186,6 @@ public abstract class TestBase {
 
         boolean fillImage = IMAGE_FILLER;
         
-        // parameter block initialization
-        int tileW = width / 8;
-        int tileH = height / 8;
-        int imageDim = width * height;
-
-        final SampleModel sm;
 
         Byte crossValueByte = null;
         Short crossValueUShort = null;
@@ -195,6 +196,7 @@ public abstract class TestBase {
 
         int numBands = bands;
 
+        final SampleModel sm;
         if (isBinary) {
             // Binary images Sample Model
             sm = new MultiPixelPackedSampleModel(dataType, width, height, 1);
@@ -207,9 +209,11 @@ public abstract class TestBase {
             }else{
                 sm = new ComponentSampleModel(dataType, width, height, 1, width, new int[] {0}); 
             }
-            
-                           
         }
+        
+        // Create the constant operation.
+        TiledImage used = new TiledImage(sm, tileW, tileH);
+
 
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
@@ -233,9 +237,6 @@ public abstract class TestBase {
         default:
             throw new IllegalArgumentException("Wrong data type");
         }
-
-        // Create the constant operation.
-        TiledImage used = new TiledImage(sm, tileW, tileH);
 
         int imgBinX=width/4;
         int imgBinY=height/4;

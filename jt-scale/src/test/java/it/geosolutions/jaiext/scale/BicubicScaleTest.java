@@ -146,5 +146,10 @@ public class BicubicScaleTest extends TestScale{
     public void testInterpolationNoDataBleedDouble() {
         assertNoDataBleedDouble(Interpolation.getInstance(Interpolation.INTERP_BICUBIC));
     }
+    
+    @Test
+    public void testInterpolateInHole() {
+        assertInterpolateInHole(Interpolation.getInstance(Interpolation.INTERP_BICUBIC));
+    }
 
 }

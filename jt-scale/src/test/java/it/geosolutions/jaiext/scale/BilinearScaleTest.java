@@ -17,9 +17,26 @@
 */
 package it.geosolutions.jaiext.scale;
 
-import javax.media.jai.Interpolation;
+import static org.junit.Assert.*;
 
+import java.awt.RenderingHints;
+import java.awt.image.ComponentSampleModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.MultiPixelPackedSampleModel;
+import java.awt.image.Raster;
+import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
+
+import javax.media.jai.BorderExtender;
+import javax.media.jai.Interpolation;
+import javax.media.jai.JAI;
+import javax.media.jai.PlanarImage;
+import javax.media.jai.TiledImage;
+
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
+
+import it.geosolutions.jaiext.range.RangeFactory;
 
 
 /**
@@ -129,5 +146,8 @@ public class BilinearScaleTest extends TestScale{
         assertNoDataBleedDouble(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
     }
     
-    
+    @Test
+    public void testInterpolateInHole() {
+        assertInterpolateInHole(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
+    }
 }
