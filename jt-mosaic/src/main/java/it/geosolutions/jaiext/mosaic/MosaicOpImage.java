@@ -875,7 +875,9 @@ public class MosaicOpImage extends OpImage {
         Raster[] alphaRasters = new Raster[numSources];
         Raster[] roiRasters = new Raster[numSources];
         Range[] noDataRanges = new Range[numSources];
+        ColorModel[] alphaChannelColorModels = new ColorModel[numSources];
         // The previous array is filled with the source raster data
+        int intersectingSourceCount = 0;
         for (int i = 0; i < numSources; i++) {
             PlanarImage source = getSourceImage(i);
             Rectangle srcRect = mapDestRect(destRectangle, i);
@@ -890,32 +892,37 @@ public class MosaicOpImage extends OpImage {
                 }
             }
             // Raster bean initialization
-            sourceRasters[i] = data;
-            sourceTags[i] = imageBeans[i].getRasterFormatTag();
-            sourceColorModels[i] = imageBeans[i].getColorModel();
-            noDataRanges[i] = imageBeans[i].getSourceNoData();
             // If the data are present then we can check if Alpha and ROI are present
             if (data != null) {
+                sourceRasters[intersectingSourceCount] = data;
+                sourceTags[intersectingSourceCount] = imageBeans[i].getRasterFormatTag();
+                sourceColorModels[intersectingSourceCount] = imageBeans[i].getColorModel();
+                noDataRanges[intersectingSourceCount] = imageBeans[i].getSourceNoData();
+
                 // Get the Alpha data from the padded alpha image if present
                 PlanarImage alpha = imageBeans[i].getAlphaChannel();
                 if (alphaPresent && alpha != null) {
-                    alphaRasters[i] = alpha.getData(destRectangle);
+                    alphaRasters[intersectingSourceCount] = alpha.getData(destRectangle);
+                    alphaChannelColorModels[intersectingSourceCount] = imageBeans[i].getAlphaChannel().getColorModel();
                 }
 
                 // Get the ROI data from the padded ROI image if present
                 RenderedImage roi = imageBeans[i].getRoiImage();
                 if (roiPresent && roi != null) {
-                    roiRasters[i] = roi.getData(destRectangle);
+                    roiRasters[intersectingSourceCount] = roi.getData(destRectangle);
                 }
+                
+                intersectingSourceCount++;
             }
 
         }
+        
         // For the given source destination rasters, the mosaic is calculated
         computeRect(sourceRasters, sourceTags, sourceColorModels, destRaster, destRectangle,
-                alphaRasters, roiRasters, noDataRanges);
+                alphaRasters, roiRasters, noDataRanges, alphaChannelColorModels, intersectingSourceCount);
 
         // Tile recycling if the Recycle is present
-        for (int i = 0; i < numSources; i++) {
+        for (int i = 0; i < intersectingSourceCount; i++) {
             Raster sourceData = sourceRasters[i];
             if (sourceData != null) {
                 PlanarImage source = getSourceImage(i);
@@ -932,18 +939,10 @@ public class MosaicOpImage extends OpImage {
 
     private void computeRect(Raster[] sourceRasters, RasterFormatTag[] rasterFormatTags,
             ColorModel[] sourceColorModels, WritableRaster destRaster, Rectangle destRectangle,
-            Raster[] alphaRasters, Raster[] roiRasters, Range[] noDataRanges) {
-
-        int sourcesNumber = sourceRasters.length;
+            Raster[] alphaRasters, Raster[] roiRasters, Range[] noDataRanges, ColorModel[] alphaChannelColorModels, int sourcesNumber) {
 
         // if all null, just return a constant image
-        int nullCount = 0;
-        for (Raster raster : sourceRasters) {
-            if (raster == null) {
-                nullCount++;
-            }
-        }
-        if (nullCount == sourcesNumber) {
+        if (sourcesNumber == 0) {
             ImageUtil.fillBackground(destRaster, destRectangle, destinationNoDataDouble);
             return;
         }
@@ -967,7 +966,7 @@ public class MosaicOpImage extends OpImage {
                 RasterFormatTag alphaFormatTag = new RasterFormatTag(alphaSampleModel,
                         alphaFormatTagID);
                 helpAccessor.setAlphaRasterAccessor(new RasterAccessor(alphaRaster, destRectangle,
-                        alphaFormatTag, imageBeans[i].getAlphaChannel().getColorModel()));
+                        alphaFormatTag, alphaChannelColorModels[i]));
             }
 
             helpAccessor.setRoiRaster(roiRasters[i]);
@@ -1097,7 +1096,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getRoi() != null) {
+                } else if (roiPresent && srcBean[i].getRoiRaster() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
@@ -1430,7 +1429,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getRoi() != null) {
+                } else if (roiPresent && srcBean[i].getRoiRaster() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
@@ -1769,7 +1768,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getRoi() != null) {
+                } else if (roiPresent && srcBean[i].getRoiRaster() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
@@ -2104,7 +2103,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getRoi() != null) {
+                } else if (roiPresent && srcBean[i].getRoiRaster() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
@@ -2439,7 +2438,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getRoi() != null) {
+                } else if (roiPresent && srcBean[i].getRoiRaster() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
@@ -2781,7 +2780,7 @@ public class MosaicOpImage extends OpImage {
                 if (alphaRA != null) {
                     // If alpha channel is present alpha weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ALPHA;
-                } else if (roiPresent && imageBeans[i].getRoi() != null) {
+                } else if (roiPresent && srcBean[i].getRoiRaster() != null) {
                     // Else if ROI is present, then roi weight type is used
                     weightTypesUsed[i] = WeightType.WEIGHT_TYPE_ROI;
                 }
