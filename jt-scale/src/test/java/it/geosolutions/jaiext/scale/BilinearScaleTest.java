@@ -17,12 +17,11 @@
 */
 package it.geosolutions.jaiext.scale;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.awt.RenderingHints;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
-import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
@@ -33,11 +32,9 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.TiledImage;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 import it.geosolutions.jaiext.range.RangeFactory;
-
 
 /**
  * This test-class extends the TestScale class and is used for testing the bilinear interpolation inside the Scale operation.
@@ -125,7 +122,46 @@ public class BilinearScaleTest extends TestScale{
         testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
                 ,roiPresent,InterpolationType.BILINEAR_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
     }
-    
+
+    @Test
+    public void testInterpolationNoDataEdges() {
+        // build a 2x2 image with a noData in the bottom right pixel
+        int width = 2;
+        int height = 2;
+        SampleModel sm = new ComponentSampleModel(DataBuffer.TYPE_BYTE, width, height, 1, 2, new int[] {0});
+        TiledImage source = new TiledImage(0, 0, width, height, 0, 0, sm, PlanarImage.createColorModel(sm));
+        int noDataValue = 1;
+
+        // 3 gray pixels and a NoData pixel in the bottom right
+        source.setSample(0, 0, 0, 255);
+        source.setSample(0, 1, 0, 64);
+        source.setSample(1, 0, 0, 32);
+        source.setSample(1, 1, 0, noDataValue);
+        RenderingHints hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,BorderExtender.createInstance(BorderExtender.BORDER_COPY));
+        RenderedImage scaled = ScaleDescriptor.create(source, 32f, 32f,
+                0f, 0f, Interpolation.getInstance(Interpolation.INTERP_BILINEAR), null, null, RangeFactory.create(noDataValue, noDataValue), null, hints);
+
+        // The scaled image will be a 64*64 pixels
+        // all pixels in the bottom right quarter of the image will be nodata too
+        Raster raster = scaled.getData();
+        int minX = raster.getMinX();
+        int minY = raster.getMinY();
+        int maxX = minX + raster.getWidth();
+        int maxY = minY + raster.getHeight();
+        int halfX = (minX + maxX) / 2;
+        int halfY = (minY + maxY) / 2;
+        for (int i = minY; i < maxY; i++) {
+            for (int j = minX; j < maxX; j++) {
+                int value = raster.getSample(j, i, 0);
+                if (i >= halfY && j >= halfX) {
+                    assertTrue("Expected noData value but found different value", value == noDataValue);
+                } else {
+                    assertTrue("Expected valid value but found nodata", value != noDataValue);
+                }
+            }
+        }
+    }
+
     @Test
     public void testInterpolationNoDataBleedByte() {
         assertNoDataBleedByte(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
@@ -150,4 +186,5 @@ public class BilinearScaleTest extends TestScale{
     public void testInterpolateInHole() {
         assertInterpolateInHole(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
     }
+
 }

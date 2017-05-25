@@ -17,10 +17,6 @@
 */
 package it.geosolutions.jaiext.affine;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.iterators.RandomIterFactory;
-import it.geosolutions.jaiext.range.Range;
-
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
@@ -43,6 +39,11 @@ import javax.media.jai.RasterFormatTag;
 import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.ImageUtil;
+
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.NoDataContainer;
+import it.geosolutions.jaiext.range.Range;
 
 public class AffineBicubicOpImage extends AffineOpImage {
 
@@ -228,6 +229,10 @@ public class AffineBicubicOpImage extends AffineOpImage {
                     }
                 }
             }
+        }
+
+        if (destinationNoDataDouble != null) {
+            setProperty(NoDataContainer.GC_NODATA, new NoDataContainer(destinationNoDataDouble));
         }
 
         // Definition of the possible cases that can be found

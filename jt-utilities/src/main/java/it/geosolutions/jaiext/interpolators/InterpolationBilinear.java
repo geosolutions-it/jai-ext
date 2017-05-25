@@ -18,7 +18,6 @@
 package it.geosolutions.jaiext.interpolators;
 
 import it.geosolutions.jaiext.range.Range;
-import jj2000.j2k.roi.ROIDeScaler;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;

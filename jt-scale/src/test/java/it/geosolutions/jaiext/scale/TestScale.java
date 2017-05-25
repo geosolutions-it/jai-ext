@@ -38,8 +38,6 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
 
-import org.junit.Test;
-
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
@@ -442,7 +440,6 @@ public class TestScale extends TestBase {
                 
             }
         }
-        
         RenderingHints hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,BorderExtender.createInstance(BorderExtender.BORDER_COPY));
         RenderedImage scaled= ScaleDescriptor.create(source, 2f, 2f,
                 0f, 0f, interpolation, null, null, RangeFactory.create(0, 0), null, hints);
@@ -455,6 +452,4 @@ public class TestScale extends TestBase {
             }
         }
     }
-    
-    
 }

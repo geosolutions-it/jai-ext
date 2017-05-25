@@ -299,7 +299,6 @@ public class TestAffine extends TestBase {
                 int ySecondTile = destinationIMG.getMinTileY() + destinationIMG.getNumYTiles() - 1;
 
                 Raster simpleTile = destinationIMG.getTile(xFirstTile, ySecondTile);
-
                 testEmptyImage(dataType, simpleTile, isBinary);
 
             }
@@ -367,7 +366,7 @@ public class TestAffine extends TestBase {
                 value = testTile.getSample(testTile.getMinX(), testTile.getMinY() + 2, 0);
                 assertFalse(value == (int) destinationNoData);
             } else {
-                value = testTile.getSample(testTile.getMinX(), testTile.getMinY(), 0);
+                value = testTile.getSample(testTile.getMinX()+1, testTile.getMinY(), 0);
                 assertFalse(value == (int) destinationNoData);
             }
             break;

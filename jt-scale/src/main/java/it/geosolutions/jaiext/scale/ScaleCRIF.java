@@ -160,7 +160,7 @@ public class ScaleCRIF extends CRIFImpl {
         // Transformation of the interpolators JAI-->JAI-EXT
 		int dataType = source.getSampleModel().getDataType();
 		double destinationNoData = (backgroundValues != null && backgroundValues.length > 0)?
-				backgroundValues[0] : 0;
+				backgroundValues[0] : nodata != null? nodata.getMin().doubleValue() : 0;
 		if (interp instanceof javax.media.jai.InterpolationNearest) {
 			interp = new InterpolationNearest(nodata, useRoiAccessor, destinationNoData,
 					dataType);
