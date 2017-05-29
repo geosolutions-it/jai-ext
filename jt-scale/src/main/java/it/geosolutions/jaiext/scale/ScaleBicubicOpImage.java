@@ -715,7 +715,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     s = (int) ((sum + round) >> precisionBits);
                                     sum = 0;
                                     // Clamp and overshooting fix
-                                    s = clampAndFixOvershootingByte(s, k);
+                                    s = InterpolationBicubic.clampAndFixOvershootingByte(s, destinationNoDataByte[k]);
                                     dstData[dstPixelOffset] = (byte) (s & 0xff);
                                 }
                                 // destination pixel offset update
@@ -847,7 +847,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             s = (int) ((sum + round) >> precisionBits);
 
                                             // Clamp and overshooting fix
-                                            s = clampAndFixOvershootingByte(s, k);
+                                            s = InterpolationBicubic.clampAndFixOvershootingByte(s, destinationNoDataByte[k]);
                                             dstData[dstPixelOffset] = (byte) (s & 0xff);
                                         }
 
@@ -966,7 +966,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             s = (int) ((sum + round) >> precisionBits);
 
                                             // Clamp and overshooting fix
-                                            s = clampAndFixOvershootingByte(s, k);
+                                            s = InterpolationBicubic.clampAndFixOvershootingByte(s, destinationNoDataByte[k]);
                                             dstData[dstPixelOffset] = (byte) (s & 0xff);
                                         }
 
@@ -1159,7 +1159,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         s = (int) ((sum + round) >> precisionBits);
 
                                         // Clamp and overshooting fix
-                                        s = clampAndFixOvershootingUShort(s, k);
+                                        s = InterpolationBicubic.clampAndFixOvershootingUShort(s, destinationNoDataUShort[k]);
                                         dstData[dstPixelOffset] = (short) (s & 0xffff);
                                     }
                                 }
@@ -1239,7 +1239,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                         s = (int) ((sum + round) >> precisionBits);
 
                                         // Clamp and overshooting fix
-                                        s = clampAndFixOvershootingUShort(s, k);
+                                        s = InterpolationBicubic.clampAndFixOvershootingUShort(s, destinationNoDataUShort[k]);
                                         dstData[dstPixelOffset] = (short) (s & 0xffff);
                                     }
                                 } else {
@@ -1346,7 +1346,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     sum = 0;
 
                                     // Clamp and overshooting fix
-                                    s = clampAndFixOvershootingUShort(s, k);
+                                    s = InterpolationBicubic.clampAndFixOvershootingUShort(s, destinationNoDataUShort[k]);
                                     dstData[dstPixelOffset] = (short) (s & 0xffff);
                                 }
                                 // destination pixel offset update
@@ -1465,7 +1465,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             s = (int) ((sum + round) >> precisionBits);
 
                                             // Clamp and overshooting fix
-                                            s = clampAndFixOvershootingUShort(s, k);
+                                            s = InterpolationBicubic.clampAndFixOvershootingUShort(s, destinationNoDataUShort[k]);
                                             dstData[dstPixelOffset] = (short) (s & 0xffff);
                                         }
 
@@ -1580,7 +1580,7 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                             s = (int) ((sum + round) >> precisionBits);
 
                                             // Clamp and overshooting fix
-                                            s = clampAndFixOvershootingUShort(s, k);
+                                            s = InterpolationBicubic.clampAndFixOvershootingUShort(s, destinationNoDataUShort[k]);
                                             dstData[dstPixelOffset] = (short) (s & 0xffff);
                                         }
 
@@ -4279,39 +4279,4 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
         return emptyArray;
     }
-
-    private int clampAndFixOvershootingByte(int s, int k) {
-        // Clamp
-        if (s > 255) {
-            s = 255;
-        } else if (s < 0) {
-            s = 0;
-        }
-
-        // Handle corner cases for overshooting 
-        if (destinationNoDataByte[k] == 0 && s == 0) {
-            s = 1;
-        } else if (destinationNoDataByte[k] == 255 && s == 255) {
-            s = 254;
-        }
-        return s;
-    }
-
-    private int clampAndFixOvershootingUShort(int s, int k) {
-        // Clamp
-        if (s > 65535) {
-            s = 65535;
-        } else if (s < 0) {
-            s = 0;
-        }
-
-        // Handle corner cases for overshooting 
-        if (destinationNoDataUShort[k] == 0 && s == 0) {
-            s = 1;
-        } else if (destinationNoDataUShort[k] == 65535 && s == 65535) {
-            s = 65534;
-        }
-        return s;
-    }
-
 }

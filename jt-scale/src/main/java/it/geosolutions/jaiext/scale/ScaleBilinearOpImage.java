@@ -23,7 +23,6 @@ import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Arrays;
 import java.util.Map;
@@ -57,8 +56,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
     private final static int FRACTION_THRESHOLD_I = 128;
     private final static int FULL_WEIGHT_SHIFT = 8; // a*256 = a<<8
 
-    private final static double FRACTION_THRESHOLD_D = 0.5d;
-
     public ScaleBilinearOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
             float transX, float transY, boolean useRoiAccessor, Range nodata, double[] backgroundValues) {
@@ -79,9 +76,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             colorModel = srcColorModel;
         }
 
-        SampleModel sm = source.getSampleModel();
-        // Source image data Type
-        int srcDataType = sm.getDataType();
         // NumBands
         int numBands = getSampleModel().getNumBands();
 
@@ -2100,18 +2094,18 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final float s11 = srcData[posx + srcPixelStride + posy
                                         + srcScanlineStride];
 
-                                int w00 = noData.contains(s00) ? 0 : 1;
-                                int w01 = noData.contains(s01) ? 0 : 1;
-                                int w10 = noData.contains(s10) ? 0 : 1;
-                                int w11 = noData.contains(s11) ? 0 : 1;
+                                boolean w00z = noData.contains(s00);
+                                boolean w01z = noData.contains(s01);
+                                boolean w10z = noData.contains(s10);
+                                boolean w11z = noData.contains(s11);
 
-                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (w00z && w01z && w10z && w11z) {
                                     dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else {
                                     // compute value
-                                    dstData[dstPixelOffset] = (float) computeValueDouble(s00, s01,
-                                            s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j],
-                                            dataType, k);
+                                    dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(s00, s01,
+                                            s10, s11, w00z, w01z, w10z, w11z, xfrac[i], yfrac[j],
+                                            dataType, destinationNoDataFloat[k]).floatValue();
                                 }
 
                                 // destination pixel offset update
@@ -2168,15 +2162,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else {
 
-                                        w00 = noData.contains(s00) ? 0 : 1;
-                                        w01 = noData.contains(s01) ? 0 : 1;
-                                        w10 = noData.contains(s10) ? 0 : 1;
-                                        w11 = noData.contains(s11) ? 0 : 1;
+                                        boolean w00z = noData.contains(s00);
+                                        boolean w01z = noData.contains(s01);
+                                        boolean w10z = noData.contains(s10);
+                                        boolean w11z = noData.contains(s11);
 
                                         // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = (float) computeValueDouble(s00,
-                                                s01, s10, s11, w00, w01, w10, w11, xfrac[i],
-                                                yfrac[j], dataType, k);
+                                        dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(s00,
+                                                s01, s10, s11, w00z, w01z, w10z, w11z, xfrac[i],
+                                                yfrac[j], dataType, destinationNoDataFloat[k]).floatValue();
                                     }
                                     // destination pixel offset update
                                     dstPixelOffset += dstPixelStride;
@@ -2229,15 +2223,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final float s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            w00 = noData.contains(s00) ? 0 : 1;
-                                            w01 = noData.contains(s01) ? 0 : 1;
-                                            w10 = noData.contains(s10) ? 0 : 1;
-                                            w11 = noData.contains(s11) ? 0 : 1;
+                                            boolean w00z = noData.contains(s00);
+                                            boolean w01z = noData.contains(s01);
+                                            boolean w10z = noData.contains(s10);
+                                            boolean w11z = noData.contains(s11);
 
                                             // compute value
-                                            dstData[dstPixelOffset] = (float) computeValueDouble(
-                                                    s00, s01, s10, s11, w00, w01, w10, w11,
-                                                    xfrac[i], yfrac[j], dataType, k);
+                                            dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(
+                                                    s00, s01, s10, s11, w00z, w01z, w10z, w11z,
+                                                    xfrac[i], yfrac[j], dataType, destinationNoDataFloat[k]).floatValue();
                                         }
                                     } else {
                                         // The destination no data value is saved in the destination array
@@ -2486,17 +2480,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final double s11 = srcData[posx + srcPixelStride + posy
                                         + srcScanlineStride];
 
-                                int w00 = noData.contains(s00) ? 0 : 1;
-                                int w01 = noData.contains(s01) ? 0 : 1;
-                                int w10 = noData.contains(s10) ? 0 : 1;
-                                int w11 = noData.contains(s11) ? 0 : 1;
+                                boolean w00z = noData.contains(s00);
+                                boolean w01z = noData.contains(s01);
+                                boolean w10z = noData.contains(s10);
+                                boolean w11z = noData.contains(s11);
 
-                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (w00z && w01z && w10z && w11z) {
                                     dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else {
                                     // compute value
-                                    dstData[dstPixelOffset] = computeValueDouble(s00, s01, s10,
-                                            s11, w00, w01, w10, w11, xfrac[i], yfrac[j], dataType, k);
+                                    dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(s00, s01, s10,
+                                            s11, w00z, w01z, w10z, w11z, xfrac[i], yfrac[j], dataType, destinationNoDataDouble[k]).doubleValue();
                                 }
 
                                 // destination pixel offset update
@@ -2553,14 +2547,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                         dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else {
 
-                                        w00 = noData.contains(s00) ? 0 : 1;
-                                        w01 = noData.contains(s01) ? 0 : 1;
-                                        w10 = noData.contains(s10) ? 0 : 1;
-                                        w11 = noData.contains(s11) ? 0 : 1;
+                                        boolean w00z = noData.contains(s00);
+                                        boolean w01z = noData.contains(s01);
+                                        boolean w10z = noData.contains(s10);
+                                        boolean w11z = noData.contains(s11);
+
                                         // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = computeValueDouble(s00, s01, s10,
-                                                s11, w00, w01, w10, w11, xfrac[i], yfrac[j],
-                                                dataType, k);
+                                        dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(s00, s01, s10,
+                                                s11, w00z, w01z, w10z, w11z, xfrac[i], yfrac[j],
+                                                dataType, destinationNoDataDouble[k]).doubleValue();
                                     }
                                     // destination pixel offset update
                                     dstPixelOffset += dstPixelStride;
@@ -2611,15 +2606,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                             final double s11 = srcData[posx + srcPixelStride + posy
                                                     + srcScanlineStride];
 
-                                            w00 = noData.contains(s00) ? 0 : 1;
-                                            w01 = noData.contains(s01) ? 0 : 1;
-                                            w10 = noData.contains(s10) ? 0 : 1;
-                                            w11 = noData.contains(s11) ? 0 : 1;
+                                            boolean w00z = noData.contains(s00);
+                                            boolean w01z = noData.contains(s01);
+                                            boolean w10z = noData.contains(s10);
+                                            boolean w11z = noData.contains(s11);
 
                                             // compute value
-                                            dstData[dstPixelOffset] = computeValueDouble(s00, s01,
-                                                    s10, s11, w00, w01, w10, w11, xfrac[i],
-                                                    yfrac[j], dataType, k);
+                                            dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(s00, s01,
+                                                    s10, s11, w00z, w01z, w10z, w11z, xfrac[i],
+                                                    yfrac[j], dataType, destinationNoDataDouble[k]).doubleValue();
 
                                         } else {
                                             // The destination no data value is saved in the destination array
@@ -2846,106 +2841,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             }
         }
 
-        return s;
-    }
-
-    /* Private method for calculate bilinear interpolation for float/double dataType */
-    private double computeValueDouble(double s00, double s01, double s10, double s11, double w00,
-            double w01, double w10, double w11, double xfrac, double yfrac, int dataType, int k) {
-
-        double s0 = 0;
-        double s1 = 0;
-        double s = 0;
-
-        // Boolean indicating if a pixel weight is 0
-        boolean w00z = w00 == 0;
-        boolean w01z = w01 == 0;
-        boolean w10z = w10 == 0;
-        boolean w11z = w11 == 0;
-
-        if (w00z && w01z && w10z && w11z) {
-            switch (dataType) {
-            case DataBuffer.TYPE_FLOAT:
-                return destinationNoDataFloat[k];
-            case DataBuffer.TYPE_DOUBLE:
-                return destinationNoDataDouble[k];
-            }
-        }
-
-        // Boolean indicating if 2 same line-pixel weights are 0
-        final boolean w0z = w00z && w01z;
-        final boolean w1z = w10z && w11z;
-
-        // Complementary values of the fractional part
-        final double xfracCompl = 1 - xfrac;
-        final double yfracCompl = 1 - yfrac;
-
-        if (w00z || w01z || w10z || w11z) {
-
-            // S00 .......... S01
-            //  .              .
-            //  .              .
-            //  .              .
-            //  .              .
-            //  .         *    .   <- yfrac
-            //  .              .
-            //  .              .
-            // S10 .......... S11
-            //
-            //            ^
-            //            |
-            //          xfrac
-
-            final boolean xt1 = xfrac >= FRACTION_THRESHOLD_D;
-            final boolean xt0 = xfracCompl >= FRACTION_THRESHOLD_D;
-            final boolean yt1 = yfrac >= FRACTION_THRESHOLD_D;
-            final boolean yt0 = yfracCompl >= FRACTION_THRESHOLD_D;
-
-            // First horizontal interpolation
-            if (w0z) {
-                s0 = 0;
-            } else if (w00z) { // w01 = 1
-                s0 = xt1 ? s01 : 0;
-            } else if (w01z) {// w00 = 1
-                s0 = xt0 ? s00 : 0;// s00;
-            } else {// w00 = 1 & W01 = 1
-                s0 = (s01 - s00) * xfrac + s00;
-            }
-
-            // Second horizontal interpolation
-            if (w1z) {
-                s1 = 0;
-            } else if (w10z) { // w11 = 1
-                s1 = xt1 ? s11 : 0;
-            } else if (w11z) { // w10 = 1
-                s1 = xt0 ? s10 : 0;// - (s10 * xfrac); //s10;
-            } else {
-                s1 = (s11 - s10) * xfrac + s10;
-            }
-
-            // Combining threshold weights with the zero flags
-            w00z &= !xt1;
-            w01z &= !xt0;
-            w10z &= !xt1;
-            w11z &= !xt0;
-
-            // Vertical interpolation
-            if (w0z || w00z || w01z) {
-                s = yt1 && !w1z && !w10z && !w11z ? s1 : dataType == DataBuffer.TYPE_FLOAT ? destinationNoDataFloat[k] : destinationNoDataDouble[k];
-            } else if (w1z || w10z || w11z) {
-                s = yt0 && !w0z && !w00z && !w01z ? s0 : dataType == DataBuffer.TYPE_FLOAT ? destinationNoDataFloat[k] : destinationNoDataDouble[k];
-            } else {
-                s = (s1 - s0) * yfrac + s0;
-            }
-        } else {
-
-            // Perform the bilinear interpolation because all the weight are not 0.
-            s0 = (s01 - s00) * xfrac + s00;
-            s1 = (s11 - s10) * xfrac + s10;
-            s = (s1 - s0) * yfrac + s0;
-        }
-
-        // Simple conversion for float dataType.
         return s;
     }
 

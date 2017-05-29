@@ -1545,4 +1545,38 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
 
     }
 
+    public static int clampAndFixOvershootingByte(int s, byte destinationNoData) {
+        // Clamp
+        if (s > 255) {
+            s = 255;
+        } else if (s < 0) {
+            s = 0;
+        }
+
+        // Handle corner cases for overshooting 
+        if (destinationNoData == 0 && s == 0) {
+            s = 1;
+        } else if (destinationNoData == 255 && s == 255) {
+            s = 254;
+        }
+        return s;
+    }
+
+    public static int clampAndFixOvershootingUShort(int s, short destinationNoData) {
+        // Clamp
+        if (s > 65535) {
+            s = 65535;
+        } else if (s < 0) {
+            s = 0;
+        }
+
+        // Handle corner cases for overshooting 
+        if (destinationNoData == 0 && s == 0) {
+            s = 1;
+        } else if (destinationNoData == 65535 && s == 65535) {
+            s = 65534;
+        }
+        return s;
+    }
+    
 }
