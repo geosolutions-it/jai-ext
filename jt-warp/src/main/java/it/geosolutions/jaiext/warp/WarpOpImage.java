@@ -90,7 +90,7 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
 
     /** Boolean indicating the presence of a border extender */
     protected boolean extended;
-    
+
     /** Hints used for the calculations*/
     private RenderingHints hints;
 

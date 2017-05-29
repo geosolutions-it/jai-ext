@@ -719,18 +719,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
                             int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                            int w00 = byteLookupTable[k2][s00&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
-                            int w01 = byteLookupTable[k2][s01&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
-                            int w10 = byteLookupTable[k2][s10&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
-                            int w11 = byteLookupTable[k2][s11&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
+                            boolean w00z = byteLookupTable[k2][s00&0xFF] == destinationNoDataByte[k2];
+                            boolean w01z = byteLookupTable[k2][s01&0xFF] == destinationNoDataByte[k2];
+                            boolean w10z = byteLookupTable[k2][s10&0xFF] == destinationNoDataByte[k2];
+                            boolean w11z = byteLookupTable[k2][s11&0xFF] == destinationNoDataByte[k2];
 
-                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                            if (w00z && w01z && w10z && w11z) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                 }
                             } else {
-                                double result = computeValue(s00 & 0xff, s01 & 0xff, s10 & 0xff,
-                                        s11 & 0xff, w00, w01, w10, w11, fracx, fracy);
+                                double result =  InterpolationBilinear.computeValueDouble(s00 & 0xff, s01 & 0xff,
+                                        s10 & 0xff, s11 & 0xff, w00z, w01z, w10z, w11z, fracx, fracy, 
+                                        DataBuffer.TYPE_DOUBLE, destinationNoDataByte[k2]).doubleValue();
 
                                 int intResult = 0;
 
@@ -864,19 +865,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 final int s11 = srcDataArrays[k2][posxhigh + posyhigh
                                         + bandOffsets[k2]];
 
-                                w00 = byteLookupTable[k2][s00&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
-                                w01 = byteLookupTable[k2][s01&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
-                                w10 = byteLookupTable[k2][s10&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
-                                w11 = byteLookupTable[k2][s11&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
+                                boolean w00z = byteLookupTable[k2][s00&0xFF] == destinationNoDataByte[k2];
+                                boolean w01z = byteLookupTable[k2][s01&0xFF] == destinationNoDataByte[k2];
+                                boolean w10z = byteLookupTable[k2][s10&0xFF] == destinationNoDataByte[k2];
+                                boolean w11z = byteLookupTable[k2][s11&0xFF] == destinationNoDataByte[k2];
 
-                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (w00z && w01z && w10z && w11z) {
                                     if (setDestinationNoData) {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                     }
                                 } else {
-                                    double result = computeValue(s00 & 0xff, s01 & 0xff,
-                                            s10 & 0xff, s11 & 0xff, w00, w01, w10, w11, fracx,
-                                            fracy);
+                                    double result =  InterpolationBilinear.computeValueDouble(s00 & 0xff, s01 & 0xff,
+                                            s10 & 0xff, s11 & 0xff, w00z, w01z, w10z, w11z, fracx, fracy, 
+                                            DataBuffer.TYPE_DOUBLE, destinationNoDataByte[k2]).doubleValue();
 
                                     int intResult = 0;
 
@@ -1006,19 +1007,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     final int s11 = srcDataArrays[k2][posxhigh + posyhigh
                                             + bandOffsets[k2]];
 
-                                    w00 = byteLookupTable[k2][s00&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
-                                    w01 = byteLookupTable[k2][s01&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
-                                    w10 = byteLookupTable[k2][s10&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
-                                    w11 = byteLookupTable[k2][s11&0xFF] == destinationNoDataByte[k2] ? 0 : 1;
+                                    boolean w00z = byteLookupTable[k2][s00&0xFF] == destinationNoDataByte[k2];
+                                    boolean w01z = byteLookupTable[k2][s01&0xFF] == destinationNoDataByte[k2];
+                                    boolean w10z = byteLookupTable[k2][s10&0xFF] == destinationNoDataByte[k2];
+                                    boolean w11z = byteLookupTable[k2][s11&0xFF] == destinationNoDataByte[k2];
 
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                    if (w00z && w01z && w10z && w11z) {
                                         if (setDestinationNoData) {
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataByte[k2];
                                         }
                                     } else {
-                                        double result = computeValue(s00 & 0xff, s01 & 0xff,
-                                                s10 & 0xff, s11 & 0xff, w00, w01, w10, w11, fracx,
-                                                fracy);
+                                        double result =  InterpolationBilinear.computeValueDouble(s00 & 0xff, s01 & 0xff,
+                                                s10 & 0xff, s11 & 0xff, w00z, w01z, w10z, w11z, fracx, fracy, 
+                                                DataBuffer.TYPE_DOUBLE, destinationNoDataByte[k2]).doubleValue();
 
                                         int intResult = 0;
 
@@ -1543,13 +1544,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             int w10 = noData.contains(s10) ? 0 : 1;
                             int w11 = noData.contains(s11) ? 0 : 1;
 
-                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                            boolean w00z = noData.contains(s00);
+                            boolean w01z = noData.contains(s01);
+                            boolean w10z = noData.contains(s10);
+                            boolean w11z = noData.contains(s11);
+
+                            if (w00z && w01z && w10z && w11z) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                 }
                             } else {
-                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
-                                        w11, fracx, fracy);
+                                double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                        w00z, w01z, w10z, w11z, fracx, fracy, 
+                                        DataBuffer.TYPE_DOUBLE, destinationNoDataUShort[k2]).doubleValue();
 
                                 int intResult = 0;
 
@@ -1686,18 +1693,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 final short s11 = (short) (srcDataArrays[k2][posxhigh + posyhigh
                                         + bandOffsets[k2]] & 0xffff);
 
-                                w00 = noData.contains(s00) ? 0 : 1;
-                                w01 = noData.contains(s01) ? 0 : 1;
-                                w10 = noData.contains(s10) ? 0 : 1;
-                                w11 = noData.contains(s11) ? 0 : 1;
+                                boolean w00z = noData.contains(s00);
+                                boolean w01z = noData.contains(s01);
+                                boolean w10z = noData.contains(s10);
+                                boolean w11z = noData.contains(s11);
 
-                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (w00z && w01z && w10z && w11z) {
                                     if (setDestinationNoData) {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                     }
                                 } else {
-                                    double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
-                                            w11, fracx, fracy);
+                                    double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                            w00z, w01z, w10z, w11z, fracx, fracy, 
+                                            DataBuffer.TYPE_DOUBLE, destinationNoDataUShort[k2]).doubleValue();
 
                                     int intResult = 0;
 
@@ -1828,18 +1836,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     final short s11 = (short) (srcDataArrays[k2][posxhigh
                                             + posyhigh + bandOffsets[k2]] & 0xffff);
 
-                                    w00 = noData.contains(s00) ? 0 : 1;
-                                    w01 = noData.contains(s01) ? 0 : 1;
-                                    w10 = noData.contains(s10) ? 0 : 1;
-                                    w11 = noData.contains(s11) ? 0 : 1;
+                                    boolean w00z = noData.contains(s00);
+                                    boolean w01z = noData.contains(s01);
+                                    boolean w10z = noData.contains(s10);
+                                    boolean w11z = noData.contains(s11);
 
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                    if (w00z && w01z && w10z && w11z) {
                                         if (setDestinationNoData) {
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataUShort[k2];
                                         }
                                     } else {
-                                        double result = computeValue(s00, s01, s10, s11, w00, w01,
-                                                w10, w11, fracx, fracy);
+                                        double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                                w00z, w01z, w10z, w11z, fracx, fracy, 
+                                                DataBuffer.TYPE_DOUBLE, destinationNoDataUShort[k2]).doubleValue();
 
                                         int intResult = 0;
 
@@ -2363,18 +2372,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             short s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
                             short s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                            int w00 = noData.contains(s00) ? 0 : 1;
-                            int w01 = noData.contains(s01) ? 0 : 1;
-                            int w10 = noData.contains(s10) ? 0 : 1;
-                            int w11 = noData.contains(s11) ? 0 : 1;
+                            boolean w00z = noData.contains(s00);
+                            boolean w01z = noData.contains(s01);
+                            boolean w10z = noData.contains(s10);
+                            boolean w11z = noData.contains(s11);
 
-                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                            if (w00z && w01z && w10z && w11z) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                 }
                             } else {
-                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
-                                        w11, fracx, fracy);
+                                double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                        w00z, w01z, w10z, w11z, fracx, fracy, 
+                                        DataBuffer.TYPE_DOUBLE, destinationNoDataShort[k2]).doubleValue();
 
                                 int intResult = 0;
 
@@ -2512,18 +2522,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 final short s11 = srcDataArrays[k2][posxhigh + posyhigh
                                         + bandOffsets[k2]];
 
-                                w00 = noData.contains(s00) ? 0 : 1;
-                                w01 = noData.contains(s01) ? 0 : 1;
-                                w10 = noData.contains(s10) ? 0 : 1;
-                                w11 = noData.contains(s11) ? 0 : 1;
+                                boolean w00z = noData.contains(s00);
+                                boolean w01z = noData.contains(s01);
+                                boolean w10z = noData.contains(s10);
+                                boolean w11z = noData.contains(s11);
 
-                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (w00z && w01z && w10z && w11z) {
                                     if (setDestinationNoData) {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                     }
                                 } else {
-                                    double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
-                                            w11, fracx, fracy);
+                                    double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                            w00z, w01z, w10z, w11z, fracx, fracy, 
+                                            DataBuffer.TYPE_DOUBLE, destinationNoDataShort[k2]).doubleValue();
 
                                     int intResult = 0;
 
@@ -2656,18 +2667,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     final short s11 = srcDataArrays[k2][posxhigh + posyhigh
                                             + bandOffsets[k2]];
 
-                                    w00 = noData.contains(s00) ? 0 : 1;
-                                    w01 = noData.contains(s01) ? 0 : 1;
-                                    w10 = noData.contains(s10) ? 0 : 1;
-                                    w11 = noData.contains(s11) ? 0 : 1;
+                                    boolean w00z = noData.contains(s00);
+                                    boolean w01z = noData.contains(s01);
+                                    boolean w10z = noData.contains(s10);
+                                    boolean w11z = noData.contains(s11);
 
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                    if (w00z && w01z && w10z && w11z) {
                                         if (setDestinationNoData) {
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataShort[k2];
                                         }
                                     } else {
-                                        double result = computeValue(s00, s01, s10, s11, w00, w01,
-                                                w10, w11, fracx, fracy);
+                                        double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                                w00z, w01z, w10z, w11z, fracx, fracy, 
+                                                DataBuffer.TYPE_DOUBLE, destinationNoDataShort[k2]).doubleValue();
 
                                         int intResult = 0;
 
@@ -3192,18 +3204,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             int s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
                             int s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                            int w00 = noData.contains(s00) ? 0 : 1;
-                            int w01 = noData.contains(s01) ? 0 : 1;
-                            int w10 = noData.contains(s10) ? 0 : 1;
-                            int w11 = noData.contains(s11) ? 0 : 1;
+                            boolean w00z = noData.contains(s00);
+                            boolean w01z = noData.contains(s01);
+                            boolean w10z = noData.contains(s10);
+                            boolean w11z = noData.contains(s11);
 
-                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                            if (w00z && w01z && w10z && w11z) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                 }
                             } else {
-                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
-                                        w11, fracx, fracy);
+                                double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                        w00z, w01z, w10z, w11z, fracx, fracy, 
+                                        DataBuffer.TYPE_DOUBLE, destinationNoDataDouble[k2]).doubleValue();
 
                                 int intResult = 0;
 
@@ -3339,18 +3352,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 final int s11 = srcDataArrays[k2][posxhigh + posyhigh
                                         + bandOffsets[k2]];
 
-                                w00 = noData.contains(s00) ? 0 : 1;
-                                w01 = noData.contains(s01) ? 0 : 1;
-                                w10 = noData.contains(s10) ? 0 : 1;
-                                w11 = noData.contains(s11) ? 0 : 1;
+                                boolean w00z = noData.contains(s00);
+                                boolean w01z = noData.contains(s01);
+                                boolean w10z = noData.contains(s10);
+                                boolean w11z = noData.contains(s11);
 
-                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (w00z && w01z && w10z && w11z) {
                                     if (setDestinationNoData) {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                     }
                                 } else {
-                                    double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
-                                            w11, fracx, fracy);
+                                    double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                            w00z, w01z, w10z, w11z, fracx, fracy, 
+                                            DataBuffer.TYPE_DOUBLE, destinationNoDataDouble[k2]).doubleValue();
 
                                     int intResult = 0;
 
@@ -3482,18 +3496,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     final int s11 = srcDataArrays[k2][posxhigh + posyhigh
                                             + bandOffsets[k2]];
 
-                                    w00 = noData.contains(s00) ? 0 : 1;
-                                    w01 = noData.contains(s01) ? 0 : 1;
-                                    w10 = noData.contains(s10) ? 0 : 1;
-                                    w11 = noData.contains(s11) ? 0 : 1;
+                                    boolean w00z = noData.contains(s00);
+                                    boolean w01z = noData.contains(s01);
+                                    boolean w10z = noData.contains(s10);
+                                    boolean w11z = noData.contains(s11);
 
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                    if (w00z && w01z && w10z && w11z) {
                                         if (setDestinationNoData) {
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataInt[k2];
                                         }
                                     } else {
-                                        double result = computeValue(s00, s01, s10, s11, w00, w01,
-                                                w10, w11, fracx, fracy);
+                                        double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                                w00z, w01z, w10z, w11z, fracx, fracy, 
+                                                DataBuffer.TYPE_DOUBLE, destinationNoDataDouble[k2]).doubleValue();
 
                                         int intResult = 0;
 
@@ -3982,25 +3997,21 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             float s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
                             float s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                            int w00 = 1;
-                            int w01 = 1;
-                            int w10 = 1;
-                            int w11 = 1;
+                            boolean w00z = noData.contains(s00);
+                            boolean w01z = noData.contains(s01);
+                            boolean w10z = noData.contains(s10);
+                            boolean w11z = noData.contains(s11);
 
-                            w00 = noData.contains(s00) ? 0 : 1;
-                            w01 = noData.contains(s01) ? 0 : 1;
-                            w10 = noData.contains(s10) ? 0 : 1;
-                            w11 = noData.contains(s11) ? 0 : 1;
-
-                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                            if (w00z && w01z && w10z && w11z) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                 }
                             } else {
-                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
-                                        w11, fracx, fracy);
+                                float result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                        w00z, w01z, w10z, w11z, fracx, fracy, 
+                                        DataBuffer.TYPE_FLOAT, destinationNoDataFloat[k2]).floatValue();
 
-                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (float) result;
+                                dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
                             }
                         }
                     } else if (setDestinationNoData) {
@@ -4124,25 +4135,21 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 final float s11 = srcDataArrays[k2][posxhigh + posyhigh
                                         + bandOffsets[k2]];
 
-                                w00 = 1;
-                                w01 = 1;
-                                w10 = 1;
-                                w11 = 1;
+                                boolean w00z = noData.contains(s00);
+                                boolean w01z = noData.contains(s01);
+                                boolean w10z = noData.contains(s10);
+                                boolean w11z = noData.contains(s11);
 
-                                w00 = noData.contains(s00) ? 0 : 1;
-                                w01 = noData.contains(s01) ? 0 : 1;
-                                w10 = noData.contains(s10) ? 0 : 1;
-                                w11 = noData.contains(s11) ? 0 : 1;
-
-                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (w00z && w01z && w10z && w11z) {
                                     if (setDestinationNoData) {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                     }
                                 } else {
-                                    double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
-                                            w11, fracx, fracy);
+                                    float result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                            w00z, w01z, w10z, w11z, fracx, fracy, 
+                                            DataBuffer.TYPE_FLOAT, destinationNoDataFloat[k2]).floatValue();
 
-                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (float) (result);
+                                    dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
                                 }
                             }
                         }
@@ -4261,25 +4268,21 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     final float s11 = srcDataArrays[k2][posxhigh + posyhigh
                                             + bandOffsets[k2]];
 
-                                    w00 = 1;
-                                    w01 = 1;
-                                    w10 = 1;
-                                    w11 = 1;
+                                    boolean w00z = noData.contains(s00);
+                                    boolean w01z = noData.contains(s01);
+                                    boolean w10z = noData.contains(s10);
+                                    boolean w11z = noData.contains(s11);
 
-                                    w00 = noData.contains(s00) ? 0 : 1;
-                                    w01 = noData.contains(s01) ? 0 : 1;
-                                    w10 = noData.contains(s10) ? 0 : 1;
-                                    w11 = noData.contains(s11) ? 0 : 1;
-
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                    if (w00z && w01z && w10z && w11z) {
                                         if (setDestinationNoData) {
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataFloat[k2];
                                         }
                                     } else {
-                                        double result = computeValue(s00, s01, s10, s11, w00, w01,
-                                                w10, w11, fracx, fracy);
+                                        float result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                                w00z, w01z, w10z, w11z, fracx, fracy, 
+                                                DataBuffer.TYPE_FLOAT, destinationNoDataFloat[k2]).floatValue();
 
-                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (float) (result);
+                                        dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
                                     }
                                 }
                             }
@@ -4757,23 +4760,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                             double s10 = srcDataArrays[k2][posx + posyhigh + bandOffsets[k2]];
                             double s11 = srcDataArrays[k2][posxhigh + posyhigh + bandOffsets[k2]];
 
-                            int w00 = 1;
-                            int w01 = 1;
-                            int w10 = 1;
-                            int w11 = 1;
+                            boolean w00z = noData.contains(s00);
+                            boolean w01z = noData.contains(s01);
+                            boolean w10z = noData.contains(s10);
+                            boolean w11z = noData.contains(s11);
 
-                            w00 = noData.contains(s00) ? 0 : 1;
-                            w01 = noData.contains(s01) ? 0 : 1;
-                            w10 = noData.contains(s10) ? 0 : 1;
-                            w11 = noData.contains(s11) ? 0 : 1;
-
-                            if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                            if (w00z && w01z && w10z && w11z) {
                                 if (setDestinationNoData) {
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                 }
                             } else {
-                                double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
-                                        w11, fracx, fracy);
+                                double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                        w00z, w01z, w10z, w11z, fracx, fracy, 
+                                        DataBuffer.TYPE_DOUBLE, destinationNoDataDouble[k2]).doubleValue();
 
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
                             }
@@ -4899,23 +4898,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                 final double s11 = srcDataArrays[k2][posxhigh + posyhigh
                                         + bandOffsets[k2]];
 
-                                w00 = 1;
-                                w01 = 1;
-                                w10 = 1;
-                                w11 = 1;
+                                boolean w00z = noData.contains(s00);
+                                boolean w01z = noData.contains(s01);
+                                boolean w10z = noData.contains(s10);
+                                boolean w11z = noData.contains(s11);
 
-                                w00 = noData.contains(s00) ? 0 : 1;
-                                w01 = noData.contains(s01) ? 0 : 1;
-                                w10 = noData.contains(s10) ? 0 : 1;
-                                w11 = noData.contains(s11) ? 0 : 1;
-
-                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                if (w00z && w01z && w10z && w11z) {
                                     if (setDestinationNoData) {
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                     }
                                 } else {
-                                    double result = computeValue(s00, s01, s10, s11, w00, w01, w10,
-                                            w11, fracx, fracy);
+                                    double result =  InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                            w00z, w01z, w10z, w11z, fracx, fracy, 
+                                            DataBuffer.TYPE_DOUBLE, destinationNoDataDouble[k2]).doubleValue();
 
                                     dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
                                 }
@@ -5036,23 +5031,19 @@ public class AffineBilinearOpImage extends AffineOpImage {
                                     final double s11 = srcDataArrays[k2][posxhigh + posyhigh
                                             + bandOffsets[k2]];
 
-                                    w00 = 1;
-                                    w01 = 1;
-                                    w10 = 1;
-                                    w11 = 1;
+                                    boolean w00z = noData.contains(s00);
+                                    boolean w01z = noData.contains(s01);
+                                    boolean w10z = noData.contains(s10);
+                                    boolean w11z = noData.contains(s11);
 
-                                    w00 = noData.contains(s00) ? 0 : 1;
-                                    w01 = noData.contains(s01) ? 0 : 1;
-                                    w10 = noData.contains(s10) ? 0 : 1;
-                                    w11 = noData.contains(s11) ? 0 : 1;
-
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
+                                    if (w00z && w01z && w10z && w11z) {
                                         if (setDestinationNoData) {
                                             dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = destinationNoDataDouble[k2];
                                         }
                                     } else {
-                                        double result = computeValue(s00, s01, s10, s11, w00, w01,
-                                                w10, w11, fracx, fracy);
+                                        double result = InterpolationBilinear.computeValueDouble(s00, s01, s10, s11, 
+                                                w00z, w01z, w10z, w11z, fracx, fracy, 
+                                                DataBuffer.TYPE_DOUBLE, destinationNoDataDouble[k2]).doubleValue();
 
                                         dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = result;
                                     }
@@ -5098,61 +5089,5 @@ public class AffineBilinearOpImage extends AffineOpImage {
                 }
             }
         }
-    }
-
-    /* Private method for calculate bilinear interpolation for float/double dataType */
-    private double computeValue(double s00, double s01, double s10, double s11, double w00,
-            double w01, double w10, double w11, double xfrac, double yfrac) {
-
-        double s0 = 0;
-        double s1 = 0;
-        double s = 0;
-
-        // Complementary values of the fractional part
-        double xfracCompl = 1 - xfrac;
-        double yfracCompl = 1 - yfrac;
-
-        if (w00 == 0 || w01 == 0 || w10 == 0 || w11 == 0) {
-
-            if (w00 == 0 && w01 == 0) {
-                s0 = 0;
-            } else if (w00 == 0) { // w01 = 1
-                s0 = s01 * xfrac;
-            } else if (w01 == 0) {// w00 = 1
-                s0 = s00 * xfracCompl;// s00;
-            } else {// w00 = 1 & W01 = 1
-                s0 = (s01 - s00) * xfrac + s00;
-            }
-
-            // lower value
-
-            if (w10 == 0 && w11 == 0) {
-                s1 = 0;
-            } else if (w10 == 0) { // w11 = 1
-                s1 = s11 * xfrac;
-            } else if (w11 == 0) { // w10 = 1
-                s1 = s10 * xfracCompl;// - (s10 * xfrac); //s10;
-            } else {
-                s1 = (s11 - s10) * xfrac + s10;
-            }
-
-            if (w00 == 0 && w01 == 0) {
-                s = s1 * yfrac;
-            } else {
-                if (w10 == 0 && w11 == 0) {
-                    s = s0 * yfracCompl;
-                } else {
-                    s = (s1 - s0) * yfrac + s0;
-                }
-            }
-        } else {
-
-            // Perform the bilinear interpolation because all the weight are not 0.
-            s0 = (s01 - s00) * xfrac + s00;
-            s1 = (s11 - s10) * xfrac + s10;
-            s = (s1 - s0) * yfrac + s0;
-        }
-
-        return s;
     }
 }

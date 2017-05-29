@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.warp;
 
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.range.Range;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -447,12 +448,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     weight = 0;
                                     weightVert = 0;
                                     sum = 0;
-                                    // Clamp
-                                    if (result > 255) {
-                                        result = 255;
-                                    } else if (result < 0) {
-                                        result = 0;
-                                    }
+                                    result = InterpolationBicubic.clampAndFixOvershootingByte((int)result, 
+                                            (byte)backgroundValues[b]);
                                     data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                                 }
                             }
@@ -832,11 +829,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     sum = 0;
 
                                     // Clamp
-                                    if (result > 255) {
-                                        result = 255;
-                                    } else if (result < 0) {
-                                        result = 0;
-                                    }
+                                    result = InterpolationBicubic.clampAndFixOvershootingByte((int)result, 
+                                            (byte)backgroundValues[b]);
 
                                     data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                                 }
@@ -971,11 +965,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                         sum = 0;
 
                                         // Clamp
-                                        if (result > 255) {
-                                            result = 255;
-                                        } else if (result < 0) {
-                                            result = 0;
-                                        }
+                                        result = InterpolationBicubic.clampAndFixOvershootingByte((int)result, 
+                                                (byte)backgroundValues[b]);
 
                                         data[b][pixelOffset + bandOffsets[b]] = (byte) (result & 0xff);
                                     }
@@ -1263,12 +1254,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                 weightVert = 0;
                                 sum = 0;
 
-                                // Clamp
-                                if (result > USHORT_MAX_VALUE) {
-                                    result = USHORT_MAX_VALUE;
-                                } else if (result < 0) {
-                                    result = 0;
-                                }
+                                result = InterpolationBicubic.clampAndFixOvershootingUShort((int)result, 
+                                        (short)backgroundValues[b]);
 
                                 data[b][pixelOffset + bandOffsets[b]] = (short) (result & 0xFFFF);
                             }
@@ -1401,11 +1388,8 @@ final class WarpBicubicOpImage extends WarpOpImage {
                                     sum = 0;
 
                                     // Clamp
-                                    if (result > USHORT_MAX_VALUE) {
-                                        result = USHORT_MAX_VALUE;
-                                    } else if (result < 0) {
-                                        result = 0;
-                                    }
+                                    result = InterpolationBicubic.clampAndFixOvershootingUShort((int)result, 
+                                            (short)backgroundValues[b]);
 
                                     data[b][pixelOffset + bandOffsets[b]] = (short) (result & 0xFFFF);
                                 }

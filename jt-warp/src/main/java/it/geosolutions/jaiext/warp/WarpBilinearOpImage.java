@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.warp;
 
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.range.Range;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -55,6 +56,8 @@ import javax.media.jai.iterator.RandomIter;
  */
 @SuppressWarnings("unchecked")
 final class WarpBilinearOpImage extends WarpOpImage {
+
+    private final static double FRACTION_THRESHOLD_D = 0.5d;
 
     /** Color table representing source's IndexColorModel. */
     private byte[][] ctable = null;
@@ -282,8 +285,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 if (w00 && w01 && w10 && w11) {
                                     data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFF);
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) (InterpolationBilinear.computeValueDouble(
+                                            s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                            DataBuffer.TYPE_INT, backgroundValues[b]).intValue() & 0xFF);
                                 }
                             }
                         }
@@ -348,9 +352,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                     if (w00 && w01 && w10 && w11) {
                                         data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                     } else {
-                                        data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
-                                                s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10,
-                                                w11) & 0xFF);
+                                        data[b][pixelOffset + bandOffsets[b]] = (byte) (InterpolationBilinear.computeValueDouble(
+                                                s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                                DataBuffer.TYPE_INT, backgroundValues[b]).intValue() & 0xFF);
                                     }
                                 }
                             }
@@ -515,8 +519,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 if (w00 && w01 && w10 && w11) {
                                     data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                 } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFF);
+                                    data[b][pixelOffset + bandOffsets[b]] = (byte) (InterpolationBilinear.computeValueDouble(
+                                            s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                            DataBuffer.TYPE_INT, backgroundValues[b]).intValue() & 0xFF);
                                 }
                             }
                         }
@@ -583,9 +588,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                     if (w00 && w01 && w10 && w11) {
                                         data[b][pixelOffset + bandOffsets[b]] = (byte)backgroundValues[b];
                                     } else {
-                                        data[b][pixelOffset + bandOffsets[b]] = (byte) ((int) computePoint(
-                                                s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10,
-                                                w11) & 0xFF);
+                                        data[b][pixelOffset + bandOffsets[b]] = (byte) (InterpolationBilinear.computeValueDouble(
+                                                s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                                DataBuffer.TYPE_INT, backgroundValues[b]).intValue() & 0xFF);
                                     }
                                 }
                             }
@@ -771,8 +776,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             if (w00 && w01 && w10 && w11) {
                                 data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             } else {
-                                data[b][pixelOffset + bandOffsets[b]] = (short) ((int) computePoint(
-                                        s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFFFF);
+                                data[b][pixelOffset + bandOffsets[b]] = (short)(InterpolationBilinear.computeValueDouble(
+                                        s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                        DataBuffer.TYPE_USHORT, backgroundValues[b]).intValue() & 0xFFFF);
                             }
                         }
                     }
@@ -837,8 +843,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 if (w00 && w01 && w10 && w11) {
                                     data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (short) ((int) computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11) & 0xFFFF);
+                                    data[b][pixelOffset + bandOffsets[b]] = (short) (InterpolationBilinear.computeValueDouble(
+                                                    s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                                    DataBuffer.TYPE_USHORT, backgroundValues[b]).intValue() & 0xFFFF);
                                 }
                             }
                         }
@@ -1023,8 +1030,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             if (w00 && w01 && w10 && w11) {
                                 data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                             } else {
-                                data[b][pixelOffset + bandOffsets[b]] = (short) (computePoint(s00,
-                                        s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+                                data[b][pixelOffset + bandOffsets[b]] = InterpolationBilinear.computeValueDouble(
+                                        s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                        DataBuffer.TYPE_SHORT, backgroundValues[b]).shortValue();
                             }
                         }
                     }
@@ -1089,8 +1097,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 if (w00 && w01 && w10 && w11) {
                                     data[b][pixelOffset + bandOffsets[b]] = (short)backgroundValues[b];
                                 } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (short) (computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+                                    data[b][pixelOffset + bandOffsets[b]] = InterpolationBilinear.computeValueDouble(
+                                            s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                            DataBuffer.TYPE_SHORT, backgroundValues[b]).shortValue();
                                 }
                             }
                         }
@@ -1275,8 +1284,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             if (w00 && w01 && w10 && w11) {
                                 data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                             } else {
-                                data[b][pixelOffset + bandOffsets[b]] = ((int) computePoint(s00,
-                                        s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+                                data[b][pixelOffset + bandOffsets[b]] = InterpolationBilinear.computeValueDouble(
+                                        s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                        DataBuffer.TYPE_INT, backgroundValues[b]).intValue();
                             }
                         }
                     }
@@ -1341,8 +1351,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 if (w00 && w01 && w10 && w11) {
                                     data[b][pixelOffset + bandOffsets[b]] = (int)backgroundValues[b];
                                 } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = ((int) computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+                                    data[b][pixelOffset + bandOffsets[b]] = InterpolationBilinear.computeValueDouble(
+                                            s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                            DataBuffer.TYPE_DOUBLE, backgroundValues[b]).intValue();
                                 }
                             }
                         }
@@ -1527,8 +1538,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             if (w00 && w01 && w10 && w11) {
                                 data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                             } else {
-                                data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(s00,
-                                        s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+                                data[b][pixelOffset + bandOffsets[b]] = InterpolationBilinear.computeValueDouble(
+                                        s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                        DataBuffer.TYPE_FLOAT, backgroundValues[b]).floatValue();
                             }
                         }
                     }
@@ -1593,8 +1605,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 if (w00 && w01 && w10 && w11) {
                                     data[b][pixelOffset + bandOffsets[b]] = (float)backgroundValues[b];
                                 } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+                                    data[b][pixelOffset + bandOffsets[b]] = InterpolationBilinear.computeValueDouble(
+                                            s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                            DataBuffer.TYPE_FLOAT, backgroundValues[b]).floatValue();
                                 }
                             }
                         }
@@ -1778,8 +1791,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                             if (w00 && w01 && w10 && w11) {
                                 data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                             } else {
-                                data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(s00,
-                                        s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+                                data[b][pixelOffset + bandOffsets[b]] = InterpolationBilinear.computeValueDouble(
+                                        s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                        DataBuffer.TYPE_DOUBLE, backgroundValues[b]).doubleValue();
                             }
                         }
                     }
@@ -1844,8 +1858,9 @@ final class WarpBilinearOpImage extends WarpOpImage {
                                 if (w00 && w01 && w10 && w11) {
                                     data[b][pixelOffset + bandOffsets[b]] = backgroundValues[b];
                                 } else {
-                                    data[b][pixelOffset + bandOffsets[b]] = (float) (computePoint(
-                                            s00, s01, s10, s11, xfrac, yfrac, w00, w01, w10, w11));
+                                    data[b][pixelOffset + bandOffsets[b]] = InterpolationBilinear.computeValueDouble(
+                                            s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac, 
+                                            DataBuffer.TYPE_DOUBLE, backgroundValues[b]).doubleValue();
                                 }
                             }
                         }
@@ -1856,74 +1871,5 @@ final class WarpBilinearOpImage extends WarpOpImage {
             } // ROWS LOOP
         }
         iterSource.done();
-    }
-
-    /**
-     * Computes the bilinear interpolation when No Data are present
-     * 
-     * @param s00 upper-left pixel
-     * @param s01 upper-right pixel
-     * @param s10 lower-left pixel
-     * @param s11 lower-right pixel
-     * @param w00 upper-left pixel nodata flag
-     * @param w01 upper-right pixel nodata flag
-     * @param w10 lower-left pixel nodata flag
-     * @param w11 lower-right pixel nodata flag
-     * @param dataType
-     * @return bilinear interpolation
-     */
-    private double computePoint(double s00, double s01, double s10, double s11, double xfrac,
-            double yfrac, boolean w00, boolean w01, boolean w10, boolean w11) {
-
-        // Initialization
-        double s0 = 0;
-        double s1 = 0;
-        double s = 0;
-
-        // Complementary values of the fractional part
-        double xfracCompl = 1 - xfrac;
-        double yfracCompl = 1 - yfrac;
-
-        if (!w00 && !w01 && !w10 && !w11) {
-            // Perform the bilinear interpolation because all the weight are not 0.
-            s0 = (s01 - s00) * xfrac + s00;
-            s1 = (s11 - s10) * xfrac + s10;
-            s = (s1 - s0) * yfrac + s0;
-        } else {
-            // upper value
-
-            if (w00 && w01) {
-                s0 = 0;
-            } else if (w00) { // w01 = false
-                s0 = s01 * xfrac;
-            } else if (w01) {// w00 = false
-                s0 = s00 * xfracCompl;// s00;
-            } else {// w00 = false & W01 = false
-                s0 = (s01 - s00) * xfrac + s00;
-            }
-
-            // lower value
-
-            if (w10 && w11) {
-                s1 = 0;
-            } else if (w10) { // w11 = false
-                s1 = s11 * xfrac;
-            } else if (w11) { // w10 = false
-                s1 = s10 * xfracCompl;// - (s10 * xfrac); //s10;
-            } else {
-                s1 = (s11 - s10) * xfrac + s10;
-            }
-
-            if (w00 && w01) {
-                s = s1 * yfrac;
-            } else {
-                if (w10 && w11) {
-                    s = s0 * yfracCompl;
-                } else {
-                    s = (s1 - s0) * yfrac + s0;
-                }
-            }
-        }
-        return s;
     }
 }

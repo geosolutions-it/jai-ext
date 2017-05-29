@@ -921,11 +921,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 weightVert = 0;
                                 sum = 0;
                                 // Clamp
-                                if (result > 255) {
-                                    result = 255;
-                                } else if (result < 0) {
-                                    result = 0;
-                                }
+                                result = InterpolationBicubic.clampAndFixOvershootingByte((int)result, 
+                                        destinationNoDataByte[k2]);
+
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (byte) (result & 0xff);
                             }
                         }
@@ -1951,11 +1949,9 @@ public class AffineBicubicOpImage extends AffineOpImage {
                                 result = (int) ((sum + round) >> precisionBits);
                                 sum = 0;
                                 // Clamp
-                                if (result > USHORT_MAX_VALUE) {
-                                    result = USHORT_MAX_VALUE;
-                                } else if (result < 0) {
-                                    result = 0;
-                                }
+                                result = InterpolationBicubic.clampAndFixOvershootingUShort((int)result, 
+                                        destinationNoDataUShort[k2]);
+
 
                                 dstDataArrays[k2][dstPixelOffset + dstBandOffsets[k2]] = (short) (result & 0xffff);
                             }
