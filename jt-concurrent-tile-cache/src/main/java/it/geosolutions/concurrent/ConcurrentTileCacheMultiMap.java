@@ -486,11 +486,9 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
 
     /** Retrieves the current memory size of the cache */
     public long getCacheMemoryUsed() {
-        Iterator<Object> keys = cacheObject.asMap().keySet().iterator();
         long memoryUsed = 0;
-        while (keys.hasNext()) {
-            Object key = keys.next();
-            CachedTileImpl cti = (CachedTileImpl) cacheObject.getIfPresent(key);
+        for (Object object : cacheObject.asMap().values()) {
+            CachedTileImpl cti = (CachedTileImpl) object;
             memoryUsed += getTileSize(cti);
         }
         return memoryUsed;
@@ -687,7 +685,7 @@ public class ConcurrentTileCacheMultiMap extends Observable implements TileCache
     private Raster getTileFromKey(Object key) {
         Raster tileData = null;
         // check if the tile is present
-        CachedTileImpl cti = (CachedTileImpl) cacheObject.asMap().get(key);
+        CachedTileImpl cti = (CachedTileImpl) cacheObject.getIfPresent(key);
         // If not tile is found, null is returned
         if (cti == null) {
             if (LOGGER.isLoggable(Level.FINE)) {
