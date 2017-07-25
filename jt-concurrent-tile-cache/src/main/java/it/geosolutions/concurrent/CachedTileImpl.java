@@ -106,22 +106,6 @@ public final class CachedTileImpl implements CachedTile {
     public static Object hashKey(RenderedImage owner, int tileX, int tileY) {
         long idx = tileY * (long) owner.getNumXTiles() + tileX;
 
-        BigInteger imageID = null;
-        if (owner instanceof PlanarImage)
-            imageID = (BigInteger) ((PlanarImage) owner).getImageID();
-        else if (owner instanceof SerializableRenderedImage)
-            imageID = (BigInteger) ((SerializableRenderedImage) owner).getImageID();
-
-        if (imageID != null) {
-            byte[] buf = imageID.toByteArray();
-            int length = buf.length;
-            byte[] buf1 = new byte[length + 8];
-            System.arraycopy(buf, 0, buf1, 0, length);
-            for (int i = 7, j = 0; i >= 0; i--, j += 8)
-                buf1[length++] = (byte) (idx >> j);
-            return new BigInteger(buf1);
-        }
-
         idx = idx & 0x00000000ffffffffL;
         return Long.valueOf((((long) owner.hashCode() << 32) | idx));
     }
