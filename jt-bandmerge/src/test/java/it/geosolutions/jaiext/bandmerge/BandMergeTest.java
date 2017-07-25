@@ -22,14 +22,19 @@ import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
+import it.geosolutions.jaiext.utilities.ImageUtilities;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +45,7 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
 import javax.media.jai.iterator.RandomIter;
+import javax.media.jai.operator.BandSelectDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
 
 import org.junit.AfterClass;
@@ -655,5 +661,94 @@ public class BandMergeTest extends TestBase {
     /** Returns the "round" value of a float. */
     private static int round(double f) {
         return f >= 0 ? (int) (f + 0.5F) : (int) (f - 0.5F);
+    }
+    
+    @Test
+    public void testBandMergeBandSelected() {
+        testBandMergeOnBandSelected(DataBuffer.TYPE_BYTE, (byte) 0, (byte) 1);
+        testBandMergeOnBandSelected(DataBuffer.TYPE_USHORT, (short) 0, (short) 1);
+        testBandMergeOnBandSelected(DataBuffer.TYPE_SHORT, (short) 0, (short) 1);
+        testBandMergeOnBandSelected(DataBuffer.TYPE_INT, (int) 0, (int) 1);
+        testBandMergeOnBandSelected(DataBuffer.TYPE_FLOAT, (float) 0, (float) 1);
+        testBandMergeOnBandSelected(DataBuffer.TYPE_DOUBLE, (double) 0, (double) 1);
+    }
+    
+    public void testBandMergeOnBandSelected(int dataType, Number noDataValue, Number dataValue) {
+        testBandMergeOnBandSelected(dataType, noDataValue, dataValue, true);
+        testBandMergeOnBandSelected(dataType, noDataValue, dataValue, false);
+        testBandMergeOnBandSelected(dataType, null, dataValue, true);
+        testBandMergeOnBandSelected(dataType, null, dataValue, false);
+    }
+
+    private void testBandMergeOnBandSelected(int dataType, Number noDataValue, Number dataValue,
+            boolean addROI) {
+        Range[] nodata;
+        if (noDataValue == null) {
+            nodata = null;
+        } else {
+            switch (dataType) {
+            case DataBuffer.TYPE_BYTE: {
+                final byte noDataPrimitive = noDataValue.byteValue();
+                nodata = new Range[] { RangeFactory.create(noDataPrimitive, noDataPrimitive) };
+                break;
+            }
+            case DataBuffer.TYPE_SHORT: {
+                final short noDataPrimitive = noDataValue.shortValue();
+                nodata = new Range[] { RangeFactory.create(noDataPrimitive, noDataPrimitive) };
+                break;
+            }
+            case DataBuffer.TYPE_USHORT:
+            case DataBuffer.TYPE_INT: {
+                final int noDataPrimitive = noDataValue.intValue();
+                nodata = new Range[] { RangeFactory.create(noDataPrimitive, noDataPrimitive) };
+                break;
+            }
+            case DataBuffer.TYPE_FLOAT: {
+                final float noDataPrimitive = noDataValue.floatValue();
+                nodata = new Range[] { RangeFactory.create(noDataPrimitive, noDataPrimitive) };
+                break;
+            }
+            case DataBuffer.TYPE_DOUBLE: {
+                final double noDataPrimitive = noDataValue.doubleValue();
+                nodata = new Range[] { RangeFactory.create(noDataPrimitive, noDataPrimitive) };
+                break;
+            }
+
+            default:
+                throw new IllegalArgumentException();
+            }
+        }
+
+        TiledImage image = (TiledImage) createTestImage(dataType, 10, 10, noDataValue, false, 3,
+                dataValue);
+        for (int i = 0; i < image.getHeight(); i++) {
+            for (int j = 0; j < image.getWidth(); j++) {
+                for (int b = 0; b < image.getNumBands(); b++) {
+                    int value = b == image.getNumBands() - 1 ? 1 : 0;
+                    image.setSample(j, i, b, value);
+                }
+            }
+        }
+
+        RenderedOp selected = BandSelectDescriptor.create(image, new int[] { 2 }, null);
+
+        RenderedOp bandMerged;
+        if (addROI) {
+            ROI roi = new ROIShape(new Rectangle2D.Double(0, 0, 100, 100));
+            bandMerged = BandMergeDescriptor.create(nodata, 0d, false, (RenderingHints) null, null,
+                    roi, selected, selected);
+        } else {
+            bandMerged = BandMergeDescriptor.create(nodata, 0d, false, (RenderingHints) null,
+                    selected, selected);
+        }
+
+        final Raster data = bandMerged.getData();
+        for (int i = 0; i < bandMerged.getHeight(); i++) {
+            for (int j = 0; j < bandMerged.getWidth(); j++) {
+                for (int b = 0; b < bandMerged.getNumBands(); b++) {
+                    assertEquals(1, data.getSample(j, i, b));
+                }
+            }
+        }
     }
 }
