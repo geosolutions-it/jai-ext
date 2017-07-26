@@ -248,7 +248,7 @@ public abstract class TestBase {
             for (int j = 0; j < width; j++) {
                 for (int k = 0; k < height; k++) {
                     //Addition of a cross on the image
-                    if (j == k || j == width - k - 1) {
+                    if (noDataValue != null && (j == k || j == width - k - 1)) {
                         switch (dataType) {
                         case DataBuffer.TYPE_BYTE:
                             used.setSample(j, k, b, crossValueByte);
@@ -370,7 +370,7 @@ public abstract class TestBase {
                             }
                             // Else, a little square of no data on the upper left is inserted
                         }else{
-                            if( (j>=2) && (j<10) && (k>=2) && (k<10)){
+                            if(noDataValue != null && ((j>=2) && (j<10) && (k>=2) && (k<10))) {
                                 switch (dataType) {
                                 case DataBuffer.TYPE_BYTE:
                                     used.setSample(j, k, b, crossValueByte);

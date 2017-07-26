@@ -676,11 +676,11 @@ public class BandMergeOpImage extends PointOpImage {
                                 }
 
                                 // No Data control
-                                if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                byte value = srcdatabandsb[srcpos + simd.bandOffsets[sb]];
+                                if (noData[sindex].contains(value)) {
                                     dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataByte;
                                 } else {
-                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
-                                            + simd.bandOffsets[sb]];
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = value;
                                 }
                             }
                         } else {
@@ -911,11 +911,11 @@ public class BandMergeOpImage extends PointOpImage {
                                 }
 
                                 // No Data control
-                                if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                final short value = srcdatabandsb[srcpos + simd.bandOffsets[sb]];
+                                if (noData[sindex].contains(value)) {
                                     dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataShort;
                                 } else {
-                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
-                                            + simd.bandOffsets[sb]];
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = value;
                                 }
                             }
                         } else {
@@ -1143,11 +1143,11 @@ public class BandMergeOpImage extends PointOpImage {
                                 }
 
                                 // No Data control
-                                if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                final int value = srcdatabandsb[srcpos + simd.bandOffsets[sb]];
+                                if (noData[sindex].contains(value)) {
                                     dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataInt;
                                 } else {
-                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
-                                            + simd.bandOffsets[sb]];
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = value;
                                 }
                             }
                         } else {
@@ -1375,11 +1375,11 @@ public class BandMergeOpImage extends PointOpImage {
                                 }
 
                                 // No Data control
-                                if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                final float value = srcdatabandsb[srcpos + simd.bandOffsets[sb]];
+                                if (noData[sindex].contains(value)) {
                                     dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataFloat;
                                 } else {
-                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
-                                            + simd.bandOffsets[sb]];
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = value;
                                 }
                             }
                         } else {
@@ -1607,11 +1607,11 @@ public class BandMergeOpImage extends PointOpImage {
                                 }
 
                                 // No Data control
-                                if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                                final double value = srcdatabandsb[srcpos + simd.bandOffsets[sb]];
+                                if (noData[sindex].contains(value)) {
                                     dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataDouble;
                                 } else {
-                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
-                                            + simd.bandOffsets[sb]];
+                                    dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = value;
                                 }
                             }
                         } else {
