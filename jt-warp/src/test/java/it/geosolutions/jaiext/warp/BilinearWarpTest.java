@@ -100,6 +100,16 @@ public class BilinearWarpTest extends TestWarp{
         super.testImageNoDataROI(interpType);
     }
 
+    @Test
+    public void testImageNoDataBorderJAI() {
+        JAIExt.registerJAIDescriptor("Border");
+        try {
+            super.testImage(interpType);
+        } finally {
+            JAIExt.registerJAIEXTDescriptor("Border");
+        }
+    }
+
     /**
      * Static method for disposing the test environment.
      */

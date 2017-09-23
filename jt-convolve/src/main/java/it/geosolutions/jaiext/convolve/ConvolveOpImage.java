@@ -28,18 +28,10 @@ import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
+import java.awt.image.renderable.ParameterBlock;
 import java.util.Arrays;
 
-import javax.media.jai.AreaOpImage;
-import javax.media.jai.BorderExtender;
-import javax.media.jai.ImageLayout;
-import javax.media.jai.IntegerSequence;
-import javax.media.jai.KernelJAI;
-import javax.media.jai.PlanarImage;
-import javax.media.jai.ROI;
-import javax.media.jai.ROIShape;
-import javax.media.jai.RasterAccessor;
-import javax.media.jai.RasterFormatTag;
+import javax.media.jai.*;
 import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.ImageUtil;
@@ -188,8 +180,17 @@ public abstract class ConvolveOpImage extends AreaOpImage {
         }
 
         if (this.extender != null) {
-            extendedIMG = BorderDescriptor.create(source, leftPadding, rightPadding, topPadding,
-                    bottomPadding, extender, noData, destinationNoData, hints);
+            // use parameter block to allow mixing JAI and JAI-EXT
+            ParameterBlock pb = new ParameterBlock();
+            pb.addSource(source);
+            pb.add(leftPadding);
+            pb.add(rightPadding);
+            pb.add(topPadding);
+            pb.add(bottomPadding);
+            pb.add(extender);
+            pb.add(noData);
+            pb.add(destinationNoData);
+            extendedIMG = JAI.create("Border", pb, hints);
             this.destBounds = getBounds();
         } else {
             int x0 = getMinX() + leftPadding;

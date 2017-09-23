@@ -29,18 +29,10 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.awt.image.renderable.ParameterBlock;
 import java.util.Arrays;
 import java.util.Map;
-import javax.media.jai.BorderExtender;
-import javax.media.jai.ImageLayout;
-import javax.media.jai.Interpolation;
-import javax.media.jai.PlanarImage;
-import javax.media.jai.ROI;
-import javax.media.jai.ROIShape;
-import javax.media.jai.RasterAccessor;
-import javax.media.jai.RasterFormatTag;
-import javax.media.jai.RenderedOp;
-import javax.media.jai.Warp;
+import javax.media.jai.*;
 import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.ImageUtil;
@@ -467,8 +459,17 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
             int topPad, int bottomPad, BorderExtender extender) {
         RandomIter iterSource;
         if (extended) {
-            RenderedOp op = BorderDescriptor.create(src, leftPad, rightPad, topPad, bottomPad,
-                    extender, noDataRange, backgroundValues != null ? backgroundValues[0] : 0d, hints);
+            // use parameter block to allow mixing JAI and JAI-EXT
+            ParameterBlock pb = new ParameterBlock();
+            pb.addSource(src);
+            pb.add(leftPad);
+            pb.add(rightPad);
+            pb.add(topPad);
+            pb.add(bottomPad);
+            pb.add(extender);
+            pb.add(noDataRange);
+            pb.add(backgroundValues != null ? backgroundValues[0] : 0d);
+            RenderedOp op = JAI.create("Border", pb, hints);
             iterSource = RandomIterFactory.create(op, op.getBounds(), TILE_CACHED, ARRAY_CALC);
         } else {
             iterSource = RandomIterFactory.create(src, src.getBounds(), TILE_CACHED, ARRAY_CALC);
