@@ -17,26 +17,15 @@
 */
 package it.geosolutions.jaiext.bandmerge;
 
-import static org.junit.Assert.*;
+import com.sun.media.jai.util.ImageUtil;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
-import it.geosolutions.jaiext.utilities.ImageUtilities;
-
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-import java.awt.image.ComponentSampleModel;
-import java.awt.image.DataBuffer;
-import java.awt.image.Raster;
-import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
-import java.util.ArrayList;
-import java.util.List;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
@@ -47,13 +36,19 @@ import javax.media.jai.TiledImage;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.operator.BandSelectDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
+import java.awt.image.RenderedImage;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.sun.media.jai.util.ImageUtil;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * This test class checks if the BandMergeOpImage is able to merge various multibanded images into a single multibanded image. The test is made by
@@ -169,12 +164,12 @@ public class BandMergeTest extends TestBase {
         boolean noDataUsed = false;
         boolean roiUsed = false;
 
-        testBandMerge(images[0], noDataUsed, roiUsed);
-        testBandMerge(images[1], noDataUsed, roiUsed);
-        testBandMerge(images[2], noDataUsed, roiUsed);
-        testBandMerge(images[3], noDataUsed, roiUsed);
-        testBandMerge(images[4], noDataUsed, roiUsed);
-        testBandMerge(images[5], noDataUsed, roiUsed);
+        testBandMerge(images[0], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[1], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[2], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[3], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[4], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[5], noDataUsed, roiUsed, BAND_NUMBER);
     }
 
     @Test
@@ -183,12 +178,12 @@ public class BandMergeTest extends TestBase {
         boolean noDataUsed = true;
         boolean roiUsed = false;
 
-        testBandMerge(images[0], noDataUsed, roiUsed);
-        testBandMerge(images[1], noDataUsed, roiUsed);
-        testBandMerge(images[2], noDataUsed, roiUsed);
-        testBandMerge(images[3], noDataUsed, roiUsed);
-        testBandMerge(images[4], noDataUsed, roiUsed);
-        testBandMerge(images[5], noDataUsed, roiUsed);
+        testBandMerge(images[0], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[1], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[2], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[3], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[4], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[5], noDataUsed, roiUsed, BAND_NUMBER);
     }
 
     @Test
@@ -197,12 +192,12 @@ public class BandMergeTest extends TestBase {
         boolean noDataUsed = false;
         boolean roiUsed = true;
 
-        testBandMerge(images[0], noDataUsed, roiUsed);
-        testBandMerge(images[1], noDataUsed, roiUsed);
-        testBandMerge(images[2], noDataUsed, roiUsed);
-        testBandMerge(images[3], noDataUsed, roiUsed);
-        testBandMerge(images[4], noDataUsed, roiUsed);
-        testBandMerge(images[5], noDataUsed, roiUsed);
+        testBandMerge(images[0], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[1], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[2], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[3], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[4], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[5], noDataUsed, roiUsed, BAND_NUMBER);
     }
 
     @Test
@@ -211,12 +206,12 @@ public class BandMergeTest extends TestBase {
         boolean noDataUsed = true;
         boolean roiUsed = true;
 
-        testBandMerge(images[0], noDataUsed, roiUsed);
-        testBandMerge(images[1], noDataUsed, roiUsed);
-        testBandMerge(images[2], noDataUsed, roiUsed);
-        testBandMerge(images[3], noDataUsed, roiUsed);
-        testBandMerge(images[4], noDataUsed, roiUsed);
-        testBandMerge(images[5], noDataUsed, roiUsed);
+        testBandMerge(images[0], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[1], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[2], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[3], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[4], noDataUsed, roiUsed, BAND_NUMBER);
+        testBandMerge(images[5], noDataUsed, roiUsed, BAND_NUMBER);
     }
 
     @Test
@@ -226,12 +221,12 @@ public class BandMergeTest extends TestBase {
         boolean noDataUsed = false;
         boolean roiUsed = false;
 
-        testExtendedBandMerge(images[0], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[1], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[2], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[3], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[4], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[5], noDataUsed, roiUsed);
+        testExtendedBandMerge(images[0], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[1], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[2], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[3], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[4], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[5], noDataUsed, roiUsed, BAND_NUMBER);
     }
 
     @Test
@@ -241,12 +236,12 @@ public class BandMergeTest extends TestBase {
         boolean noDataUsed = true;
         boolean roiUsed = false;
 
-        testExtendedBandMerge(images[0], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[1], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[2], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[3], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[4], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[5], noDataUsed, roiUsed);
+        testExtendedBandMerge(images[0], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[1], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[2], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[3], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[4], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[5], noDataUsed, roiUsed, BAND_NUMBER);
     }
 
     @Test
@@ -256,12 +251,12 @@ public class BandMergeTest extends TestBase {
         boolean noDataUsed = false;
         boolean roiUsed = true;
 
-        testExtendedBandMerge(images[0], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[1], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[2], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[3], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[4], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[5], noDataUsed, roiUsed);
+        testExtendedBandMerge(images[0], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[1], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[2], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[3], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[4], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[5], noDataUsed, roiUsed, BAND_NUMBER);
     }
 
     @Test
@@ -271,12 +266,12 @@ public class BandMergeTest extends TestBase {
         boolean noDataUsed = true;
         boolean roiUsed = true;
 
-        testExtendedBandMerge(images[0], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[1], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[2], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[3], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[4], noDataUsed, roiUsed);
-        testExtendedBandMerge(images[5], noDataUsed, roiUsed);
+        testExtendedBandMerge(images[0], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[1], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[2], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[3], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[4], noDataUsed, roiUsed, BAND_NUMBER);
+        testExtendedBandMerge(images[5], noDataUsed, roiUsed, BAND_NUMBER);
     }
 
     @AfterClass
@@ -292,7 +287,7 @@ public class BandMergeTest extends TestBase {
         }
     }
 
-    private void testBandMerge(RenderedImage[] sources, boolean noDataUsed, boolean roiUsed) {
+    private void testBandMerge(RenderedImage[] sources, boolean noDataUsed, boolean roiUsed, int numberOfBands) {
         // Optional No Data Range used
         Range[] noData;
         // Source image data type
@@ -336,10 +331,10 @@ public class BandMergeTest extends TestBase {
         RenderedOp merged = BandMergeDescriptor
                 .create(noData, destNoData, false, null, null, roi, sources);
         // Check if the bands number is the same
-        assertEquals(BAND_NUMBER, merged.getNumBands());
+        assertEquals(numberOfBands, merged.getNumBands());
         // Ensure the final ColorModel exists and has not an alpha band
+        assertNotNull(merged.getColorModel());
         if (merged.getSampleModel().getDataType() != DataBuffer.TYPE_SHORT) {
-            assertNotNull(merged.getColorModel());
             assertTrue(!merged.getColorModel().hasAlpha());
         }
         // Upper-Left tile indexes
@@ -447,7 +442,7 @@ public class BandMergeTest extends TestBase {
     }
 
     // This method is similar to the testBandMerge method but it tests the ExtendedBandMergeOpImage class
-    private void testExtendedBandMerge(RenderedImage[] sources, boolean noDataUsed, boolean roiUsed) {
+    private void testExtendedBandMerge(RenderedImage[] sources, boolean noDataUsed, boolean roiUsed, int numberOfBands) {
         // Optional No Data Range used
         Range[] noData;
         // Source image data type
@@ -519,7 +514,7 @@ public class BandMergeTest extends TestBase {
 
         Assert.assertNotNull(merged.getTiles());
         // Check if the bands number is the same
-        assertEquals(BAND_NUMBER, merged.getNumBands());
+        assertEquals(numberOfBands, merged.getNumBands());
         // Upper-Left tile indexes
         int minTileX = merged.getMinTileX();
         int minTileY = merged.getMinTileY();
@@ -541,7 +536,7 @@ public class BandMergeTest extends TestBase {
         Point2D ptSrc = new Point2D.Double(0, 0);
 
         // Cycle on all the tile Bands
-        for (int b = 0; b < BAND_NUMBER; b++) {
+        for (int b = 0; b < numberOfBands; b++) {
             RandomIter iter = RandomIterFactory.create(translated[b], null, true, true);
 
             // Source corners
@@ -748,6 +743,37 @@ public class BandMergeTest extends TestBase {
                 for (int b = 0; b < bandMerged.getNumBands(); b++) {
                     assertEquals(1, data.getSample(j, i, b));
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testMultibandMerge() {
+        // setup images
+        final int MULTIBAND_BAND_COUNT = 13;
+        RenderedImage[] images = new RenderedImage[MULTIBAND_BAND_COUNT];
+        for (int i = 0; i < images.length; i++) {
+            images[i] = createTestImage(DataBuffer.TYPE_BYTE, IMAGE_WIDTH, IMAGE_HEIGHT, (byte) 50, false, 1);
+        }
+
+        try {
+            // normal bandmerge
+            testBandMerge(images, false, false, MULTIBAND_BAND_COUNT);
+            testBandMerge(images, true, false, MULTIBAND_BAND_COUNT);
+            testBandMerge(images, false, true, MULTIBAND_BAND_COUNT);
+            testBandMerge(images, true, true, MULTIBAND_BAND_COUNT);
+
+            // extended one
+            testExtendedBandMerge(images, false, false, MULTIBAND_BAND_COUNT);
+            testExtendedBandMerge(images, true, false, MULTIBAND_BAND_COUNT);
+            testExtendedBandMerge(images, false, true, MULTIBAND_BAND_COUNT);
+            testExtendedBandMerge(images, true, true, MULTIBAND_BAND_COUNT);
+
+        } finally {
+            // cleanup
+            for (int i = 0; i < images.length; i++) {
+                RenderedImage image = images[i];
+                ((TiledImage) image).dispose();
             }
         }
     }
