@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.bandmerge;
 
+import com.sun.media.imageioimpl.common.BogusColorSpace;
 import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Rectangle;
@@ -326,13 +327,12 @@ public class BandMergeOpImage extends PointOpImage {
      * @param setAlpha 
      * @return
      */
-    public static ColorModel getDefaultColorModel(SampleModel sm, boolean setAlpha) {
+    static ColorModel getDefaultColorModel(SampleModel sm, boolean setAlpha) {
 
         // Check on the data type
         int dataType = sm.getDataType();
         int numBands = sm.getNumBands();
-        if (dataType < DataBuffer.TYPE_BYTE || dataType == DataBuffer.TYPE_SHORT
-                || dataType > DataBuffer.TYPE_DOUBLE || numBands < 1 || numBands > 4) {
+        if (dataType < DataBuffer.TYPE_BYTE || dataType > DataBuffer.TYPE_DOUBLE || numBands < 1) {
             return null;
         }
 
@@ -385,7 +385,7 @@ public class BandMergeOpImage extends PointOpImage {
             cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);
             break;
         default:
-            return null;
+            cs = new BogusColorSpace(numBands);
         }
 
         // Definition of the colormodel
@@ -398,19 +398,15 @@ public class BandMergeOpImage extends PointOpImage {
         boolean useAlpha = false, premultiplied = false;
         int transparency = Transparency.OPAQUE;
         switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            return new ComponentColorModel(cs, bits, useAlpha, premultiplied, transparency,
-                    dataType);
-        case DataBuffer.TYPE_USHORT:
-            return new ComponentColorModel(cs, bits, useAlpha, premultiplied, transparency,
-                    dataType);
-        case DataBuffer.TYPE_INT:
-            return new ComponentColorModel(cs, bits, useAlpha, premultiplied, transparency,
-                    dataType);
-        case DataBuffer.TYPE_FLOAT:
-            return new FloatDoubleColorModel(cs, useAlpha, premultiplied, transparency, dataType);
-        case DataBuffer.TYPE_DOUBLE:
-            return new FloatDoubleColorModel(cs, useAlpha, premultiplied, transparency, dataType);
+            case DataBuffer.TYPE_BYTE:
+            case DataBuffer.TYPE_USHORT:
+            case DataBuffer.TYPE_SHORT:
+            case DataBuffer.TYPE_INT:
+                return new ComponentColorModel(cs, bits, useAlpha, premultiplied, transparency,
+                        dataType);
+            case DataBuffer.TYPE_FLOAT:
+            case DataBuffer.TYPE_DOUBLE:
+                return new FloatDoubleColorModel(cs, useAlpha, premultiplied, transparency, dataType);
         default:
             throw new IllegalArgumentException("Wrong data type used");
         }
