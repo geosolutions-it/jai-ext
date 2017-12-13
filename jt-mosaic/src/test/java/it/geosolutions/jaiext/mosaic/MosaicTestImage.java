@@ -17,11 +17,14 @@
 */
 package it.geosolutions.jaiext.mosaic;
 
-import it.geosolutions.jaiext.testclasses.TestBase;
-import it.geosolutions.rendered.viewer.RenderedImageBrowser;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.awt.image.WritableRaster;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.IOException;
 
@@ -32,6 +35,11 @@ import javax.media.jai.operator.NullDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
 
 import org.junit.Test;
+
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.testclasses.TestBase;
+import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 
 /**
@@ -110,18 +118,106 @@ public class MosaicTestImage extends TestBase{
         if (INTERACTIVE) {
             RenderedImageBrowser.showChain(image5, false, false);
             try {
+                System.out.println("Press a Key when done");
                 System.in.read();
             } catch (IOException e) {
-                e.printStackTrace();
+                // Ignore
             }
         }
+        // Final Image disposal
+        if (image5 instanceof RenderedOp) {
+            ((RenderedOp) image5).dispose();
+        }
+
+    }
+
+    @Test
+    public void testAggregatedNoData() {
+        final int w = 32;
+        final int h = 64;
+        final int halfValue = 128;
+        final int quarterValue = 64;
+
+        // we are going to mosaic 2 images.
         
-        //Final Image disposal
-        if(image5 instanceof RenderedOp){
-            ((RenderedOp)image5).dispose();
+        // First image:
+        // Upper half: A rectangle with third band = 0
+        // Lower half: A Fully black rectangle
+        int [] topLeftAreaPixels = new int[] {quarterValue, halfValue, 0};
+        int [] bottomLeftAreaPixels = new int[] {0, 0, 0};
+        BufferedImage image1 = new BufferedImage(w, h, BufferedImage.TYPE_3BYTE_BGR);
+        WritableRaster raster = image1.getRaster();
+        fillRaster(raster, 0, h/2, w, h/2, bottomLeftAreaPixels);
+        fillRaster(raster, 0, 0, w, h/2, topLeftAreaPixels);
+
+        // Second image:
+        // Upper half: A rectangle with second and third band = 0
+        // Lower half: A rectangle with first band = 0
+        int [] topRightAreaPixels = new int[] {halfValue, 0, 0};
+        int [] bottomRightAreaPixels = new int[] {0, quarterValue, halfValue};
+        BufferedImage bi2 = new BufferedImage(w, h, BufferedImage.TYPE_3BYTE_BGR);
+        WritableRaster raster2 = bi2.getRaster();
+        fillRaster(raster2, 0, 0, w, h/2, topRightAreaPixels);
+        fillRaster(raster2, 0, h/2, w, h/2, bottomRightAreaPixels);
+        
+        // Shift the second image beside (to the right) of the first image
+        RenderedImage image2 = TranslateDescriptor.create(bi2, (float) w, 0F, null, null);
+        
+        // prepare the mosaicking params
+        RenderedImage[] sources = { image1, image2 };
+        final double[] background = new double[] { 255, 255, 255 };
+ 
+        // set noData to zero
+        Range noDataByte = RangeFactory.create(0, 0);
+        Range[] noData = new Range[] { noDataByte, noDataByte };
+
+        RenderedImage mosaic = MosaicDescriptor.create(sources,
+                javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, null, null,
+                background, noData, null);
+        int[] destPixel = new int[3];
+
+        // Operations for showing the mosaic image
+        if (INTERACTIVE) {
+            RenderedImageBrowser.showChain(mosaic, false, false);
+            try {
+                System.out.println("Press a Key when done");
+                System.in.read();
+            } catch (IOException e) {
+                // Ignore
+            }
+        }
+        Raster rasterDest = mosaic.getData();
+     
+        // Bottom left mosaicked rectangle should have been set to background values
+        // since all bands were noData
+        for (int k = 0; k < 3; k++) {
+            rasterDest.getPixel(0, h / 2, destPixel);
+            assertTrue((int) background[k] == destPixel[k]);
         }
         
+        // All other regions should have preserved the original data since
+        // not all the bands was noData.
+        checkRasterArea(rasterDest, 0, 0, w, h/2, topLeftAreaPixels, destPixel);
+        checkRasterArea(rasterDest, w, h/2, w, h/2, bottomRightAreaPixels, destPixel);
+        checkRasterArea(rasterDest, w, 0, w, h/2, topRightAreaPixels, destPixel);
+    }
 
+    private void checkRasterArea(Raster rasterDest, int x, int y, int w, int h, int[] expectedPixel,
+            int[] destPixel) {
+        for (int j = y; j < y + h; j++) {
+            for (int i = x; i < x + w; i++) {
+                rasterDest.getPixel(i, j, destPixel);
+                assertArrayEquals(expectedPixel, destPixel);
+            }
+        }
+    }
+
+    private void fillRaster(WritableRaster raster, int x, int y, int w, int h, int[] pixel) {
+        for (int j = y; j < y + h; j++) {
+            for (int i = x; i < x + w; i++) {
+                raster.setPixel(i, j, pixel);
+            }
+        }
     }
 
 }
