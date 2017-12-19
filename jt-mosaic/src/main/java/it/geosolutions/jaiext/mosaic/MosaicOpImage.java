@@ -1019,8 +1019,8 @@ public class MosaicOpImage extends OpImage {
         final int[] srcLineStride = new int[sourcesNumber];
         final int[] srcPixelStride = new int[sourcesNumber];
         final int[][] srcBandOffsets = new int[sourcesNumber][];
-        final int[] sLineOffsets = new int[sourcesNumber];
-        final int[] sPixelOffsets = new int[sourcesNumber];
+        final int[][] sLineOffsetsS = new int[sourcesNumber][];
+        final int[][] sPixelOffsetsS = new int[sourcesNumber][];
 
         // Source data creation with null values
         final byte[][][] srcDataByte = new byte[sourcesNumber][][];
@@ -1029,7 +1029,7 @@ public class MosaicOpImage extends OpImage {
         // Destination data creation
         final byte[][] dstDataByte = dst.getByteDataArrays();
         // Source data per band creation
-        final byte[][] sBandDataByte = new byte[sourcesNumber][];
+        final byte[][][] sBandDataByteS = new byte[sourcesNumber][][];
         // Alpha data per band creation
         final byte[][] aBandDataByte;
 
@@ -1117,225 +1117,255 @@ public class MosaicOpImage extends OpImage {
 
         // COMPUTATION LEVEL
 
-        for (int b = 0; b < dstBands; b++) { // For all the Bands
-            // The data value are taken for every band
-            for (int s = 0; s < sourcesNumber; s++) {
-                if (srcBean[s].getDataRasterAccessor() != null) {
-                    // source band data
-                    sBandDataByte[s] = srcDataByte[s][b];
+        // The data value are taken for every band
+        for (int s = 0; s < sourcesNumber; s++) {
+            sLineOffsetsS[s] = new int[dstBands];
+            sPixelOffsetsS[s] = new int[dstBands];
+            sBandDataByteS[s] = new byte[dstBands][];
+
+            if (srcBean[s].getDataRasterAccessor() != null) {
+                // source band data
+                for (int b = 0; b < dstBands; b++) {
+                    sBandDataByteS[s][b] = srcDataByte[s][b];
                     // The offset is initialized
-                    sLineOffsets[s] = srcBandOffsets[s][b];
-                }
-                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                    // The alpha value are taken only from the first band (this
-                    // happens because the raster
-                    // accessor provides the data array with the band data even if
-                    // the alpha channel has only
-                    // one band.
-                    aBandDataByte[s] = alfaDataByte[s][0];
-                    aLineOffsets[s] = alfaBandOffsets[s][0];
+                    sLineOffsetsS[s][b] = srcBandOffsets[s][b];
                 }
             }
+            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                // The alpha value are taken only from the first band (this
+                // happens because the raster
+                // accessor provides the data array with the band data even if
+                // the alpha channel has only
+                // one band.
+                aBandDataByte[s] = alfaDataByte[s][0];
+                aLineOffsets[s] = alfaBandOffsets[s][0];
+            }
+        }
 
-            // The destination data band are selected
-            byte[] dBandDataByte = dstDataByte[b];
-            // the destination lineOffset is initialized
-            int dLineOffset = dstBandOffsets[b];
+        // The destination data band are selected
+        byte[][] dBandDataByteS = dstDataByte;
+        // the destination lineOffset is initialized
+        int[] dLineOffsetS = new int[dstBands];
+        int[] dPixelOffsetS = new int[dstBands];
+        for (int b = 0; b < dstBands; b++) {
+            dLineOffsetS[b] = dstBandOffsets[b];
+        }
 
-            if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
-                                                                   // values
-                    // Source line Offset and pixel Offset,
-                    // Alpha line Offset and pixel Offset are initialized
-                    for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
-                        }
-                        if (srcBean[s].getAlphaRasterAccessor() != null) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+        if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
+                                                               // values
+                // Source line Offset and pixel Offset,
+                // Alpha line Offset and pixel Offset are initialized
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
                         }
                     }
+                    if (srcBean[s].getAlphaRasterAccessor() != null) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
+                    }
+                }
 
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
 
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all
-                                                                       // the X
-                                                                       // values
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all the X values
 
-                        // The destination flag is initialized to false and changes
-                        // to true only
-                        // if one pixel alpha channel is not 0 or falls into an
-                        // image ROI or is not a NoData
-                        boolean setDestinationFlag = false;
+                    // The destination flag is initialized to false and changes to true only
+                    // if one pixel alpha channel is not 0 or falls into an image ROI or 
+                    // is not a NoData
+                    boolean setDestinationFlag = false;
 
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
-                            if (dataRA == null) {
-                                continue;
-                            }
-                            // The source valuse are initialized only for the switch
-                            // method
-                            int sourceValueByte = sBandDataByte[s][sPixelOffsets[s]];
+                    int[] sourceValueByteS = new int[dstBands];
+                    for (int s = 0; s < sourcesNumber; s++) {
+                        final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
+                        if (dataRA == null) {
+                            continue;
+                        }
+                        // The source valuse are initialized only for the switch
+                        // method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueByteS[b] = sBandDataByteS[s][b][sPixelOffsetsS[s][b]];
                             // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
 
-                            // the flag checks if the pixel is a noData
-                            boolean isData = true;
-                            if (hasNoData[s]) {
-                                isData = !(byteLookupTable[s][b][sourceValueByte
-                                        & 0xFF] == destinationNoDataByte[b]);
-                            }
-
-                            if (!isData) {
-                                setDestinationFlag = false;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    setDestinationFlag = aBandDataByte[s][aPixelOffsets[s]] != 0;
-
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX,
-                                            dstY, 0) > 0;
-                                    break;
-                                default:
-                                    setDestinationFlag = true;
-
+                        // the flag checks if the pixel is a noData
+                        int dataCount = dstBands;
+                        if (hasNoData[s]) {
+                            for (int b = 0; b < dstBands; b++) {
+                                if ((byteLookupTable[s][b][sourceValueByteS[b]
+                                        & 0xFF] == destinationNoDataByte[b])) {
+                                    dataCount--;
                                 }
                             }
-                            // If the flag is True, the related source pixel is
-                            // saved in the
-                            // destination one and exit from the cycle after
-                            // incrementing the offset
-                            if (setDestinationFlag) {
-                                dBandDataByte[dPixelOffset] = (byte) (sourceValueByte & 0xff);
+                        }
+
+                        if (dataCount == 0) {
+                            setDestinationFlag = false;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                setDestinationFlag = aBandDataByte[s][aPixelOffsets[s]] != 0;
+
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX, dstY,
+                                        0) > 0;
+                                break;
+                            default:
+                                setDestinationFlag = true;
+
+                            }
+                        }
+                        // If the flag is True, the related source pixel is saved in the
+                        // destination one and exit from the cycle after incrementing the offset
+                        if (setDestinationFlag) {
+                            for (int b = 0; b < dstBands; b++) {
+                                dBandDataByteS[b][dPixelOffsetS[b]] = (byte) (sourceValueByteS[b]
+                                        & 0xff);
 
                                 for (int k = s + 1; k < sourcesNumber; k++) {
                                     if (dataRA != null) {
-                                        sPixelOffsets[k] += srcPixelStride[k];
-                                    }
-                                    if (srcBean[k].getAlphaRasterAccessor() != null) {
-                                        aPixelOffsets[k] += alfaPixelStride[k];
+                                        sPixelOffsetsS[k][b] += srcPixelStride[k];
                                     }
                                 }
-                                break;
                             }
+                            for (int k = s + 1; k < sourcesNumber; k++) {
+                                if (srcBean[k].getAlphaRasterAccessor() != null) {
+                                    aPixelOffsets[k] += alfaPixelStride[k];
+                                }
+                            }
+                            break;
                         }
-                        // If the flag is false for every source, the destinationb
-                        // no data value is
-                        // set to the related destination pixel and then updates the
-                        // offset
+                    }
+                    // If the flag is false for every source, the destination no data value is
+                    // set to the related destination pixel and then updates the offset
+                    for (int b = 0; b < dstBands; b++) {
                         if (!setDestinationFlag) {
-                            dBandDataByte[dPixelOffset] = destinationNoDataByte[b];
+                            dBandDataByteS[b][dPixelOffsetS[b]] = destinationNoDataByte[b];
                         }
-
-                        dPixelOffset += dstPixelStride;
+                        dPixelOffsetS[b] += dstPixelStride;
                     }
                 }
-            } else { // the mosaicType is MOSAIC_TYPE_BLEND
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
-                    // Source and pixel Offset are initialized and Source and alpha
-                    // line offset are
-                    // translated (cycle accross all the sources)
-                    for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
+            }
+        } else { // the mosaicType is MOSAIC_TYPE_BLEND
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
+                // Source and pixel Offset are initialized and Source and alpha
+                // line offset are translated (cycle across all the sources)
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
                         }
-                        if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+                    }
+                    if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
+                    }
+                }
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+
+                    // In the blending operation the destination pixel value is
+                    // calculated as sum of the weighted source pixel / sum of weigth.
+                    double[] numerator = new double[dstBands];
+                    double[] denominator = new double[dstBands];
+                    int[] sourceValueByteS = new int[dstBands];
+
+                    for (int s = 0; s < sourcesNumber; s++) {
+                        if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueByteS[b] = sBandDataByteS[s][b][sPixelOffsetsS[s][b]];
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // The weight is calculated for every pixel
+                        double weight = 0.0F;
+                        int dataCount = dstBands;
+
+                        // If no alpha channel or Roi is present, the weight
+                        // is set to 1 or 0 if the pixel has or not a No Data value
+                        if (hasNoData[s]) {
+                            for (int b = 0; b < dstBands; b++) {
+                                if ((byteLookupTable[s][b][sourceValueByteS[b]
+                                        & 0xFF] == destinationNoDataByte[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+                        if (dataCount == 0) {
+                            weight = 0F;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                weight = (aBandDataByte[s][aPixelOffsets[s]] & 0xff);
+                                if (weight > 0.0F && isAlphaBitmaskUsed) {
+                                    weight = 1.0F;
+                                } else {
+                                    weight /= 255.0F;
+                                }
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                        ? 1.0F
+                                        : 0.0F;
+                                break;
+                            default:
+                                weight = 1.0F;
+                            }
+                        }
+                        // The above calculated weight are added to the
+                        // numerator and denominator
+                        for (int b = 0; b < dstBands; b++) {
+                            numerator[b] += (weight * (sourceValueByteS[b] & 0xff));
+                            denominator[b] += weight;
                         }
                     }
 
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
+                    // If the weighted sum is 0 the destination pixel value
+                    // takes the destination no data.
+                    // If the sum is not 0 the value is added to the related destination pixel
+                    double denominatorSum = 0;
+                    for (int b = 0; b < dstBands; b++) {
+                        denominatorSum += denominator[b];
+                    }
 
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
-
-                        // In the blending operation the destination pixel value is
-                        // calculated
-                        // as sum of the weighted source pixel / sum of weigth.
-                        double numerator = 0.0;
-                        double denominator = 0.0;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            if (srcBean[s].getDataRasterAccessor() == null) {
-                                continue;
-                            }
-
-                            // The source valuse are initialized only for the switch
-                            // method
-                            int sourceValueByte = sBandDataByte[s][sPixelOffsets[s]];
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-                            // The weight is calculated for every pixel
-                            double weight = 0.0F;
-
-                            boolean isData = true;
-
-                            // If no alpha channel or Roi is present, the weight
-                            // is set to 1 or 0 if the pixel has
-                            // or not a No Data value
-                            if (hasNoData[s]) {
-                                isData = !(byteLookupTable[s][b][sourceValueByte
-                                        & 0xFF] == destinationNoDataByte[b]);
-                            }
-                            if (!isData) {
-                                weight = 0F;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    weight = (aBandDataByte[s][aPixelOffsets[s]] & 0xff);
-                                    if (weight > 0.0F && isAlphaBitmaskUsed) {
-                                        weight = 1.0F;
-                                    } else {
-                                        weight /= 255.0F;
-                                    }
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
-                                            ? 1.0F : 0.0F;
-                                    break;
-                                default:
-                                    weight = 1.0F;
-                                }
-                            }
-                            // The above calculated weight are added to the
-                            // numerator and denominator
-                            numerator += (weight * (sourceValueByte & 0xff));
-
-                            denominator += weight;
-                        }
-
-                        // If the weighted sum is 0 the destination pixel value
-                        // takes the destination no data.
-                        // If the sum is not 0 the value is added to the related
-                        // destination pixel
-
-                        if (denominator == 0.0) {
-                            dBandDataByte[dPixelOffset] = destinationNoDataByte[b];
-
+                    for (int b = 0; b < dstBands; b++) {
+                        if (denominatorSum == 0.0) {
+                            dBandDataByteS[b][dPixelOffsetS[b]] = destinationNoDataByte[b];
                         } else {
-                            dBandDataByte[dPixelOffset] = ImageUtil
-                                    .clampRoundByte(numerator / denominator);
+                            dBandDataByteS[b][dPixelOffsetS[b]] = ImageUtil
+                                    .clampRoundByte(numerator[b] / denominator[b]);
                         }
                         // Offset update
-                        dPixelOffset += dstPixelStride;
+                        dPixelOffsetS[b] += dstPixelStride;
                     }
                 }
             }
@@ -1352,8 +1382,8 @@ public class MosaicOpImage extends OpImage {
         final int[] srcLineStride = new int[sourcesNumber];
         final int[] srcPixelStride = new int[sourcesNumber];
         final int[][] srcBandOffsets = new int[sourcesNumber][];
-        final int[] sLineOffsets = new int[sourcesNumber];
-        final int[] sPixelOffsets = new int[sourcesNumber];
+        final int[][] sLineOffsetsS = new int[sourcesNumber][];
+        final int[][] sPixelOffsetsS = new int[sourcesNumber][];
 
         // Source data creation with null values
         final short[][][] srcDataUshort = new short[sourcesNumber][][];
@@ -1362,7 +1392,7 @@ public class MosaicOpImage extends OpImage {
         // Destination data creation
         final short[][] dstDataUshort = dst.getShortDataArrays();
         // Source data per band creation
-        final short[][] sBandDataUshort = new short[sourcesNumber][];
+        final short[][][] sBandDataUshortS = new short[sourcesNumber][][];
         // Alpha data per band creation
         final short[][] aBandDataUshort;
 
@@ -1450,231 +1480,262 @@ public class MosaicOpImage extends OpImage {
 
         // COMPUTATION LEVEL
 
-        for (int b = 0; b < dstBands; b++) { // For all the Bands
-            // The data value are taken for every band
-            for (int s = 0; s < sourcesNumber; s++) {
-                if (srcBean[s].getDataRasterAccessor() != null) {
-                    // source band data
-                    sBandDataUshort[s] = srcDataUshort[s][b];
+        // The data value are taken for every band
+        for (int s = 0; s < sourcesNumber; s++) {
+            sLineOffsetsS[s] = new int[dstBands];
+            sPixelOffsetsS[s] = new int[dstBands];
+            sBandDataUshortS[s] = new short[dstBands][];
+
+            if (srcBean[s].getDataRasterAccessor() != null) {
+                // source band data
+                for (int b = 0; b < dstBands; b++) {
+                    sBandDataUshortS[s][b] = srcDataUshort[s][b];
                     // The offset is initialized
-                    sLineOffsets[s] = srcBandOffsets[s][b];
-                }
-                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                    // The alpha value are taken only from the first band (this
-                    // happens because the raster
-                    // accessor provides the data array with the band data even if
-                    // the alpha channel has only
-                    // one band.
-                    aBandDataUshort[s] = alfaDataUshort[s][0];
-                    aLineOffsets[s] = alfaBandOffsets[s][0];
+                    sLineOffsetsS[s][b] = srcBandOffsets[s][b];
                 }
             }
+            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                // The alpha value are taken only from the first band (this
+                // happens because the raster
+                // accessor provides the data array with the band data even if
+                // the alpha channel has only one band.
+                aBandDataUshort[s] = alfaDataUshort[s][0];
+                aLineOffsets[s] = alfaBandOffsets[s][0];
+            }
+        }
 
-            // The destination data band are selected
-            short[] dBandDataUshort = dstDataUshort[b];
-            ;
-            // the destination lineOffset is initialized
-            int dLineOffset = dstBandOffsets[b];
+        // The destination data band are selected
+        short[][] dBandDataUshortS = dstDataUshort;
+        // the destination lineOffset is initialized
+        int[] dLineOffsetS = new int[dstBands];
+        int[] dPixelOffsetS = new int[dstBands];
+        for (int b = 0; b < dstBands; b++) {
+            dLineOffsetS[b] = dstBandOffsets[b];
+        }
 
-            if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
-                                                                   // values
-                    // Source line Offset and pixel Offset,
-                    // Alpha line Offset and pixel Offset are initialized
-                    for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
-                        }
-                        if (srcBean[s].getAlphaRasterAccessor() != null) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+        if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
+                                                               // values
+                // Source line Offset and pixel Offset,
+                // Alpha line Offset and pixel Offset are initialized
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
                         }
                     }
-
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
-
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all
-                                                                       // the X
-                                                                       // values
-
-                        // The destination flag is initialized to false and changes
-                        // to true only
-                        // if one pixel alpha channel is not 0 or falls into an
-                        // image ROI or is not a NoData
-                        boolean setDestinationFlag = false;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
-                            if (dataRA == null) {
-                                continue;
-                            }
-                            // The source valuse are initialized only for the switch
-                            // method
-                            short value = sBandDataUshort[s][sPixelOffsets[s]];
-                            int sourceValueUshort = (value & 0xffff);
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-
-                            // the flag checks if the pixel is a noData
-                            boolean isData = true;
-                            if (hasNoData[s]) {
-                                Range noDataRangeUShort = (srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                ;
-                                isData = !noDataRangeUShort.contains(sourceValueUshort);
-                            }
-
-                            if (!isData) {
-                                setDestinationFlag = false;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    setDestinationFlag = aBandDataUshort[s][aPixelOffsets[s]] != 0;
-
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX,
-                                            dstY, 0) > 0;
-                                    break;
-                                default:
-                                    setDestinationFlag = true;
-
-                                }
-                            }
-                            // If the flag is True, the related source pixel is
-                            // saved in the
-                            // destination one and exit from the cycle after
-                            // incrementing the offset
-                            if (setDestinationFlag) {
-                                dBandDataUshort[dPixelOffset] = value;
-
-                                for (int k = s + 1; k < sourcesNumber; k++) {
-                                    if (dataRA != null) {
-                                        sPixelOffsets[k] += srcPixelStride[k];
-                                    }
-                                    if (srcBean[k].getAlphaRasterAccessor() != null) {
-                                        aPixelOffsets[k] += alfaPixelStride[k];
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                        // If the flag is false for every source, the destinationb
-                        // no data value is
-                        // set to the related destination pixel and then updates the
-                        // offset
-                        if (!setDestinationFlag) {
-                            dBandDataUshort[dPixelOffset] = destinationNoDataUShort[b];
-                        }
-
-                        dPixelOffset += dstPixelStride;
+                    if (srcBean[s].getAlphaRasterAccessor() != null) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
                     }
                 }
-            } else { // the mosaicType is MOSAIC_TYPE_BLEND
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
-                    // Source and pixel Offset are initialized and Source and alpha
-                    // line offset are
-                    // translated (cycle accross all the sources)
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all the X values
+
+                    // The destination flag is initialized to false and changes to true only
+                    // if one pixel alpha channel is not 0 or falls into an image ROI or 
+                    // is not a NoData
+                    boolean setDestinationFlag = false;
+
+                    short[] valueS = new short[dstBands];
+                    int[] sourceValueUshortS = new int[dstBands];
                     for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
+                        final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
+                        if (dataRA == null) {
+                            continue;
                         }
-                        if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            valueS[b] = sBandDataUshortS[s][b][sPixelOffsetsS[s][b]];
+                            sourceValueUshortS[b] = (valueS[b] & 0xffff);
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // the flag checks if the pixel is a noData
+                        int dataCount = dstBands;
+                        if (hasNoData[s]) {
+                            Range noDataRangeUShort = (srcBean[s]
+                                    .getSourceNoDataRangeRasterAccessor());
+                            for (int b = 0; b < dstBands; b++) {
+                                if (noDataRangeUShort != null && noDataRangeUShort.contains(sourceValueUshortS[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+
+                        if (dataCount == 0) {
+                            setDestinationFlag = false;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                setDestinationFlag = aBandDataUshort[s][aPixelOffsets[s]] != 0;
+
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX, dstY,
+                                        0) > 0;
+                                break;
+                            default:
+                                setDestinationFlag = true;
+
+                            }
+                        }
+                        // If the flag is True, the related source pixel is saved in the
+                        // destination one and exit from the cycle after incrementing the offset
+                        if (setDestinationFlag) {
+                            for (int b = 0; b < dstBands; b++) {
+                                dBandDataUshortS[b][dPixelOffsetS[b]] = valueS[b];
+                                for (int k = s + 1; k < sourcesNumber; k++) {
+                                    if (dataRA != null) {
+                                        sPixelOffsetsS[k][b] += srcPixelStride[k];
+                                    }
+                                }
+                            }
+                            for (int k = s + 1; k < sourcesNumber; k++) {
+                                if (srcBean[k].getAlphaRasterAccessor() != null) {
+                                    aPixelOffsets[k] += alfaPixelStride[k];
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    // If the flag is false for every source, the destination no data value is
+                    // set to the related destination pixel and then updates the offset
+                    for (int b = 0; b < dstBands; b++) {
+                        if (!setDestinationFlag) {
+                            dBandDataUshortS[b][dPixelOffsetS[b]] = destinationNoDataUShort[b];
+                        }
+
+                        dPixelOffsetS[b] += dstPixelStride;
+                    }
+                }
+            }
+        } else { // the mosaicType is MOSAIC_TYPE_BLEND
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
+                // Source and pixel Offset are initialized and Source and alpha
+                // line offset are
+                // translated (cycle accross all the sources)
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
+                        }
+                    }
+                    if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
+                    }
+                }
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+
+                    // In the blending operation the destination pixel value is
+                    // calculated as sum of the weighted source pixel / sum of weigth.
+                    double[] numerator = new double[dstBands];
+                    double[] denominator = new double[dstBands];
+                    short[] sourceValueUshortS = new short[dstBands];
+
+                    for (int s = 0; s < sourcesNumber; s++) {
+                        if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueUshortS[b] = (short) (sBandDataUshortS[s][b][sPixelOffsetsS[s][b]]
+                                    & 0xffff);
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // The weight is calculated for every pixel
+                        double weight = 0.0F;
+                        int dataCount = dstBands;
+
+                        // If no alpha channel or Roi is present, the weight
+                        // is set to 1 or 0 if the pixel has or not a No Data value
+                        if (hasNoData[s]) {
+                            for (int b = 0; b < dstBands; b++) {
+                                Range noDataRangeUShort = (srcBean[s]
+                                        .getSourceNoDataRangeRasterAccessor());
+                                if (noDataRangeUShort != null && noDataRangeUShort.contains(sourceValueUshortS[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+                        if (dataCount == 0) {
+                            weight = 0F;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                weight = (aBandDataUshort[s][aPixelOffsets[s]] & 0xffff);
+                                if (weight > 0.0F && isAlphaBitmaskUsed) {
+                                    weight = 1.0F;
+                                } else {
+                                    weight /= 255.0F;
+                                }
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                        ? 1.0F
+                                        : 0.0F;
+                                break;
+                            default:
+                                weight = 1.0F;
+                            }
+                        }
+                        // The above calculated weight are added to the
+                        // numerator and denominator
+                        for (int b = 0; b < dstBands; b++) {
+                            numerator[b] += (weight * (sourceValueUshortS[b]));
+                            denominator[b] += weight;
                         }
                     }
 
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
+                    // If the weighted sum is 0 the destination pixel value
+                    // takes the destination no data.
+                    // If the sum is not 0 the value is added to the related
+                    // destination pixel
+                    double denominatorSum = 0;
+                    for (int b = 0; b < dstBands; b++) {
+                        denominatorSum += denominator[b];
+                    }
 
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
-
-                        // In the blending operation the destination pixel value is
-                        // calculated
-                        // as sum of the weighted source pixel / sum of weigth.
-                        double numerator = 0.0;
-                        double denominator = 0.0;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            if (srcBean[s].getDataRasterAccessor() == null) {
-                                continue;
-                            }
-
-                            // The source valuse are initialized only for the switch
-                            // method
-                            short sourceValueUshort = (short) (sBandDataUshort[s][sPixelOffsets[s]]
-                                    & 0xffff);
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-                            // The weight is calculated for every pixel
-                            double weight = 0.0F;
-
-                            boolean isData = true;
-
-                            // If no alpha channel or Roi is present, the weight
-                            // is set to 1 or 0 if the pixel has
-                            // or not a No Data value
-                            if (hasNoData[s]) {
-                                Range noDataRangeUShort = (srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                isData = !noDataRangeUShort.contains(sourceValueUshort);
-                            }
-                            if (!isData) {
-                                weight = 0F;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    weight = (aBandDataUshort[s][aPixelOffsets[s]] & 0xffff);
-                                    if (weight > 0.0F && isAlphaBitmaskUsed) {
-                                        weight = 1.0F;
-                                    } else {
-                                        weight /= 255.0F;
-                                    }
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
-                                            ? 1.0F : 0.0F;
-                                    break;
-                                default:
-                                    weight = 1.0F;
-                                }
-                            }
-                            // The above calculated weight are added to the
-                            // numerator and denominator
-                            numerator += (weight * (sourceValueUshort));
-
-                            denominator += weight;
-                        }
-
-                        // If the weighted sum is 0 the destination pixel value
-                        // takes the destination no data.
-                        // If the sum is not 0 the value is added to the related
-                        // destination pixel
-
-                        if (denominator == 0.0) {
-                            dBandDataUshort[dPixelOffset] = destinationNoDataUShort[b];
+                    for (int b = 0; b < dstBands; b++) {
+                        if (denominatorSum == 0.0) {
+                            dBandDataUshortS[b][dPixelOffsetS[b]] = destinationNoDataUShort[b];
 
                         } else {
-                            dBandDataUshort[dPixelOffset] = ImageUtil
-                                    .clampRoundUShort(numerator / denominator);
+                            dBandDataUshortS[b][dPixelOffsetS[b]] = ImageUtil
+                                    .clampRoundUShort(numerator[b] / denominator[b]);
+                            // Offset update
+                            dPixelOffsetS[b] += dstPixelStride;
+
                         }
-                        // Offset update
-                        dPixelOffset += dstPixelStride;
+
                     }
                 }
             }
@@ -1691,8 +1752,8 @@ public class MosaicOpImage extends OpImage {
         final int[] srcLineStride = new int[sourcesNumber];
         final int[] srcPixelStride = new int[sourcesNumber];
         final int[][] srcBandOffsets = new int[sourcesNumber][];
-        final int[] sLineOffsets = new int[sourcesNumber];
-        final int[] sPixelOffsets = new int[sourcesNumber];
+        final int[][] sLineOffsetsS = new int[sourcesNumber][];
+        final int[][] sPixelOffsetsS = new int[sourcesNumber][];
 
         // Source data creation with null values
         final short[][][] srcDataShort = new short[sourcesNumber][][];
@@ -1701,7 +1762,7 @@ public class MosaicOpImage extends OpImage {
         // Destination data creation
         final short[][] dstDataShort = dst.getShortDataArrays();
         // Source data per band creation
-        final short[][] sBandDataShort = new short[sourcesNumber][];
+        final short[][][] sBandDataShortS = new short[sourcesNumber][][];
         // Alpha data per band creation
         final short[][] aBandDataShort;
 
@@ -1789,227 +1850,258 @@ public class MosaicOpImage extends OpImage {
 
         // COMPUTATION LEVEL
 
-        for (int b = 0; b < dstBands; b++) { // For all the Bands
-            // The data value are taken for every band
-            for (int s = 0; s < sourcesNumber; s++) {
-                if (srcBean[s].getDataRasterAccessor() != null) {
-                    // source band data
-                    sBandDataShort[s] = srcDataShort[s][b];
+        // The data value are taken for every band
+        for (int s = 0; s < sourcesNumber; s++) {
+            sLineOffsetsS[s] = new int[dstBands];
+            sPixelOffsetsS[s] = new int[dstBands];
+            sBandDataShortS[s] = new short[dstBands][];
+
+            if (srcBean[s].getDataRasterAccessor() != null) {
+                // source band data
+                for (int b = 0; b < dstBands; b++) {
+                    sBandDataShortS[s][b] = srcDataShort[s][b];
                     // The offset is initialized
-                    sLineOffsets[s] = srcBandOffsets[s][b];
-                }
-                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                    // The alpha value are taken only from the first band (this
-                    // happens because the raster
-                    // accessor provides the data array with the band data even if
-                    // the alpha channel has only
-                    // one band.
-                    aBandDataShort[s] = alfaDataShort[s][0];
-                    aLineOffsets[s] = alfaBandOffsets[s][0];
+                    sLineOffsetsS[s][b] = srcBandOffsets[s][b];
                 }
             }
+            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                // The alpha value are taken only from the first band (this
+                // happens because the raster
+                // accessor provides the data array with the band data even if
+                // the alpha channel has only one band.
+                aBandDataShort[s] = alfaDataShort[s][0];
+                aLineOffsets[s] = alfaBandOffsets[s][0];
+            }
+        }
 
-            // The destination data band are selected
-            short[] dBandDataShort = dstDataShort[b];
-            // the destination lineOffset is initialized
-            int dLineOffset = dstBandOffsets[b];
+        // The destination data band are selected
+        short[][] dBandDataShortS = dstDataShort;
+        // the destination lineOffset is initialized
+        int[] dLineOffsetS = new int[dstBands];
+        int[] dPixelOffsetS = new int[dstBands];
+        for (int b = 0; b < dstBands; b++) {
+            dLineOffsetS[b] = dstBandOffsets[b];
+        }
 
-            if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
-                                                                   // values
-                    // Source line Offset and pixel Offset,
-                    // Alpha line Offset and pixel Offset are initialized
-                    for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
-                        }
-                        if (srcBean[s].getAlphaRasterAccessor() != null) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+        if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
+                                                               // values
+                // Source line Offset and pixel Offset,
+                // Alpha line Offset and pixel Offset are initialized
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
                         }
                     }
-
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
-
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all
-                                                                       // the X
-                                                                       // values
-
-                        // The destination flag is initialized to false and changes
-                        // to true only
-                        // if one pixel alpha channel is not 0 or falls into an
-                        // image ROI or is not a NoData
-                        boolean setDestinationFlag = false;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
-                            if (dataRA == null) {
-                                continue;
-                            }
-                            // The source valuse are initialized only for the switch
-                            // method
-                            short sourceValueShort = sBandDataShort[s][sPixelOffsets[s]];
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-
-                            // the flag checks if the pixel is a noData
-                            boolean isData = true;
-                            if (hasNoData[s]) {
-                                Range noDataRangeShort = (srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                isData = !noDataRangeShort.contains(sourceValueShort);
-                            }
-
-                            if (!isData) {
-                                setDestinationFlag = false;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    setDestinationFlag = aBandDataShort[s][aPixelOffsets[s]] != 0;
-
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX,
-                                            dstY, 0) > 0;
-                                    break;
-                                default:
-                                    setDestinationFlag = true;
-
-                                }
-                            }
-                            // If the flag is True, the related source pixel is
-                            // saved in the
-                            // destination one and exit from the cycle after
-                            // incrementing the offset
-                            if (setDestinationFlag) {
-                                dBandDataShort[dPixelOffset] = sourceValueShort;
-
-                                for (int k = s + 1; k < sourcesNumber; k++) {
-                                    if (dataRA != null) {
-                                        sPixelOffsets[k] += srcPixelStride[k];
-                                    }
-                                    if (srcBean[k].getAlphaRasterAccessor() != null) {
-                                        aPixelOffsets[k] += alfaPixelStride[k];
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                        // If the flag is false for every source, the destinationb
-                        // no data value is
-                        // set to the related destination pixel and then updates the
-                        // offset
-                        if (!setDestinationFlag) {
-                            dBandDataShort[dPixelOffset] = destinationNoDataShort[b];
-                        }
-
-                        dPixelOffset += dstPixelStride;
+                    if (srcBean[s].getAlphaRasterAccessor() != null) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
                     }
                 }
-            } else { // the mosaicType is MOSAIC_TYPE_BLEND
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
-                    // Source and pixel Offset are initialized and Source and alpha
-                    // line offset are
-                    // translated (cycle accross all the sources)
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all the X values
+
+                    // The destination flag is initialized to false and changes to true only
+                    // if one pixel alpha channel is not 0 or falls into an image ROI or 
+                    // is not a NoData
+                    boolean setDestinationFlag = false;
+
+                    short[] sourceValueShortS = new short[dstBands];
                     for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
+                        final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
+                        if (dataRA == null) {
+                            continue;
                         }
-                        if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueShortS[b] = sBandDataShortS[s][b][sPixelOffsetsS[s][b]];
+
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // the flag checks if the pixel is a noData
+                        int dataCount = dstBands;
+                        if (hasNoData[s]) {
+                            Range noDataRangeShort = (srcBean[s]
+                                    .getSourceNoDataRangeRasterAccessor());
+                            for (int b = 0; b < dstBands; b++) {
+                                if (noDataRangeShort != null && noDataRangeShort.contains(sourceValueShortS[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+
+                        if (dataCount == 0) {
+                            setDestinationFlag = false;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                setDestinationFlag = aBandDataShort[s][aPixelOffsets[s]] != 0;
+
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX, dstY,
+                                        0) > 0;
+                                break;
+                            default:
+                                setDestinationFlag = true;
+
+                            }
+                        }
+                        // If the flag is True, the related source pixel is saved in the
+                        // destination one and exit from the cycle after incrementing the offset
+                        if (setDestinationFlag) {
+                            for (int b = 0; b < dstBands; b++) {
+                                dBandDataShortS[b][dPixelOffsetS[b]] = sourceValueShortS[b];
+                                for (int k = s + 1; k < sourcesNumber; k++) {
+                                    if (dataRA != null) {
+                                        sPixelOffsetsS[k][b] += srcPixelStride[k];
+                                    }
+                                }
+                            }
+                            for (int k = s + 1; k < sourcesNumber; k++) {
+                                if (srcBean[k].getAlphaRasterAccessor() != null) {
+                                    aPixelOffsets[k] += alfaPixelStride[k];
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    // If the flag is false for every source, the destination no data value is
+                    // set to the related destination pixel and then updates the offset
+                    for (int b = 0; b < dstBands; b++) {
+                        if (!setDestinationFlag) {
+                            dBandDataShortS[b][dPixelOffsetS[b]] = destinationNoDataShort[b];
+                        }
+
+                        dPixelOffsetS[b] += dstPixelStride;
+                    }
+                }
+            }
+        } else { // the mosaicType is MOSAIC_TYPE_BLEND
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
+                // Source and pixel Offset are initialized and Source and alpha
+                // line offset are translated (cycle across all the sources)
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
+                        }
+                    }
+                    if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
+                    }
+                }
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+
+                    // In the blending operation the destination pixel value is
+                    // calculated as sum of the weighted source pixel / sum of weigth.
+                    double[] numerator = new double[dstBands];
+                    double[] denominator = new double[dstBands];
+                    short[] sourceValueShortS = new short[dstBands];
+
+                    for (int s = 0; s < sourcesNumber; s++) {
+                        if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueShortS[b] = sBandDataShortS[s][b][sPixelOffsetsS[s][b]];
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // The weight is calculated for every pixel
+                        double weight = 0.0F;
+                        int dataCount = dstBands;
+
+                        // If no alpha channel or Roi is present, the weight
+                        // is set to 1 or 0 if the pixel has or not a No Data value
+                        if (hasNoData[s]) {
+                            for (int b = 0; b < dstBands; b++) {
+                                Range noDataRangeShort = (srcBean[s]
+                                        .getSourceNoDataRangeRasterAccessor());
+                                if (noDataRangeShort != null && noDataRangeShort.contains(sourceValueShortS[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+                        if (dataCount == 0) {
+                            weight = 0F;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                weight = aBandDataShort[s][aPixelOffsets[s]];
+                                if (weight > 0.0F && isAlphaBitmaskUsed) {
+                                    weight = 1.0F;
+                                } else {
+                                    weight /= 255.0F;
+                                }
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                        ? 1.0F
+                                        : 0.0F;
+                                break;
+                            default:
+                                weight = 1.0F;
+                            }
+                        }
+                        // The above calculated weight are added to the
+                        // numerator and denominator
+                        for (int b = 0; b < dstBands; b++) {
+                            numerator[b] += (weight * (sourceValueShortS[b]));
+                            denominator[b] += weight;
                         }
                     }
 
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
+                    // If the weighted sum is 0 the destination pixel value
+                    // takes the destination no data.
+                    // If the sum is not 0 the value is added to the related
+                    // destination pixel
+                    double denominatorSum = 0;
+                    for (int b = 0; b < dstBands; b++) {
+                        denominatorSum += denominator[b];
+                    }
 
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
-
-                        // In the blending operation the destination pixel value is
-                        // calculated
-                        // as sum of the weighted source pixel / sum of weigth.
-                        double numerator = 0.0;
-                        double denominator = 0.0;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            if (srcBean[s].getDataRasterAccessor() == null) {
-                                continue;
-                            }
-
-                            // The source valuse are initialized only for the switch
-                            // method
-                            short sourceValueShort = sBandDataShort[s][sPixelOffsets[s]];
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-                            // The weight is calculated for every pixel
-                            double weight = 0.0F;
-
-                            boolean isData = true;
-
-                            // If no alpha channel or Roi is present, the weight
-                            // is set to 1 or 0 if the pixel has
-                            // or not a No Data value
-                            if (hasNoData[s]) {
-                                Range noDataRangeShort = (srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                isData = !noDataRangeShort.contains(sourceValueShort);
-                            }
-                            if (!isData) {
-                                weight = 0F;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    weight = (aBandDataShort[s][aPixelOffsets[s]]);
-                                    if (weight > 0.0F && isAlphaBitmaskUsed) {
-                                        weight = 1.0F;
-                                    } else {
-                                        weight /= 255.0F;
-                                    }
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
-                                            ? 1.0F : 0.0F;
-                                    break;
-                                default:
-                                    weight = 1.0F;
-                                }
-                            }
-                            // The above calculated weight are added to the
-                            // numerator and denominator
-                            numerator += (weight * (sourceValueShort));
-
-                            denominator += weight;
-                        }
-
-                        // If the weighted sum is 0 the destination pixel value
-                        // takes the destination no data.
-                        // If the sum is not 0 the value is added to the related
-                        // destination pixel
-
-                        if (denominator == 0.0) {
-                            dBandDataShort[dPixelOffset] = destinationNoDataShort[b];
+                    for (int b = 0; b < dstBands; b++) {
+                        if (denominatorSum == 0.0) {
+                            dBandDataShortS[b][dPixelOffsetS[b]] = destinationNoDataShort[b];
 
                         } else {
-                            dBandDataShort[dPixelOffset] = ImageUtil
-                                    .clampRoundShort(numerator / denominator);
+                            dBandDataShortS[b][dPixelOffsetS[b]] = ImageUtil
+                                    .clampRoundShort(numerator[b] / denominator[b]);
+                            // Offset update
+                            dPixelOffsetS[b] += dstPixelStride;
+
                         }
-                        // Offset update
-                        dPixelOffset += dstPixelStride;
                     }
                 }
             }
@@ -2026,8 +2118,8 @@ public class MosaicOpImage extends OpImage {
         final int[] srcLineStride = new int[sourcesNumber];
         final int[] srcPixelStride = new int[sourcesNumber];
         final int[][] srcBandOffsets = new int[sourcesNumber][];
-        final int[] sLineOffsets = new int[sourcesNumber];
-        final int[] sPixelOffsets = new int[sourcesNumber];
+        final int[][] sLineOffsetsS = new int[sourcesNumber][];
+        final int[][] sPixelOffsetsS = new int[sourcesNumber][];
 
         // Source data creation with null values
         final int[][][] srcDataInt = new int[sourcesNumber][][];
@@ -2036,7 +2128,7 @@ public class MosaicOpImage extends OpImage {
         // Destination data creation
         final int[][] dstDataInt = dst.getIntDataArrays();
         // Source data per band creation
-        final int[][] sBandDataInt = new int[sourcesNumber][];
+        final int[][][] sBandDataIntS = new int[sourcesNumber][][];
         // Alpha data per band creation
         final int[][] aBandDataInt;
 
@@ -2124,227 +2216,257 @@ public class MosaicOpImage extends OpImage {
 
         // COMPUTATION LEVEL
 
-        for (int b = 0; b < dstBands; b++) { // For all the Bands
-            // The data value are taken for every band
-            for (int s = 0; s < sourcesNumber; s++) {
-                if (srcBean[s].getDataRasterAccessor() != null) {
-                    // source band data
-                    sBandDataInt[s] = srcDataInt[s][b];
+        // The data value are taken for every band
+        for (int s = 0; s < sourcesNumber; s++) {
+            sLineOffsetsS[s] = new int[dstBands];
+            sPixelOffsetsS[s] = new int[dstBands];
+            sBandDataIntS[s] = new int[dstBands][];
+
+            if (srcBean[s].getDataRasterAccessor() != null) {
+                // source band data
+                for (int b = 0; b < dstBands; b++) {
+                    sBandDataIntS[s][b] = srcDataInt[s][b];
                     // The offset is initialized
-                    sLineOffsets[s] = srcBandOffsets[s][b];
-                }
-                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                    // The alpha value are taken only from the first band (this
-                    // happens because the raster
-                    // accessor provides the data array with the band data even if
-                    // the alpha channel has only
-                    // one band.
-                    aBandDataInt[s] = alfaDataInt[s][0];
-                    aLineOffsets[s] = alfaBandOffsets[s][0];
+                    sLineOffsetsS[s][b] = srcBandOffsets[s][b];
                 }
             }
+            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                // The alpha value are taken only from the first band (this
+                // happens because the raster
+                // accessor provides the data array with the band data even if
+                // the alpha channel has only one band.
+                aBandDataInt[s] = alfaDataInt[s][0];
+                aLineOffsets[s] = alfaBandOffsets[s][0];
+            }
+        }
 
-            // The destination data band are selected
-            int[] dBandDataInt = dstDataInt[b];
-            // the destination lineOffset is initialized
-            int dLineOffset = dstBandOffsets[b];
+        // The destination data band are selected
+        int[][] dBandDataIntS = dstDataInt;
+        // the destination lineOffset is initialized
+        int[] dLineOffsetS = new int[dstBands];
+        int[] dPixelOffsetS = new int[dstBands];
+        for (int b = 0; b < dstBands; b++) {
+            dLineOffsetS[b] = dstBandOffsets[b];
+        }
 
-            if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
-                                                                   // values
-                    // Source line Offset and pixel Offset,
-                    // Alpha line Offset and pixel Offset are initialized
-                    for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
-                        }
-                        if (srcBean[s].getAlphaRasterAccessor() != null) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+        if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
+                                                               // values
+                // Source line Offset and pixel Offset,
+                // Alpha line Offset and pixel Offset are initialized
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
                         }
                     }
-
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
-
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all
-                                                                       // the X
-                                                                       // values
-
-                        // The destination flag is initialized to false and changes
-                        // to true only
-                        // if one pixel alpha channel is not 0 or falls into an
-                        // image ROI or is not a NoData
-                        boolean setDestinationFlag = false;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
-                            if (dataRA == null) {
-                                continue;
-                            }
-                            // The source valuse are initialized only for the switch
-                            // method
-                            int sourceValueInt = sBandDataInt[s][sPixelOffsets[s]];
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-
-                            // the flag checks if the pixel is a noData
-                            boolean isData = true;
-                            if (hasNoData[s]) {
-                                Range noDataRangeInt = (srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                isData = !noDataRangeInt.contains(sourceValueInt);
-                            }
-
-                            if (!isData) {
-                                setDestinationFlag = false;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    setDestinationFlag = aBandDataInt[s][aPixelOffsets[s]] != 0;
-
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX,
-                                            dstY, 0) > 0;
-                                    break;
-                                default:
-                                    setDestinationFlag = true;
-
-                                }
-                            }
-                            // If the flag is True, the related source pixel is
-                            // saved in the
-                            // destination one and exit from the cycle after
-                            // incrementing the offset
-                            if (setDestinationFlag) {
-                                dBandDataInt[dPixelOffset] = sourceValueInt;
-
-                                for (int k = s + 1; k < sourcesNumber; k++) {
-                                    if (dataRA != null) {
-                                        sPixelOffsets[k] += srcPixelStride[k];
-                                    }
-                                    if (srcBean[k].getAlphaRasterAccessor() != null) {
-                                        aPixelOffsets[k] += alfaPixelStride[k];
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                        // If the flag is false for every source, the destinationb
-                        // no data value is
-                        // set to the related destination pixel and then updates the
-                        // offset
-                        if (!setDestinationFlag) {
-                            dBandDataInt[dPixelOffset] = destinationNoDataInt[b];
-                        }
-
-                        dPixelOffset += dstPixelStride;
+                    if (srcBean[s].getAlphaRasterAccessor() != null) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
                     }
                 }
-            } else { // the mosaicType is MOSAIC_TYPE_BLEND
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
-                    // Source and pixel Offset are initialized and Source and alpha
-                    // line offset are
-                    // translated (cycle accross all the sources)
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all the X values
+
+                    // The destination flag is initialized to false and changes to true only
+                    // if one pixel alpha channel is not 0 or falls into an image ROI or 
+                    // is not a NoData
+                    boolean setDestinationFlag = false;
+
+                    int[] sourceValueIntS = new int[dstBands];
                     for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
+                        final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
+                        if (dataRA == null) {
+                            continue;
                         }
-                        if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueIntS[b] = sBandDataIntS[s][b][sPixelOffsetsS[s][b]];
+
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // the flag checks if the pixel is a noData
+                        int dataCount = dstBands;
+                        if (hasNoData[s]) {
+                            Range noDataRangeInt = (srcBean[s]
+                                    .getSourceNoDataRangeRasterAccessor());
+                            for (int b = 0; b < dstBands; b++) {
+                                if (noDataRangeInt != null && noDataRangeInt.contains(sourceValueIntS[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+
+                        if (dataCount == 0) {
+                            setDestinationFlag = false;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                setDestinationFlag = aBandDataInt[s][aPixelOffsets[s]] != 0;
+
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX, dstY,
+                                        0) > 0;
+                                break;
+                            default:
+                                setDestinationFlag = true;
+                            }
+                        }
+                        // If the flag is True, the related source pixel is saved in the
+                        // destination one and exit from the cycle after incrementing the offset
+                        if (setDestinationFlag) {
+                            for (int b = 0; b < dstBands; b++) {
+                                dBandDataIntS[b][dPixelOffsetS[b]] = sourceValueIntS[b];
+                                for (int k = s + 1; k < sourcesNumber; k++) {
+                                    if (dataRA != null) {
+                                        sPixelOffsetsS[k][b] += srcPixelStride[k];
+                                    }
+                                }
+                            }
+                            for (int k = s + 1; k < sourcesNumber; k++) {
+                                if (srcBean[k].getAlphaRasterAccessor() != null) {
+                                    aPixelOffsets[k] += alfaPixelStride[k];
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    // If the flag is false for every source, the destination no data value is
+                    // set to the related destination pixel and then updates the offset
+                    for (int b = 0; b < dstBands; b++) {
+                        if (!setDestinationFlag) {
+                            dBandDataIntS[b][dPixelOffsetS[b]] = destinationNoDataInt[b];
+                        }
+
+                        dPixelOffsetS[b] += dstPixelStride;
+                    }
+                }
+            }
+        } else { // the mosaicType is MOSAIC_TYPE_BLEND
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
+                // Source and pixel Offset are initialized and Source and alpha
+                // line offset are translated (cycle across all the sources)
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
+                        }
+                    }
+                    if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
+                    }
+                }
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+
+                    // In the blending operation the destination pixel value is
+                    // calculated as sum of the weighted source pixel / sum of weigth.
+                    double[] numerator = new double[dstBands];
+                    double[] denominator = new double[dstBands];
+                    int[] sourceValueIntS = new int[dstBands];
+
+                    for (int s = 0; s < sourcesNumber; s++) {
+                        if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueIntS[b] = sBandDataIntS[s][b][sPixelOffsetsS[s][b]];
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // The weight is calculated for every pixel
+                        double weight = 0.0F;
+                        int dataCount = dstBands;
+
+                        // If no alpha channel or Roi is present, the weight
+                        // is set to 1 or 0 if the pixel has or not a No Data value
+                        if (hasNoData[s]) {
+                            for (int b = 0; b < dstBands; b++) {
+                                Range noDataRangeInt = (srcBean[s]
+                                        .getSourceNoDataRangeRasterAccessor());
+                                if (noDataRangeInt != null && noDataRangeInt.contains(sourceValueIntS[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+                        if (dataCount == 0) {
+                            weight = 0F;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                weight = aBandDataInt[s][aPixelOffsets[s]];
+                                if (weight > 0.0F && isAlphaBitmaskUsed) {
+                                    weight = 1.0F;
+                                } else {
+                                    weight /= 255.0F;
+                                }
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                        ? 1.0F
+                                        : 0.0F;
+                                break;
+                            default:
+                                weight = 1.0F;
+                            }
+                        }
+                        // The above calculated weight are added to the
+                        // numerator and denominator
+                        for (int b = 0; b < dstBands; b++) {
+                            numerator[b] += (weight * (sourceValueIntS[b]));
+                            denominator[b] += weight;
                         }
                     }
 
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
+                    // If the weighted sum is 0 the destination pixel value
+                    // takes the destination no data.
+                    // If the sum is not 0 the value is added to the related
+                    // destination pixel
+                    double denominatorSum = 0;
+                    for (int b = 0; b < dstBands; b++) {
+                        denominatorSum += denominator[b];
+                    }
 
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
-
-                        // In the blending operation the destination pixel value is
-                        // calculated
-                        // as sum of the weighted source pixel / sum of weigth.
-                        double numerator = 0.0;
-                        double denominator = 0.0;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            if (srcBean[s].getDataRasterAccessor() == null) {
-                                continue;
-                            }
-
-                            // The source valuse are initialized only for the switch
-                            // method
-                            int sourceValueInt = sBandDataInt[s][sPixelOffsets[s]];
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-                            // The weight is calculated for every pixel
-                            double weight = 0.0F;
-
-                            boolean isData = true;
-
-                            // If no alpha channel or Roi is present, the weight
-                            // is set to 1 or 0 if the pixel has
-                            // or not a No Data value
-                            if (hasNoData[s]) {
-                                Range noDataRangeInt = (srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                isData = !noDataRangeInt.contains(sourceValueInt);
-                            }
-                            if (!isData) {
-                                weight = 0F;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    weight = (aBandDataInt[s][aPixelOffsets[s]]);
-                                    if (weight > 0.0F && isAlphaBitmaskUsed) {
-                                        weight = 1.0F;
-                                    } else {
-                                        weight /= 255.0F;
-                                    }
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
-                                            ? 1.0F : 0.0F;
-                                    break;
-                                default:
-                                    weight = 1.0F;
-                                }
-                            }
-                            // The above calculated weight are added to the
-                            // numerator and denominator
-                            numerator += (weight * (sourceValueInt));
-
-                            denominator += weight;
-                        }
-
-                        // If the weighted sum is 0 the destination pixel value
-                        // takes the destination no data.
-                        // If the sum is not 0 the value is added to the related
-                        // destination pixel
-
-                        if (denominator == 0.0) {
-                            dBandDataInt[dPixelOffset] = destinationNoDataInt[b];
+                    for (int b = 0; b < dstBands; b++) {
+                        if (denominatorSum == 0.0) {
+                            dBandDataIntS[b][dPixelOffsetS[b]] = destinationNoDataInt[b];
 
                         } else {
-                            dBandDataInt[dPixelOffset] = ImageUtil
-                                    .clampRoundInt(numerator / denominator);
+                            dBandDataIntS[b][dPixelOffsetS[b]] = ImageUtil
+                                    .clampRoundInt(numerator[b] / denominator[b]);
+                            // Offset update
+                            dPixelOffsetS[b] += dstPixelStride;
+
                         }
-                        // Offset update
-                        dPixelOffset += dstPixelStride;
                     }
                 }
             }
@@ -2361,8 +2483,8 @@ public class MosaicOpImage extends OpImage {
         final int[] srcLineStride = new int[sourcesNumber];
         final int[] srcPixelStride = new int[sourcesNumber];
         final int[][] srcBandOffsets = new int[sourcesNumber][];
-        final int[] sLineOffsets = new int[sourcesNumber];
-        final int[] sPixelOffsets = new int[sourcesNumber];
+        final int[][] sLineOffsetsS = new int[sourcesNumber][];
+        final int[][] sPixelOffsetsS = new int[sourcesNumber][];
 
         // Source data creation with null values
         final float[][][] srcDataFloat = new float[sourcesNumber][][];
@@ -2371,7 +2493,7 @@ public class MosaicOpImage extends OpImage {
         // Destination data creation
         final float[][] dstDataFloat = dst.getFloatDataArrays();
         // Source data per band creation
-        final float[][] sBandDataFloat = new float[sourcesNumber][];
+        final float[][][] sBandDataFloatS = new float[sourcesNumber][][];
         // Alpha data per band creation
         final float[][] aBandDataFloat;
 
@@ -2459,234 +2581,257 @@ public class MosaicOpImage extends OpImage {
 
         // COMPUTATION LEVEL
 
-        for (int b = 0; b < dstBands; b++) { // For all the Bands
-            // The data value are taken for every band
-            for (int s = 0; s < sourcesNumber; s++) {
-                if (srcBean[s].getDataRasterAccessor() != null) {
-                    // source band data
-                    sBandDataFloat[s] = srcDataFloat[s][b];
+        // The data value are taken for every band
+        for (int s = 0; s < sourcesNumber; s++) {
+            sLineOffsetsS[s] = new int[dstBands];
+            sPixelOffsetsS[s] = new int[dstBands];
+            sBandDataFloatS[s] = new float[dstBands][];
+
+            if (srcBean[s].getDataRasterAccessor() != null) {
+                // source band data
+                for (int b = 0; b < dstBands; b++) {
+                    sBandDataFloatS[s][b] = srcDataFloat[s][b];
                     // The offset is initialized
-                    sLineOffsets[s] = srcBandOffsets[s][b];
-                }
-                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                    // The alpha value are taken only from the first band (this
-                    // happens because the raster
-                    // accessor provides the data array with the band data even if
-                    // the alpha channel has only
-                    // one band.
-                    aBandDataFloat[s] = alfaDataFloat[s][0];
-                    aLineOffsets[s] = alfaBandOffsets[s][0];
+                    sLineOffsetsS[s][b] = srcBandOffsets[s][b];
                 }
             }
+            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                // The alpha value are taken only from the first band (this
+                // happens because the raster
+                // accessor provides the data array with the band data even if
+                // the alpha channel has only one band.
+                aBandDataFloat[s] = alfaDataFloat[s][0];
+                aLineOffsets[s] = alfaBandOffsets[s][0];
+            }
+        }
 
-            // The destination data band are selected
-            float[] dBandDataFloat = dstDataFloat[b];
-            ;
-            // the destination lineOffset is initialized
-            int dLineOffset = dstBandOffsets[b];
+        // The destination data band are selected
+        float[][] dBandDataFloatS = dstDataFloat;
+        // the destination lineOffset is initialized
+        int[] dLineOffsetS = new int[dstBands];
+        int[] dPixelOffsetS = new int[dstBands];
+        for (int b = 0; b < dstBands; b++) {
+            dLineOffsetS[b] = dstBandOffsets[b];
+        }
 
-            if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
-                                                                   // values
-                    // Source line Offset and pixel Offset,
-                    // Alpha line Offset and pixel Offset are initialized
-                    for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
-                        }
-                        if (srcBean[s].getAlphaRasterAccessor() != null) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+        if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
+                                                               // values
+                // Source line Offset and pixel Offset,
+                // Alpha line Offset and pixel Offset are initialized
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
                         }
                     }
-
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
-
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all
-                                                                       // the X
-                                                                       // values
-
-                        // The destination flag is initialized to false and changes
-                        // to true only
-                        // if one pixel alpha channel is not 0 or falls into an
-                        // image ROI or is not a NoData
-                        boolean setDestinationFlag = false;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
-                            if (dataRA == null) {
-                                continue;
-                            }
-                            // The source valuse are initialized only for the switch
-                            // method
-                            float sourceValueFloat = sBandDataFloat[s][sPixelOffsets[s]];
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-
-                            // the flag checks if the pixel is a noData
-                            boolean isData = true;
-                            if (hasNoData[s]) {
-                                Range noDataRangeFloat = (srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                if (noDataRangeFloat != null) {
-                                    isData = !(noDataRangeFloat.contains(sourceValueFloat));
-                                }
-                            }
-
-                            if (!isData) {
-                                setDestinationFlag = false;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    setDestinationFlag = aBandDataFloat[s][aPixelOffsets[s]] != 0;
-
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX,
-                                            dstY, 0) > 0;
-                                    break;
-                                default:
-                                    setDestinationFlag = true;
-
-                                }
-                            }
-                            // If the flag is True, the related source pixel is
-                            // saved in the
-                            // destination one and exit from the cycle after
-                            // incrementing the offset
-                            if (setDestinationFlag) {
-                                dBandDataFloat[dPixelOffset] = sourceValueFloat;
-
-                                for (int k = s + 1; k < sourcesNumber; k++) {
-                                    if (dataRA != null) {
-                                        sPixelOffsets[k] += srcPixelStride[k];
-                                    }
-                                    if (srcBean[k].getAlphaRasterAccessor() != null) {
-                                        aPixelOffsets[k] += alfaPixelStride[k];
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                        // If the flag is false for every source, the destinationb
-                        // no data value is
-                        // set to the related destination pixel and then updates the
-                        // offset
-                        if (!setDestinationFlag) {
-                            dBandDataFloat[dPixelOffset] = destinationNoDataFloat[b];
-                        }
-
-                        dPixelOffset += dstPixelStride;
+                    if (srcBean[s].getAlphaRasterAccessor() != null) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
                     }
                 }
-            } else { // the mosaicType is MOSAIC_TYPE_BLEND
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
-                    // Source and pixel Offset are initialized and Source and alpha
-                    // line offset are
-                    // translated (cycle accross all the sources)
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all the X values
+
+                    // The destination flag is initialized to false and changes to true only
+                    // if one pixel alpha channel is not 0 or falls into an image ROI or 
+                    // is not a NoData
+                    boolean setDestinationFlag = false;
+
+                    float[] sourceValueFloatS = new float[dstBands];
                     for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
+                        final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
+                        if (dataRA == null) {
+                            continue;
                         }
-                        if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueFloatS[b] = sBandDataFloatS[s][b][sPixelOffsetsS[s][b]];
+
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // the flag checks if the pixel is a noData
+                        int dataCount = dstBands;
+                        if (hasNoData[s]) {
+                            Range noDataRangeFloat = (srcBean[s]
+                                    .getSourceNoDataRangeRasterAccessor());
+                            for (int b = 0; b < dstBands; b++) {
+                                if (noDataRangeFloat != null && noDataRangeFloat.contains(sourceValueFloatS[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+
+                        if (dataCount == 0) {
+                            setDestinationFlag = false;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                setDestinationFlag = aBandDataFloat[s][aPixelOffsets[s]] != 0;
+
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX, dstY,
+                                        0) > 0;
+                                break;
+                            default:
+                                setDestinationFlag = true;
+                            }
+                        }
+                        // If the flag is True, the related source pixel is saved in the
+                        // destination one and exit from the cycle after incrementing the offset
+                        if (setDestinationFlag) {
+                            for (int b = 0; b < dstBands; b++) {
+                                dBandDataFloatS[b][dPixelOffsetS[b]] = sourceValueFloatS[b];
+                                for (int k = s + 1; k < sourcesNumber; k++) {
+                                    if (dataRA != null) {
+                                        sPixelOffsetsS[k][b] += srcPixelStride[k];
+                                    }
+                                }
+                            }
+                            for (int k = s + 1; k < sourcesNumber; k++) {
+                                if (srcBean[k].getAlphaRasterAccessor() != null) {
+                                    aPixelOffsets[k] += alfaPixelStride[k];
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    // If the flag is false for every source, the destination no data value is
+                    // set to the related destination pixel and then updates the offset
+                    for (int b = 0; b < dstBands; b++) {
+                        if (!setDestinationFlag) {
+                            dBandDataFloatS[b][dPixelOffsetS[b]] = destinationNoDataFloat[b];
+                        }
+
+                        dPixelOffsetS[b] += dstPixelStride;
+                    }
+                }
+            }
+        } else { // the mosaicType is MOSAIC_TYPE_BLEND
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
+                // Source and pixel Offset are initialized and Source and alpha
+                // line offset are translated (cycle across all the sources)
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
+                        }
+                    }
+                    if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
+                    }
+                }
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+
+                    // In the blending operation the destination pixel value is
+                    // calculated as sum of the weighted source pixel / sum of weigth.
+                    double[] numerator = new double[dstBands];
+                    double[] denominator = new double[dstBands];
+                    float[] sourceValueFloatS = new float[dstBands];
+
+                    for (int s = 0; s < sourcesNumber; s++) {
+                        if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueFloatS[b] = sBandDataFloatS[s][b][sPixelOffsetsS[s][b]];
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // The weight is calculated for every pixel
+                        double weight = 0.0F;
+                        int dataCount = dstBands;
+
+                        // If no alpha channel or Roi is present, the weight
+                        // is set to 1 or 0 if the pixel has or not a No Data value
+                        if (hasNoData[s]) {
+                            for (int b = 0; b < dstBands; b++) {
+                                Range noDataRangeFloat = (srcBean[s]
+                                        .getSourceNoDataRangeRasterAccessor());
+                                if (noDataRangeFloat != null && noDataRangeFloat.contains(sourceValueFloatS[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+                        if (dataCount == 0) {
+                            weight = 0F;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                weight = aBandDataFloat[s][aPixelOffsets[s]];
+                                if (weight > 0.0F && isAlphaBitmaskUsed) {
+                                    weight = 1.0F;
+                                } else {
+                                    weight /= 255.0F;
+                                }
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                        ? 1.0F
+                                        : 0.0F;
+                                break;
+                            default:
+                                weight = 1.0F;
+                            }
+                        }
+                        // The above calculated weight are added to the
+                        // numerator and denominator
+                        for (int b = 0; b < dstBands; b++) {
+                            numerator[b] += (weight > 0.0F ? (weight * (sourceValueFloatS[b])) : 0);
+                            denominator[b] += weight;
                         }
                     }
 
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
+                    // If the weighted sum is 0 the destination pixel value
+                    // takes the destination no data.
+                    // If the sum is not 0 the value is added to the related
+                    // destination pixel
+                    double denominatorSum = 0;
+                    for (int b = 0; b < dstBands; b++) {
+                        denominatorSum += denominator[b];
+                    }
 
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
-
-                        // In the blending operation the destination pixel value is
-                        // calculated
-                        // as sum of the weighted source pixel / sum of weigth.
-                        double numerator = 0.0;
-                        double denominator = 0.0;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            if (srcBean[s].getDataRasterAccessor() == null) {
-                                continue;
-                            }
-
-                            // The source valuse are initialized only for the switch
-                            // method
-                            float sourceValueFloat = sBandDataFloat[s][sPixelOffsets[s]];
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-                            // The weight is calculated for every pixel
-                            double weight = 0.0F;
-
-                            boolean isData = true;
-
-                            // If no alpha channel or Roi is present, the weight
-                            // is set to 1 or 0 if the pixel has
-                            // or not a No Data value
-                            if (hasNoData[s]) {
-                                Range noDataRangeFloat = (srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                if (noDataRangeFloat != null) {
-                                    isData = !(noDataRangeFloat.contains(sourceValueFloat));
-                                }
-                            }
-                            if (!isData) {
-                                weight = 0F;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    weight = aBandDataFloat[s][aPixelOffsets[s]];
-                                    if (weight > 0.0F && isAlphaBitmaskUsed) {
-                                        weight = 1.0F;
-                                    } else {
-                                        weight /= 255.0F;
-                                    }
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
-                                            ? 1.0F : 0.0F;
-                                    break;
-                                default:
-                                    weight = 1.0F;
-                                }
-                            }
-                            // The above calculated weight are added to the
-                            // numerator and denominator
-                            if (isData) {
-                                numerator += (weight * (sourceValueFloat));
-                            }
-
-                            denominator += weight;
-                        }
-
-                        // If the weighted sum is 0 the destination pixel value
-                        // takes the destination no data.
-                        // If the sum is not 0 the value is added to the related
-                        // destination pixel
-
-                        if (denominator == 0.0) {
-                            dBandDataFloat[dPixelOffset] = destinationNoDataFloat[b];
+                    for (int b = 0; b < dstBands; b++) {
+                        if (denominatorSum == 0.0) {
+                            dBandDataFloatS[b][dPixelOffsetS[b]] = destinationNoDataFloat[b];
 
                         } else {
-                            dBandDataFloat[dPixelOffset] = ImageUtil
-                                    .clampFloat(numerator / denominator);
+                            dBandDataFloatS[b][dPixelOffsetS[b]] = ImageUtil
+                                    .clampFloat(numerator[b] / denominator[b]);
+                            // Offset update
+                            dPixelOffsetS[b] += dstPixelStride;
+
                         }
-                        // Offset update
-                        dPixelOffset += dstPixelStride;
                     }
                 }
             }
@@ -2703,8 +2848,8 @@ public class MosaicOpImage extends OpImage {
         final int[] srcLineStride = new int[sourcesNumber];
         final int[] srcPixelStride = new int[sourcesNumber];
         final int[][] srcBandOffsets = new int[sourcesNumber][];
-        final int[] sLineOffsets = new int[sourcesNumber];
-        final int[] sPixelOffsets = new int[sourcesNumber];
+        final int[][] sLineOffsetsS = new int[sourcesNumber][];
+        final int[][] sPixelOffsetsS = new int[sourcesNumber][];
 
         // Source data creation with null values
         final double[][][] srcDataDouble = new double[sourcesNumber][][];
@@ -2713,7 +2858,7 @@ public class MosaicOpImage extends OpImage {
         // Destination data creation
         final double[][] dstDataDouble = dst.getDoubleDataArrays();
         // Source data per band creation
-        final double[][] sBandDataDouble = new double[sourcesNumber][];
+        final double[][][] sBandDataDoubleS = new double[sourcesNumber][][];
         // Alpha data per band creation
         final double[][] aBandDataDouble;
 
@@ -2801,232 +2946,256 @@ public class MosaicOpImage extends OpImage {
 
         // COMPUTATION LEVEL
 
-        for (int b = 0; b < dstBands; b++) { // For all the Bands
-            // The data value are taken for every band
-            for (int s = 0; s < sourcesNumber; s++) {
-                if (srcBean[s].getDataRasterAccessor() != null) {
-                    // source band data
-                    sBandDataDouble[s] = srcDataDouble[s][b];
+        // The data value are taken for every band
+        for (int s = 0; s < sourcesNumber; s++) {
+            sLineOffsetsS[s] = new int[dstBands];
+            sPixelOffsetsS[s] = new int[dstBands];
+            sBandDataDoubleS[s] = new double[dstBands][];
+
+            if (srcBean[s].getDataRasterAccessor() != null) {
+                // source band data
+                for (int b = 0; b < dstBands; b++) {
+                    sBandDataDoubleS[s][b] = srcDataDouble[s][b];
                     // The offset is initialized
-                    sLineOffsets[s] = srcBandOffsets[s][b];
-                }
-                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                    // The alpha value are taken only from the first band (this
-                    // happens because the raster
-                    // accessor provides the data array with the band data even if
-                    // the alpha channel has only
-                    // one band.
-                    aBandDataDouble[s] = alfaDataDouble[s][0];
-                    aLineOffsets[s] = alfaBandOffsets[s][0];
+                    sLineOffsetsS[s][b] = srcBandOffsets[s][b];
                 }
             }
+            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                // The alpha value are taken only from the first band (this
+                // happens because the raster
+                // accessor provides the data array with the band data even if
+                // the alpha channel has only one band.
+                aBandDataDouble[s] = alfaDataDouble[s][0];
+                aLineOffsets[s] = alfaBandOffsets[s][0];
+            }
+        }
 
-            // The destination data band are selected
-            double[] dBandDataDouble = dstDataDouble[b];
-            // the destination lineOffset is initialized
-            int dLineOffset = dstBandOffsets[b];
+        // The destination data band are selected
+        double[][] dBandDataDoubleS = dstDataDouble;
+        // the destination lineOffset is initialized
+        int[] dLineOffsetS = new int[dstBands];
+        int[] dPixelOffsetS = new int[dstBands];
+        for (int b = 0; b < dstBands; b++) {
+            dLineOffsetS[b] = dstBandOffsets[b];
+        }
 
-            if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
-                                                                   // values
-                    // Source line Offset and pixel Offset,
-                    // Alpha line Offset and pixel Offset are initialized
-                    for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
-                        }
-                        if (srcBean[s].getAlphaRasterAccessor() != null) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+        if (mosaicTypeSelected == MosaicDescriptor.MOSAIC_TYPE_OVERLAY) {
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) { // For all the Y
+                                                               // values
+                // Source line Offset and pixel Offset,
+                // Alpha line Offset and pixel Offset are initialized
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
                         }
                     }
-
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
-
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all
-                                                                       // the X
-                                                                       // values
-
-                        // The destination flag is initialized to false and changes
-                        // to true only
-                        // if one pixel alpha channel is not 0 or falls into an
-                        // image ROI or is not a NoData
-                        boolean setDestinationFlag = false;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
-                            if (dataRA == null) {
-                                continue;
-                            }
-                            // The source valuse are initialized only for the switch
-                            // method
-                            double sourceValueDouble = sBandDataDouble[s][sPixelOffsets[s]];
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-
-                            // the flag checks if the pixel is a noData
-                            boolean isData = true;
-                            if (hasNoData[s]) {
-                                Range noDataRangeDouble = (srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                if (noDataRangeDouble != null) {
-                                    isData = !(noDataRangeDouble.contains(sourceValueDouble));
-                                }
-                            }
-
-                            if (!isData) {
-                                setDestinationFlag = false;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    setDestinationFlag = aBandDataDouble[s][aPixelOffsets[s]] != 0;
-
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX,
-                                            dstY, 0) > 0;
-                                    break;
-                                default:
-                                    setDestinationFlag = true;
-
-                                }
-                            }
-                            // If the flag is True, the related source pixel is
-                            // saved in the
-                            // destination one and exit from the cycle after
-                            // incrementing the offset
-                            if (setDestinationFlag) {
-                                dBandDataDouble[dPixelOffset] = sourceValueDouble;
-
-                                for (int k = s + 1; k < sourcesNumber; k++) {
-                                    if (dataRA != null) {
-                                        sPixelOffsets[k] += srcPixelStride[k];
-                                    }
-                                    if (srcBean[k].getAlphaRasterAccessor() != null) {
-                                        aPixelOffsets[k] += alfaPixelStride[k];
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                        // If the flag is false for every source, the destinationb
-                        // no data value is
-                        // set to the related destination pixel and then updates the
-                        // offset
-                        if (!setDestinationFlag) {
-                            dBandDataDouble[dPixelOffset] = destinationNoDataDouble[b];
-                        }
-
-                        dPixelOffset += dstPixelStride;
+                    if (srcBean[s].getAlphaRasterAccessor() != null) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
                     }
                 }
-            } else { // the mosaicType is MOSAIC_TYPE_BLEND
-                for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
-                    // Source and pixel Offset are initialized and Source and alpha
-                    // line offset are
-                    // translated (cycle accross all the sources)
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) { // For all the X values
+
+                    // The destination flag is initialized to false and changes to true only
+                    // if one pixel alpha channel is not 0 or falls into an image ROI or 
+                    // is not a NoData
+                    boolean setDestinationFlag = false;
+
+                    double[] sourceValueDoubleS = new double[dstBands];
                     for (int s = 0; s < sourcesNumber; s++) {
-                        if (srcBean[s].getDataRasterAccessor() != null) {
-                            sPixelOffsets[s] = sLineOffsets[s];
-                            sLineOffsets[s] += srcLineStride[s];
+                        final RasterAccessor dataRA = srcBean[s].getDataRasterAccessor();
+                        if (dataRA == null) {
+                            continue;
                         }
-                        if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                            aPixelOffsets[s] = aLineOffsets[s];
-                            aLineOffsets[s] += alfaLineStride[s];
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueDoubleS[b] = sBandDataDoubleS[s][b][sPixelOffsetsS[s][b]];
+
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // the flag checks if the pixel is a noData
+                        int dataCount = dstBands;
+                        if (hasNoData[s]) {
+                            Range noDataRangeDouble = (srcBean[s]
+                                    .getSourceNoDataRangeRasterAccessor());
+                            for (int b = 0; b < dstBands; b++) {
+                                if (noDataRangeDouble != null && noDataRangeDouble.contains(sourceValueDoubleS[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+
+                        if (dataCount == 0) {
+                            setDestinationFlag = false;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                setDestinationFlag = aBandDataDouble[s][aPixelOffsets[s]] != 0;
+
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                setDestinationFlag = srcBean[s].getRoiRaster().getSample(dstX, dstY,
+                                        0) > 0;
+                                break;
+                            default:
+                                setDestinationFlag = true;
+                            }
+                        }
+                        // If the flag is True, the related source pixel is saved in the
+                        // destination one and exit from the cycle after incrementing the offset
+                        if (setDestinationFlag) {
+                            for (int b = 0; b < dstBands; b++) {
+                                dBandDataDoubleS[b][dPixelOffsetS[b]] = sourceValueDoubleS[b];
+                                for (int k = s + 1; k < sourcesNumber; k++) {
+                                    if (dataRA != null) {
+                                        sPixelOffsetsS[k][b] += srcPixelStride[k];
+                                    }
+                                }
+                            }
+                            for (int k = s + 1; k < sourcesNumber; k++) {
+                                if (srcBean[k].getAlphaRasterAccessor() != null) {
+                                    aPixelOffsets[k] += alfaPixelStride[k];
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    // If the flag is false for every source, the destination no data value is
+                    // set to the related destination pixel and then updates the offset
+                    for (int b = 0; b < dstBands; b++) {
+                        if (!setDestinationFlag) {
+                            dBandDataDoubleS[b][dPixelOffsetS[b]] = destinationNoDataDouble[b];
+                        }
+
+                        dPixelOffsetS[b] += dstPixelStride;
+                    }
+                }
+            }
+        } else { // the mosaicType is MOSAIC_TYPE_BLEND
+            for (int dstY = dstMinY; dstY < dstMaxY; dstY++) {
+                // Source and pixel Offset are initialized and Source and alpha
+                // line offset are translated (cycle across all the sources)
+                for (int s = 0; s < sourcesNumber; s++) {
+                    if (srcBean[s].getDataRasterAccessor() != null) {
+                        for (int b = 0; b < dstBands; b++) {
+                            sPixelOffsetsS[s][b] = sLineOffsetsS[s][b];
+                            sLineOffsetsS[s][b] += srcLineStride[s];
+                        }
+                    }
+                    if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                        aPixelOffsets[s] = aLineOffsets[s];
+                        aLineOffsets[s] += alfaLineStride[s];
+                    }
+                }
+
+                // The same operation is performed for the destination offsets
+                for (int b = 0; b < dstBands; b++) {
+                    dPixelOffsetS[b] = dLineOffsetS[b];
+                    dLineOffsetS[b] += dstLineStride;
+                }
+                for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+
+                    // In the blending operation the destination pixel value is
+                    // calculated as sum of the weighted source pixel / sum of weigth.
+                    double[] numerator = new double[dstBands];
+                    double[] denominator = new double[dstBands];
+                    double[] sourceValueDoubleS = new double[dstBands];
+
+                    for (int s = 0; s < sourcesNumber; s++) {
+                        if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        // The source values are initialized only for the switch method
+                        for (int b = 0; b < dstBands; b++) {
+                            sourceValueDoubleS[b] = sBandDataDoubleS[s][b][sPixelOffsetsS[s][b]];
+                            // Offset update
+                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                        }
+
+                        // The weight is calculated for every pixel
+                        double weight = 0.0F;
+                        int dataCount = dstBands;
+
+                        // If no alpha channel or Roi is present, the weight
+                        // is set to 1 or 0 if the pixel has or not a No Data value
+                        if (hasNoData[s]) {
+                            for (int b = 0; b < dstBands; b++) {
+                                Range noDataRangeDouble = (srcBean[s]
+                                        .getSourceNoDataRangeRasterAccessor());
+                                if (noDataRangeDouble != null && noDataRangeDouble.contains(sourceValueDoubleS[b])) {
+                                    dataCount--;
+                                }
+                            }
+                        }
+                        if (dataCount == 0) {
+                            weight = 0F;
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
+                        } else {
+                            switch (weightTypesUsed[s]) {
+                            case WEIGHT_TYPE_ALPHA:
+                                weight = aBandDataDouble[s][aPixelOffsets[s]];
+                                if (weight > 0.0F && isAlphaBitmaskUsed) {
+                                    weight = 1.0F;
+                                } else {
+                                    weight /= 255.0F;
+                                }
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                                break;
+                            case WEIGHT_TYPE_ROI:
+                                weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
+                                        ? 1.0F
+                                        : 0.0F;
+                                break;
+                            default:
+                                weight = 1.0F;
+                            }
+                        }
+                        // The above calculated weight are added to the
+                        // numerator and denominator
+                        for (int b = 0; b < dstBands; b++) {
+                            numerator[b] += (weight > 0.0F ? (weight * (sourceValueDoubleS[b])) : 0);
+                            denominator[b] += weight;
                         }
                     }
 
-                    // The same operation is performed for the destination offsets
-                    int dPixelOffset = dLineOffset;
-                    dLineOffset += dstLineStride;
+                    // If the weighted sum is 0 the destination pixel value
+                    // takes the destination no data.
+                    // If the sum is not 0 the value is added to the related
+                    // destination pixel
+                    double denominatorSum = 0;
+                    for (int b = 0; b < dstBands; b++) {
+                        denominatorSum += denominator[b];
+                    }
 
-                    for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
-
-                        // In the blending operation the destination pixel value is
-                        // calculated
-                        // as sum of the weighted source pixel / sum of weigth.
-                        double numerator = 0.0;
-                        double denominator = 0.0;
-
-                        for (int s = 0; s < sourcesNumber; s++) {
-                            if (srcBean[s].getDataRasterAccessor() == null) {
-                                continue;
-                            }
-
-                            // The source valuse are initialized only for the switch
-                            // method
-                            double sourceValueDouble = sBandDataDouble[s][sPixelOffsets[s]];
-                            // Offset update
-                            sPixelOffsets[s] += srcPixelStride[s];
-                            // The weight is calculated for every pixel
-                            double weight = 0.0F;
-
-                            boolean isData = true;
-
-                            // If no alpha channel or Roi is present, the weight
-                            // is set to 1 or 0 if the pixel has
-                            // or not a No Data value
-                            if (hasNoData[s]) {
-                                Range noDataRangeDouble = (srcBean[s]
-                                        .getSourceNoDataRangeRasterAccessor());
-                                if (noDataRangeDouble != null) {
-                                    isData = !(noDataRangeDouble.contains(sourceValueDouble));
-                                }
-                            }
-                            if (!isData) {
-                                weight = 0F;
-                                if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                }
-                            } else {
-                                switch (weightTypesUsed[s]) {
-                                case WEIGHT_TYPE_ALPHA:
-                                    weight = aBandDataDouble[s][aPixelOffsets[s]];
-                                    if (weight > 0.0F && isAlphaBitmaskUsed) {
-                                        weight = 1.0F;
-                                    } else {
-                                        weight /= 255.0F;
-                                    }
-                                    aPixelOffsets[s] += alfaPixelStride[s];
-                                    break;
-                                case WEIGHT_TYPE_ROI:
-                                    weight = srcBean[s].getRoiRaster().getSample(dstX, dstY, 0) > 0
-                                            ? 1.0F : 0.0F;
-                                    break;
-                                default:
-                                    weight = 1.0F;
-                                }
-                            }
-                            // The above calculated weight are added to the
-                            // numerator and denominator
-                            if (isData) {
-                                numerator += (weight * (sourceValueDouble));
-                            }
-
-                            denominator += weight;
-                        }
-
-                        // If the weighted sum is 0 the destination pixel value
-                        // takes the destination no data.
-                        // If the sum is not 0 the value is added to the related
-                        // destination pixel
-
-                        if (denominator == 0.0) {
-                            dBandDataDouble[dPixelOffset] = destinationNoDataDouble[b];
+                    for (int b = 0; b < dstBands; b++) {
+                        if (denominatorSum == 0.0) {
+                            dBandDataDoubleS[b][dPixelOffsetS[b]] = destinationNoDataDouble[b];
 
                         } else {
-                            dBandDataDouble[dPixelOffset] = numerator / denominator;
+                            dBandDataDoubleS[b][dPixelOffsetS[b]] = (numerator[b] / denominator[b]);
+                            // Offset update
+                            dPixelOffsetS[b] += dstPixelStride;
+
                         }
-                        // Offset update
-                        dPixelOffset += dstPixelStride;
                     }
                 }
             }
