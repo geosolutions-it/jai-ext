@@ -7,14 +7,14 @@
   <moduleSets>
       <moduleSet>
         <sources>
-          <outputDirectory>jai-ext-1.0.18/${artifactId}/</outputDirectory>
+          <outputDirectory>jai-ext-1.0-SNAPSHOT/${artifactId}/</outputDirectory>
         </sources>
       </moduleSet>
   </moduleSets>
   <fileSets>
   <fileSet>
         <directory>.</directory>
-        <outputDirectory>jai-ext-1.0.18/</outputDirectory>
+        <outputDirectory>jai-ext-1.0-SNAPSHOT/</outputDirectory>
                           <includes>
                                   <include>pom.xml</include>
                           </includes>
