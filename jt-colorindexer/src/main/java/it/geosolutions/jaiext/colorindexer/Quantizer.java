@@ -44,6 +44,8 @@ import it.geosolutions.jaiext.colorindexer.PackedHistogram.SortComponent;
 public class Quantizer {
 
     static final Logger LOGGER = Logger.getLogger("Quantizer");
+    
+    static PackedHistogram transparentHisto;
 
     boolean MEDIAN_SPLIT = true;
 
@@ -56,6 +58,12 @@ public class Quantizer {
     /** Parameter indicating the maximum number of COlors */
     int maxColors;
 
+    static {
+        BufferedImage transparentImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        transparentImage.getRaster().setPixel(0, 0, new int[] {0, 0, 0, 0});
+        transparentHisto = new PackedHistogram(transparentImage, 1, 1);
+    }
+    
     public Quantizer(int maxColors) {
         this.maxColors = maxColors;
     }
@@ -96,9 +104,6 @@ public class Quantizer {
         // setup the first box, that median cut will split in parts
         List<Box> boxes = new ArrayList<Box>();
         if (histogram.hasTransparentPixels()) {
-            BufferedImage transparentImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
-            transparentImage.getRaster().setPixel(0, 0, new int[] {0, 0, 0, 0});
-            PackedHistogram transparentHisto = new PackedHistogram(transparentImage, subsx, subsy);
             boxes.add(new Box(0, 1, 1, transparentHisto, null));
         }
         boxes.add(new Box(0, histogram.size(), totalPixelCount, histogram, null));
