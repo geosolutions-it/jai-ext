@@ -19,12 +19,19 @@ package it.geosolutions.jaiext.colorindexer;
 
 import static it.geosolutions.jaiext.colorindexer.ColorUtils.*;
 
+import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
+import java.awt.image.WritableRaster;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import it.geosolutions.jaiext.colorindexer.ColorMap.ColorEntry;
@@ -88,6 +95,12 @@ public class Quantizer {
 
         // setup the first box, that median cut will split in parts
         List<Box> boxes = new ArrayList<Box>();
+        if (histogram.hasTransparentPixels()) {
+            BufferedImage transparentImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+            transparentImage.getRaster().setPixel(0, 0, new int[] {0, 0, 0, 0});
+            PackedHistogram transparentHisto = new PackedHistogram(transparentImage, subsx, subsy);
+            boxes.add(new Box(0, 1, 1, transparentHisto, null));
+        }
         boxes.add(new Box(0, histogram.size(), totalPixelCount, histogram, null));
 
         // perform the box subdivision, first based on box pixel count, then on the box color volume

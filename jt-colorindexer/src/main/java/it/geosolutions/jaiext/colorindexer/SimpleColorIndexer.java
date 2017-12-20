@@ -63,7 +63,13 @@ public class SimpleColorIndexer implements ColorIndexer {
              * This is a simple color distance formula, we might consider checking into the LAB color space, though the conversions would take some
              * more time: http://en.wikipedia.org/wiki/L*a*b* http://www.easyrgb.com/index.php?X=MATH
              */
-            int d = 3 * dr * dr + 4 * dg * dg + 2 * db * db + 4 * da * da;
+            int d;
+            // special use case, alpha = 0 is equally distant for any value of r g and b
+            if (a == 0 && da == 0) {
+                d = 0;
+            } else {
+                d = 3 * dr * dr + 4 * dg * dg + 2 * db * db + 4 * da * da;
+            }
             if (d < distance) {
                 distance = d;
                 idx = i;
