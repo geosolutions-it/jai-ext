@@ -158,6 +158,18 @@ public class ColorIndexerTest extends TestBase {
         ColorIndexer indexer = q.buildColorIndexer(image);
         assertTrue(indexer.toIndexColorModel().getTransparentPixel() != -1);
     }
+    
+    @Test
+    public void testCompletelyTransparentImage() {
+        BufferedImage image = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
+        Graphics g = image.getGraphics();
+        g.setColor(new Color(20, 20, 20, 0));
+        g.fillRect(0, 0, 20, 20);
+        g.dispose();
+        Quantizer q = new Quantizer(2);
+        ColorIndexer indexer = q.buildColorIndexer(image);
+        assertTrue(indexer.toIndexColorModel().getTransparentPixel() != -1);
+    }
 
     @Test
     public void testTranslatedImage() throws Exception {
