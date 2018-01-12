@@ -138,6 +138,38 @@ public class ColorIndexerTest extends TestBase {
                                            // 4 colors
 
     }
+    
+    @Test
+    public void testAlphaZeroNoRemoval() {
+        BufferedImage image = new BufferedImage(40, 40, BufferedImage.TYPE_INT_ARGB);
+        Graphics g = image.getGraphics();
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, 20, 20);
+        g.setColor(new Color(20, 20, 20, 20)); // A dark gray
+        g.fillRect(20, 20, 20, 20);
+        g.setColor(new Color(200, 200, 200, 20)); // A light gray
+        g.fillRect(0, 20, 20, 20);
+        g.setColor(new Color(254, 254, 254, 20)); // A light gray
+        g.fillRect(0, 20, 20, 20);
+        g.setColor(new Color(1, 1, 1, 0)); // transparent
+        g.fillRect(20, 0, 20, 20);
+        g.dispose();
+        Quantizer q = new Quantizer(2);
+        ColorIndexer indexer = q.buildColorIndexer(image);
+        assertTrue(indexer.toIndexColorModel().getTransparentPixel() != -1);
+    }
+    
+    @Test
+    public void testCompletelyTransparentImage() {
+        BufferedImage image = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
+        Graphics g = image.getGraphics();
+        g.setColor(new Color(20, 20, 20, 0));
+        g.fillRect(0, 0, 20, 20);
+        g.dispose();
+        Quantizer q = new Quantizer(2);
+        ColorIndexer indexer = q.buildColorIndexer(image);
+        assertTrue(indexer.toIndexColorModel().getTransparentPixel() != -1);
+    }
 
     @Test
     public void testTranslatedImage() throws Exception {

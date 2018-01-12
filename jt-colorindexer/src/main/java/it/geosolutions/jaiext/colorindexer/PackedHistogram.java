@@ -117,6 +117,8 @@ public class PackedHistogram {
     private HistogramBin[] histogram;
 
     ColorMap colorMap;
+    
+    boolean transparentPixels = false;
 
     PackedHistogram(RenderedImage image, int stepX, int stepY) {
         // build a reduced map of the colors
@@ -190,12 +192,19 @@ public class PackedHistogram {
                     shift++;
                     shiftColorMap(colorMap);
                 }
+                if (alpha == 0) {
+                    transparentPixels = true;
+                }
             }
         }
 
         return shift;
     }
 
+    public boolean hasTransparentPixels() {
+        return transparentPixels;
+    }
+    
     /**
      * Shifts every color in the map by one more bit and repacks the color map accordingly
      * 
