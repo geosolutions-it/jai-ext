@@ -37,6 +37,11 @@ import com.sun.media.jai.opimage.RIFUtil;
  */
 public class BandMergeCRIF extends CRIFImpl {
 
+    /**
+     * Tolerance for double equality checking 
+     */
+    private static final double EPS = 1e-9;
+
     /** Constructor. */
     public BandMergeCRIF() {
         super("bandmergeOp");
@@ -73,11 +78,34 @@ public class BandMergeCRIF extends CRIFImpl {
         // Last band is an alpha band?
         boolean setAlpha = (Boolean) paramBlock.getObjectParameter(4);
         // If the transformations are present, then they are used with the ExtendedBandMergeOpImage
-        if (transform != null && !transform.isEmpty()) {
+        if (transform != null && !transform.isEmpty() && !allIdentities(transform)) {
             return new ExtendedBandMergeOpImage(sources, transform, renderHints, nodata, roi,
                     destinationNoData, setAlpha, layout);
         } else {
             return new BandMergeOpImage(sources, renderHints, nodata, roi, destinationNoData, setAlpha, layout);
         }
+    }
+
+    private boolean allIdentities(List<AffineTransform> transform) {
+        for (AffineTransform at : transform) {
+            if (!(eqTol(at.getScaleX(), 1, EPS) && eqTol(at.getScaleY(), 1, EPS) &&
+                    eqTol(Math.abs(at.getShearX()), 0, EPS) && eqTol(Math.abs(at.getShearX()), 0, EPS) &&
+                    eqTol(Math.abs(at.getTranslateX()), 0, 0.5) && eqTol(Math.abs(at.getTranslateY()), 0, 0.5))) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * Checks the two values are equal minus a given tolerance
+     * @param value
+     * @param reference
+     * @param tolerance
+     * @return
+     */
+    private boolean eqTol(double value, double reference, double tolerance) {
+        return (Math.abs(value) - reference) < tolerance;
     }
 }

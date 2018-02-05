@@ -20,6 +20,7 @@ package it.geosolutions.jaiext.range;
 import static org.junit.Assert.*;
 
 import java.awt.image.DataBuffer;
+import java.nio.ByteBuffer;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -682,5 +683,21 @@ public class RangeTest {
         } else {
             assertNotSame(range, converted);
         }
+    }
+
+    @Test
+    public void testConvertFloatNaN() {
+        Range nanDouble = RangeFactory.create(Double.NaN, Double.NaN);
+        Range nanFloat = RangeFactory.convert(nanDouble, DataBuffer.TYPE_FLOAT);
+        assertEquals(Float.NaN, nanFloat.getMin());
+        assertEquals(Float.NaN, nanFloat.getMax());
+    }
+
+    @Test
+    public void testConvertDoubleNaN() {
+        Range nanFloat = RangeFactory.create(Float.NaN, Float.NaN);
+        Range nanDouble = RangeFactory.convert(nanFloat, DataBuffer.TYPE_DOUBLE);
+        assertEquals(Double.NaN, nanDouble.getMin());
+        assertEquals(Double.NaN, nanDouble.getMax());
     }
 }

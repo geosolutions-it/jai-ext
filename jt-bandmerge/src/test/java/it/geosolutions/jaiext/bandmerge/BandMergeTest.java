@@ -36,7 +36,8 @@ import javax.media.jai.TiledImage;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.operator.BandSelectDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
-import java.awt.*;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -44,6 +45,7 @@ import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -775,6 +777,31 @@ public class BandMergeTest extends TestBase {
                 RenderedImage image = images[i];
                 ((TiledImage) image).dispose();
             }
+        }
+    }
+
+    @Test
+    public void testExtendedWithIdentityTransform() {
+        assertBandMergeImplementation(AffineTransform.getScaleInstance(1 + 1e-12, 1 + 1e-12), BandMergeOpImage.class);
+        assertBandMergeImplementation(AffineTransform.getScaleInstance(1 + 1e-6, 1 + 1e-6), ExtendedBandMergeOpImage.class);
+        assertBandMergeImplementation(AffineTransform.getShearInstance(1e-12, 1e-12), BandMergeOpImage.class);
+        assertBandMergeImplementation(AffineTransform.getShearInstance(1e-6, 1e-6), ExtendedBandMergeOpImage.class);
+        assertBandMergeImplementation(AffineTransform.getTranslateInstance(1e-12, 1e-12), BandMergeOpImage.class);
+        assertBandMergeImplementation(AffineTransform.getTranslateInstance(0.6, 0.6), ExtendedBandMergeOpImage.class);
+    }
+
+    public void assertBandMergeImplementation(AffineTransform affine, Class opImageClass) {
+        RenderedImage[] images = BandMergeTest.images[DataBuffer.TYPE_BYTE];
+        List<AffineTransform> transforms = new ArrayList<AffineTransform>();
+        for (int i = 0; i < images.length; i++) {
+            transforms.add(affine);
+        }
+        RenderedOp merged = BandMergeDescriptor.create(null, 0d, false, null, transforms, null, images);
+        try {
+            assertTrue(opImageClass.isInstance(merged.getRendering()));
+        } finally {
+            // Disposal of the output image
+            merged.dispose();
         }
     }
 }
