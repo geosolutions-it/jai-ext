@@ -224,6 +224,10 @@ public class RangeFloat extends Range {
 
         float minOther = other.getMin().floatValue();
         float maxOther = other.getMax().floatValue();
+        
+        if( Float.isNaN(minOther) && Float.isNaN(maxOther)) {
+            return new RangeFloat(minOther, other.isMinIncluded, maxOther, other.isMaxIncluded, other.isNanIncluded());
+        }
 
         float finalMin = minValue;
         float finalMax = maxValue;

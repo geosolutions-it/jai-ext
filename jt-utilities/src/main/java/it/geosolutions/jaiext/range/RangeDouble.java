@@ -227,6 +227,10 @@ public class RangeDouble extends Range {
         double finalMin = minValue;
         double finalMax = maxValue;
 
+        if( Double.isNaN(minOther) && Double.isNaN(maxOther)) {
+            return new RangeDouble(minOther, other.isMinIncluded, maxOther, other.isMaxIncluded, other.isNanIncluded());
+        }
+
         boolean minIncluded = isMinIncluded();
         boolean maxIncluded = isMaxIncluded();
 
