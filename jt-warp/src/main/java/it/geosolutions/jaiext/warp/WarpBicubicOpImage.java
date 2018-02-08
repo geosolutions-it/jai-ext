@@ -119,10 +119,13 @@ final class WarpBicubicOpImage extends WarpOpImage {
         final ColorModel srcColorModel = source.getColorModel();
         if (srcColorModel instanceof IndexColorModel) {
             final IndexColorModel icm = (IndexColorModel) srcColorModel;
-            ctable = new byte[3][icm.getMapSize()];
+            ctable = new byte[icm.getNumComponents() == 4 ? 4 : 3][icm.getMapSize()];
             icm.getReds(ctable[0]);
             icm.getGreens(ctable[1]);
             icm.getBlues(ctable[2]);
+            if (icm.getNumComponents() == 4) {
+                icm.getAlphas(ctable[3]);
+            }
         }
 
         /*

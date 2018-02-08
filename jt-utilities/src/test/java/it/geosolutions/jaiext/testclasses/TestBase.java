@@ -21,11 +21,14 @@ package it.geosolutions.jaiext.testclasses;
 import it.geosolutions.jaiext.JAIExt;
 
 import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
+import java.awt.image.IndexColorModel;
 import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
+import java.awt.image.WritableRaster;
 
 import javax.media.jai.ROIShape;
 import javax.media.jai.TiledImage;
@@ -425,7 +428,51 @@ public abstract class TestBase {
         }
         return used;
     }
-    
+
+    protected static RenderedImage createIndexedImage(int defaultWidth, int defaultHeight, boolean transparentPixel, boolean addAlpha) {
+        IndexColorModel icm;
+        int SIZE = 255;
+        byte[] reds = new byte[SIZE];
+        byte[] greens = new byte[SIZE];
+        byte[] blues = new byte[SIZE];
+        byte[] alphas = new byte[SIZE];
+        for (int i = 0; i < reds.length; i++) {
+            reds[i] = (byte) (0xFF & i);
+            greens[i] = (byte) (0xFF & i);
+            blues[i] = (byte) (0xFF & i);
+            alphas[i] = (byte) (0xFF & i);
+        }
+        if (addAlpha) {
+            if (!transparentPixel) {
+                icm = new IndexColorModel(8, SIZE, reds, greens, blues, alphas);
+            } else {
+                throw new IllegalArgumentException("Unsupported combination, transparent pixel and alpha");
+            }
+        } else {
+            if (transparentPixel) {
+                icm = new IndexColorModel(8, SIZE, reds, greens, blues, 0);
+            } else {
+                icm = new IndexColorModel(8, SIZE, reds, greens, blues);
+            }
+        }
+
+        BufferedImage bi = new BufferedImage(defaultWidth, defaultHeight, BufferedImage.TYPE_BYTE_INDEXED, icm);
+
+        int k = 0;
+        int[] pixel = new int[1];
+        WritableRaster data = bi.getRaster();
+        for (int i = 0; i < defaultHeight; i++) {
+            for (int j = 0; j < defaultWidth; j++) {
+                pixel[0] = k;
+                data.setPixel(j, i, pixel);
+                k = (k + 1) % 255;
+            }
+        }
+
+        return bi;
+    }
+
+
     @BeforeClass
     public static void setup(){
         JAIExt.initJAIEXT();

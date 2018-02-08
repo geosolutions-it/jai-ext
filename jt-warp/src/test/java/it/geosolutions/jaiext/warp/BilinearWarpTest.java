@@ -56,7 +56,7 @@ public class BilinearWarpTest extends TestWarp{
         noDataValueD = 55;
 
         // Array creation
-        images = new RenderedImage[NUM_IMAGES];
+        images = new RenderedImage[9];
         // Setting of the imageFiller parameter to true, storing inside a variable its initial value
         boolean imageToFill = IMAGE_FILLER;
         IMAGE_FILLER = true;
@@ -73,6 +73,9 @@ public class BilinearWarpTest extends TestWarp{
                 noDataValueF, false);
         images[5] = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
                 noDataValueD, false);
+        images[6] = createIndexedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, false, true);
+        images[7] = createIndexedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, false, false);
+        images[8] = createIndexedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, true, false);
         // Setting of the image filler to its initial value
         IMAGE_FILLER = imageToFill;
         // Interpolation type
