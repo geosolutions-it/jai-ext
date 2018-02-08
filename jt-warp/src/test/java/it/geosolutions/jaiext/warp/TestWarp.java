@@ -24,9 +24,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.io.IOException;
+import java.nio.Buffer;
 
 import javax.media.jai.BorderExtender;
 import javax.media.jai.Interpolation;
@@ -263,12 +265,9 @@ public class TestWarp extends TestBase {
         boolean noDataUsed = false;
         TestSelection testSelect = TestSelection.NO_ROI_ONLY_DATA;
 
-        testWarp(images[0], noDataUsed, roiUsed, warpObj, noDataValueB, interpType, testSelect);
-        testWarp(images[1], noDataUsed, roiUsed, warpObj, noDataValueU, interpType, testSelect);
-        testWarp(images[2], noDataUsed, roiUsed, warpObj, noDataValueS, interpType, testSelect);
-        testWarp(images[3], noDataUsed, roiUsed, warpObj, noDataValueI, interpType, testSelect);
-        testWarp(images[4], noDataUsed, roiUsed, warpObj, noDataValueF, interpType, testSelect);
-        testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
+        for (int i = 0; i < images.length; i++) {
+            testWarp(images[0], noDataUsed, roiUsed, warpObj, noDataValueB, interpType, testSelect);    
+        }
     }
 
     /**
@@ -279,12 +278,9 @@ public class TestWarp extends TestBase {
         boolean noDataUsed = false;
         TestSelection testSelect = TestSelection.ROI_ONLY_DATA;
 
-        testWarp(images[0], noDataUsed, roiUsed, warpObj, noDataValueB, interpType, testSelect);
-        testWarp(images[1], noDataUsed, roiUsed, warpObj, noDataValueU, interpType, testSelect);
-        testWarp(images[2], noDataUsed, roiUsed, warpObj, noDataValueS, interpType, testSelect);
-        testWarp(images[3], noDataUsed, roiUsed, warpObj, noDataValueI, interpType, testSelect);
-        testWarp(images[4], noDataUsed, roiUsed, warpObj, noDataValueF, interpType, testSelect);
-        testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
+        for (int i = 0; i < images.length; i++) {
+            testWarp(images[0], noDataUsed, roiUsed, warpObj, noDataValueB, interpType, testSelect);
+        }
     }
 
     /**
@@ -295,12 +291,9 @@ public class TestWarp extends TestBase {
         boolean noDataUsed = true;
         TestSelection testSelect = TestSelection.NO_ROI_NO_DATA;
 
-        testWarp(images[0], noDataUsed, roiUsed, warpObj, noDataValueB, interpType, testSelect);
-        testWarp(images[1], noDataUsed, roiUsed, warpObj, noDataValueU, interpType, testSelect);
-        testWarp(images[2], noDataUsed, roiUsed, warpObj, noDataValueS, interpType, testSelect);
-        testWarp(images[3], noDataUsed, roiUsed, warpObj, noDataValueI, interpType, testSelect);
-        testWarp(images[4], noDataUsed, roiUsed, warpObj, noDataValueF, interpType, testSelect);
-        testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
+        for (int i = 0; i < images.length; i++) {
+            testWarp(images[0], noDataUsed, roiUsed, warpObj, noDataValueB, interpType, testSelect);
+        }
     }
 
     /**
@@ -311,12 +304,9 @@ public class TestWarp extends TestBase {
         boolean noDataUsed = true;
         TestSelection testSelect = TestSelection.ROI_NO_DATA;
 
-        testWarp(images[0], noDataUsed, roiUsed, warpObj, noDataValueB, interpType, testSelect);
-        testWarp(images[1], noDataUsed, roiUsed, warpObj, noDataValueU, interpType, testSelect);
-        testWarp(images[2], noDataUsed, roiUsed, warpObj, noDataValueS, interpType, testSelect);
-        testWarp(images[3], noDataUsed, roiUsed, warpObj, noDataValueI, interpType, testSelect);
-        testWarp(images[4], noDataUsed, roiUsed, warpObj, noDataValueF, interpType, testSelect);
-        testWarp(images[5], noDataUsed, roiUsed, warpObj, noDataValueD, interpType, testSelect);
+        for (int i = 0; i < images.length; i++) {
+            testWarp(images[0], noDataUsed, roiUsed, warpObj, noDataValueB, interpType, testSelect);
+        }
     }
 
     /**
@@ -325,12 +315,14 @@ public class TestWarp extends TestBase {
     public static void finalStuff() {
         // Creation of the images
         if (images != null) {
-            ((TiledImage) images[0]).dispose();
-            ((TiledImage) images[1]).dispose();
-            ((TiledImage) images[2]).dispose();
-            ((TiledImage) images[3]).dispose();
-            ((TiledImage) images[4]).dispose();
-            ((TiledImage) images[5]).dispose();
+            for (int i = 0; i < images.length; i++) {
+                RenderedImage image = images[i];
+                if (image instanceof TiledImage) {
+                    ((TiledImage) image).dispose();
+                } else if (image instanceof BufferedImage) {
+                    ((BufferedImage) image).flush();
+                }
+            }
         }
     }
 

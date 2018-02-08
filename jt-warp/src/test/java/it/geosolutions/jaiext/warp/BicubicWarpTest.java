@@ -17,17 +17,19 @@
 */
 package it.geosolutions.jaiext.warp;
 
-import java.awt.geom.AffineTransform;
-import java.awt.image.DataBuffer;
-import java.awt.image.RenderedImage;
-
-import javax.media.jai.WarpAffine;
-
+import it.geosolutions.jaiext.JAIExt;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import it.geosolutions.jaiext.JAIExt;
+import javax.media.jai.WarpAffine;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
+import java.awt.image.IndexColorModel;
+import java.awt.image.Raster;
+import java.awt.image.RenderedImage;
+import java.awt.image.WritableRaster;
 
 /**
  * Test class which extends the TestWarp class and executes all the tests with the bicubic interpolation.
@@ -56,7 +58,7 @@ public class BicubicWarpTest extends TestWarp{
         noDataValueD = 55;
 
         // Array creation
-        images = new RenderedImage[NUM_IMAGES];
+        images = new RenderedImage[9];
         // Setting of the imageFiller parameter to true, storing inside a variable its initial value
         boolean imageToFill = IMAGE_FILLER;
         IMAGE_FILLER = true;
@@ -73,13 +75,15 @@ public class BicubicWarpTest extends TestWarp{
                 noDataValueF, false);
         images[5] = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
                 noDataValueD, false);
+        images[6] = createIndexedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, false, true);
+        images[7] = createIndexedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, false, false);
+        images[8] = createIndexedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, true, false);
         // Setting of the image filler to its initial value
         IMAGE_FILLER = imageToFill;
         // Interpolation type
         interpType = InterpolationType.BICUBIC_INTERP;
-
     }
-    
+
     @Test
     public void testImage() {
         super.testImage(interpType);
