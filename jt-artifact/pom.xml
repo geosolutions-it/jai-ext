@@ -5,11 +5,11 @@
   <parent>
     <groupId>it.geosolutions.jaiext</groupId>
     <artifactId>jaiext</artifactId>
-    <version>1.0.9.x-SNAPSHOT-IWC</version>
+    <version>1.0.9.1-IWC</version>
   </parent>
   <groupId>it.geosolutions.jaiext.artifact</groupId>
   <artifactId>jt-artifact</artifactId>
-  <version>1.0.9.x-SNAPSHOT-IWC</version>
+  <version>1.0.9.1-IWC</version>
   <name>jt-artifact</name>
   <url>http://maven.apache.org</url>
   <properties>
