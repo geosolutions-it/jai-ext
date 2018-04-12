@@ -49,6 +49,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -200,6 +201,56 @@ public class BandMergeTest extends TestBase {
         testBandMerge(images[3], noDataUsed, roiUsed, BAND_NUMBER);
         testBandMerge(images[4], noDataUsed, roiUsed, BAND_NUMBER);
         testBandMerge(images[5], noDataUsed, roiUsed, BAND_NUMBER);
+    }
+
+    @Test
+    public void testBandMergeNotIntersectingROI() {
+        boolean roiUsed = true;
+
+        // ROI to use
+        ROI roi = null;
+        if (roiUsed) {
+            roi = roiData;
+        }
+
+        // BandMerge operation
+        ImageLayout layout = new ImageLayout(images[0][0]);
+        layout.setTileHeight(32);
+        layout.setTileWidth(32);
+        RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+        RenderedOp merged = BandMergeDescriptor
+                .create(null, destNoData, false, hints, null, roi, images[0]);
+
+        // Raster object
+        // Getting data out of ROI
+        int outTileX = 3;
+        int outTileY = 3;
+        Raster outOfRoiTile = merged.getTile(outTileX, outTileY);
+
+        // Tile bounds
+        int minX = outOfRoiTile.getMinX();
+        int minY = outOfRoiTile.getMinY();
+        int maxX = outOfRoiTile.getWidth() + minX;
+        int maxY = outOfRoiTile.getHeight() + minY;
+        // Cycle on all the tile Bands
+        for (int b = 0; b < 3; b++) {
+            // Selection of the source raster associated with the band
+            // Cycle on the y-axis
+            for (int x = minX; x < maxX; x++) {
+                // Cycle on the x-axis
+                for (int y = minY; y < maxY; y++) {
+                    // Calculated value
+                    double value = outOfRoiTile.getSampleDouble(x, y, b);
+
+                    // ROI CHECK
+                    assertFalse(roi.contains(x, y));
+                    // Comparison if the final value is not inside a ROI
+                    assertEquals(value, destNoData, TOLERANCE);
+                }
+            }
+        }
+        // Disposal of the output image
+        merged.dispose();
     }
 
     @Test
