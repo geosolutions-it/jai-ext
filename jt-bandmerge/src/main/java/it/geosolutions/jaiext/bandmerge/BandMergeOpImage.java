@@ -144,6 +144,7 @@ public class BandMergeOpImage extends PointOpImage {
         int dataType = getSampleModel().getDataType();
 
         // Destination No Data value is clamped to the image data type
+        this.destNoDataDouble = destinationNoData;
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
             this.destNoDataByte = ImageUtil.clampRoundByte(destinationNoData);
@@ -430,10 +431,15 @@ public class BandMergeOpImage extends PointOpImage {
             Rectangle rect = new Rectangle(destRect);
             // The tile dimension is extended for avoiding border errors
             rect.grow(TILE_EXTENDER, TILE_EXTENDER);
-            roiTile = roi.intersect(new ROIShape(rect));
+
+            // Check the 2 bounds at least intersect before intersecting the ROI.
+            // This should prevent ImagingExceptions due to not intersecting bounds
+            if (!rect.intersection(roi.getBounds()).isEmpty()) {
+                roiTile = roi.intersect(new ROIShape(rect));
+            }
         }
 
-        if (!hasROI || !roiTile.getBounds().isEmpty()) {
+        if (!hasROI || (roiTile != null && !roiTile.getBounds().isEmpty())) {
             // Loop on the image raster
             switch (destType) {
             case DataBuffer.TYPE_BYTE:
