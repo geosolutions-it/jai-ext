@@ -668,5 +668,6 @@
     <module>jt-vectorbin</module>
     <module>jt-threshold</module>
     <module>jt-clamp</module>
+    <module>jt-scale2</module>
   </modules>
 </project>

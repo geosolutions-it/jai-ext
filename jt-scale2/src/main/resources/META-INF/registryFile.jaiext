@@ -1,0 +1,11 @@
+#
+# Image descriptors
+#
+
+descriptor  it.geosolutions.jaiext.scale.Scale2Descriptor
+
+#
+# RenderedImageFactories
+#
+
+rendered  it.geosolutions.jaiext.scale.Scale2CRIF  it.geosolutions.jaiext  Scale2 Scale2 
