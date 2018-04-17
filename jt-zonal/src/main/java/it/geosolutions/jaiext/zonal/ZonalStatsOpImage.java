@@ -4970,9 +4970,12 @@ public class ZonalStatsOpImage extends OpImage {
     public Object getProperty(String name) {
         // If the specified property is "JAI-EXT.stats", the calculations are performed.
         if (ZonalStatsDescriptor.ZS_PROPERTY.equalsIgnoreCase(name)) {
-            getTiles();
 
-            //List<ZoneGeometry> copy = new ArrayList<ZoneGeometry>(zoneList);
+            Point[] tileIndices = getTileIndices(union);
+            // one by one, not all together, or we'll load the entire raster in memory
+            for (Point tileIndex : tileIndices) {
+                this.getTile(tileIndex.x, tileIndex.y);
+            }
 
             return Collections.unmodifiableList(zoneList);
         } else {

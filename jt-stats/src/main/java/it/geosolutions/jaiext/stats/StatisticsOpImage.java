@@ -21,6 +21,7 @@ import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
 
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
@@ -320,7 +321,17 @@ public abstract class StatisticsOpImage extends OpImage {
     public Object getProperty(String name) {
         // If the specified property is "JAI-EXT.stats", the calculations are performed.
         if (Statistics.STATS_PROPERTY.equalsIgnoreCase(name)) {
-            getTiles();
+            // get the tile indices
+            Point[] tileIndices;
+            if (hasROI) {
+                tileIndices = getTileIndices(roiBounds);
+            } else {
+                tileIndices = getTileIndices(getBounds());
+            }
+            // one by one, not all together, or we'll load the entire raster in memory
+            for (Point tileIndex : tileIndices) {
+                this.getTile(tileIndex.x, tileIndex.y);
+            }
             return stats.clone();
         } else {
             return super.getProperty(name);
