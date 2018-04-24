@@ -45,6 +45,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
@@ -857,6 +859,14 @@ public class ROIGeometryTest extends TestBase {
             }
         }
         
+    }
+    
+    @Test
+    public void testROICorner() {
+        ROIGeometry rg = createRectROI(0, 0, 100, 100);
+        ROIShape rs = new ROIShape(new Rectangle(0, 0, 100, 100));
+        assertTrue(rg.contains(0, 0));
+        assertTrue(rs.contains(0, 0));
     }
     
     /**

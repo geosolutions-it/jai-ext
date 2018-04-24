@@ -357,7 +357,7 @@ public class ROIGeometry extends ROI {
         testPointCS.setX(0, x);
         testPointCS.setY(0, y);
         testPoint.geometryChanged();
-        return theGeom.contains(testPoint);
+        return theGeom.intersects(testPoint);
     }
 
     /**
