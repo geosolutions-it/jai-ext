@@ -154,6 +154,7 @@
 			  it.geosolutions.jaiext.vectorbin
 			  it.geosolutions.jaiext.threshold
 			  it.geosolutions.jaiext.clamp
+			  it.geosolutions.jaiext.shadedrelief
 			  </includeGroupIds>
               <includeArtifactIds>
 			  jt-concurrent-tile-cache,
@@ -190,6 +191,7 @@
 			  jt-vectorbin
 			  jt-threshold
 			  jt-clamp
+			  jt-shadedrelief
 			  </includeArtifactIds>
             </configuration>
           </execution>
@@ -662,5 +664,6 @@
     <module>jt-threshold</module>
     <module>jt-clamp</module>
     <module>jt-scale2</module>
+    <module>jt-shadedrelief</module>
   </modules>
 </project>

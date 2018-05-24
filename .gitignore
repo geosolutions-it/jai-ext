@@ -44,3 +44,4 @@ roiaware-legacy/target/*
 jt-squareroot/target/*
 release/target/*
 deploy/*
+/jt-shadedrelief/target/
