@@ -69,7 +69,9 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
         {"arg9Desc", "algorithm"}
     };
 
-    /** The parameter names for the ShadedRelief operation. */
+    /**
+     * The parameter names for the ShadedRelief operation.
+     */
     private static final String[] paramNames = {
         "roi",
         "nodata",
@@ -83,7 +85,9 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
         "algorithm"
     };
 
-    /** The parameter class types for the ShadedRelief operation. */
+    /**
+     * The parameter class types for the ShadedRelief operation.
+     */
     private static final Class[] paramClasses = {
         javax.media.jai.ROI.class,
         /*it.geosolutions.jaiext.range.Range*/ Double.class,
@@ -97,7 +101,9 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
         ShadedReliefAlgorithm.class
     };
 
-    /** The parameter default values for the ShadedRelief operation. */
+    /**
+     * The parameter default values for the ShadedRelief operation.
+     */
     private static final Object[] paramDefaults = {
         null,
         null,

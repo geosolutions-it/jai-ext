@@ -19,7 +19,9 @@ package it.geosolutions.jaiext.shadedrelief;
 
 import com.sun.media.jai.util.ImageUtil;
 import it.geosolutions.jaiext.shadedrelief.ShadedReliefAlgorithm.DataProcessor;
+import it.geosolutions.jaiext.shadedrelief.ShadedReliefAlgorithm.DataProcessorByte;
 import it.geosolutions.jaiext.shadedrelief.ShadedReliefAlgorithm.DataProcessorDouble;
+import it.geosolutions.jaiext.shadedrelief.ShadedReliefAlgorithm.DataProcessorFloat;
 import it.geosolutions.jaiext.shadedrelief.ShadedReliefAlgorithm.DataProcessorInt;
 import it.geosolutions.jaiext.shadedrelief.ShadedReliefAlgorithm.DataProcessorShort;
 import it.geosolutions.jaiext.shadedrelief.ShadedReliefAlgorithm.ProcessingCase;
@@ -46,7 +48,7 @@ import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
 import javax.media.jai.operator.BorderDescriptor;
 
-/** 
+/**
  * ShadedRelief op Image.
  */
 class ShadedReliefOpImage extends AreaOpImage {
@@ -230,19 +232,17 @@ class ShadedReliefOpImage extends AreaOpImage {
             if (layout != null && layout instanceof ImageLayout) {
                 il = (ImageLayout) layout;
             } else {
-                il =
-                        new ImageLayout(
-                                source.getMinX() - leftPadding,
-                                source.getMinY() - topPadding,
-                                source.getWidth() + leftPadding + rightPadding,
-                                source.getHeight() + topPadding + bottomPadding);
+                il = new ImageLayout(
+                            source.getMinX() - leftPadding,
+                            source.getMinY() - topPadding,
+                            source.getWidth() + leftPadding + rightPadding,
+                            source.getHeight() + topPadding + bottomPadding);
                 borderHints.put(JAI.KEY_IMAGE_LAYOUT, il);
             }
             il.setTileGridXOffset(source.getTileGridXOffset());
             il.setTileGridYOffset(source.getTileGridYOffset());
 
-            extendedIMG =
-                    BorderDescriptor.create(
+            extendedIMG = BorderDescriptor.create(
                             source,
                             leftPadding,
                             rightPadding,
@@ -250,12 +250,6 @@ class ShadedReliefOpImage extends AreaOpImage {
                             bottomPadding,
                             extender,
                             borderHints);
-            //            ImageWorker worker = new
-            // ImageWorker(source).setRenderingHints(borderHints)
-            //                    .setNoData(this.noData)
-            //                    .border(leftPadding, rightPadding, topPadding, bottomPadding,
-            // extender);
-            //            extendedIMG = worker.getRenderedImage();
             this.destBounds = getBounds();
         } else {
             int x0 = getMinX() + leftPadding;
@@ -287,7 +281,9 @@ class ShadedReliefOpImage extends AreaOpImage {
     }
 
     /**
-     * Performs the computation on a specified rectangle. The sources are cobbled.
+     * Performs the computation on a specified rectangle.
+     *
+     * The sources are cobbled.
      *
      * @param sources an array of source Rasters, guaranteed to provide all necessary source data
      *     for computing the output.
@@ -334,9 +330,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                         roiDisjointTile = true;
                     } else {
                         PlanarImage roiIMG = getImage();
-                        roiIter =
-                                RandomIterFactory.create(
-                                        roiIMG, null /*, TILE_CACHED, ARRAY_CALC*/);
+                        roiIter = RandomIterFactory.create(roiIMG, null /*, TILE_CACHED, ARRAY_CALC*/);
                     }
                 }
             }
@@ -381,196 +375,6 @@ class ShadedReliefOpImage extends AreaOpImage {
         }
     }
 
-    protected void byteLoop(
-            RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
-        throw new UnsupportedOperationException();
-    }
-
-    protected void ushortLoop(
-            RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
-        throw new UnsupportedOperationException();
-    }
-
-    protected void floatLoop(
-            RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
-        throw new UnsupportedOperationException();
-    }
-
-    protected void doubleLoop(
-            RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
-        int dwidth = dst.getWidth();
-        int dheight = dst.getHeight();
-
-        double dstDataArrays[][] = dst.getDoubleDataArrays();
-        int dstBandOffsets[] = dst.getBandOffsets();
-        int dstPixelStride = dst.getPixelStride();
-        int dstScanlineStride = dst.getScanlineStride();
-
-        double srcDataArrays[][] = src.getDoubleDataArrays();
-        int srcBandOffsets[] = src.getBandOffsets();
-        int srcPixelStride = src.getPixelStride();
-        int srcScanlineStride = src.getScanlineStride();
-
-        // precalcaculate offsets
-        int centerScanlineOffset = srcScanlineStride;
-        int dstX = dst.getX();
-        int dstY = dst.getY();
-
-        // X,Y positions
-        int x0 = 0;
-        int y0 = 0;
-        int srcX = src.getX();
-        int srcY = src.getY();
-
-        double[] window = new double[9];
-        boolean[] roiMask = new boolean[9];
-
-        double dstData[] = dstDataArrays[0];
-        double srcData[] = srcDataArrays[0];
-        int srcScanlineOffset = srcBandOffsets[0];
-        int dstScanlineOffset = dstBandOffsets[0];
-        int srcPixelOffset = srcScanlineOffset;
-        int dstPixelOffset = dstScanlineOffset;
-        double destValue = Double.NaN;
-        DataProcessor data =
-                new DataProcessorDouble(srcData, hasNoData, noData, noDataDouble, params);
-
-        if (caseA || (caseB && roiContainsTile)) {
-            for (int j = 0; j < dheight; j++) {
-                srcPixelOffset = srcScanlineOffset;
-                dstPixelOffset = dstScanlineOffset;
-                for (int i = 0; i < dwidth; i++) {
-                    int sX = i + dstX;
-                    int sY = j + dstY;
-                    ProcessingCase currentCase = getCase(sX, sY);
-                    destValue =
-                            data.processWindow(
-                                    window, i, srcPixelOffset, centerScanlineOffset, currentCase);
-                    dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
-                    srcPixelOffset += srcPixelStride;
-                    dstPixelOffset += dstPixelStride;
-                }
-                srcScanlineOffset += srcScanlineStride;
-                dstScanlineOffset += dstScanlineStride;
-            }
-            //             ROI Check
-        } else if (caseB) {
-            for (int j = 0; j < dheight; j++) {
-                y0 = srcY + j;
-
-                for (int i = 0; i < dwidth; i++) {
-                    x0 = srcX + i;
-
-                    boolean inROI = false;
-                    // ROI Check
-                    for (int y = 0; y < 3; y++) {
-                        int yI = y0 + y;
-                        for (int x = 0; x < 3; x++) {
-                            int xI = x0 + x;
-                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
-                                inROI = true;
-                                roiMask[x + (3 * y)] = true;
-                            } else {
-                                roiMask[x + (3 * y)] = false;
-                            }
-                        }
-                    }
-
-                    if (inROI) {
-                        int sX = i + dstX;
-                        int sY = j + dstY;
-                        ProcessingCase currentCase = getCase(sX, sY);
-                        destValue =
-                                data.processWindowRoi(
-                                        window,
-                                        i,
-                                        srcPixelOffset,
-                                        centerScanlineOffset,
-                                        currentCase,
-                                        roiMask);
-                        dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
-                    } else {
-                        dstData[dstPixelOffset] = destNoDataInt;
-                    }
-
-                    srcPixelOffset += srcPixelStride;
-                    dstPixelOffset += dstPixelStride;
-                }
-                srcScanlineOffset += srcScanlineStride;
-                dstScanlineOffset += dstScanlineStride;
-            }
-            // NoData Check
-        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
-            for (int j = 0; j < dheight; j++) {
-                srcPixelOffset = srcScanlineOffset;
-                dstPixelOffset = dstScanlineOffset;
-                for (int i = 0; i < dwidth; i++) {
-                    int sX = i + dstX;
-                    int sY = j + dstY;
-                    ProcessingCase currentCase = getCase(sX, sY);
-                    destValue =
-                            data.processWindowNoData(
-                                    window, i, srcPixelOffset, centerScanlineOffset, currentCase);
-                    dstData[dstPixelOffset] =
-                            Double.isNaN(destValue)
-                                    ? destNoDataInt
-                                    : ImageUtil.clampRoundInt(destValue);
-                    srcPixelOffset += srcPixelStride;
-                    dstPixelOffset += dstPixelStride;
-                }
-                srcScanlineOffset += srcScanlineStride;
-                dstScanlineOffset += dstScanlineStride;
-            }
-            // ROI and No Data Check
-        } else {
-            for (int j = 0; j < dheight; j++) {
-                y0 = srcY + j;
-
-                for (int i = 0; i < dwidth; i++) {
-                    x0 = srcX + i;
-                    boolean inROI = false;
-                    // ROI Check
-                    for (int y = 0; y < 3; y++) {
-                        int yI = y0 + y;
-                        for (int x = 0; x < 3; x++) {
-                            int xI = x0 + x;
-                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
-                                inROI = true;
-                                roiMask[x + (3 * y)] = true;
-                            } else {
-                                roiMask[x + (3 * y)] = false;
-                            }
-                        }
-                    }
-
-                    if (inROI) {
-                        int sX = i + dstX;
-                        int sY = j + dstY;
-                        ProcessingCase currentCase = getCase(sX, sY);
-                        destValue =
-                                data.processWindowRoiNoData(
-                                        window,
-                                        i,
-                                        srcPixelOffset,
-                                        centerScanlineOffset,
-                                        currentCase,
-                                        roiMask);
-                        dstData[dstPixelOffset] =
-                                Double.isNaN(destValue)
-                                        ? destNoDataInt
-                                        : ImageUtil.clampRoundInt(destValue);
-                    } else {
-                        dstData[dstPixelOffset] = destNoDataInt;
-                    }
-
-                    srcPixelOffset += srcPixelStride;
-                    dstPixelOffset += dstPixelStride;
-                }
-                srcScanlineOffset += srcScanlineStride;
-                dstScanlineOffset += dstScanlineStride;
-            }
-        }
-    }
 
     public Raster computeTile(int tileX, int tileY) {
         if (!cobbleSources) {
@@ -593,13 +397,6 @@ class ShadedReliefOpImage extends AreaOpImage {
 
         /* account for padding in srcRectangle */
         PlanarImage s = getSourceImage(0);
-        // Fix 4639755: Area operations throw exception for
-        // destination extending beyond source bounds
-        // The default dest image area is the same as the source
-        // image area. However, when an ImageLayout hint is set,
-        // this might be not true. So the destRect should be the
-        // intersection of the provided rectangle, the destination
-        // bounds and the source bounds.
         destRect = destRect.intersection(s.getBounds());
         Rectangle srcRect = new Rectangle(destRect);
         srcRect.x -= getLeftPadding();
@@ -689,8 +486,9 @@ class ShadedReliefOpImage extends AreaOpImage {
     }
 
     /**
-     * This method provides a lazy initialization of the image associated to the ROI. The method
-     * uses the Double-checked locking in order to maintain thread-safety
+     * This method provides a lazy initialization of the image associated to the ROI.
+     *
+     * The method uses the Double-checked locking in order to maintain thread-safety
      *
      * @return
      */
@@ -707,17 +505,17 @@ class ShadedReliefOpImage extends AreaOpImage {
         return img;
     }
 
-    protected void intLoop(
+    protected void byteLoop(
             RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
 
-        int dstDataArrays[][] = dst.getIntDataArrays();
+        byte dstDataArrays[][] = dst.getByteDataArrays();
         int dstBandOffsets[] = dst.getBandOffsets();
         int dstPixelStride = dst.getPixelStride();
         int dstScanlineStride = dst.getScanlineStride();
 
-        int srcDataArrays[][] = src.getIntDataArrays();
+        byte srcDataArrays[][] = src.getByteDataArrays();
         int srcBandOffsets[] = src.getBandOffsets();
         int srcPixelStride = src.getPixelStride();
         int srcScanlineStride = src.getScanlineStride();
@@ -736,71 +534,75 @@ class ShadedReliefOpImage extends AreaOpImage {
         double[] window = new double[9];
         boolean[] roiMask = new boolean[9];
 
-        int dstData[] = dstDataArrays[0];
-        int srcData[] = srcDataArrays[0];
+        byte dstData[] = dstDataArrays[0];
+        byte srcData[] = srcDataArrays[0];
         int srcScanlineOffset = srcBandOffsets[0];
         int dstScanlineOffset = dstBandOffsets[0];
-        int srcPixelOffset = srcScanlineOffset;
-        int dstPixelOffset = dstScanlineOffset;
+        int srcPixelOffset;
+        int dstPixelOffset;
         double destValue = Double.NaN;
-        DataProcessor data = new DataProcessorInt(srcData, hasNoData, noData, noDataDouble, params);
+        DataProcessor data =
+                new DataProcessorByte(srcData, hasNoData, noData, noDataDouble, params);
 
         if (caseA || (caseB && roiContainsTile)) {
-            for (int j = 0; j < dheight; j++) {
+            for (int y = 0; y < dheight; y++) {
                 srcPixelOffset = srcScanlineOffset;
                 dstPixelOffset = dstScanlineOffset;
-                for (int i = 0; i < dwidth; i++) {
-                    int sX = i + dstX;
-                    int sY = j + dstY;
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
                     ProcessingCase currentCase = getCase(sX, sY);
                     destValue =
                             data.processWindow(
-                                    window, i, srcPixelOffset, centerScanlineOffset, currentCase);
-                    dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
+                    dstData[dstPixelOffset] = ImageUtil.clampRoundByte(destValue);
                     srcPixelOffset += srcPixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
                 srcScanlineOffset += srcScanlineStride;
                 dstScanlineOffset += dstScanlineStride;
             }
-            //             ROI Check
-        } else if (caseB) {
-            for (int j = 0; j < dheight; j++) {
-                y0 = srcY + j;
 
-                for (int i = 0; i < dwidth; i++) {
-                    x0 = srcX + i;
+        } else if (caseB) { // ROI Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
 
                     boolean inROI = false;
                     // ROI Check
-                    for (int y = 0; y < 3; y++) {
-                        int yI = y0 + y;
-                        for (int x = 0; x < 3; x++) {
-                            int xI = x0 + x;
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
                             if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
                                 inROI = true;
-                                roiMask[x + (3 * y)] = true;
+                                roiMask[dx + (3 * dy)] = true;
                             } else {
-                                roiMask[x + (3 * y)] = false;
+                                roiMask[dx + (3 * dy)] = false;
                             }
                         }
                     }
 
                     if (inROI) {
-                        int sX = i + dstX;
-                        int sY = j + dstY;
+                        int sX = x + dstX;
+                        int sY = y + dstY;
                         ProcessingCase currentCase = getCase(sX, sY);
                         destValue =
                                 data.processWindowRoi(
                                         window,
-                                        i,
+                                        x,
                                         srcPixelOffset,
                                         centerScanlineOffset,
                                         currentCase,
                                         roiMask);
-                        dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
+                        dstData[dstPixelOffset] = ImageUtil.clampRoundByte(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataInt;
+                        dstData[dstPixelOffset] = destNoDataByte;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -809,22 +611,22 @@ class ShadedReliefOpImage extends AreaOpImage {
                 srcScanlineOffset += srcScanlineStride;
                 dstScanlineOffset += dstScanlineStride;
             }
-            // NoData Check
-        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
-            for (int j = 0; j < dheight; j++) {
+
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) { // NoData Check
+            for (int y = 0; y < dheight; y++) {
                 srcPixelOffset = srcScanlineOffset;
                 dstPixelOffset = dstScanlineOffset;
-                for (int i = 0; i < dwidth; i++) {
-                    int sX = i + dstX;
-                    int sY = j + dstY;
+
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
                     ProcessingCase currentCase = getCase(sX, sY);
-                    destValue =
-                            data.processWindowNoData(
-                                    window, i, srcPixelOffset, centerScanlineOffset, currentCase);
+                    destValue = data.processWindowNoData(
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
                     dstData[dstPixelOffset] =
                             Double.isNaN(destValue)
-                                    ? destNoDataInt
-                                    : ImageUtil.clampRoundInt(destValue);
+                                    ? destNoDataByte
+                                    : ImageUtil.clampRoundByte(destValue);
                     srcPixelOffset += srcPixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
@@ -833,44 +635,41 @@ class ShadedReliefOpImage extends AreaOpImage {
             }
             // ROI and No Data Check
         } else {
-            for (int j = 0; j < dheight; j++) {
-                y0 = srcY + j;
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
 
-                for (int i = 0; i < dwidth; i++) {
-                    x0 = srcX + i;
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
                     boolean inROI = false;
                     // ROI Check
-                    for (int y = 0; y < 3; y++) {
-                        int yI = y0 + y;
-                        for (int x = 0; x < 3; x++) {
-                            int xI = x0 + x;
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
                             if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
                                 inROI = true;
-                                roiMask[x + (3 * y)] = true;
+                                roiMask[dx + (3 * dy)] = true;
                             } else {
-                                roiMask[x + (3 * y)] = false;
+                                roiMask[dx + (3 * dy)] = false;
                             }
                         }
                     }
 
                     if (inROI) {
-                        int sX = i + dstX;
-                        int sY = j + dstY;
+                        int sX = x + dstX;
+                        int sY = y + dstY;
                         ProcessingCase currentCase = getCase(sX, sY);
-                        destValue =
-                                data.processWindowRoiNoData(
-                                        window,
-                                        i,
-                                        srcPixelOffset,
-                                        centerScanlineOffset,
-                                        currentCase,
-                                        roiMask);
+                        destValue = data.processWindowRoiNoData(
+                                        window, x, srcPixelOffset, centerScanlineOffset, currentCase, roiMask);
                         dstData[dstPixelOffset] =
                                 Double.isNaN(destValue)
-                                        ? destNoDataInt
-                                        : ImageUtil.clampRoundInt(destValue);
+                                        ? destNoDataByte
+                                        : ImageUtil.clampRoundByte(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataInt;
+                        dstData[dstPixelOffset] = destNoDataByte;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -881,6 +680,190 @@ class ShadedReliefOpImage extends AreaOpImage {
             }
         }
     }
+
+    protected void ushortLoop(
+            RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
+        int dwidth = dst.getWidth();
+        int dheight = dst.getHeight();
+
+        short dstDataArrays[][] = dst.getShortDataArrays();
+        int dstBandOffsets[] = dst.getBandOffsets();
+        int dstPixelStride = dst.getPixelStride();
+        int dstScanlineStride = dst.getScanlineStride();
+
+        short srcDataArrays[][] = src.getShortDataArrays();
+        int srcBandOffsets[] = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        // precalcaculate offsets
+        int centerScanlineOffset = srcScanlineStride;
+        int dstX = dst.getX();
+        int dstY = dst.getY();
+
+        // X,Y positions
+        int x0 = 0;
+        int y0 = 0;
+        int srcX = src.getX();
+        int srcY = src.getY();
+
+        double[] window = new double[9];
+        boolean[] roiMask = new boolean[9];
+
+        short dstData[] = dstDataArrays[0];
+        short srcData[] = srcDataArrays[0];
+        int srcScanlineOffset = srcBandOffsets[0];
+        int dstScanlineOffset = dstBandOffsets[0];
+        int srcPixelOffset;
+        int dstPixelOffset;
+        double destValue = Double.NaN;
+        DataProcessor data =
+                new DataProcessorShort(srcData, hasNoData, noData, noDataDouble, params);
+
+        if (caseA || (caseB && roiContainsTile)) {
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
+                    ProcessingCase currentCase = getCase(sX, sY);
+                    destValue =
+                            data.processWindow(
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
+                    dstData[dstPixelOffset] = ImageUtil.clampRoundUShort(destValue);
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+
+        } else if (caseB) { // ROI Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
+
+                    boolean inROI = false;
+                    // ROI Check
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
+                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
+                                inROI = true;
+                                roiMask[dx + (3 * dy)] = true;
+                            } else {
+                                roiMask[dx + (3 * dy)] = false;
+                            }
+                        }
+                    }
+
+                    if (inROI) {
+                        int sX = x + dstX;
+                        int sY = y + dstY;
+                        ProcessingCase currentCase = getCase(sX, sY);
+                        destValue =
+                                data.processWindowRoi(
+                                        window,
+                                        x,
+                                        srcPixelOffset,
+                                        centerScanlineOffset,
+                                        currentCase,
+                                        roiMask);
+                        dstData[dstPixelOffset] = ImageUtil.clampRoundUShort(destValue);
+                    } else {
+                        dstData[dstPixelOffset] = destNoDataShort;
+                    }
+
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) { // NoData Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
+                    ProcessingCase currentCase = getCase(sX, sY);
+                    destValue =
+                            data.processWindowNoData(
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
+                    dstData[dstPixelOffset] =
+                            Double.isNaN(destValue)
+                                    ? destNoDataShort
+                                    : ImageUtil.clampRoundUShort(destValue);
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+
+        } else { // ROI and No Data Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
+                    boolean inROI = false;
+                    // ROI Check
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
+                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
+                                inROI = true;
+                                roiMask[dx + (3 * dy)] = true;
+                            } else {
+                                roiMask[dx + (3 * dy)] = false;
+                            }
+                        }
+                    }
+
+                    if (inROI) {
+                        int sX = x + dstX;
+                        int sY = y + dstY;
+                        ProcessingCase currentCase = getCase(sX, sY);
+                        destValue =
+                                data.processWindowRoiNoData(
+                                        window,
+                                        x,
+                                        srcPixelOffset,
+                                        centerScanlineOffset,
+                                        currentCase,
+                                        roiMask);
+                        dstData[dstPixelOffset] =
+                                Double.isNaN(destValue)
+                                        ? destNoDataShort
+                                        : ImageUtil.clampRoundUShort(destValue);
+                    } else {
+                        dstData[dstPixelOffset] = destNoDataShort;
+                    }
+
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        }
+    }
+
 
     protected void shortLoop(
             RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
@@ -915,19 +898,19 @@ class ShadedReliefOpImage extends AreaOpImage {
         short srcData[] = srcDataArrays[0];
         int srcScanlineOffset = srcBandOffsets[0];
         int dstScanlineOffset = dstBandOffsets[0];
-        int srcPixelOffset = srcScanlineOffset;
-        int dstPixelOffset = dstScanlineOffset;
+        int srcPixelOffset;
+        int dstPixelOffset;
         double destValue = Double.NaN;
         DataProcessor data =
                 new DataProcessorShort(srcData, hasNoData, noData, noDataDouble, params);
 
         if (caseA || (caseB && roiContainsTile)) {
-            for (int j = 0; j < dheight; j++) {
+            for (int y = 0; y < dheight; y++) {
                 srcPixelOffset = srcScanlineOffset;
                 dstPixelOffset = dstScanlineOffset;
                 for (int i = 0; i < dwidth; i++) {
                     int sX = i + dstX;
-                    int sY = j + dstY;
+                    int sY = y + dstY;
                     ProcessingCase currentCase = getCase(sX, sY);
                     destValue =
                             data.processWindow(
@@ -939,37 +922,39 @@ class ShadedReliefOpImage extends AreaOpImage {
                 srcScanlineOffset += srcScanlineStride;
                 dstScanlineOffset += dstScanlineStride;
             }
-            //             ROI Check
-        } else if (caseB) {
-            for (int j = 0; j < dheight; j++) {
-                y0 = srcY + j;
+        } else if (caseB) { // ROI Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
 
-                for (int i = 0; i < dwidth; i++) {
-                    x0 = srcX + i;
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
 
                     boolean inROI = false;
                     // ROI Check
-                    for (int y = 0; y < 3; y++) {
-                        int yI = y0 + y;
-                        for (int x = 0; x < 3; x++) {
-                            int xI = x0 + x;
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
                             if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
                                 inROI = true;
-                                roiMask[x + (3 * y)] = true;
+                                roiMask[dx + (3 * dy)] = true;
                             } else {
-                                roiMask[x + (3 * y)] = false;
+                                roiMask[dx + (3 * dy)] = false;
                             }
                         }
                     }
 
                     if (inROI) {
-                        int sX = i + dstX;
-                        int sY = j + dstY;
+                        int sX = x + dstX;
+                        int sY = y + dstY;
                         ProcessingCase currentCase = getCase(sX, sY);
                         destValue =
                                 data.processWindowRoi(
                                         window,
-                                        i,
+                                        x,
                                         srcPixelOffset,
                                         centerScanlineOffset,
                                         currentCase,
@@ -985,18 +970,18 @@ class ShadedReliefOpImage extends AreaOpImage {
                 srcScanlineOffset += srcScanlineStride;
                 dstScanlineOffset += dstScanlineStride;
             }
-            // NoData Check
-        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
-            for (int j = 0; j < dheight; j++) {
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) { // NoData Check
+            for (int y = 0; y < dheight; y++) {
                 srcPixelOffset = srcScanlineOffset;
                 dstPixelOffset = dstScanlineOffset;
-                for (int i = 0; i < dwidth; i++) {
-                    int sX = i + dstX;
-                    int sY = j + dstY;
+
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
                     ProcessingCase currentCase = getCase(sX, sY);
                     destValue =
                             data.processWindowNoData(
-                                    window, i, srcPixelOffset, centerScanlineOffset, currentCase);
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
                     dstData[dstPixelOffset] =
                             Double.isNaN(destValue)
                                     ? destNoDataShort
@@ -1007,36 +992,39 @@ class ShadedReliefOpImage extends AreaOpImage {
                 srcScanlineOffset += srcScanlineStride;
                 dstScanlineOffset += dstScanlineStride;
             }
-            // ROI and No Data Check
-        } else {
-            for (int j = 0; j < dheight; j++) {
-                y0 = srcY + j;
 
-                for (int i = 0; i < dwidth; i++) {
-                    x0 = srcX + i;
+        } else { // ROI and No Data Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
                     boolean inROI = false;
                     // ROI Check
-                    for (int y = 0; y < 3; y++) {
-                        int yI = y0 + y;
-                        for (int x = 0; x < 3; x++) {
-                            int xI = x0 + x;
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
                             if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
                                 inROI = true;
-                                roiMask[x + (3 * y)] = true;
+                                roiMask[dx + (3 * dy)] = true;
                             } else {
-                                roiMask[x + (3 * y)] = false;
+                                roiMask[dx + (3 * dy)] = false;
                             }
                         }
                     }
 
                     if (inROI) {
-                        int sX = i + dstX;
-                        int sY = j + dstY;
+                        int sX = x + dstX;
+                        int sY = y + dstY;
                         ProcessingCase currentCase = getCase(sX, sY);
                         destValue =
                                 data.processWindowRoiNoData(
                                         window,
-                                        i,
+                                        x,
                                         srcPixelOffset,
                                         centerScanlineOffset,
                                         currentCase,
@@ -1058,26 +1046,577 @@ class ShadedReliefOpImage extends AreaOpImage {
         }
     }
 
-    private ProcessingCase getCase(int i, int j) {
-        //        if (i == minX && j == minY) {
-        //            return ProcessingCase.TOP_LEFT;
-        //        } else if (i == maxX && j == minY) {
-        //            return ProcessingCase.TOP_RIGHT;
-        //        } else if (j == minY) {
-        //            return ProcessingCase.TOP;
-        //        } else if (i == minX && j == maxY) {
-        //            return ProcessingCase.BOTTOM_LEFT;
-        //        } else if (i == maxX && j == maxY) {
-        //            return ProcessingCase.BOTTOM_RIGHT;
-        //        } else if (i == minX) {
-        //            return ProcessingCase.LEFT;
-        //        } else if (i == maxX) {
-        //            return ProcessingCase.RIGHT;
-        //        } else if (j == maxY) {
-        //            return ProcessingCase.BOTTOM;
-        //        } else {
-        return ProcessingCase.STANDARD;
-        //        }
 
+    protected void intLoop(
+            RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
+        int dwidth = dst.getWidth();
+        int dheight = dst.getHeight();
+
+        int dstDataArrays[][] = dst.getIntDataArrays();
+        int dstBandOffsets[] = dst.getBandOffsets();
+        int dstPixelStride = dst.getPixelStride();
+        int dstScanlineStride = dst.getScanlineStride();
+
+        int srcDataArrays[][] = src.getIntDataArrays();
+        int srcBandOffsets[] = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        // precalcaculate offsets
+        int centerScanlineOffset = srcScanlineStride;
+        int dstX = dst.getX();
+        int dstY = dst.getY();
+
+        // X,Y positions
+        int x0 = 0;
+        int y0 = 0;
+        int srcX = src.getX();
+        int srcY = src.getY();
+
+        double[] window = new double[9];
+        boolean[] roiMask = new boolean[9];
+
+        int dstData[] = dstDataArrays[0];
+        int srcData[] = srcDataArrays[0];
+        int srcScanlineOffset = srcBandOffsets[0];
+        int dstScanlineOffset = dstBandOffsets[0];
+        int srcPixelOffset;
+        int dstPixelOffset;
+        double destValue = Double.NaN;
+        DataProcessor data = new DataProcessorInt(srcData, hasNoData, noData, noDataDouble, params);
+
+        if (caseA || (caseB && roiContainsTile)) {
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
+                    ProcessingCase currentCase = getCase(sX, sY);
+                    destValue =
+                            data.processWindow(
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
+                    dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        } else if (caseB) { // ROI Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
+
+                    boolean inROI = false;
+                    // ROI Check
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
+                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
+                                inROI = true;
+                                roiMask[dx + (3 * dy)] = true;
+                            } else {
+                                roiMask[dx + (3 * dy)] = false;
+                            }
+                        }
+                    }
+
+                    if (inROI) {
+                        int sX = x + dstX;
+                        int sY = y + dstY;
+                        ProcessingCase currentCase = getCase(sX, sY);
+                        destValue =
+                                data.processWindowRoi(
+                                        window,
+                                        x,
+                                        srcPixelOffset,
+                                        centerScanlineOffset,
+                                        currentCase,
+                                        roiMask);
+                        dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
+                    } else {
+                        dstData[dstPixelOffset] = destNoDataInt;
+                    }
+
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) { // NoData Check
+            for (int y= 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
+                    ProcessingCase currentCase = getCase(sX, sY);
+                    destValue =
+                            data.processWindowNoData(
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
+                    dstData[dstPixelOffset] =
+                            Double.isNaN(destValue)
+                                    ? destNoDataInt
+                                    : ImageUtil.clampRoundInt(destValue);
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+
+        } else { // ROI and No Data Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
+                    boolean inROI = false;
+                    // ROI Check
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
+                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
+                                inROI = true;
+                                roiMask[dx + (3 * dy)] = true;
+                            } else {
+                                roiMask[dx + (3 * dy)] = false;
+                            }
+                        }
+                    }
+
+                    if (inROI) {
+                        int sX = x + dstX;
+                        int sY = y + dstY;
+                        ProcessingCase currentCase = getCase(sX, sY);
+                        destValue =
+                                data.processWindowRoiNoData(
+                                        window,
+                                        x,
+                                        srcPixelOffset,
+                                        centerScanlineOffset,
+                                        currentCase,
+                                        roiMask);
+                        dstData[dstPixelOffset] =
+                                Double.isNaN(destValue)
+                                        ? destNoDataInt
+                                        : ImageUtil.clampRoundInt(destValue);
+                    } else {
+                        dstData[dstPixelOffset] = destNoDataInt;
+                    }
+
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        }
+    }
+
+
+
+    protected void floatLoop(
+            RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
+        int dwidth = dst.getWidth();
+        int dheight = dst.getHeight();
+
+        float dstDataArrays[][] = dst.getFloatDataArrays();
+        int dstBandOffsets[] = dst.getBandOffsets();
+        int dstPixelStride = dst.getPixelStride();
+        int dstScanlineStride = dst.getScanlineStride();
+
+        float srcDataArrays[][] = src.getFloatDataArrays();
+        int srcBandOffsets[] = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        // precalcaculate offsets
+        int centerScanlineOffset = srcScanlineStride;
+        int dstX = dst.getX();
+        int dstY = dst.getY();
+
+        // X,Y positions
+        int x0 = 0;
+        int y0 = 0;
+        int srcX = src.getX();
+        int srcY = src.getY();
+
+        double[] window = new double[9];
+        boolean[] roiMask = new boolean[9];
+
+        float dstData[] = dstDataArrays[0];
+        float srcData[] = srcDataArrays[0];
+        int srcScanlineOffset = srcBandOffsets[0];
+        int dstScanlineOffset = dstBandOffsets[0];
+        int srcPixelOffset;
+        int dstPixelOffset;
+        double destValue = Double.NaN;
+        DataProcessor data =
+                new DataProcessorFloat(srcData, hasNoData, noData, noDataDouble, params);
+
+        if (caseA || (caseB && roiContainsTile)) {
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
+                    ProcessingCase currentCase = getCase(sX, sY);
+                    destValue =
+                            data.processWindow(
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
+                    dstData[dstPixelOffset] = (float)destValue; // checkme clamp
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        } else if (caseB) { //ROI Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
+
+                    boolean inROI = false;
+                    // ROI Check
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
+                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
+                                inROI = true;
+                                roiMask[dx + (3 * dy)] = true;
+                            } else {
+                                roiMask[dx + (3 * dy)] = false;
+                            }
+                        }
+                    }
+
+                    if (inROI) {
+                        int sX = x + dstX;
+                        int sY = y + dstY;
+                        ProcessingCase currentCase = getCase(sX, sY);
+                        destValue =
+                                data.processWindowRoi(
+                                        window,
+                                        x,
+                                        srcPixelOffset,
+                                        centerScanlineOffset,
+                                        currentCase,
+                                        roiMask);
+                        dstData[dstPixelOffset] = (float)destValue; // checkme clamp
+                    } else {
+                        dstData[dstPixelOffset] = destNoDataFloat;
+                    }
+
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) { // NoData Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
+                    ProcessingCase currentCase = getCase(sX, sY);
+                    destValue =
+                            data.processWindowNoData(
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
+                    dstData[dstPixelOffset] =
+                            Double.isNaN(destValue)
+                                    ? destNoDataFloat
+                                    : (float)destValue; // checkme clamp
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        } else { // ROI and No Data Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
+                    boolean inROI = false;
+                    // ROI Check
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
+                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
+                                inROI = true;
+                                roiMask[dx + (3 * dy)] = true;
+                            } else {
+                                roiMask[dx + (3 * dy)] = false;
+                            }
+                        }
+                    }
+
+                    if (inROI) {
+                        int sX = x + dstX;
+                        int sY = y + dstY;
+                        ProcessingCase currentCase = getCase(sX, sY);
+                        destValue =
+                                data.processWindowRoiNoData(
+                                        window,
+                                        x,
+                                        srcPixelOffset,
+                                        centerScanlineOffset,
+                                        currentCase,
+                                        roiMask);
+                        dstData[dstPixelOffset] =
+                                Double.isNaN(destValue)
+                                        ? destNoDataFloat
+                                        : (float)destValue; // checkme clamp
+                    } else {
+                        dstData[dstPixelOffset] = destNoDataFloat;
+                    }
+
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        }
+    }
+
+    protected void doubleLoop(
+            RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
+        int dwidth = dst.getWidth();
+        int dheight = dst.getHeight();
+
+        double dstDataArrays[][] = dst.getDoubleDataArrays();
+        int dstBandOffsets[] = dst.getBandOffsets();
+        int dstPixelStride = dst.getPixelStride();
+        int dstScanlineStride = dst.getScanlineStride();
+
+        double srcDataArrays[][] = src.getDoubleDataArrays();
+        int srcBandOffsets[] = src.getBandOffsets();
+        int srcPixelStride = src.getPixelStride();
+        int srcScanlineStride = src.getScanlineStride();
+
+        // precalcaculate offsets
+        int centerScanlineOffset = srcScanlineStride;
+        int dstX = dst.getX();
+        int dstY = dst.getY();
+
+        // X,Y positions
+        int x0 = 0;
+        int y0 = 0;
+        int srcX = src.getX();
+        int srcY = src.getY();
+
+        double[] window = new double[9];
+        boolean[] roiMask = new boolean[9];
+
+        double dstData[] = dstDataArrays[0];
+        double srcData[] = srcDataArrays[0];
+        int srcScanlineOffset = srcBandOffsets[0];
+        int dstScanlineOffset = dstBandOffsets[0];
+        int srcPixelOffset;
+        int dstPixelOffset;
+        double destValue = Double.NaN;
+        DataProcessor data =
+                new DataProcessorDouble(srcData, hasNoData, noData, noDataDouble, params);
+
+        if (caseA || (caseB && roiContainsTile)) {
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
+                    ProcessingCase currentCase = getCase(sX, sY);
+                    destValue =
+                            data.processWindow(
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
+                    dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+            
+        } else if (caseB) { // ROI Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
+
+                    boolean inROI = false;
+                    // ROI Check
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
+                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
+                                inROI = true;
+                                roiMask[dx + (3 * dy)] = true;
+                            } else {
+                                roiMask[dx + (3 * dy)] = false;
+                            }
+                        }
+                    }
+
+                    if (inROI) {
+                        int sX = x + dstX;
+                        int sY = y + dstY;
+                        ProcessingCase currentCase = getCase(sX, sY);
+                        destValue =
+                                data.processWindowRoi(
+                                        window,
+                                        x,
+                                        srcPixelOffset,
+                                        centerScanlineOffset,
+                                        currentCase,
+                                        roiMask);
+                        dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
+                    } else {
+                        dstData[dstPixelOffset] = destNoDataInt;
+                    }
+
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        } else if (caseC || (hasROI && hasNoData && roiContainsTile)) { // NoData Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                for (int x = 0; x < dwidth; x++) {
+                    int sX = x + dstX;
+                    int sY = y + dstY;
+                    ProcessingCase currentCase = getCase(sX, sY);
+                    destValue =
+                            data.processWindowNoData(
+                                    window, x, srcPixelOffset, centerScanlineOffset, currentCase);
+                    dstData[dstPixelOffset] =
+                            Double.isNaN(destValue)
+                                    ? destNoDataInt
+                                    : ImageUtil.clampRoundInt(destValue);
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+
+        } else { // ROI and No Data Check
+            for (int y = 0; y < dheight; y++) {
+                srcPixelOffset = srcScanlineOffset;
+                dstPixelOffset = dstScanlineOffset;
+
+                y0 = srcY + y;
+
+                for (int x = 0; x < dwidth; x++) {
+                    x0 = srcX + x;
+                    boolean inROI = false;
+                    // ROI Check
+                    for (int dy = 0; dy < 3; dy++) {
+                        int yI = y0 + dy;
+                        for (int dx = 0; dx < 3; dx++) {
+                            int xI = x0 + dx;
+                            if (roiBounds.contains(xI, yI) && roiIter.getSample(xI, yI, 0) > 0) {
+                                inROI = true;
+                                roiMask[dx + (3 * dy)] = true;
+                            } else {
+                                roiMask[dx + (3 * dy)] = false;
+                            }
+                        }
+                    }
+
+                    if (inROI) {
+                        int sX = x + dstX;
+                        int sY = y + dstY;
+                        ProcessingCase currentCase = getCase(sX, sY);
+                        destValue =
+                                data.processWindowRoiNoData(
+                                        window,
+                                        x,
+                                        srcPixelOffset,
+                                        centerScanlineOffset,
+                                        currentCase,
+                                        roiMask);
+                        dstData[dstPixelOffset] =
+                                Double.isNaN(destValue)
+                                        ? destNoDataInt
+                                        : ImageUtil.clampRoundInt(destValue);
+                    } else {
+                        dstData[dstPixelOffset] = destNoDataInt;
+                    }
+
+                    srcPixelOffset += srcPixelStride;
+                    dstPixelOffset += dstPixelStride;
+                }
+                srcScanlineOffset += srcScanlineStride;
+                dstScanlineOffset += dstScanlineStride;
+            }
+        }
+    }
+
+    private ProcessingCase getCase(int x, int y) {
+        if (y == minY) {
+            if (x == minX) {
+                return ProcessingCase.TOP_LEFT;
+            } else if (x == maxX) {
+                return ProcessingCase.TOP_RIGHT;
+            } else {
+                return ProcessingCase.TOP;
+            }
+        }
+        else if (y == maxY) {
+            if (x == minX) {
+                return ProcessingCase.BOTTOM_LEFT;
+            } else if (y == maxY) {
+                return ProcessingCase.BOTTOM_RIGHT;
+            } else {
+                return ProcessingCase.BOTTOM;
+            }
+        } else if (x == minX) {
+            return ProcessingCase.LEFT;
+        } else if (x == maxX) {
+            return ProcessingCase.RIGHT;
+        } else {
+            return ProcessingCase.STANDARD;
+        }
     }
 }

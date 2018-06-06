@@ -43,7 +43,6 @@ public class ShadedReliefRIF implements RenderedImageFactory {
         // Getting parameters
         int paramIndex = 0;
         ROI roi = (ROI) pb.getObjectParameter(paramIndex++);
-        //        Range nodata = (Range) pb.getObjectParameter(paramIndex++);
         Double nodata = (Double) pb.getObjectParameter(paramIndex++);
         double destinationNoData = pb.getDoubleParameter(paramIndex++);
         double resX = pb.getDoubleParameter(paramIndex++);

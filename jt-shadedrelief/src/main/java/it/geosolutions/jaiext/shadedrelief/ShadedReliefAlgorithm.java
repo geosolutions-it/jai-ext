@@ -105,12 +105,17 @@ public enum ShadedReliefAlgorithm {
         return value;
     }
 
-    /** Refine value. Default implementation returns value as is */
+    /**
+     * Refine value.
+     * Default implementation returns value as is
+     */
     public double refineValue(double value, double slope) {
         return value;
     }
 
-    /** Compute the shaded Relief value */
+    /**
+     * Compute the shaded Relief value
+     */
     public float getValue(double[] window, ShadedReliefParameters params) {
 
         double x, y, aspect, square, value;
@@ -175,15 +180,21 @@ public enum ShadedReliefAlgorithm {
             this.algorithm = params.algorithm;
         }
 
-        /** Get the value of the specified index from the source data array */
+        /**
+         * Get the value of the specified index from the source data array
+         */
         abstract double getValue(int index);
 
-        /** Simple interpolation without any noData check */
+        /**
+         * Simple interpolation without any noData check
+         */
         public final double interpolate(double a, double b) {
             return (2 * (a)) - (b);
         }
 
-        /** Interpolating version taking noData into account */
+        /**
+         * Interpolating version taking noData into account
+         */
         public final double interpolateNoData(double a, double b) {
             return (hasNoData
                             && (areEquals(noData, a) || areEquals(noData, b)
@@ -192,7 +203,9 @@ public enum ShadedReliefAlgorithm {
                     : interpolate(a, b);
         }
 
-        /** Setup proper window values and return the computed value, taking noData into account */
+        /**
+         * Setup proper window values and return the computed value, taking noData into account
+         */
         public double processWindowNoData(
                 double[] window,
                 int i,
@@ -215,8 +228,9 @@ public enum ShadedReliefAlgorithm {
         }
 
         /**
-         * Setup proper window values and return the computed value. Optimized version without
-         * noData management
+         * Setup proper window values and return the computed value.
+         *
+         * Optimized version without noData management
          */
         public double processWindow(
                 double[] window,
@@ -229,8 +243,9 @@ public enum ShadedReliefAlgorithm {
         }
 
         /**
-         * Setup proper window values and return the computed value. Optimized version without
-         * noData management
+         * Setup proper window values and return the computed value.
+         *
+         * Optimized version without noData management
          */
         public double processWindowRoi(
                 double[] window,
@@ -245,8 +260,9 @@ public enum ShadedReliefAlgorithm {
         }
 
         /**
-         * Setup proper window values and return the computed value. Optimized version without
-         * noData management
+         * Setup proper window values and return the computed value.
+         *
+         * Optimized version without noData management
          */
         public double processWindowRoiNoData(
                 double[] window,
@@ -276,7 +292,9 @@ public enum ShadedReliefAlgorithm {
         }
     }
 
-    /** DataProcessor implementation using short arrays */
+    /**
+     * DataProcessor implementation using short arrays
+     */
     static class DataProcessorShort extends DataProcessor {
         short[] srcDataShort;
 
@@ -296,7 +314,9 @@ public enum ShadedReliefAlgorithm {
         }
     }
 
-    /** DataProcessor implementation using int arrays */
+    /**
+     * DataProcessor implementation using int arrays
+     */
     static class DataProcessorInt extends DataProcessor {
         int[] srcDataInt;
 
@@ -316,7 +336,9 @@ public enum ShadedReliefAlgorithm {
         }
     }
 
-    /** DataProcessor implementation using double arrays */
+    /**
+     * DataProcessor implementation using double arrays
+     */
     static class DataProcessorDouble extends DataProcessor {
         double[] srcDataDouble;
 
@@ -336,7 +358,9 @@ public enum ShadedReliefAlgorithm {
         }
     }
 
-    /** DataProcessor implementation using float arrays */
+    /**
+     * DataProcessor implementation using float arrays
+     */
     static class DataProcessorFloat extends DataProcessor {
         float[] srcDataFloat;
 
@@ -353,6 +377,28 @@ public enum ShadedReliefAlgorithm {
         @Override
         double getValue(int index) {
             return srcDataFloat[index];
+        }
+    }
+
+    /**
+     * DataProcessor implementation using byte arrays
+     */
+    static class DataProcessorByte extends DataProcessor {
+        byte[] srcDataByte;
+
+        public DataProcessorByte(
+                byte[] data,
+                boolean hasNoData, /*Range*/
+                Double noData,
+                double noDataDouble,
+                ShadedReliefAlgorithm.ShadedReliefParameters params) {
+            super(hasNoData, noData, noDataDouble, params);
+            srcDataByte = data;
+        }
+
+        @Override
+        double getValue(int index) {
+            return srcDataByte[index];
         }
     }
 
