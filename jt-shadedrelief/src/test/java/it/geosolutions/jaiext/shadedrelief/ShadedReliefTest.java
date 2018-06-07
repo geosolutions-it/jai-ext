@@ -17,8 +17,6 @@
  */
 package it.geosolutions.jaiext.shadedrelief;
 
-import it.geosolutions.imageio.utilities.ImageIOUtilities;
-import static it.geosolutions.imageio.utilities.ImageIOUtilities.visualize;
 import static org.junit.Assert.assertEquals;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
@@ -40,7 +38,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static it.geosolutions.jaiext.testclasses.TestBase.IMAGE_FILLER;
 import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 import java.awt.Transparency;
 import java.awt.color.ColorSpace;
@@ -49,40 +46,22 @@ import java.awt.image.ComponentColorModel;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.renderable.ParameterBlock;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.media.jai.JAI;
 
 public class ShadedReliefTest extends TestBase {
     /** Logger */
     private Logger logger = Logger.getLogger(ShadedReliefTest.class.getName());
 
-    /** Tolerance parameter used in comparison */
-    private static final double TOLERANCE = 0.1d;
-
     /** Input data used for testing */
     private static RenderedImage[] testImages;
 
     private static Range[] noData;
+
+    /** needed for some debug logs */
     private static String[] typeName;
-
-
-    /** NoData Range for Byte dataType */
-    private static Range noDataByte;
-
-    /** NoData Range for Ushort dataType */
-    private static Range noDataUShort;
-
-    /** NoData Range for Short dataType */
-    private static Range noDataShort;
-
-    /** NoData Range for Int dataType */
-    private static Range noDataInt;
-
-    /** NoData Range for Float dataType */
-    private static Range noDataFloat;
-
-    /** NoData Range for Double dataType */
-    private static Range noDataDouble;
 
     /** ROI used in tests */
     private static ROI roiObject;
@@ -92,36 +71,12 @@ public class ShadedReliefTest extends TestBase {
 
     private static List<Integer> typesToTest;
 
-//    public static Object getNoData(int type) {
-//
-//        switch(type) {
-//            case DataBuffer.TYPE_BYTE:
-//                return noDataB;
-//            case DataBuffer.TYPE_DOUBLE:
-//                return noDataD;
-//            case DataBuffer.TYPE_FLOAT:
-//                return noDataF;
-//            case DataBuffer.TYPE_INT:
-//                return noDataI;
-//            case DataBuffer.TYPE_SHORT:
-//                return noDataS;
-//            case DataBuffer.TYPE_USHORT:
-//                return noDataS;
-//            default:
-//                throw new IllegalArgumentException("Unknown datatype " + type);
-//        }
-//    }
-
     private static double noDataD = 50;
+
+    private static TestPoint[] testPoints;
 
     @BeforeClass
     public static void initialSetup() {
-        // NoData definition
-        byte noDataB = 50;
-        short noDataS = 50;
-        int noDataI = 50;
-        float noDataF = 50;
-        //double noDataD = 50;
 
         double min = 10;
         double max = 100;
@@ -129,33 +84,45 @@ public class ShadedReliefTest extends TestBase {
         // Image Creation
         testImages = new RenderedImage[6];
 
-        IMAGE_FILLER = true;
-        testImages[DataBuffer.TYPE_BYTE] = createTestPyramidImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT, min, max, 0); // 0
-        testImages[DataBuffer.TYPE_USHORT] = createTestPyramidImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, min, max, 0); // 1
-        testImages[DataBuffer.TYPE_SHORT] = createTestPyramidImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, min, max, 0); // 2
-        testImages[DataBuffer.TYPE_INT] = createTestPyramidImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, min, max, 0); // 3
-        testImages[DataBuffer.TYPE_FLOAT] = createTestPyramidImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT, min, max, 0); // 4
-        testImages[DataBuffer.TYPE_DOUBLE] = createTestPyramidImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH,  DEFAULT_HEIGHT, min, max, 0); // 5
-        IMAGE_FILLER = false;
+        testImages[DataBuffer.TYPE_BYTE] = createTestPyramidImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT, min, max, 0);
+        testImages[DataBuffer.TYPE_USHORT] = createTestPyramidImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, min, max, 0);
+        testImages[DataBuffer.TYPE_SHORT] = createTestPyramidImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, min, max, 0);
+        testImages[DataBuffer.TYPE_INT] = createTestPyramidImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, min, max, 0);
+        testImages[DataBuffer.TYPE_FLOAT] = createTestPyramidImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT, min, max, 0);
+        testImages[DataBuffer.TYPE_DOUBLE] = createTestPyramidImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH,  DEFAULT_HEIGHT, min, max, 0);
+
+        int w2 = DEFAULT_WIDTH / 2;
+        int w4 = DEFAULT_WIDTH / 4;
+        int w34 = 3 * DEFAULT_WIDTH / 4;
+        int h2 = DEFAULT_HEIGHT / 2;
+        int h4 = DEFAULT_HEIGHT / 4;
+        int h34 = 3 * DEFAULT_HEIGHT / 4;
+
+        testPoints = new TestPoint[]{
+            new TestPoint(w2, h4, 1d),
+            new TestPoint(w34, h2, 7d),
+            new TestPoint(w2, h34, 184d),
+            new TestPoint(w4, h2, 1d),
+        };
+
+        // NoData definition
+        final byte noDataB = 50;
+        final short noDataS = 50;
+        final int noDataI = 50;
+        final float noDataF = 50;
+        //double noDataD = 50;
 
         // No Data Ranges
         boolean minIncluded = true;
         boolean maxIncluded = true;
 
-        noDataByte = RangeFactory.create(noDataB, minIncluded, noDataB, maxIncluded);
-        noDataUShort = RangeFactory.createU(noDataS, minIncluded, noDataS, maxIncluded);
-        noDataShort = RangeFactory.create(noDataS, minIncluded, noDataS, maxIncluded);
-        noDataInt = RangeFactory.create(noDataI, minIncluded, noDataI, maxIncluded);
-        noDataFloat = RangeFactory.create(noDataF, minIncluded, noDataF, maxIncluded, true);
-        noDataDouble = RangeFactory.create(noDataD, minIncluded, noDataD, maxIncluded, true);
-
         noData = new Range[6];
-        noData[DataBuffer.TYPE_BYTE] = noDataByte;
-        noData[DataBuffer.TYPE_DOUBLE] = noDataDouble;
-        noData[DataBuffer.TYPE_FLOAT] = noDataFloat;
-        noData[DataBuffer.TYPE_INT] = noDataInt;
-        noData[DataBuffer.TYPE_SHORT] = noDataShort;
-        noData[DataBuffer.TYPE_USHORT] = noDataUShort;
+        noData[DataBuffer.TYPE_BYTE] = RangeFactory.create(noDataB, minIncluded, noDataB, maxIncluded);;
+        noData[DataBuffer.TYPE_USHORT] = RangeFactory.createU(noDataS, minIncluded, noDataS, maxIncluded);
+        noData[DataBuffer.TYPE_SHORT] = RangeFactory.create(noDataS, minIncluded, noDataS, maxIncluded);
+        noData[DataBuffer.TYPE_INT] = RangeFactory.create(noDataI, minIncluded, noDataI, maxIncluded);
+        noData[DataBuffer.TYPE_FLOAT] = RangeFactory.create(noDataF, minIncluded, noDataF, maxIncluded, true);
+        noData[DataBuffer.TYPE_DOUBLE] = RangeFactory.create(noDataD, minIncluded, noDataD, maxIncluded, true);
 
         typeName = new String[6];
         typeName[DataBuffer.TYPE_BYTE] = "Byte";
@@ -174,12 +141,13 @@ public class ShadedReliefTest extends TestBase {
         // Destination No Data
         destNoData = 100.0;
 
+        // allow to restrict tests to only defined datatypes
         typesToTest = new ArrayList<>();
-//        typesToTest.add(DataBuffer.TYPE_BYTE);
-//        typesToTest.add(DataBuffer.TYPE_USHORT);
-//        typesToTest.add(DataBuffer.TYPE_SHORT);
-//        typesToTest.add(DataBuffer.TYPE_INT);
-//        typesToTest.add(DataBuffer.TYPE_FLOAT);
+        typesToTest.add(DataBuffer.TYPE_BYTE);
+        typesToTest.add(DataBuffer.TYPE_USHORT);
+        typesToTest.add(DataBuffer.TYPE_SHORT);
+        typesToTest.add(DataBuffer.TYPE_INT);
+        typesToTest.add(DataBuffer.TYPE_FLOAT);
         typesToTest.add(DataBuffer.TYPE_DOUBLE);
 
     }
@@ -305,120 +273,49 @@ public class ShadedReliefTest extends TestBase {
         assertEquals(srcBands, dstBands);
 
 
-        String title = typeName[type] + " " +(roiUsed? "ROI": "NOroi") + " " + (nodataUsed? "NODATA": "NOnodata");
+        if( 0 == 1 ) { // enable this block to display the images
+            String title = typeName[type] + " " +(roiUsed? "ROI": "NOroi") + " " + (nodataUsed? "NODATA": "NOnodata");
 
-//        ImageIOUtilities.visualize(src, "SRC " + title, true);
-//        ImageIOUtilities.visualize(shaded, "SHADED " + title, true);
-//        try {
-
-        RenderedImage showSrc = src;
-        RenderedImage showDst = shaded;
-        if(type == DataBuffer.TYPE_USHORT || 
-                type == DataBuffer.TYPE_SHORT ||
-                type == DataBuffer.TYPE_FLOAT ||
-                type == DataBuffer.TYPE_DOUBLE ||
-                type == DataBuffer.TYPE_INT ) {
-            showSrc = rescale(showSrc, null);
-            showDst = rescale(showDst, null);
-        }
-
-        RenderedImageBrowser.showChain(showSrc, false, roiUsed, "SRC " + title);
-        RenderedImageBrowser.showChain(showDst, false, roiUsed, "SHADED " + title);
-//        } catch (RuntimeException e) {
-//            System.out.println("Error on " + title + " ["+e.getMessage()+"]");
-//            throw e;
-//        }
-//        CloseWaiter waiter = new CloseWaiter();
-//        waiter.add(f1);
-//        waiter.add(f2);
-//        waiter.waitAll();
-
-        boolean valid = true;
-        // Check on all the pixels if they have been calculate correctly
-        for (int tileX = minTileX; tileX < maxTileX; tileX++) {
-            for (int tileY = minTileY; tileY < maxTileY; tileY++) {
-                Raster tile = shaded.getTile(tileX, tileY);
-                Raster srcTile = src.getTile(tileX, tileY);
-
-                int minX = tile.getMinX();
-                int minY = tile.getMinY();
-                int maxX = minX + tileWidth - 1;
-                int maxY = minY + tileHeight - 1;
-
-                int minXsrc = srcTile.getMinX();
-                int minYsrc = srcTile.getMinY();
-
-                int xsrc = minXsrc;
-
-//                for (int x = minX; x <= maxX; x++) {
-//
-//                    int ysrc = minYsrc;
-//                    for (int y = minY; y <= maxY; y++) {
-//
-//                        boolean isValidRoi = !roiUsed || (roiUsed && roi.contains(x, y));
-//
-//                        if (isValidRoi) {
-//                            for (int b = 0; b < dstBands; b++) {
-//                                // Getting the result
-//                                double samplesource = srcTile.getSampleDouble(xsrc, ysrc, b);
-//                                double result = tile.getSampleDouble(x, y, b);
-//
-//                                if (nodataUsed && noData.contains(samplesource)) {
-//                                    assertEquals(result, destNoData, TOLERANCE);
-//                                } else if (result < low[b] || result > high[b])
-//                                        valid = false;
-//                                logger.log(Level.FINE, "srcsample: " + samplesource
-//                                        + " dstsample: " + tile.getSampleDouble(x, y, b) + " low: "
-//                                        + low[b] + " high: " + high[b]);
-//                            }
-//
-//                        } else {
-//                            for (int b = 0; b < dstBands; b++) {
-//
-//                                assertEquals(tile.getSampleDouble(x, y, b), destNoData, TOLERANCE);
-//                            }
-//                        }
-//
-//                        ysrc++;
-//                    }
-//                    xsrc++;
-//                }
+            RenderedImage showSrc = src;
+            RenderedImage showDst = shaded;
+            if(type == DataBuffer.TYPE_USHORT ||
+                    type == DataBuffer.TYPE_SHORT ||
+                    type == DataBuffer.TYPE_FLOAT ||
+                    type == DataBuffer.TYPE_DOUBLE ||
+                    type == DataBuffer.TYPE_INT ) {
+                showSrc = rescale(showSrc, null);
+                showDst = rescale(showDst, null);
             }
+
+            RenderedImageBrowser.showChain(showSrc, false, roiUsed, "SRC " + title);
+            RenderedImageBrowser.showChain(showDst, false, roiUsed, "SHADED " + title);
         }
-        Assert.assertTrue(valid);
+
+        for (TestPoint point : testPoints) {
+            double val = shaded.getTile(0,0).getSampleDouble(point.x, point.y, 0);
+            boolean isInRoi = !roiUsed || (roiUsed && roi.contains(point.x, point.y));
+
+            double expected = isInRoi ? point.value : destNoData;
+
+            boolean ok = (Double.compare(expected, val) == 0) ||
+                    Math.abs(expected - val) < 0.5;
+
+//            System.out.println(
+//                    (roiUsed? "ROI": "   ") + " " + (nodataUsed? "NODATA": "      ")
+//                    + "  TYPE " + typeName[type] + " x:" + point.x + " y:" + point.y + " v:" + point.value +" --> " + val + " "
+//                    + (isInRoi ? " IN ROI" : "")  + " "
+//                    + (ok ? " OK" : "BAD!! nd=" + destNoData)
+//                    );
+
+            assertEquals("Bad shaded value", expected, val, 0.5d);
+        }
     }
 
     /** Simple method for image creation */
     public static RenderedImage createTestPyramidImage(int dataType, //
             int width, int height,
-            Number minValue, Number maxValue,
+            Number valueAtBase, Number valueAtTop,
             Number noDataValue) {
-        // parameter block initialization
-
-        final Number validData = null;
-        int tileW = width / 8;
-        int tileH = height / 8;
-        int imageDim = width * height;
-
-
-
-        // This values could be used for fill all the image
-//        byte valueB = validData != null ? validData.byteValue() : 64;
-//        short valueUS = validData != null ? validData.shortValue() : Short.MAX_VALUE / 4;
-//        short valueS = validData != null ? validData.shortValue() : -50;
-//        int valueI = validData != null ? validData.intValue() : 100;
-//        float valueF = validData != null ? validData.floatValue() : (255 / 2) * 5f;
-//        double valueD = validData != null ? validData.doubleValue() : (255 / 1) * 4d;
-
-//        boolean fillImage = IMAGE_FILLER;
-
-
-//        Byte noDataByte = null;
-//        Short noDataUShort = null;
-//        Short noDataValueShort = null;
-//        Integer noDataValueInteger = null;
-//        Float noDataValueFloat = null;
-//        Double noDataValueDouble = null;
 
         final SampleModel sm = new ComponentSampleModel(dataType, width, height, 1, width, new int[] {0});
         ColorModel cm = TiledImage.createColorModel(sm);
@@ -433,42 +330,10 @@ public class ShadedReliefTest extends TestBase {
         }
 
         // Create the constant operation.
-//        TiledImage used = new TiledImage(sm, tileW, tileH);
         TiledImage used = new TiledImage(0, 0, width, height, 0, 0, sm, cm);
 
-//        TiledImage used = new TiledImage(0, 0, width, height, 0, 0, sm, colorModel);
-
-//        switch (dataType) {
-//        case DataBuffer.TYPE_BYTE:
-//            noDataByte = (Byte) noDataValue;
-//            break;
-//        case DataBuffer.TYPE_USHORT:
-//            noDataUShort = (Short) noDataValue;
-//            break;
-//        case DataBuffer.TYPE_SHORT:
-//            noDataValueShort = (Short) noDataValue;
-//            break;
-//        case DataBuffer.TYPE_INT:
-//            noDataValueInteger = (Integer) noDataValue;
-//            break;
-//        case DataBuffer.TYPE_FLOAT:
-//            noDataValueFloat = (Float) noDataValue;
-//            break;
-//        case DataBuffer.TYPE_DOUBLE:
-//            noDataValueDouble = (Double) noDataValue;
-//            break;
-//        default:
-//            throw new IllegalArgumentException("Wrong data type");
-//        }
-
-        int imgBinX=width/4;
-        int imgBinY=height/4;
-
-        int imgBinWidth=imgBinX + width/4;
-        int imgBinHeight=imgBinY + height/4;
-
         final int b = 0;
-        
+
         for (int x = 0; x <= width/2; x++) {
             for (int y = 0; y < height/2; y++) {
 
@@ -510,11 +375,9 @@ public class ShadedReliefTest extends TestBase {
             default:
                 throw new IllegalArgumentException("Wrong data type");
         }
-
     }
 
     static RenderedImage rescale(RenderedImage image, ROI roi) {
-
 
         ParameterBlock pb = new ParameterBlock();
         pb.addSource(image); // The source image
@@ -545,5 +408,18 @@ public class ShadedReliefTest extends TestBase {
         RenderedOp destImage = JAI.create("format", pbConvert);
 
         return destImage;
+    }
+
+    static class TestPoint {
+        int x;
+        int y;
+        Double value;
+
+        public TestPoint(int x, int y, Double value) {
+            this.x = x;
+            this.y = y;
+            this.value = value;
+        }
+
     }
 }

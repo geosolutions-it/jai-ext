@@ -1468,7 +1468,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                 srcScanlineOffset += srcScanlineStride;
                 dstScanlineOffset += dstScanlineStride;
             }
-            
+
         } else if (caseB) { // ROI Check
             for (int y = 0; y < dheight; y++) {
                 srcPixelOffset = srcScanlineOffset;
@@ -1508,7 +1508,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataInt;
+                        dstData[dstPixelOffset] = destNoDataDouble;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -1581,7 +1581,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         ? destNoDataInt
                                         : ImageUtil.clampRoundInt(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataInt;
+                        dstData[dstPixelOffset] = destNoDataDouble;
                     }
 
                     srcPixelOffset += srcPixelStride;
