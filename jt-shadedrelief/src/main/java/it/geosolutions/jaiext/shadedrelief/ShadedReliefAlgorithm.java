@@ -17,10 +17,7 @@
 
 package it.geosolutions.jaiext.shadedrelief;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Properties;
+import it.geosolutions.jaiext.range.Range;
 
 public enum ShadedReliefAlgorithm {
     ZEVENBERGEN_THORNE {
@@ -118,39 +115,39 @@ public enum ShadedReliefAlgorithm {
      */
     public float getValue(double[] window, ShadedReliefParameters params) {
 
-        double x, y, aspect, square, value;
         double xNum = getX(window);
         double yNum = getY(window);
 
         // Computing slope
-        x = xNum / params.resX;
-        y = yNum / params.resY;
-        square = (x * x) + (y * y);
-        double slope = square * params.squaredZetaScaleFactor;
+        double x = xNum / params.resX;
+        double y = yNum / params.resY;
 
-        // Computing aspect
-        aspect = Math.atan2(y, x);
+        double xx_yy = (x * x) + (y * y);
+        double slope = xx_yy * params.squaredZetaScaleFactor;
 
         // Computing shading
-        value =
-                (params.sineOfAltitude
-                                - (params.cosinusOfaltitudeRadiansForZetaScaleFactor
-                                        * Math.sqrt(square)
-                                        * Math.sin(aspect - params.azimuthRadians)))
-                        / Math.sqrt(1 + slope);
 
-        value = refineValue(value, slope);
-        if (value <= 0.0) {
-            value = 1.0;
+        // See https://github.com/OSGeo/gdal/blob/release/2.3/gdal/apps/gdaldem_lib.cpp#L830-L833
+        //    cang = (psData->sin_altRadians -
+        //       (y * psData->cos_az_mul_cos_alt_mul_z -
+        //        x * psData->sin_az_mul_cos_alt_mul_z)) /
+        //       sqrt(1 + psData->square_z * xx_plus_yy);
+
+        double shade = ( params.sinAlt -
+                  ( y * params.cos_az_mul_cos_alt_mul_z -
+                    x * params.cos_az_mul_cos_alt_mul_z)) /
+                Math.sqrt(1 + params.squaredZetaScaleFactor * xx_yy);
+
+        shade = refineValue(shade, slope);
+
+        if (shade <= 0.0) {
+            shade = 1.0;
         } else {
-            value = 1.0 + (254.0 * value);
+            shade = 1.0 + (254.0 * shade);
         }
 
-        return (float) value;
+        return (float) shade;
     }
-
-    private static String DEBUG_PATH =
-            System.getProperty("org.geotools.shadedrelief.debugProperties");
 
     private static final double DEGREES_TO_RADIANS = Math.PI / 180.0;
 
@@ -162,20 +159,19 @@ public enum ShadedReliefAlgorithm {
      */
     abstract static class DataProcessor {
         boolean hasNoData;
-        //        Range noData;
-        Double noData;
-        double noDataDouble;
+        Range srcNoData;
+        double dstNoData;
         ShadedReliefAlgorithm algorithm;
         ShadedReliefAlgorithm.ShadedReliefParameters params;
 
         public DataProcessor(
-                boolean hasNoData, /*Range*/
-                Double noData,
-                double noDataDouble,
+                boolean hasNoData,
+                Range srcNoData,
+                double dstNoData,
                 ShadedReliefAlgorithm.ShadedReliefParameters params) {
             this.hasNoData = hasNoData;
-            this.noData = noData;
-            this.noDataDouble = noDataDouble;
+            this.srcNoData = srcNoData;
+            this.dstNoData = dstNoData;
             this.params = params;
             this.algorithm = params.algorithm;
         }
@@ -197,9 +193,8 @@ public enum ShadedReliefAlgorithm {
          */
         public final double interpolateNoData(double a, double b) {
             return (hasNoData
-                            && (areEquals(noData, a) || areEquals(noData, b)
-                            /*noData.contains(a) || noData.contains(b)*/ ))
-                    ? noDataDouble
+                            && (srcNoData.contains(a) || srcNoData.contains(b)) )
+                    ? dstNoData
                     : interpolate(a, b);
         }
 
@@ -288,7 +283,7 @@ public enum ShadedReliefAlgorithm {
         }
 
         private boolean isNoData(double value) {
-            return (hasNoData && /*noData.contains(value)*/ areEquals(noData, value));
+            return (hasNoData && srcNoData.contains(value));
         }
     }
 
@@ -300,11 +295,11 @@ public enum ShadedReliefAlgorithm {
 
         public DataProcessorShort(
                 short[] data,
-                boolean hasNoData, /*Range*/
-                Double noData,
-                double noDataDouble,
+                boolean hasNoData,
+                Range noDataSrc,
+                double noDataDst,
                 ShadedReliefAlgorithm.ShadedReliefParameters params) {
-            super(hasNoData, noData, noDataDouble, params);
+            super(hasNoData, noDataSrc, noDataDst, params);
             srcDataShort = data;
         }
 
@@ -322,11 +317,11 @@ public enum ShadedReliefAlgorithm {
 
         public DataProcessorInt(
                 int[] data,
-                boolean hasNoData, /*Range*/
-                Double noData,
-                double noDataDouble,
+                boolean hasNoData,
+                Range noDataSrc,
+                double noDataDst,
                 ShadedReliefAlgorithm.ShadedReliefParameters params) {
-            super(hasNoData, noData, noDataDouble, params);
+            super(hasNoData, noDataSrc, noDataDst, params);
             srcDataInt = data;
         }
 
@@ -344,11 +339,11 @@ public enum ShadedReliefAlgorithm {
 
         public DataProcessorDouble(
                 double[] data,
-                boolean hasNoData, /*Range*/
-                Double noData,
-                double noDataDouble,
+                boolean hasNoData,
+                Range noDataSrc,
+                double noDataDst,
                 ShadedReliefAlgorithm.ShadedReliefParameters params) {
-            super(hasNoData, noData, noDataDouble, params);
+            super(hasNoData, noDataSrc, noDataDst, params);
             srcDataDouble = data;
         }
 
@@ -366,11 +361,11 @@ public enum ShadedReliefAlgorithm {
 
         public DataProcessorFloat(
                 float[] data,
-                boolean hasNoData, /*Range*/
-                Double noData,
-                double noDataDouble,
+                boolean hasNoData,
+                Range noDataSrc,
+                double noDataDst,
                 ShadedReliefAlgorithm.ShadedReliefParameters params) {
-            super(hasNoData, noData, noDataDouble, params);
+            super(hasNoData, noDataSrc, noDataDst, params);
             srcDataFloat = data;
         }
 
@@ -388,11 +383,11 @@ public enum ShadedReliefAlgorithm {
 
         public DataProcessorByte(
                 byte[] data,
-                boolean hasNoData, /*Range*/
-                Double noData,
-                double noDataDouble,
+                boolean hasNoData,
+                Range noDataSrc,
+                double noDataDst,
                 ShadedReliefAlgorithm.ShadedReliefParameters params) {
-            super(hasNoData, noData, noDataDouble, params);
+            super(hasNoData, noDataSrc, noDataDst, params);
             srcDataByte = data;
         }
 
@@ -791,8 +786,15 @@ public enum ShadedReliefAlgorithm {
 
     private static double DELTA = 1E-10;
 
-    static class ShadedReliefParameters {
-        private ShadedReliefAlgorithm algorithm;
+    public static class ShadedReliefParameters {
+
+        final double resY;
+        final double resX;
+        final double sinAlt;
+        final double zetaScaleFactor;
+        final double squaredZetaScaleFactor;
+        final double cos_az_mul_cos_alt_mul_z;
+        final private ShadedReliefAlgorithm algorithm;
 
         public ShadedReliefParameters(
                 double resX,
@@ -803,77 +805,19 @@ public enum ShadedReliefAlgorithm {
                 double azimuth,
                 ShadedReliefAlgorithm algorithm) {
 
-            if (DEBUG_PATH != null) {
-                // This is not efficient but it allows to change the ShadedRelief
-                // parameters at runtime by checking the specified properties file
-                // (if any) at each invokation of this constructor
-
-                File file = new File(DEBUG_PATH);
-                if (file.exists() && file.canRead()) {
-                    FileInputStream fis = null;
-                    try {
-                        fis = new FileInputStream(file);
-                        Properties prop = new Properties();
-                        prop.load(fis);
-                        String scaleS = prop.getProperty("scale");
-                        if (scaleS != null) {
-                            scale = Double.parseDouble(scaleS);
-                        }
-                        String altitudeS = prop.getProperty("altitude");
-                        if (altitudeS != null) {
-                            altitude = Double.parseDouble(altitudeS);
-                        }
-                        String azimuthS = prop.getProperty("azimuth");
-                        if (azimuthS != null) {
-                            azimuth = Double.parseDouble(azimuthS);
-                        }
-                        String zetaS = prop.getProperty("zetaFactor");
-                        if (zetaS != null) {
-                            zetaFactor = Double.parseDouble(zetaS);
-                        }
-                        String algorithmS = prop.getProperty("algorithm");
-                        if (algorithmS != null) {
-                            algorithm = ShadedReliefAlgorithm.valueOf(algorithmS);
-                        }
-                    } catch (Exception e) {
-                        // Does Nothing: we are in debug
-                    } finally {
-                        if (fis != null) {
-                            try {
-                                fis.close();
-                            } catch (IOException e) {
-                                // Does nothing: We are in debug
-                            }
-                        }
-                    }
-                }
-            }
-
             this.resY = resY;
             this.resX = resX;
-            this.sineOfAltitude = Math.sin(altitude * DEGREES_TO_RADIANS);
-            this.azimuthRadians = azimuth * DEGREES_TO_RADIANS;
+            this.sinAlt = Math.sin(altitude * DEGREES_TO_RADIANS);
 
-            double zetaScaleFactor = zetaFactor / (algorithm.getFactor() * scale);
-            this.zetaScaleFactor = zetaScaleFactor;
-            this.cosinusOfaltitudeRadiansForZetaScaleFactor =
-                    Math.cos(altitude * DEGREES_TO_RADIANS) * zetaScaleFactor;
+            this.zetaScaleFactor = zetaFactor / (algorithm.getFactor() * scale);
             this.squaredZetaScaleFactor = zetaScaleFactor * zetaScaleFactor;
+
             this.algorithm = algorithm;
+
+            this.cos_az_mul_cos_alt_mul_z =
+                    Math.cos(azimuth * DEGREES_TO_RADIANS) *
+                    Math.cos(altitude * DEGREES_TO_RADIANS) *
+                    zetaFactor;
         }
-
-        double resY;
-
-        double resX;
-
-        double sineOfAltitude;
-
-        double azimuthRadians;
-
-        double zetaScaleFactor;
-
-        double cosinusOfaltitudeRadiansForZetaScaleFactor;
-
-        double squaredZetaScaleFactor;
     }
 }

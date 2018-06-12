@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.shadedrelief;
 
 import com.sun.media.jai.util.AreaOpPropertyGenerator;
+import it.geosolutions.jaiext.range.Range;
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import javax.media.jai.JAI;
@@ -58,7 +59,7 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
         {"Description", "desc"},
         {"Version", "ver"},
         {"arg0Desc", "Region of interest"},
-        {"arg1Desc", "Input NoData"},
+        {"arg1Desc", "Source NoData"},
         {"arg2Desc", "Destination NoData"},
         {"arg3Desc", "X resolution"},
         {"arg4Desc", "Y resolution"},
@@ -74,8 +75,8 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
      */
     private static final String[] paramNames = {
         "roi",
-        "nodata",
-        "destNoData",
+        "srcNoData",
+        "dstNoData",
         "resX",
         "resY",
         "verticalExaggeration",
@@ -90,7 +91,7 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
      */
     private static final Class[] paramClasses = {
         javax.media.jai.ROI.class,
-        /*it.geosolutions.jaiext.range.Range*/ Double.class,
+        Range.class,
         Double.class,
         Double.class,
         Double.class,
@@ -136,9 +137,9 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
 
     public static RenderedOp create(
             RenderedImage source0,
-            ROI roi, /*Range*/
-            Double nodata,
-            double destNoData,
+            ROI roi,
+            Range srcNoData,
+            double dstNoData,
             double resX,
             double resY,
             double verticalExaggeration,
@@ -155,8 +156,8 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
 
         // Setting params
         pb.setParameter("roi", roi);
-        pb.setParameter("nodata", nodata);
-        pb.setParameter("destNoData", destNoData);
+        pb.setParameter("srcNoData", srcNoData);
+        pb.setParameter("dstNoData", dstNoData);
         pb.setParameter("resX", resX);
         pb.setParameter("resY", resY);
         pb.setParameter("verticalExaggeration", verticalExaggeration);

@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.shadedrelief;
 
 import com.sun.media.jai.opimage.RIFUtil;
+import it.geosolutions.jaiext.range.Range;
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
@@ -43,8 +44,8 @@ public class ShadedReliefRIF implements RenderedImageFactory {
         // Getting parameters
         int paramIndex = 0;
         ROI roi = (ROI) pb.getObjectParameter(paramIndex++);
-        Double nodata = (Double) pb.getObjectParameter(paramIndex++);
-        double destinationNoData = pb.getDoubleParameter(paramIndex++);
+        Range srcNoData = (Range) pb.getObjectParameter(paramIndex++);
+        double dstNoData = pb.getDoubleParameter(paramIndex++);
         double resX = pb.getDoubleParameter(paramIndex++);
         double resY = pb.getDoubleParameter(paramIndex++);
         double verticalExaggeration = pb.getDoubleParameter(paramIndex++);
@@ -59,8 +60,8 @@ public class ShadedReliefRIF implements RenderedImageFactory {
                 hints,
                 l,
                 roi,
-                nodata,
-                destinationNoData,
+                srcNoData,
+                dstNoData,
                 resX,
                 resY,
                 verticalExaggeration,

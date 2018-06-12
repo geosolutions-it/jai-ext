@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.shadedrelief;
 
 import com.sun.media.jai.util.ImageUtil;
+import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.shadedrelief.ShadedReliefAlgorithm.DataProcessor;
 import it.geosolutions.jaiext.shadedrelief.ShadedReliefAlgorithm.DataProcessorByte;
 import it.geosolutions.jaiext.shadedrelief.ShadedReliefAlgorithm.DataProcessorDouble;
@@ -69,7 +70,7 @@ class ShadedReliefOpImage extends AreaOpImage {
     protected final boolean hasNoData;
 
     /** NoData element */
-    protected /*Range*/ double noData;
+    protected Range srcNoData;
 
     /** Boolean indicating that no roi and no data check must be done */
     protected final boolean caseA;
@@ -79,9 +80,6 @@ class ShadedReliefOpImage extends AreaOpImage {
 
     /** Boolean indicating that only no data check must be done */
     protected final boolean caseC;
-
-    /** LookupTable used for checking if an input byte sample is a NoData */
-    protected boolean[] lut;
 
     /** Boolean indicating that ROI must be checked */
     protected final boolean hasROI;
@@ -95,26 +93,11 @@ class ShadedReliefOpImage extends AreaOpImage {
     /** ROI related image */
     protected PlanarImage roiImage;
 
-    /** Destination No Data value for Byte sources */
-    protected byte destNoDataByte;
-
-    /** Destination No Data value for Short sources */
-    protected short destNoDataShort;
-
-    /** Destination No Data value for Integer sources */
-    protected int destNoDataInt;
-
-    /** Destination No Data value for Float sources */
-    protected float destNoDataFloat;
-
-    /** Destination No Data value for Double sources */
-    protected double destNoDataDouble;
+    protected double dstNoData;
 
     protected RenderedImage extendedIMG;
 
     protected Rectangle destBounds;
-
-    private double noDataDouble;
 
     private int maxX;
 
@@ -124,15 +107,13 @@ class ShadedReliefOpImage extends AreaOpImage {
 
     private static final int FIXED_PADDING = 1;
 
-    private static final double DELTA = 1E-10;
-
     public ShadedReliefOpImage(
             RenderedImage source,
             RenderingHints hints,
             ImageLayout l,
             ROI roi,
-            /*Range*/ Double noData,
-            double destinationNoData,
+            Range srcNoData,
+            double dstNoData,
             double resX,
             double resY,
             double verticalExaggeration,
@@ -170,16 +151,11 @@ class ShadedReliefOpImage extends AreaOpImage {
         int dataType = source.getSampleModel().getDataType();
 
         // Check if No Data control must be done
-        if (noData != null) {
+        if (srcNoData != null) {
             hasNoData = true;
-            this.noData = noData;
-            this.noDataDouble = noData /*.getMin().doubleValue()*/;
+            this.srcNoData = srcNoData;
         } else {
             hasNoData = false;
-        }
-
-        if (hasNoData && dataType == DataBuffer.TYPE_BYTE) {
-            initBooleanNoDataTable();
         }
 
         // Definition of the possible cases that can be found
@@ -191,29 +167,8 @@ class ShadedReliefOpImage extends AreaOpImage {
         caseB = !hasNoData && hasROI;
         caseC = hasNoData && !hasROI;
 
-        // Destination No Data value is clamped to the image data type
-        this.destNoDataDouble = destinationNoData;
-        switch (dataType) {
-            case DataBuffer.TYPE_BYTE:
-                this.destNoDataByte = ImageUtil.clampRoundByte(destinationNoData);
-                break;
-            case DataBuffer.TYPE_USHORT:
-                this.destNoDataShort = ImageUtil.clampRoundUShort(destinationNoData);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                this.destNoDataShort = ImageUtil.clampRoundShort(destinationNoData);
-                break;
-            case DataBuffer.TYPE_INT:
-                this.destNoDataInt = ImageUtil.clampRoundInt(destinationNoData);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                this.destNoDataFloat = ImageUtil.clampFloat(destinationNoData);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                break;
-            default:
-                throw new IllegalArgumentException("Wrong image data type");
-        }
+        // Destination No Data value will be clamped to the image data type
+        this.dstNoData = dstNoData;
 
         this.params =
                 new ShadedReliefParameters(
@@ -244,10 +199,8 @@ class ShadedReliefOpImage extends AreaOpImage {
 
             extendedIMG = BorderDescriptor.create(
                             source,
-                            leftPadding,
-                            rightPadding,
-                            topPadding,
-                            bottomPadding,
+                            leftPadding, rightPadding,
+                            topPadding, bottomPadding,
                             extender,
                             borderHints);
             this.destBounds = getBounds();
@@ -262,21 +215,6 @@ class ShadedReliefOpImage extends AreaOpImage {
             h = Math.max(h, 0);
 
             this.destBounds = new Rectangle(x0, y0, w, h);
-        }
-    }
-
-    private void initBooleanNoDataTable() {
-        // Initialization of the boolean lookup table
-        lut = new boolean[256];
-
-        // Fill the lookuptable
-        for (int i = 0; i < 256; i++) {
-            boolean result = true;
-            //            if (noData.contains((byte) i)) {
-            if (Math.abs(noData - (byte) i) < DELTA) {
-                result = false;
-            }
-            lut[i] = result;
         }
     }
 
@@ -370,7 +308,7 @@ class ShadedReliefOpImage extends AreaOpImage {
         } else {
             // Setting all as NoData
             double[] backgroundValues = new double[src.getNumBands()];
-            Arrays.fill(backgroundValues, destNoDataDouble);
+            Arrays.fill(backgroundValues, dstNoData);
             ImageUtil.fillBackground(dest, destRect, backgroundValues);
         }
     }
@@ -510,6 +448,8 @@ class ShadedReliefOpImage extends AreaOpImage {
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
 
+        byte destNoDataTyped = ImageUtil.clampRoundByte(dstNoData);
+
         byte dstDataArrays[][] = dst.getByteDataArrays();
         int dstBandOffsets[] = dst.getBandOffsets();
         int dstPixelStride = dst.getPixelStride();
@@ -540,9 +480,9 @@ class ShadedReliefOpImage extends AreaOpImage {
         int dstScanlineOffset = dstBandOffsets[0];
         int srcPixelOffset;
         int dstPixelOffset;
-        double destValue = Double.NaN;
+        double destValue;
         DataProcessor data =
-                new DataProcessorByte(srcData, hasNoData, noData, noDataDouble, params);
+                new DataProcessorByte(srcData, hasNoData, srcNoData, dstNoData, params);
 
         if (caseA || (caseB && roiContainsTile)) {
             for (int y = 0; y < dheight; y++) {
@@ -602,7 +542,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] = ImageUtil.clampRoundByte(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataByte;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -625,7 +565,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                     window, x, srcPixelOffset, centerScanlineOffset, currentCase);
                     dstData[dstPixelOffset] =
                             Double.isNaN(destValue)
-                                    ? destNoDataByte
+                                    ? destNoDataTyped
                                     : ImageUtil.clampRoundByte(destValue);
                     srcPixelOffset += srcPixelStride;
                     dstPixelOffset += dstPixelStride;
@@ -666,10 +606,10 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         window, x, srcPixelOffset, centerScanlineOffset, currentCase, roiMask);
                         dstData[dstPixelOffset] =
                                 Double.isNaN(destValue)
-                                        ? destNoDataByte
+                                        ? destNoDataTyped
                                         : ImageUtil.clampRoundByte(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataByte;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -685,6 +625,8 @@ class ShadedReliefOpImage extends AreaOpImage {
             RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
+
+        short destNoDataTyped = ImageUtil.clampRoundUShort(dstNoData);
 
         short dstDataArrays[][] = dst.getShortDataArrays();
         int dstBandOffsets[] = dst.getBandOffsets();
@@ -718,7 +660,7 @@ class ShadedReliefOpImage extends AreaOpImage {
         int dstPixelOffset;
         double destValue = Double.NaN;
         DataProcessor data =
-                new DataProcessorShort(srcData, hasNoData, noData, noDataDouble, params);
+                new DataProcessorShort(srcData, hasNoData, srcNoData, dstNoData, params);
 
         if (caseA || (caseB && roiContainsTile)) {
             for (int y = 0; y < dheight; y++) {
@@ -779,7 +721,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] = ImageUtil.clampRoundUShort(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataShort;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -802,7 +744,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                     window, x, srcPixelOffset, centerScanlineOffset, currentCase);
                     dstData[dstPixelOffset] =
                             Double.isNaN(destValue)
-                                    ? destNoDataShort
+                                    ? destNoDataTyped
                                     : ImageUtil.clampRoundUShort(destValue);
                     srcPixelOffset += srcPixelStride;
                     dstPixelOffset += dstPixelStride;
@@ -849,10 +791,10 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] =
                                 Double.isNaN(destValue)
-                                        ? destNoDataShort
+                                        ? destNoDataTyped
                                         : ImageUtil.clampRoundUShort(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataShort;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -869,6 +811,8 @@ class ShadedReliefOpImage extends AreaOpImage {
             RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
+
+        short destNoDataTyped = ImageUtil.clampRoundShort(dstNoData);
 
         short dstDataArrays[][] = dst.getShortDataArrays();
         int dstBandOffsets[] = dst.getBandOffsets();
@@ -902,7 +846,7 @@ class ShadedReliefOpImage extends AreaOpImage {
         int dstPixelOffset;
         double destValue = Double.NaN;
         DataProcessor data =
-                new DataProcessorShort(srcData, hasNoData, noData, noDataDouble, params);
+                new DataProcessorShort(srcData, hasNoData, srcNoData, dstNoData, params);
 
         if (caseA || (caseB && roiContainsTile)) {
             for (int y = 0; y < dheight; y++) {
@@ -961,7 +905,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] = ImageUtil.clampRoundShort(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataShort;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -984,7 +928,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                     window, x, srcPixelOffset, centerScanlineOffset, currentCase);
                     dstData[dstPixelOffset] =
                             Double.isNaN(destValue)
-                                    ? destNoDataShort
+                                    ? destNoDataTyped
                                     : ImageUtil.clampRoundShort(destValue);
                     srcPixelOffset += srcPixelStride;
                     dstPixelOffset += dstPixelStride;
@@ -1031,10 +975,10 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] =
                                 Double.isNaN(destValue)
-                                        ? destNoDataShort
+                                        ? destNoDataTyped
                                         : ImageUtil.clampRoundShort(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataShort;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -1051,6 +995,8 @@ class ShadedReliefOpImage extends AreaOpImage {
             RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
+
+        int destNoDataTyped = ImageUtil.clampRoundInt(dstNoData);
 
         int dstDataArrays[][] = dst.getIntDataArrays();
         int dstBandOffsets[] = dst.getBandOffsets();
@@ -1083,7 +1029,7 @@ class ShadedReliefOpImage extends AreaOpImage {
         int srcPixelOffset;
         int dstPixelOffset;
         double destValue = Double.NaN;
-        DataProcessor data = new DataProcessorInt(srcData, hasNoData, noData, noDataDouble, params);
+        DataProcessor data = new DataProcessorInt(srcData, hasNoData, srcNoData, dstNoData, params);
 
         if (caseA || (caseB && roiContainsTile)) {
             for (int y = 0; y < dheight; y++) {
@@ -1143,7 +1089,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataInt;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -1166,7 +1112,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                     window, x, srcPixelOffset, centerScanlineOffset, currentCase);
                     dstData[dstPixelOffset] =
                             Double.isNaN(destValue)
-                                    ? destNoDataInt
+                                    ? destNoDataTyped
                                     : ImageUtil.clampRoundInt(destValue);
                     srcPixelOffset += srcPixelStride;
                     dstPixelOffset += dstPixelStride;
@@ -1213,10 +1159,10 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] =
                                 Double.isNaN(destValue)
-                                        ? destNoDataInt
+                                        ? destNoDataTyped
                                         : ImageUtil.clampRoundInt(destValue);
                     } else {
-                        dstData[dstPixelOffset] = destNoDataInt;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -1229,11 +1175,12 @@ class ShadedReliefOpImage extends AreaOpImage {
     }
 
 
-
     protected void floatLoop(
             RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
+
+        float destNoDataTyped = ImageUtil.clampFloat(dstNoData);
 
         float dstDataArrays[][] = dst.getFloatDataArrays();
         int dstBandOffsets[] = dst.getBandOffsets();
@@ -1267,7 +1214,7 @@ class ShadedReliefOpImage extends AreaOpImage {
         int dstPixelOffset;
         double destValue = Double.NaN;
         DataProcessor data =
-                new DataProcessorFloat(srcData, hasNoData, noData, noDataDouble, params);
+                new DataProcessorFloat(srcData, hasNoData, srcNoData, dstNoData, params);
 
         if (caseA || (caseB && roiContainsTile)) {
             for (int y = 0; y < dheight; y++) {
@@ -1326,7 +1273,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] = (float)destValue; // checkme clamp
                     } else {
-                        dstData[dstPixelOffset] = destNoDataFloat;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -1349,7 +1296,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                                     window, x, srcPixelOffset, centerScanlineOffset, currentCase);
                     dstData[dstPixelOffset] =
                             Double.isNaN(destValue)
-                                    ? destNoDataFloat
+                                    ? destNoDataTyped
                                     : (float)destValue; // checkme clamp
                     srcPixelOffset += srcPixelStride;
                     dstPixelOffset += dstPixelStride;
@@ -1395,10 +1342,10 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] =
                                 Double.isNaN(destValue)
-                                        ? destNoDataFloat
+                                        ? destNoDataTyped
                                         : (float)destValue; // checkme clamp
                     } else {
-                        dstData[dstPixelOffset] = destNoDataFloat;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -1414,6 +1361,8 @@ class ShadedReliefOpImage extends AreaOpImage {
             RasterAccessor src, RasterAccessor dst, RandomIter roiIter, boolean roiContainsTile) {
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
+
+        double destNoDataTyped = dstNoData;
 
         double dstDataArrays[][] = dst.getDoubleDataArrays();
         int dstBandOffsets[] = dst.getBandOffsets();
@@ -1447,7 +1396,7 @@ class ShadedReliefOpImage extends AreaOpImage {
         int dstPixelOffset;
         double destValue = Double.NaN;
         DataProcessor data =
-                new DataProcessorDouble(srcData, hasNoData, noData, noDataDouble, params);
+                new DataProcessorDouble(srcData, hasNoData, srcNoData, dstNoData, params);
 
         if (caseA || (caseB && roiContainsTile)) {
             for (int y = 0; y < dheight; y++) {
@@ -1461,7 +1410,7 @@ class ShadedReliefOpImage extends AreaOpImage {
                     destValue =
                             data.processWindow(
                                     window, x, srcPixelOffset, centerScanlineOffset, currentCase);
-                    dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
+                    dstData[dstPixelOffset] = destValue;
                     srcPixelOffset += srcPixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
@@ -1506,9 +1455,9 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         centerScanlineOffset,
                                         currentCase,
                                         roiMask);
-                        dstData[dstPixelOffset] = ImageUtil.clampRoundInt(destValue);
+                        dstData[dstPixelOffset] = destValue;
                     } else {
-                        dstData[dstPixelOffset] = destNoDataDouble;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
@@ -1531,8 +1480,8 @@ class ShadedReliefOpImage extends AreaOpImage {
                                     window, x, srcPixelOffset, centerScanlineOffset, currentCase);
                     dstData[dstPixelOffset] =
                             Double.isNaN(destValue)
-                                    ? destNoDataInt
-                                    : ImageUtil.clampRoundInt(destValue);
+                                    ? destNoDataTyped
+                                    : destValue;
                     srcPixelOffset += srcPixelStride;
                     dstPixelOffset += dstPixelStride;
                 }
@@ -1578,10 +1527,10 @@ class ShadedReliefOpImage extends AreaOpImage {
                                         roiMask);
                         dstData[dstPixelOffset] =
                                 Double.isNaN(destValue)
-                                        ? destNoDataInt
-                                        : ImageUtil.clampRoundInt(destValue);
+                                        ? destNoDataTyped
+                                        : destValue;
                     } else {
-                        dstData[dstPixelOffset] = destNoDataDouble;
+                        dstData[dstPixelOffset] = destNoDataTyped;
                     }
 
                     srcPixelOffset += srcPixelStride;
