@@ -43,15 +43,15 @@ public class ShadedReliefCommand extends AbstractCommand
 
     public static String OPT_SRCFILE = "f";
     public static String OPT_OUTFILE = "o";
-    public static String OPT_SRCNODATA = "s";
-    public static String OPT_DSTNODATA = "d";
+    public static String OPT_SRCNODATA = "sn";
+    public static String OPT_DSTNODATA = "dn";
     public static String OPT_RESX = "x";
     public static String OPT_RESY = "y";
-    public static String OPT_VEXXAG = "e";
-    public static String OPT_VSCALE = "v";
-    public static String OPT_ALT = "a";
-    public static String OPT_AZ = "z";
-    public static String OPT_ALG = "g";
+    public static String OPT_ZETA = "z";
+    public static String OPT_SCALE = "s";
+    public static String OPT_ALT = "alt";
+    public static String OPT_AZ = "az";
+    public static String OPT_ALG = "alg";
 
     public static String APP_NAME = "shadedrelief";
 
@@ -101,11 +101,11 @@ public class ShadedReliefCommand extends AbstractCommand
         options.addOption(Option.builder(OPT_DSTNODATA).longOpt("dstnodata").hasArg().argName("val").desc("Value of nodata in out file").build());
         options.addOption(Option.builder(OPT_RESX).longOpt("resx").hasArg().argName("val").desc("X resolutions").build());
         options.addOption(Option.builder(OPT_RESY).longOpt("resy").hasArg().argName("val").desc("Y resolution").build());
-        options.addOption(Option.builder(OPT_VEXXAG).longOpt("vexag").hasArg().argName("val").desc("Vertical relief factor (z)").build());
-        options.addOption(Option.builder(OPT_VSCALE).longOpt("vscale").hasArg().argName("val").desc("Elevation unit to 2D unit scale ratio").build());
+        options.addOption(Option.builder(OPT_ZETA).longOpt("zeta").hasArg().argName("val").desc("Vertical relief factor (exaggeration)").build());
+        options.addOption(Option.builder(OPT_SCALE).longOpt("scale").hasArg().argName("val").desc("Elevation unit to 2D unit scale ratio").build());
         options.addOption(Option.builder(OPT_ALT).longOpt("alt").hasArg().argName("val").desc("Sun altitude").build());
-        options.addOption(Option.builder(OPT_AZ).longOpt("az").hasArg().argName("val").desc("Sun azimuth").build());
-        options.addOption(Option.builder(OPT_ALG).longOpt("alg").hasArg().argName("algorithm").desc("Algorithm. May be ZT, ZTC, C").build());
+        options.addOption(Option.builder(OPT_AZ).longOpt("azimuth").hasArg().argName("val").desc("Sun azimuth").build());
+        options.addOption(Option.builder(OPT_ALG).longOpt("algorithm").hasArg().argName("algorithm").desc("Algorithm. May be ZT, ZTC, C").build());
 
         return options;
     }
@@ -156,18 +156,18 @@ public class ShadedReliefCommand extends AbstractCommand
             params.setResY(1);
         }
 
-        if (cl.hasOption(OPT_VEXXAG)) {
-            double d = validateDouble(cl.getOptionValue(OPT_VEXXAG));
-            params.setVerticalExaggeration(d);
+        if (cl.hasOption(OPT_ZETA)) {
+            double d = validateDouble(cl.getOptionValue(OPT_ZETA));
+            params.setZetaFactor(d);
         } else {
-            params.setVerticalExaggeration(25);
+            params.setZetaFactor(25);
         }
 
-        if (cl.hasOption(OPT_VSCALE)) {
-            double d = validateDouble(cl.getOptionValue(OPT_VSCALE));
-            params.setVerticalScale(d);
+        if (cl.hasOption(OPT_SCALE)) {
+            double d = validateDouble(cl.getOptionValue(OPT_SCALE));
+            params.setScale(d);
         } else {
-            params.setVerticalScale(ShadedReliefDescriptor.DEFAULT_SCALE);
+            params.setScale(ShadedReliefDescriptor.DEFAULT_SCALE);
         }
 
         if (cl.hasOption(OPT_ALT)) {

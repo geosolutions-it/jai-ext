@@ -63,7 +63,7 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
         {"arg2Desc", "Destination NoData"},
         {"arg3Desc", "X resolution"},
         {"arg4Desc", "Y resolution"},
-        {"arg5Desc", "Vertical Exaggeration"},
+        {"arg5Desc", "Zeta factor"},
         {"arg6Desc", "elevation unit to 2D unit scale ratio"},
         {"arg7Desc", "altitude"},
         {"arg8Desc", "azimuth"},
@@ -79,8 +79,8 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
         "dstNoData",
         "resX",
         "resY",
-        "verticalExaggeration",
-        "verticalScale",
+        "zetaFactor",
+        "scale",
         "altitude",
         "azimuth",
         "algorithm"
@@ -135,6 +135,12 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
         return pg;
     }
 
+    /**
+     *
+     * @param altitude  is the sun's angle of elevation above the horizon and ranges from 0 to 90 degrees. A value of 0 degrees indicates that the sun is on the horizon, that is, on the same horizontal plane as the frame of reference. A value of 90 degrees indicates that the sun is directly overhead.
+     * @param azimuth  is the sun's relative position along the horizon (in degrees). This position is indicated by the angle of the sun measured clockwise from due north. An azimuth of 0 degrees indicates north, east is 90 degrees, south is 180 degrees, and west is 270 degrees.
+     * @return
+     */
     public static RenderedOp create(
             RenderedImage source0,
             ROI roi,
@@ -142,8 +148,8 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
             double dstNoData,
             double resX,
             double resY,
-            double verticalExaggeration,
-            double verticalScale,
+            double zetaFactor,
+            double scale,
             double altitude,
             double azimuth,
             ShadedReliefAlgorithm algorithm,
@@ -160,8 +166,8 @@ public class ShadedReliefDescriptor extends OperationDescriptorImpl {
         pb.setParameter("dstNoData", dstNoData);
         pb.setParameter("resX", resX);
         pb.setParameter("resY", resY);
-        pb.setParameter("verticalExaggeration", verticalExaggeration);
-        pb.setParameter("verticalScale", verticalScale);
+        pb.setParameter("zetaFactor", zetaFactor);
+        pb.setParameter("scale", scale);
         pb.setParameter("altitude", altitude);
         pb.setParameter("azimuth", azimuth);
         pb.setParameter("algorithm", algorithm);

@@ -34,8 +34,8 @@ public class ShadedReliefParams
     double dstNoData;
     double resX;
     double resY;
-    double verticalExaggeration;
-    double verticalScale;
+    double zetaFactor;
+    double scale;
     double altitude;
     double azimuth;
     ShadedReliefAlgorithm algo = ShadedReliefAlgorithm.DEFAULT;
@@ -88,20 +88,20 @@ public class ShadedReliefParams
         this.resY = resY;
     }
 
-    public double getVerticalExaggeration() {
-        return verticalExaggeration;
+    public double getZetaFactor() {
+        return zetaFactor;
     }
 
-    public void setVerticalExaggeration(double verticalExaggeration) {
-        this.verticalExaggeration = verticalExaggeration;
+    public void setZetaFactor(double zetaFactor) {
+        this.zetaFactor = zetaFactor;
     }
 
-    public double getVerticalScale() {
-        return verticalScale;
+    public double getScale() {
+        return scale;
     }
 
-    public void setVerticalScale(double verticalScale) {
-        this.verticalScale = verticalScale;
+    public void setScale(double scale) {
+        this.scale = scale;
     }
 
     public double getAltitude() {
@@ -137,8 +137,8 @@ public class ShadedReliefParams
                 + ", dstNoData=" + dstNoData
                 + ", resX=" + resX
                 + ", resY=" + resY
-                + ", verticalExaggeration=" + verticalExaggeration
-                + ", verticalScale=" + verticalScale
+                + ", zeta=" + zetaFactor
+                + ", scale=" + scale
                 + ", altitude=" + altitude
                 + ", azimuth=" + azimuth
                 + ", algo=" + algo + ']';

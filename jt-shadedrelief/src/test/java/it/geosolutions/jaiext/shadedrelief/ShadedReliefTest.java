@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
  *    http://www.geo-solutions.it/
- *    Copyright 2016 GeoSolutions
+ *    Copyright 2018 GeoSolutions
 
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@ import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
-import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.util.logging.Logger;
@@ -34,7 +33,6 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -46,19 +44,27 @@ import java.awt.image.ComponentColorModel;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.renderable.ParameterBlock;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import javax.media.jai.JAI;
+import org.junit.AfterClass;
 
 public class ShadedReliefTest extends TestBase {
     /** Logger */
     private Logger logger = Logger.getLogger(ShadedReliefTest.class.getName());
 
+
+    private static final double DEFAULT_Z = 1;
+    private static final double DEFAULT_SCALE = 1;
+    private static final double DEFAULT_ALTITUDE = 64;
+    private static final double DEFAULT_AZIMUTH = 160;
+
     /** Input data used for testing */
     private static RenderedImage[] testImages;
 
-    private static Range[] noData;
+    private static Range[] srcNoData;
+
+    /** Value to set as Output NoData */
+    private static double dstNoData;
 
     /** needed for some debug logs */
     private static String[] typeName;
@@ -66,12 +72,7 @@ public class ShadedReliefTest extends TestBase {
     /** ROI used in tests */
     private static ROI roiObject;
 
-    /** Value to set as Output NoData */
-    private static double destNoData;
-
     private static List<Integer> typesToTest;
-
-    private static double noDataD = 50;
 
     private static TestPoint[] testPoints;
 
@@ -99,30 +100,30 @@ public class ShadedReliefTest extends TestBase {
         int h34 = 3 * DEFAULT_HEIGHT / 4;
 
         testPoints = new TestPoint[]{
-            new TestPoint(w2, h4, 1d),
-            new TestPoint(w34, h2, 7d),
-            new TestPoint(w2, h34, 184d),
-            new TestPoint(w4, h2, 1d),
+            new TestPoint(w2, h4, 236d),
+            new TestPoint(w34, h2, 189d),
+            new TestPoint(w2, h34, 88d),
+            new TestPoint(w4, h2, 135d),
         };
 
-        // NoData definition
+        // source NoData definition
         final byte noDataB = 50;
         final short noDataS = 50;
         final int noDataI = 50;
         final float noDataF = 50;
-        //double noDataD = 50;
+        final double noDataD = 50;
 
         // No Data Ranges
         boolean minIncluded = true;
         boolean maxIncluded = true;
 
-        noData = new Range[6];
-        noData[DataBuffer.TYPE_BYTE] = RangeFactory.create(noDataB, minIncluded, noDataB, maxIncluded);;
-        noData[DataBuffer.TYPE_USHORT] = RangeFactory.createU(noDataS, minIncluded, noDataS, maxIncluded);
-        noData[DataBuffer.TYPE_SHORT] = RangeFactory.create(noDataS, minIncluded, noDataS, maxIncluded);
-        noData[DataBuffer.TYPE_INT] = RangeFactory.create(noDataI, minIncluded, noDataI, maxIncluded);
-        noData[DataBuffer.TYPE_FLOAT] = RangeFactory.create(noDataF, minIncluded, noDataF, maxIncluded, true);
-        noData[DataBuffer.TYPE_DOUBLE] = RangeFactory.create(noDataD, minIncluded, noDataD, maxIncluded, true);
+        srcNoData = new Range[6];
+        srcNoData[DataBuffer.TYPE_BYTE] = RangeFactory.create(noDataB, minIncluded, noDataB, maxIncluded);;
+        srcNoData[DataBuffer.TYPE_USHORT] = RangeFactory.createU(noDataS, minIncluded, noDataS, maxIncluded);
+        srcNoData[DataBuffer.TYPE_SHORT] = RangeFactory.create(noDataS, minIncluded, noDataS, maxIncluded);
+        srcNoData[DataBuffer.TYPE_INT] = RangeFactory.create(noDataI, minIncluded, noDataI, maxIncluded);
+        srcNoData[DataBuffer.TYPE_FLOAT] = RangeFactory.create(noDataF, minIncluded, noDataF, maxIncluded, true);
+        srcNoData[DataBuffer.TYPE_DOUBLE] = RangeFactory.create(noDataD, minIncluded, noDataD, maxIncluded, true);
 
         typeName = new String[6];
         typeName[DataBuffer.TYPE_BYTE] = "Byte";
@@ -139,7 +140,7 @@ public class ShadedReliefTest extends TestBase {
         roiObject = new ROIShape(roiBounds);
 
         // Destination No Data
-        destNoData = 100.0;
+        dstNoData = 100.0;
 
         // allow to restrict tests to only defined datatypes
         typesToTest = new ArrayList<>();
@@ -149,7 +150,12 @@ public class ShadedReliefTest extends TestBase {
         typesToTest.add(DataBuffer.TYPE_INT);
         typesToTest.add(DataBuffer.TYPE_FLOAT);
         typesToTest.add(DataBuffer.TYPE_DOUBLE);
+    }
 
+    @AfterClass
+    public static void after() {
+        // useful for a breakpoint
+        System.out.println("Test class completed");
     }
 
     @Test
@@ -157,21 +163,20 @@ public class ShadedReliefTest extends TestBase {
 
         boolean roiUsed = false;
         boolean nodataUsed = false;
-        final Double nullNoData = null;
 
         double resx = 1;
         double resy = 1;
-        double vex = 1; // verticalExaggeration
-        double ves = 1; // verticalScale
-        double alt = 1; // altitude
-        double az = 1; // azimuth
+        double vex = DEFAULT_Z;
+        double ves = DEFAULT_SCALE;
+        double alt = DEFAULT_ALTITUDE;
+        double az = DEFAULT_AZIMUTH;
         ShadedReliefAlgorithm algorithm = ShadedReliefAlgorithm.DEFAULT;
 
         ROI roi = null;
 
         for (Integer i : typesToTest) {
-            RenderedOp shaded = ShadedReliefDescriptor.create(testImages[i], roi, nullNoData, destNoData, resx, resy, vex, ves, alt, az, algorithm, null);
-            check(i, testImages[i], shaded, roiUsed, roi, nodataUsed, noData[i]);
+            RenderedOp shaded = ShadedReliefDescriptor.create(testImages[i], roi, null, dstNoData, resx, resy, vex, ves, alt, az, algorithm, null);
+            check(i, testImages[i], shaded, roiUsed, roi, nodataUsed, srcNoData[i]);
             shaded.dispose();
         }
     }
@@ -181,21 +186,20 @@ public class ShadedReliefTest extends TestBase {
 
         boolean roiUsed = true;
         boolean nodataUsed = false;
-        final Double nullNoData = null;
         ROI roi = roiObject;
 
         double resx = 1;
         double resy = 1;
-        double vex = 1; // verticalExaggeration
-        double ves = 1; // verticalScale
-        double alt = 1; // altitude
-        double az = 1; // azimuth
+        double vex = DEFAULT_Z;
+        double ves = DEFAULT_SCALE;
+        double alt = DEFAULT_ALTITUDE;
+        double az = DEFAULT_AZIMUTH;
         ShadedReliefAlgorithm algorithm = ShadedReliefAlgorithm.DEFAULT;
 
         // shadedrelief  operation
         for (Integer i : typesToTest) {
-            RenderedOp shaded = ShadedReliefDescriptor.create(testImages[i], roi, nullNoData, destNoData, resx, resy, vex, ves, alt, az, algorithm, null);
-            check(i, testImages[i], shaded, roiUsed, roi, nodataUsed, noData[i]);
+            RenderedOp shaded = ShadedReliefDescriptor.create(testImages[i], roi, null, dstNoData, resx, resy, vex, ves, alt, az, algorithm, null);
+            check(i, testImages[i], shaded, roiUsed, roi, nodataUsed, srcNoData[i]);
             shaded.dispose();
         }
     }
@@ -209,15 +213,15 @@ public class ShadedReliefTest extends TestBase {
 
         double resx = 1;
         double resy = 1;
-        double vex = 1; // verticalExaggeration
-        double ves = 1; // verticalScale
-        double alt = 1; // altitude
-        double az = 1; // azimuth
+        double vex = DEFAULT_Z;
+        double ves = DEFAULT_SCALE;
+        double alt = DEFAULT_ALTITUDE;
+        double az = DEFAULT_AZIMUTH;
         ShadedReliefAlgorithm algorithm = ShadedReliefAlgorithm.DEFAULT;
 
         for (Integer i : typesToTest) {
-            RenderedOp shaded = ShadedReliefDescriptor.create(testImages[i], roi, noDataD, destNoData, resx, resy, vex, ves, alt, az, algorithm, null);
-            check(i, testImages[i], shaded, roiUsed, roi, nodataUsed, noData[i]);
+            RenderedOp shaded = ShadedReliefDescriptor.create(testImages[i], roi, srcNoData[i], dstNoData, resx, resy, vex, ves, alt, az, algorithm, null);
+            check(i, testImages[i], shaded, roiUsed, roi, nodataUsed, srcNoData[i]);
             shaded.dispose();
         }
     }
@@ -231,15 +235,15 @@ public class ShadedReliefTest extends TestBase {
 
         double resx = 1;
         double resy = 1;
-        double vex = 1; // verticalExaggeration
-        double ves = 1; // verticalScale
-        double alt = 1; // altitude
-        double az = 1; // azimuth
+        double vex = DEFAULT_Z;
+        double ves = DEFAULT_SCALE;
+        double alt = DEFAULT_ALTITUDE;
+        double az = DEFAULT_AZIMUTH;
         ShadedReliefAlgorithm algorithm = ShadedReliefAlgorithm.DEFAULT;
 
         for (Integer i : typesToTest) {
-            RenderedOp shaded = ShadedReliefDescriptor.create(testImages[i], roi, noDataD, destNoData, resx, resy, vex, ves, alt, az, algorithm, null);
-            check(i, testImages[i], shaded, roiUsed, roi, nodataUsed, noData[i]);
+            RenderedOp shaded = ShadedReliefDescriptor.create(testImages[i], roi, srcNoData[i], dstNoData, resx, resy, vex, ves, alt, az, algorithm, null);
+            check(i, testImages[i], shaded, roiUsed, roi, nodataUsed, srcNoData[i]);
             shaded.dispose();
         }
     }
@@ -287,7 +291,7 @@ public class ShadedReliefTest extends TestBase {
                 showDst = rescale(showDst, null);
             }
 
-            RenderedImageBrowser.showChain(showSrc, false, roiUsed, "SRC " + title);
+            //RenderedImageBrowser.showChain(showSrc, false, roiUsed, "SRC " + title);
             RenderedImageBrowser.showChain(showDst, false, roiUsed, "SHADED " + title);
         }
 
@@ -295,17 +299,17 @@ public class ShadedReliefTest extends TestBase {
             double val = shaded.getTile(0,0).getSampleDouble(point.x, point.y, 0);
             boolean isInRoi = !roiUsed || (roiUsed && roi.contains(point.x, point.y));
 
-            double expected = isInRoi ? point.value : destNoData;
+            double expected = isInRoi ? point.value : dstNoData;
 
             boolean ok = (Double.compare(expected, val) == 0) ||
                     Math.abs(expected - val) < 0.5;
 
-//            System.out.println(
-//                    (roiUsed? "ROI": "   ") + " " + (nodataUsed? "NODATA": "      ")
-//                    + "  TYPE " + typeName[type] + " x:" + point.x + " y:" + point.y + " v:" + point.value +" --> " + val + " "
-//                    + (isInRoi ? " IN ROI" : "")  + " "
-//                    + (ok ? " OK" : "BAD!! nd=" + destNoData)
-//                    );
+            System.out.println(
+                    (roiUsed? "ROI": "   ") + " " + (nodataUsed? "NODATA": "      ")
+                    + "  TYPE " + typeName[type] + " x:" + point.x + " y:" + point.y + " v:" + point.value +" --> " + val + " "
+                    + (isInRoi ? " IN ROI" : "")  + " "
+                    + (ok ? " OK" : "BAD!! nd=" + dstNoData)
+                    );
 
             assertEquals("Bad shaded value", expected, val, 0.5d);
         }

@@ -66,7 +66,7 @@ public class ShadedReliefRunner
         RenderedOp finalImage = ShadedReliefDescriptor.create(bi, null,
                 srcNoDataRange, params.getDstNoData(),
                 params.getResX(), params.getResY(),
-                params.getVerticalExaggeration(), params.getVerticalScale(),
+                params.getZetaFactor(), params.getScale(),
                 params.getAltitude(), params.getAzimuth(),
                 ShadedReliefAlgorithm.DEFAULT, hints);
 

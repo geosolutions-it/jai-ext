@@ -20,6 +20,7 @@ package it.geosolutions.jaiext.shadedrelief;
 import it.geosolutions.jaiext.range.Range;
 
 public enum ShadedReliefAlgorithm {
+
     ZEVENBERGEN_THORNE {
 
         @Override
@@ -37,7 +38,9 @@ public enum ShadedReliefAlgorithm {
             return getZevenbergenThorneFactor();
         }
     },
+
     ZEVENBERGEN_THORNE_COMBINED {
+
         @Override
         public double getX(double[] window) {
             return getZevenbergenThorneX(window);
@@ -86,7 +89,7 @@ public enum ShadedReliefAlgorithm {
 
     public double getX(double[] window) {
         return (window[3] - window[5])
-                + ((window[0] + window[3] + window[6]) - (window[2] + +window[5] + window[8]));
+                + ((window[0] + window[3] + window[6]) - (window[2] + window[5] + window[8]));
     }
 
     public double getY(double[] window) {
@@ -119,14 +122,11 @@ public enum ShadedReliefAlgorithm {
         double yNum = getY(window);
 
         // Computing slope
-//        double x = xNum / params.resX;
-//        double y = yNum / params.resY;
-
-        double x = xNum / params.den_x;
-        double y = yNum / params.den_y;
+        double x = xNum / params.resX;
+        double y = yNum / params.resY;
 
         double xx_yy = (x * x) + (y * y);
-        double slope = xx_yy * params.zeta_div_scale_factor_square;
+        double slope = xx_yy * params.square_z;
 
         // Computing shading
 
@@ -139,8 +139,7 @@ public enum ShadedReliefAlgorithm {
         double shade = ( params.sinAlt -
                   ( y * params.cos_az_mul_cos_alt_mul_z -
                     x * params.sin_az_mul_cos_alt_mul_z)) /
-                Math.sqrt(1 + params.square_z * xx_yy);
-//                Math.sqrt(1 + params.zeta_div_scale_factor_square * xx_yy);
+                Math.sqrt(1d + params.square_z * xx_yy);
 
         shade = refineValue(shade, slope);
 
@@ -794,15 +793,11 @@ public enum ShadedReliefAlgorithm {
 
         final double resY;
         final double resX;
-        final double square_z;
         final double sinAlt;
-        final double zeta_div_scale_factor;
-        final double zeta_div_scale_factor_square;
+        final double z_scaled;
+        final double square_z;
         final double cos_az_mul_cos_alt_mul_z;
         final double sin_az_mul_cos_alt_mul_z;
-
-        final double den_x;
-        final double den_y;
 
         final private ShadedReliefAlgorithm algorithm;
 
@@ -819,13 +814,8 @@ public enum ShadedReliefAlgorithm {
             this.resX = resX;
             this.sinAlt = Math.sin(altitude * DEGREES_TO_RADIANS);
 
-            this.zeta_div_scale_factor = zetaFactor / (algorithm.getFactor() * scale);
-            this.zeta_div_scale_factor_square = zeta_div_scale_factor * zeta_div_scale_factor;
-
-            den_x = algorithm.getFactor() * scale * resX;
-            den_y = algorithm.getFactor() * scale * resY;
-
-            square_z = zetaFactor * zetaFactor;
+            this.z_scaled = zetaFactor / (algorithm.getFactor() * scale);
+            this.square_z = z_scaled * z_scaled;
 
             this.algorithm = algorithm;
 
@@ -834,12 +824,12 @@ public enum ShadedReliefAlgorithm {
             this.cos_az_mul_cos_alt_mul_z =
                     Math.cos(azimuth * DEGREES_TO_RADIANS) *
                     cos_alt *
-                    zetaFactor;
+                    z_scaled;
 
             this.sin_az_mul_cos_alt_mul_z =
                     Math.sin(azimuth * DEGREES_TO_RADIANS) *
                     cos_alt *
-                    zetaFactor;
+                    z_scaled;
         }
     }
 }
