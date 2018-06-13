@@ -68,7 +68,7 @@ public class ShadedReliefRunner
                 params.getResX(), params.getResY(),
                 params.getZetaFactor(), params.getScale(),
                 params.getAltitude(), params.getAzimuth(),
-                ShadedReliefAlgorithm.DEFAULT, hints);
+                params.getAlgo(), hints);
 
         ImageIO.write(finalImage, "tif", out);
     }

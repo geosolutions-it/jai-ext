@@ -141,7 +141,7 @@ public enum ShadedReliefAlgorithm {
                     x * params.sin_az_mul_cos_alt_mul_z)) /
                 Math.sqrt(1d + params.square_z * xx_yy);
 
-        shade = refineValue(shade, slope);
+        shade = params.algorithm.refineValue(shade, slope);
 
         if (shade <= 0.0) {
             shade = 1.0;
