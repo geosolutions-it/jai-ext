@@ -38,7 +38,7 @@
             <artifactId>jt-utilities</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
+
         <dependency>
             <groupId>it.geosolutions.jaiext.utilities</groupId>
             <artifactId>jt-utilities</artifactId>
