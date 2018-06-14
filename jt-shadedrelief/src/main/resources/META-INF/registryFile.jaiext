@@ -1,0 +1,11 @@
+#
+# Image descriptors
+#
+
+descriptor  it.geosolutions.jaiext.shadedrelief.ShadedReliefDescriptor
+
+#
+# RenderedImageFactories
+#
+
+rendered  it.geosolutions.jaiext.shadedrelief.ShadedReliefRIF  it.geosolutions.jaiext  ShadedRelief ShadedRelief

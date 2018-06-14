@@ -154,6 +154,7 @@
 			  it.geosolutions.jaiext.vectorbin
 			  it.geosolutions.jaiext.threshold
 			  it.geosolutions.jaiext.clamp
+			  it.geosolutions.jaiext.shadedrelief
 			  </includeGroupIds>
               <includeArtifactIds>
 			  jt-concurrent-tile-cache,
@@ -190,6 +191,7 @@
 			  jt-vectorbin
 			  jt-threshold
 			  jt-clamp
+			  jt-shadedrelief
 			  </includeArtifactIds>
             </configuration>
           </execution>
@@ -382,12 +384,6 @@
       <name>OpenGeo Maven Repository</name>
       <url>http://repo.opengeo.org</url>
     </repository>
-    <repository>
-      <id>maven2-repository.dev.java.net</id>
-      <name>Java.net Repository for Maven</name>
-      <url>http://download.java.net/maven/2/</url>
-      <layout>default</layout>
-    </repository>
   </repositories>
 
   <!--                                                                       -->
@@ -457,7 +453,6 @@
  <dependency>
      <groupId>com.vividsolutions</groupId>
      <artifactId>jts</artifactId>
-     <version>1.12</version>
   </dependency>
   <dependency>
 	<groupId>junit</groupId>
@@ -611,19 +606,19 @@
     <!--.............................................-->
     <!--       geo-solutions (using wagon ftp)       -->
     <!--.............................................-->
-      <extension>                                  
-       <groupId>org.apache.maven.wagon</groupId>   
-       <artifactId>wagon-ftp</artifactId>           
-       <version>1.0-beta-2</version>               
-      </extension>                                
-   
+      <extension>
+       <groupId>org.apache.maven.wagon</groupId>
+       <artifactId>wagon-ftp</artifactId>
+       <version>2.12</version>
+      </extension>
+
     <!--....................................-->
     <!--        (using wagon webdav)        -->
     <!--....................................-->
       <extension>
        <groupId>org.apache.maven.wagon</groupId>
-       <artifactId>wagon-webdav</artifactId>
-       <version>1.0-beta-2</version>
+       <artifactId>wagon-webdav-jackrabbit</artifactId>
+       <version>2.12</version>
      </extension>
    </extensions>
   </build>
@@ -669,5 +664,6 @@
     <module>jt-threshold</module>
     <module>jt-clamp</module>
     <module>jt-scale2</module>
+    <module>jt-shadedrelief</module>
   </modules>
 </project>
