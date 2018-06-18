@@ -1,0 +1,161 @@
+                                    ------------------
+                                    Jiffle interpreter
+                                    ------------------
+                                    ------------------
+                                    ------------------
+
+Jiffle interpreter
+
+    Each of the various steps in going from a jiffle script to a runnable jiffle task are
+defined by an {{{http://www.antlr.org/}ANTLR}} grammar.  This page briefly describes 
+each step and links to the corresponding grammar file.
+
+* Lexer
+
+    This refers to the initial conversion of the text script into a stream of tokens
+representing:
+
+    * logical and arithmetic operators
+
+    * numeric values
+
+    * identifiers (variable and method names)
+
+    * expression and statement delimiters
+
+  Class JiffleLexer is defined by the combined lexer/parser grammar 
+{{{http://code.google.com/p/jai-tools/source/browse/trunk/jiffle/src/main/antlr/jaitools/jiffle/parser/Jiffle.g}Jiffle.g}}
+
+
+* Token parsing
+
+    Takes the token stream produced by JiffleLexer and classifies groups of one or more
+tokens into grammatical elements (e.g. expressions, function calls, variable names, 
+numeric literals). Output of this step is a tree representation of the script (Abstract 
+Syntax Tree or AST) which is easier to examine and manipulate in subsequent steps 
+than the original script.
+
+    Class JiffleParser is defined by the combined lexer/parser grammar 
+{{{http://code.google.com/p/jai-tools/source/browse/trunk/jiffle/src/main/antlr/jaitools/jiffle/parser/Jiffle.g}Jiffle.g}}
+
+
+* Checking and classifying variables
+
+    Variables in the script that correspond to images for output and,
+optionally, input are specified by the user in a map of image parameters where
+the key is variable name (String) and the value is an image object (TiledImage).
+The interpreter checks that the script and image parameters match properly and
+that no image variable is used for both input and output.
+
+    Next, the AST is examined to categorize the non-image variables as:
+
+    * Positional: those that depend, directly or indirectly, on image position
+      (pixel location)
+
+    * Non-local: depend directly or indirectly on image-specific properties other
+      than position (e.g. image width)
+
+    * Local: depend only on local numeric values and/or named constants or functions
+      of them
+
+    For example, in the following jiffle code...
+
++---
+    dmax = 1.0;
+    xo = width() / 2;
+    yo = height() / 2;
+    dx = (x() - xo) / xo;
+    dy = (y() - yo) / yo;
+    d = sqrt(dx^2 + dy^2);
+    outImg = d <= dmax ? inImg : NaN;
++---
+
+    * dmax is local 
+
+    * xo and yo are non-local because they depend on the jiffle image property functions
+      width() and height() 
+
+    * dx, dy and d are positional because they depend on the jiffle functions
+      x() and y() which return the current pixel position
+
+    * inImg and outImg will have been specified by the user in the image properties
+
+    Class VarClassifier is defined by the grammar
+{{{http://code.google.com/p/jai-tools/source/browse/trunk/jiffle/src/main/antlr/jaitools/jiffle/parser/VarClassifier.g}VarClassifier.g}}
+
+
+* Optimizing the AST
+
+    At run-time, the compiled jiffle function will be evaluated for each ouput image pixel. Even 
+a modest 500 x 500 image this means that the jiffle function will be run 250,000 times. With this 
+in mind, the interpreter identifies any elements of the script that can be moved from the run-time
+loop to a pre-run stage.  This is accomplished by re-writing the AST in the following steps...
+
+** Tagging user variables and creating proxy variables
+
+    Each AST node corresponding to a variable is converted to one of the following 
+node types based on the information gathered by VarClassifier (see above):
+
+        * IMAGE_VAR
+
+        * LOCAL_VAR
+
+        * NON_LOCAL_VAR
+
+        * POSITIONAL_VAR
+
+    Any call to a jiffle image position or property function (e.g. x(), width()) is 
+converted to special proxy variable token so that, at run-time, the interpreter performs 
+inexpensive var lookups rather than expensive function invocations.
+
+    Any variable assignment statement with an IMAGE_VAR on the right hand side is
+converted to an IMAGE_WRITE statement.
+
+    Grammar file: {{{http://code.google.com/p/jai-tools/source/browse/trunk/jiffle/src/main/antlr/jaitools/jiffle/parser/Morph1.g}Morph1.g}}
+
+** Replace numeric literals with their values
+
+    AST nodes representing numeric literals hold a string representation of a number. These are 
+now replaced by special nodes that hold a value (as a double) directly.
+
+    Grammar file: {{{http://code.google.com/p/jai-tools/source/browse/trunk/jiffle/src/main/antlr/jaitools/jiffle/parser/Morph4.g}Morph4.g}}
+
+** Remove simple local var assignments
+
+    Any variable assignment statements of the form...
+
++---
+    LOCAL_VAR = FIXED_VALUE | CONSTANT
++---
+
+    are removed from the AST. The name and value of the variable in the deleted statement
+are recorded in a table.
+
+    Grammar file: {{{http://code.google.com/p/jai-tools/source/browse/trunk/jiffle/src/main/antlr/jaitools/jiffle/parser/Morph5.g}Morph5.g}}
+
+** Local expression replacement
+
+    This step takes the table from the previous step. For each variable in the table, all
+occurrences in the AST are replaced by a FIXED_VALUE node.
+
+    Any expressions that involve only (functions of) local variables, fixed values and 
+named constants, are evaluated and the AST nodes representing them are replaced by a 
+FIXED_VALUE node.
+
+    Grammar file: {{{http://code.google.com/p/jai-tools/source/browse/trunk/jiffle/src/main/antlr/jaitools/jiffle/parser/Morph6.g}Morph6.g}}
+
+** Removal of intermediate AST nodes
+
+    Indicator nodes added during the optimizing steps (e.g. LOCAL_VAR) are now stripped out of
+the AST. After this step we have the final run-time AST and the script is flagged as <compiled>.
+
+    Grammar file: {{{http://code.google.com/p/jai-tools/source/browse/trunk/jiffle/src/main/antlr/jaitools/jiffle/parser/MakeRuntime.g}MakeRuntime.g}}
+
+* Running the compiled jiffle
+
+    The interpreter runs the compiled script by evaluating the run-time AST at each output image
+pixel position. Prior to the start, values are assigned to the proxy variables for jiffle image
+property and position functions (e.g. x(), width()) are loaded into a symbol table. The position
+variables are updated as the interpreter moves between pixels.
+
+    Grammar file: {{{http://code.google.com/p/jai-tools/source/browse/trunk/jiffle/src/main/antlr/jaitools/jiffle/parser/ImageCalculator.g}ImageCalculator.g}}

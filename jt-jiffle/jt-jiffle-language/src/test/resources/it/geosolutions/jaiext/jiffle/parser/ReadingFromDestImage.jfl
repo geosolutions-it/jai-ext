@@ -1,0 +1,8 @@
+images {
+  src = read;
+  dest = write;
+}
+
+foo = src;  // valid: reading value from source
+foo = dest; // error: reading from destination
+

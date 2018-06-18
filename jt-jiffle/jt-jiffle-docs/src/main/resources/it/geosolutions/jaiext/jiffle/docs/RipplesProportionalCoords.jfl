@@ -1,0 +1,10 @@
+init {
+  // constant term
+  C = M_PI * 8;
+}
+
+dx = 2 * (x() - 0.5);
+dy = 2 * (y() - 0.5);
+d = sqrt(dx*dx + dy*dy);
+
+destImg = sin(C * d);

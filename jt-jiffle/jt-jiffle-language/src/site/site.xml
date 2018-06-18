@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <publishDate position="navigation-bottom" format="MM-dd-yyyy"/>
+    
+    <body>
+        <links>
+            <item name="jai-tools" href="http://code.google.com/p/jai-tools/"/>
+            <item name="JAI at java.net" href="https://jai.dev.java.net/"/>
+        </links>
+        <menu name="Jiffle">
+            <item name="Introduction" href="index.html"/>
+            <item name="Design" href="interpreter_design.html"/>
+            <item name="Jiffle API" href="apidocs/index.html"/>
+            <item name="HTML'd code" href="jxr.html"/>
+        </menu>
+        
+        <!--
+        <menu ref="reports"/>
+        -->
+        
+    </body>
+</project>

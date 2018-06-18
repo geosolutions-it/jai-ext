@@ -1,0 +1,45 @@
+minValue = 9999999;
+minCol = 0;
+minRow = 0;
+delta = [-1, 0, 1];
+stop = false;
+foreach (dy in -1:1) {
+    foreach (dx in -1:1) {
+      neighValue = dtm[dx, dy];
+      if(isnull(neighValue)){
+          stop = true;
+      } else if(!stop && neighValue < minValue){
+         minValue = neighValue ;
+         minCol = dx;
+         minRow = dy;
+      }
+  } 
+} 
+
+if(stop){
+   result = -9999.0;
+} else if(minCol ==0  && minRow == 0){
+   result = 0;
+} else if(minCol == 1  && minRow == 0){
+   result = 1;
+} else if(minCol == 1  && minRow == -1){
+   result = 2;
+} else if(minCol == 0  && minRow == -1){
+   result = 3;
+} else if(minCol == -1  && minRow == -1){
+   result = 4;
+} else if(minCol == -1  && minRow == 0){
+   result = 5;
+} else if(minCol == -1  && minRow == 1){
+   result = 6;
+} else if(minCol == 0 && minRow == 1){
+   result = 7;
+} else if(minCol == 1  && minRow == 1){
+   result = 8;
+} else {
+   result = 10;
+}
+
+
+
+

@@ -1,0 +1,7 @@
+images {
+  src = read;
+  dest = write;
+}
+
+src = 0;  // error - writing to source image
+

@@ -1,0 +1,21 @@
+/*
+ * An example Jiffle script: Conway's Game of Life
+ * played in a world with hard edges. 
+ *
+ * See program: jeitools.demo.jiffle.GameOfLife
+ * for a description and example of use.
+ *
+ * Author: Michael Bedward
+ */
+
+options { outside = 0; } 
+
+n = 0; 
+foreach (iy in -1:1) { 
+  foreach (ix in -1:1) { 
+    n += world[ix, iy]; 
+  } 
+} 
+
+n -= world; 
+nextworld = (n == 3) || (world && n==2);

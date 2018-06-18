@@ -1,0 +1,22 @@
+/*
+ * An example Jiffle script: create an 
+ * interference pattern.
+ *
+ * Author: Michael Bedward
+ */
+
+/* Calculations performed for each pixel.
+ * The functions x() and y() return current
+ * pixel coordinates; width() and height()
+ * return the dimensions of the destination
+ * area.
+ */
+dx = x() / width();
+dy = y() / height();
+dxy = sqrt((dx-0.5)^2 + (dy-0.5)^2);
+
+/* The variable 'result' represents the
+ * destination image (you can use any name
+ * you like in your own scripts).
+ */
+result = sin(dx * 100) + sin(dxy * 100);

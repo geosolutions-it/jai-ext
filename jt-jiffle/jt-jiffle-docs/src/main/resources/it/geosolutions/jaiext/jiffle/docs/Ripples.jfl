@@ -1,0 +1,14 @@
+init {
+  // image centre coordinates
+  xc = width() / 2;
+  yc = height() / 2;
+
+  // constant term
+  C = M_PI * 8;
+}
+
+dx = (x() - xc) / xc;
+dy = (y() - yc) / yc;
+d = sqrt(dx*dx + dy*dy);
+
+destImg = sin(C * d);
