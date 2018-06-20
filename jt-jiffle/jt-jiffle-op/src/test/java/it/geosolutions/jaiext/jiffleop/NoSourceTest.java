@@ -51,7 +51,7 @@ import static org.junit.Assert.*;
  * @since 1.2
  * @version $Id$
  */
-public class SimpleTest {
+public class NoSourceTest {
     
     private static final double TOL = 1.0e-8;
     

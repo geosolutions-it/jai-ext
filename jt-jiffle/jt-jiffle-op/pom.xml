@@ -17,9 +17,16 @@
     
     <dependencies>
         <dependency>
-	    <groupId>${project.groupId}</groupId>
+            <groupId>it.geosolutions.jaiext.jiffle</groupId>
             <artifactId>jt-jiffle-language</artifactId>
-	    <version>${project.version}</version>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>it.geosolutions.jaiext.utilities</groupId>
+            <artifactId>jt-utilities</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

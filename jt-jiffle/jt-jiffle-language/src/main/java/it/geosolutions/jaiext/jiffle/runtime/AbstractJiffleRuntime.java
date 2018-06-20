@@ -51,11 +51,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.jiffle.Jiffle;
 import it.geosolutions.jaiext.jiffle.JiffleException;
 
 import javax.media.jai.iterator.RandomIter;
-import javax.media.jai.iterator.RandomIterFactory;
 
 
 /**
@@ -123,7 +123,7 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
             this.maxX = image.getMinX() + image.getWidth();
             this.minY = image.getMinY();
             this.maxY = image.getMinY() + image.getHeight();
-            this.iterator = RandomIterFactory.create(image, null);
+            this.iterator = RandomIterFactory.create(image, null, true, true);
         }
         
         public double read(double x, double y, int band) {
@@ -146,7 +146,8 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
                 }
             }
 
-            return iterator.getSampleDouble(posx, posy, band);
+            final double result = iterator.getSampleDouble(posx, posy, band);
+            return result;
         }
 
         public void setTransform(CoordinateTransform transform, boolean defaultTransform)

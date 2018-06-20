@@ -70,17 +70,13 @@ public class JiffleOpImage extends OpImage {
     
     private final JiffleIndirectRuntime runtime;
     
-    // TESTING
     private final int band = 0;
     
-    private final Rectangle bounds;
-
     public JiffleOpImage(Map<String, RenderedImage> sourceImages, 
             ImageLayout layout, 
             Map configuration,
             String script,
-            String destVarName,
-            Rectangle destBounds) {
+            String destVarName) {
         
         super(new Vector(sourceImages.values()), layout, configuration, false);
         
@@ -102,16 +98,7 @@ public class JiffleOpImage extends OpImage {
                 runtime.setSourceImage(entry.getKey(), entry.getValue());
             }
             
-            if (destBounds == null) {
-                bounds = getSourceBounds();
-                if (bounds == null) {
-                    throw new IllegalArgumentException(
-                            "No source images and no destination bounds specified");
-                }
-            } else {
-                bounds = new Rectangle(destBounds);
-            }
-            
+            Rectangle bounds = new Rectangle(layout.getMinX(null), layout.getMinY(null), layout.getWidth(null), layout.getHeight(null));
             runtime.setWorldByResolution(bounds, 1, 1);
             
         } catch (JiffleException ex) {
@@ -150,7 +137,8 @@ public class JiffleOpImage extends OpImage {
     protected void computeRect(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
         for (int y = destRect.y, iy = 0; iy < destRect.height; y++, iy++) {
             for (int x = destRect.x, ix = 0; ix < destRect.width; x++, ix++) {
-                dest.setSample(x, y, band, runtime.evaluate(x, y));
+                final double value = runtime.evaluate(x, y);
+                dest.setSample(x, y, band, value);
             }
         }
     }
@@ -167,19 +155,7 @@ public class JiffleOpImage extends OpImage {
     
     
 
-    private Rectangle getSourceBounds() {
-        Rectangle r = null;
-        
-        if (getNumSources() > 0) {
-            r = new Rectangle(getSourceImage(0).getBounds());
-            
-            for (int i = 1; i < getNumSources(); i++) {
-                r = r.union(getSourceImage(i).getBounds());
-            }
-        }
-        
-        return r;
-    }
+    
 
     
 }

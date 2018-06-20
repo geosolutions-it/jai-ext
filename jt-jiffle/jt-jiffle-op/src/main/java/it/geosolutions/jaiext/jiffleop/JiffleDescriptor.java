@@ -43,10 +43,17 @@
 
 package it.geosolutions.jaiext.jiffleop;
 
-import java.awt.Rectangle;
+import java.awt.*;
+import java.awt.image.DataBuffer;
+import java.awt.image.RenderedImage;
 
+import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
+import javax.media.jai.ParameterBlockJAI;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderedRegistryMode;
+
+import it.geosolutions.jaiext.range.Range;
 
 /**
  * Jiffle operation.
@@ -56,27 +63,41 @@ import javax.media.jai.registry.RenderedRegistryMode;
  * @version $Id$
  */
 public class JiffleDescriptor extends OperationDescriptorImpl {
-    
-    static final int SCRIPT_ARG = 0;
-    static final int DEST_NAME_ARG = 1;
-    static final int DEST_BOUNDS_ARG = 2;
 
+    static final int SOURCE_IMAGE_NAMES_ARG = 0;
+    static final int DEST_NAME_ARG = 1;
+    static final int SCRIPT_ARG = 2;
+    static final int DEST_BOUNDS_ARG = 3;
+    static final int DEST_TYPE_ARG = 4;
+
+    public static final String SOURCE_NAMES = "sourceNames";
+    public static final String DEST_NAME = "destName";
+    public static final String SCRIPT = "script";
+    public static final String DEST_BOUNDS = "destBounds";
+    public static final String DEST_TYPE = "destType";
+    
     private static final String[] paramNames = {
-        "script",
-        "destName",
-        "destBounds"
+            SOURCE_NAMES,
+            DEST_NAME,
+            SCRIPT,
+            DEST_BOUNDS,
+            DEST_TYPE    
     };
 
     private static final Class[] paramClasses = {
+         String[].class,
          String.class,
          String.class,
-         Rectangle.class
+         Rectangle.class,
+         Integer.class   
     };
 
     private static final Object[] paramDefaults = {
+         null,
+         "dest",   
          NO_PARAMETER_DEFAULT,
-         "dest",
-         (Rectangle)null
+         null,
+         DataBuffer.TYPE_DOUBLE   
     };
 
     public JiffleDescriptor() {
@@ -87,20 +108,22 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
                     {"Description", "Execute a Jiffle script"},
                     {"DocURL", ""},
                     {"Version", "1.2.0"},
-                    {"arg0Desc", paramNames[0] + " (String):" +
-                             "the Jiffle script"},
+                    {"arg0Desc", paramNames[0] + " (String[], default {src, src1, src2, ...}):" +
+                                "name of the source rasters"},
                     {"arg1Desc", paramNames[1] + " (String, default \"dest\"):" +
-                             "the destination variable name"}
-
+                                "the destination variable name"},
+                    {"arg2Desc", paramNames[2] + " (String):" +
+                             "the Jiffle script"},
+                    {"arg3Desc", paramNames[3] + " (Rectangle, default will use the image layout if provided, or the union of the sources otherwise):" +
+                                "the output bounds"},
+                    {"arg4Desc", paramNames[4] + " (Output data type, default is DataBuffer.TYPE_DOUBEL):" +
+                                "the output data type, as a DataBuffer.TYPE_* constant"}
                 },
                 new String[]{RenderedRegistryMode.MODE_NAME},   // supported modes
-                
                 1,                                              // number of sources
-                
                 paramNames,
                 paramClasses,
                 paramDefaults,
-                    
                 null                                            // valid values (none defined)
                 );
     }
@@ -110,5 +133,41 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
         return 0;
     }
 
-    
+    /**
+     * RenderedOp creation method that takes all the parameters, passes them to the
+     * ParameterBlockJAI and then call the JAI create method for the mosaic
+     * operation with no data support.
+     *
+     * @param sources The RenderdImage source array used for the operation.
+     * @param sourceImageNames The array of source image names, that will be referred from the script. Can be null, in such case "src, src1, src2, ..." will be used as image names
+     * @param destName The name of the destination image. Can be null, in such case "dest" will be used
+     * @param destBounds The output bounds. It is required only if there are no sources, and no {@link javax.media.jai.ImageLayout} is provided in the hints, otherwise can be null.
+     * @param destType The destination type. Not required, will default to {@link DataBuffer#TYPE_DOUBLE}
+     * @param renderingHints This value sets the rendering hints for the operation.
+     * @return A RenderedOp that performs the Jiffle operation.
+     */
+    public static RenderedOp create(RenderedImage[] sources,
+            String[] sourceImageNames,
+            String destName,
+            String script,
+            Rectangle destBounds,
+            Integer destType,
+            RenderingHints renderingHints) {
+        ParameterBlockJAI pb = new ParameterBlockJAI("Jiffle", RenderedRegistryMode.MODE_NAME);
+
+        // All the source images are added to the parameter block.
+        int numSources = sources.length;
+        for (int i = 0; i < numSources; i++) {
+            pb.addSource(sources[i]);
+        }
+        // Then the parameters are passed to the parameterblockJAI.
+        pb.setParameter(SOURCE_NAMES, sourceImageNames);
+        pb.setParameter(DEST_NAME, destName);
+        pb.setParameter(SCRIPT, script);
+        pb.setParameter(DEST_BOUNDS, destBounds);
+        pb.setParameter(DEST_TYPE, destType);
+        // JAI operation performed.
+        return JAI.create("Jiffle", pb, renderingHints);
+    }
+
 }

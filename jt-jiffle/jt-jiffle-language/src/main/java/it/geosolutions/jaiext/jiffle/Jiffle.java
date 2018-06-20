@@ -72,6 +72,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -514,7 +515,9 @@ public class Jiffle {
         }
 
         String runtimeSource = createRuntimeSource(model, runtimeClass.getName(), scriptInDocs);
-
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Jiffle script compiled to:\n\n" + runtimeSource);    
+        }
         try {
             SimpleCompiler compiler = new SimpleCompiler();
             compiler.cook(runtimeSource);

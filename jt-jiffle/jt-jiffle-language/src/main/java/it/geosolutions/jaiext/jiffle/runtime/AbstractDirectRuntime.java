@@ -182,6 +182,7 @@ public abstract class AbstractDirectRuntime extends AbstractJiffleRuntime
             for (double x = minX; x < maxX - EPS; x += resX) {
                 evaluate(x, y);
 
+                if (pl != null)
                 count++;
                 sinceLastUpdate++;
                 if (sinceLastUpdate >= updateInterval) {
