@@ -1,0 +1,4 @@
+foreach (i in 1:10) {
+  i = 0; // error - assigning to the loop var
+}
+

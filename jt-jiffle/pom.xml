@@ -1,0 +1,75 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+		<groupId>it.geosolutions.jaiext</groupId>
+		<artifactId>jaiext</artifactId>
+		<version>1.0-SNAPSHOT</version>
+	</parent>
+	<groupId>it.geosolutions.jaiext.jiffle</groupId>
+	<artifactId>jt-jiffle</artifactId>
+	<name>jt-jiffle</name>
+    <packaging>pom</packaging>
+    <description>
+        Jiffle is a scripting language for creating and analysing raster images.
+    </description>
+
+    <developers>
+        <developer>
+            <id>michael.bedward</id>
+            <name>Michael Bedward</name>
+            <email>michael.bedward@gmail.com</email>
+            <timezone>+10</timezone>
+        </developer>
+        <developer>
+            <id>andrea.antonello</id>
+            <name>Andrea Antonello</name>
+            <organization>HydroloGIS</organization>
+            <organizationUrl>http://www.hydrologis.com/</organizationUrl>
+        </developer>
+        <developer>
+            <id>andrea.aime</id>
+            <name>Andrea Aime</name>
+            <organization>GeoSolutions</organization>
+            <organizationUrl>https://www.geo-solutions.it/</organizationUrl>
+        </developer>
+    </developers>
+
+    <!-- =========================================================== -->
+    <!--     Dependencies to be inherited by all modules.            -->
+    <!--     Default version numbers are specified above.            -->
+    <!-- =========================================================== -->
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.media</groupId>
+            <artifactId>jai_core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.media</groupId>
+            <artifactId>jai_codec</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.media</groupId>
+            <artifactId>jai_imageio</artifactId>
+        </dependency>
+    </dependencies>
+
+    <modules>
+        <module>jt-jiffle-language</module>
+        <module>jt-jiffle-demo</module>
+        <module>jt-jiffle-docs</module>
+        <module>jt-jiffle-op</module>
+    </modules>
+
+</project>

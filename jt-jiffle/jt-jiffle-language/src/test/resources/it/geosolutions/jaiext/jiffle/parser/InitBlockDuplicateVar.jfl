@@ -1,0 +1,6 @@
+init {
+  foo = 1;
+  foo;  // error: duplicate declaration
+}
+
+dest = foo;

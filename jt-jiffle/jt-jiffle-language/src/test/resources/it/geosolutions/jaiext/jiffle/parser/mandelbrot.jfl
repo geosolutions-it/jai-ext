@@ -1,0 +1,55 @@
+/*
+ * An example Jiffle script: draws a binary
+ * image of the Mandelbrot set. Adapted from
+ * C code at http://warp.povusers.org/Mandelbrot/
+ *
+ * Author: Michael Bedward
+ */
+
+/* We declare variables that we want to remain
+ * in scope between pixels in the 'init' block.
+ * The functions  width() and height() return
+ * the dimensions of the destination area.
+ */
+init {
+  MaxIter = 30;
+  MinRe = -2.0;
+  MaxRe = 1.0;
+  MinIm = -1.2;
+  MaxIm = MinIm + (MaxRe-MinRe) * height() / width();
+  Re_scale = (MaxRe-MinRe)/(width()-1);
+  Im_scale = (MaxIm-MinIm)/(height()-1);
+}
+
+
+/* Calculations performed for each pixel.
+ * The functions x() and y() return current
+ * pixel coordinates.
+ */
+c_im = MaxIm - y()*Im_scale;
+c_re = MinRe + x()*Re_scale;
+
+Z_re = c_re;
+Z_im = c_im;
+
+outside = 0;
+n = 0;
+
+/* Jiffle has an 'until' loop construct */
+until (n >= MaxIter) {
+    Z_re2 = Z_re*Z_re;
+    Z_im2 = Z_im*Z_im;
+
+    outside = Z_re2 + Z_im2 > 4;
+    breakif( outside );
+
+    Z_im = 2*Z_re*Z_im + c_im;
+    Z_re = Z_re2 - Z_im2 + c_re;
+    n++ ;
+}
+
+/* The variable 'result' represents the
+ * destination image (you can use any name
+ * you like in your own scripts).
+ */
+result = outside;

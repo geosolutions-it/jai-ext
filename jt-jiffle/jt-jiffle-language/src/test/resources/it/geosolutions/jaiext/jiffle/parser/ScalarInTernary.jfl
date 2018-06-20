@@ -1,0 +1,2 @@
+scalar = 123;
+choice = scalar > 10 ? 0 : 1;

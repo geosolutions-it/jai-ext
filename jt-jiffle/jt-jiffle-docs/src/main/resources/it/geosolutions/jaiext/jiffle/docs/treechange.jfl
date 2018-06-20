@@ -1,0 +1,25 @@
+images {
+    trees1990 = read;
+    trees2010 = read;
+    change = write;
+}
+
+init {
+    RADIUS = 1000;
+}
+
+diff = 0;
+base = 0;
+
+ynbr = y() - RADIUS;
+until (ynbr > y() + RADIUS) {
+    xnbr = x() - RADIUS;
+    until (xnbr > x() + RADIUS) {
+        base += trees1990;
+        diff += trees2010[ $xnbr, $ynbr ] - trees1990[ $xnbr, $ynbr ];
+        xnbr += xres();
+    }
+    ynbr += yres();
+}
+
+change = con( base > 0, diff / base, null );

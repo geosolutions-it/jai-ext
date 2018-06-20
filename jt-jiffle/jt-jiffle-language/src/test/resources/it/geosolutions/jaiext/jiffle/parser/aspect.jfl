@@ -1,0 +1,69 @@
+aData = 0.0;
+bData = 0.0;
+centralValue = dtm;
+nValue = dtm[0, -1];
+sValue = dtm[0,1];
+wValue = dtm[-1,0];
+eValue = dtm[1,0];
+nv = -9999.0;
+aspect = nv;
+PI = 3.14159265358979323846;
+
+result = nValue;
+if (centralValue != nv) {
+    sIsNovalue = sValue == nv;
+    nIsNovalue = nValue == nv;
+    wIsNovalue = wValue == nv;
+    eIsNovalue = eValue == nv;
+
+    if (!sIsNovalue && !nIsNovalue) {
+        aData = atan((nValue - sValue) / (2 * yres()));
+    } else if (nIsNovalue && !sIsNovalue) {
+        aData = atan((centralValue - sValue) / (yres()));
+    } else if (!nIsNovalue && sIsNovalue) {
+        aData = atan((nValue - centralValue) / (yres()));
+    } else if (nIsNovalue && sIsNovalue) {
+        aData = nv;
+    } 
+    if (!wIsNovalue && !eIsNovalue) {
+        bData = atan((wValue - eValue) / (2 * xres()));
+    } else if (wIsNovalue && !eIsNovalue) {
+        bData = atan((centralValue - eValue) / (xres()));
+    } else if (!wIsNovalue && eIsNovalue) {
+        bData = atan((wValue - centralValue) / (xres()));
+    } else if (wIsNovalue && eIsNovalue) {
+        bData = nv;
+    }
+
+    // calculate the aspect value
+    if (aData < 0 && bData > 0) {
+        delta = acos(sin(abs(aData)) * cos(abs(bData)) / (sqrt(1 - cos(aData)^2 * cos(bData)^2)));
+        aspect = radToDeg( delta );
+    } else if (aData > 0 && bData > 0) {
+        delta = acos(sin(abs(aData)) * cos(abs(bData)) / (sqrt(1 - cos(aData)^2 * cos(bData)^2)));
+        aspect = radToDeg(PI - delta);
+    } else if (aData > 0 && bData < 0) {
+        delta = acos(sin(abs(aData)) * cos(abs(bData)) / (sqrt(1 - cos(aData)^2 * cos(bData)^2)));
+        aspect =radToDeg (PI + delta);
+    } else if (aData < 0 && bData < 0) {
+        delta = acos(sin(abs(aData)) * cos(abs(bData)) / (sqrt(1 - cos(aData)^2 * cos(bData)^2)));
+        aspect = radToDeg(2 * PI - delta);
+    } else if (aData == 0 && bData > 0) {
+        aspect = radToDeg(PI / 2.);
+    } else if (aData == 0 && bData < 0) {
+        aspect = radToDeg(PI * 3. / 2.);
+    } else if (aData > 0 && bData == 0) {
+        aspect = radToDeg(PI);
+    } else if (aData < 0 && bData == 0) {
+        aspect = radToDeg(2.0 * PI);
+    } else if (aData == 0 && bData == 0) {
+        aspect = 0.0;
+    } else if (aData == nv || bData == nv) {
+        aspect = nv;
+    }
+    result = round(aspect);
+} else{
+    result = nv;
+}
+
+

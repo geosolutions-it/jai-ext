@@ -1,0 +1,30 @@
+/*
+ * An example Jiffle script: creates an 8 x 8 
+ * chessboard pattern.
+ *
+ * Author: Michael Bedward
+ */
+
+// We declare variables that we want to remain in
+// scope between pixels in the 'init' block
+init {
+    len = width() > height() ? width() : height();
+    square = floor(len / 8);
+    edge_pos = square * 8;
+}
+
+/* Calculations performed for each pixel
+ * The functions x() and y() return current
+ * pixel coordinates. '%' is the modulo
+ * operator.
+ */
+odd_row = floor(y() / square) % 2 == 1;
+odd_col = floor(x() / square) % 2 == 1;
+inside = x() < edge_pos && y() < edge_pos;
+
+/* The variable 'result' represents the
+ * destination image (you can use any name
+ * you like in your own scripts).
+ * '^|' is Jiffle's exclusive-OR operator.
+ */
+result = inside ? (odd_row ^| odd_col) : null;

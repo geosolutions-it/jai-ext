@@ -1,0 +1,15 @@
+// Set option to treat locations outside the source image
+// area as null values
+options { outside = null; }
+
+// Specifies kernel size as max distance from target pixel
+init { maxd = 1; }
+
+values = [];
+foreach (dy in -maxd:maxd) {
+  foreach (dx in -maxd:maxd) {
+      values << src[dx, dy];
+  }
+}
+
+dest = mean(values);
