@@ -134,7 +134,6 @@ public abstract class AbstractDirectRuntime extends AbstractJiffleRuntime
 
         try {
             doSetDestinationImage(varName, image, tr);
-
         } catch (WorldNotSetException ex) {
             throw new JiffleException(
                     String.format(
@@ -152,6 +151,8 @@ public abstract class AbstractDirectRuntime extends AbstractJiffleRuntime
         CoordinateTransform tt = defaultTransform ? _defaultTransform : tr;
         destinationImage.setTransform(tt, defaultTransform);
         _destImages.put(varName, destinationImage);
+        // need to re-initialize the fields backing computation
+        _imageScopeVarsInitialized = false;
     }
 
     /** {@inheritDoc} */

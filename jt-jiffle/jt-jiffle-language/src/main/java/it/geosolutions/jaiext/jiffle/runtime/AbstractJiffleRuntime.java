@@ -535,6 +535,8 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
         CoordinateTransform tt = defaultTransform ? _defaultTransform : tr;
         sourceImage.setTransform(tt, defaultTransform);
         _images.put(varName, sourceImage);
+        // need to re-initialize the fields backing computation
+        _imageScopeVarsInitialized = false;
     }
 
     /**
