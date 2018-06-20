@@ -49,16 +49,6 @@ package it.geosolutions.jaiext.jiffle.parser.node;
  */
 public interface Node {
 
-//    /**
-//     * Writes out the contents of the node as Java code on the provided SourceWriter
-//     * @param w
-//     * TODO: remove this default implementation
-//     */
-//    default void write(SourceWriter w) {
-//        String line = toString();
-//        w.append(line);
-//    }
-
     void write(SourceWriter w);
     
 }

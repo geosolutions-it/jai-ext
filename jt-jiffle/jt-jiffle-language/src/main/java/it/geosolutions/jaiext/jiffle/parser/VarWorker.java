@@ -98,7 +98,7 @@ public class VarWorker extends PropertyWorker<SymbolScope> {
 
     @Override
     public void enterBody(BodyContext ctx) {
-        // All variables that first appear in the bocy of the 
+        // All variables that first appear in the body of the 
         // script should have pixel-level scope.
         pushScope(ctx, "pixel");
     }
