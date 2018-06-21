@@ -1,0 +1,25 @@
+!Name: Snail
+!Author: Tim Coe
+!The first c/5 orthogonal spaceship to be discovered. Found in January 1996.
+!www.conwaylife.com/wiki/index.php?title=Snail
+.O
+.O
+O
+.OOO.................OOO...OOO
+.OO.O.........O...O.O......OOO
+..O...........OO.O.......O....OOOO
+......O......O...O.O...OO.O.....OO
+...O..O.OOO...OO.........O........OO.O
+...OO.O.....O.....O.................O
+.........O.OOOOOOO
+
+.........O.OOOOOOO
+...OO.O.....O.....O.................O
+...O..O.OOO...OO.........O........OO.O
+......O......O...O.O...OO.O.....OO
+..O...........OO.O.......O....OOOO
+.OO.O.........O...O.O......OOO
+.OOO.................OOO...OOO
+O
+.O
+.O

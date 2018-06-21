@@ -1,0 +1,7 @@
+images {
+  dest = write;
+}
+
+// error - compound assignment op with destination image
+dest *= 2;  
+

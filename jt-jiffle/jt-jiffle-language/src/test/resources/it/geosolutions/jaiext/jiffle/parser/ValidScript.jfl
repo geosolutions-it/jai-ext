@@ -1,0 +1,19 @@
+images {
+  src = read;
+  dest = write;
+}
+
+init {
+  // foo declared in global scope
+  foo = 1;
+}
+
+// bar lazily declared within pixel scope
+// (compiler will use deferred typing)
+bar = src + foo;
+
+// another deferred type variable
+baz = bar * 2;
+
+// value written to dest image
+dest = bar + baz;

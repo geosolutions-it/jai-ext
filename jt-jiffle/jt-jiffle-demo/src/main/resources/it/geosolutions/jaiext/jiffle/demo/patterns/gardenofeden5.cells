@@ -1,0 +1,15 @@
+!Name: Garden of Eden 5
+!Author: Nicolay Beluchenko
+!Currently the smallest-known Garden of Eden in Conway's Game of Life.
+!www.conwaylife.com/wiki/index.php?title=Garden_of_Eden_5
+.OOO..OO
+.OO.O.O.OOO
+.OOO..OOOOO
+O.O.O.O.O.O
+OOOO.O.O.O
+....OOO
+.O.O.O.OOOO
+O.O.O.O.O.O
+OOOOO..OOO
+OOO.O.O.OO
+...OO..OOO

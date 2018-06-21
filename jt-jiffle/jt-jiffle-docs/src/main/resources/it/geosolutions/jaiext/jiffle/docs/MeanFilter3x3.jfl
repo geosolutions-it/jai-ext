@@ -1,0 +1,12 @@
+// Set option to treat locations outside the source image
+// area as null values
+options { outside = null; }
+
+values = [];
+foreach (dy in -1:1) {
+  foreach (dx in -1:1) {
+      values << src[dx, dy];
+  }
+}
+
+dest = mean(values);

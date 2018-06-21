@@ -1,0 +1,26 @@
+/*
+ * An example Jiffle script: Conway's Game of Life
+ * played in a toroidal (no edges) world.
+ *
+ * See program: jeitools.demo.jiffle.GameOfLife
+ * for a description and example of use.
+ *
+ * Author: Michael Bedward
+ */
+
+n = 0; 
+foreach (iy in -1:1) { 
+  yy = y() + iy; 
+  yy = con(yy < 0, height() - 1, yy); 
+  yy = con(yy >= height(), 0, yy); 
+
+  foreach (ix in -1:1) { 
+    xx = x() + ix; 
+    xx = con(xx < 0, width()-1, xx); 
+    xx = con(xx >= width(), 0, xx); 
+    n += world[$xx, $yy]; 
+  } 
+} 
+
+n -= world; 
+nextworld = (n == 3) || (world && n==2);

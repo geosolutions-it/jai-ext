@@ -1,0 +1,14 @@
+// This script implements a max filter with a 3x3
+// neighbourhood (kernel)
+
+// Set option to treat locations outside the source image
+// area as null values
+options { outside = null; }
+
+foreach (dy in -1:1) {
+  foreach (dx in -1:1) {
+      values << src[dx, dy];
+  }
+}
+
+dest = max(values);

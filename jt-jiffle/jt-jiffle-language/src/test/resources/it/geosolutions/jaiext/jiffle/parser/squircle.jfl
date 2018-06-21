@@ -1,0 +1,29 @@
+/*
+ * An example Jiffle script: creates a 'squircle'
+ * (a sort of squarish-circle).
+ *
+ * Author: Michael Bedward
+ */
+
+/* We declare variables that we want to remain
+ * in scope between pixels in the 'init' block.
+ * The functions  width() and height() return
+ * the dimensions of the destination area.
+ */
+init {
+    w = width() - 1;
+    h = height() - 1;
+}
+
+/* Calculations performed for each pixel.
+ * The functions x() and y() return current
+ * pixel coordinates.
+ */
+dx = 4 * M_PI * (0.5 - x() / w);
+dy = 4 * M_PI * (0.5 - y() / h); 
+
+/* The variable 'result' represents the
+ * destination image (you can use any name
+ * you like in your own scripts).
+ */
+result = sqrt(abs(cos(dx) + cos(dy)));

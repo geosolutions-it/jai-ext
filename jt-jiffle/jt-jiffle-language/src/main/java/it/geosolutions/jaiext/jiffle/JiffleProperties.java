@@ -1,0 +1,147 @@
+/* JAI-Ext - OpenSource Java Advanced Image Extensions Library
+ *    http://www.geo-solutions.it/
+ *    Copyright 2018 GeoSolutions
+ *    
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/* 
+ *  Copyright (c) 2011, Michael Bedward. All rights reserved. 
+ *   
+ *  Redistribution and use in source and binary forms, with or without modification, 
+ *  are permitted provided that the following conditions are met: 
+ *   
+ *  - Redistributions of source code must retain the above copyright notice, this  
+ *    list of conditions and the following disclaimer. 
+ *   
+ *  - Redistributions in binary form must reproduce the above copyright notice, this 
+ *    list of conditions and the following disclaimer in the documentation and/or 
+ *    other materials provided with the distribution.   
+ *   
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR 
+ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+ *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ *  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ */   
+
+package it.geosolutions.jaiext.jiffle;
+
+import java.io.InputStream;
+import java.util.Properties;
+
+import it.geosolutions.jaiext.jiffle.runtime.JiffleRuntime;
+
+/**
+ * Helper class which reads the Jiffle properties file and provides values
+ * to other classes. It is used by {@link Jiffle} and 
+ * {@link it.geosolutions.jaiext.jiffle.parser.AbstractSourceGenerator}.
+ * 
+ * @author Michael Bedward
+ * @since 0.1
+ * @version $Id$
+ */
+public class JiffleProperties {
+    
+    private static final Properties properties = new Properties();
+    
+    /** Properties file name. */
+    public static final String PROPERTIES_FILE = "META-INF/it/geosolutions/jaiext/jiffle/Jiffle.properties";
+    
+    /** Key: default toot name for a Jiffle instance. */
+    public static final String NAME_KEY = "root.name";
+    
+    /** Key: runtime class package */
+    public static final String RUNTIME_PACKAGE_KEY = "runtime.package";
+    
+    /** Key: direct runtime class name. */
+    public static final String DIRECT_CLASS_KEY = "direct.class";
+
+    /** Key: direct runtime base class name. */
+    public static final String DIRECT_BASE_CLASS_KEY = "direct.base.class";
+    
+    /** Key: indirect runtime class name. */
+    public static final String INDIRECT_CLASS_KEY = "indirect.class";
+
+    /** Key: indirect runtime base class name. */
+    public static final String INDIRECT_BASE_CLASS_KEY = "indirect.base.class";
+    
+    /** Key: default runtime imports. */
+    public static final String IMPORTS_KEY = "runtime.imports";
+    
+    /** Delimiter used to separate multiple import entries */
+    public static final String RUNTIME_IMPORTS_DELIM = ";";
+    
+    /** Key: common runtime source generation templates. */
+    public static final String COMMON_SOURCE_TEMPLATES_KEY = "common.source.templates";
+
+    /** Key: direct runtime source generation templates. */
+    public static final String DIRECT_SOURCE_TEMPLATES_KEY = "direct.source.templates";
+
+    /** Key: indirect runtime source generation templates. */
+    public static final String INDIRECT_SOURCE_TEMPLATES_KEY = "indirect.source.templates";
+
+    /** Default base class for direct runtime classes. */
+    public static final Class<? extends JiffleRuntime> DEFAULT_DIRECT_BASE_CLASS;
+
+    /** Default base class for indirect runtime classes. */
+    public static final Class<? extends JiffleRuntime> DEFAULT_INDIRECT_BASE_CLASS;
+    
+    static {
+        InputStream in = null;
+        try {
+            in = Jiffle.class.getClassLoader().getResourceAsStream(PROPERTIES_FILE);
+            properties.load(in);
+            
+            String className = properties.getProperty(RUNTIME_PACKAGE_KEY) + "." +
+                    properties.getProperty(DIRECT_BASE_CLASS_KEY);
+            
+            DEFAULT_DIRECT_BASE_CLASS = (Class<? extends JiffleRuntime>) Class.forName(className);
+            
+            className = properties.getProperty(RUNTIME_PACKAGE_KEY) + "." +
+                    properties.getProperty(INDIRECT_BASE_CLASS_KEY);
+            
+            DEFAULT_INDIRECT_BASE_CLASS = (Class<? extends JiffleRuntime>) Class.forName(className);
+            
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Internal compiler error", ex);
+            
+        } finally {
+            try {
+                if (in != null) in.close();
+            } catch (Exception ex) {
+                // ignore
+            }
+        }
+
+    }
+
+    /**
+     * Gets a property.
+     * 
+     * @param key the property name (key)
+     * 
+     * @return property value
+     */
+    public static String get(String key) {
+        return properties.getProperty(key);
+    }
+
+    
+}

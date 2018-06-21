@@ -1,0 +1,9 @@
+images {
+  dest = write;
+}
+
+init {
+  x = 10;
+}
+
+dest = x[1, 1];
