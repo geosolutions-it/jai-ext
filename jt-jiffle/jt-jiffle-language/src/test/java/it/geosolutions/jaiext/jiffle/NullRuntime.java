@@ -48,6 +48,7 @@ import java.awt.image.RenderedImage;
 import java.util.Map;
 
 import it.geosolutions.jaiext.jiffle.Jiffle.ImageRole;
+import it.geosolutions.jaiext.jiffle.runtime.BandTransform;
 import it.geosolutions.jaiext.jiffle.runtime.CoordinateTransform;
 import it.geosolutions.jaiext.jiffle.runtime.JiffleRuntime;
 import it.geosolutions.jaiext.jiffle.runtime.JiffleRuntimeException;
@@ -132,6 +133,18 @@ public class NullRuntime implements JiffleRuntime {
     @Override
     public void setSourceImage(String varName, RenderedImage image) {
 
+    }
+
+    @Override
+    public void setSourceImageBandTransform(String varName, BandTransform br)
+            throws JiffleException {
+        
+    }
+
+    @Override
+    public void setSourceImageCoordinateTransform(String varName, CoordinateTransform tr)
+            throws JiffleException {
+        
     }
 
     @Override
