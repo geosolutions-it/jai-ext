@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 import it.geosolutions.jaiext.jiffle.parser.Errors;
 import it.geosolutions.jaiext.jiffle.parser.JiffleParser;
 import it.geosolutions.jaiext.jiffle.parser.JiffleType;
@@ -179,4 +181,36 @@ public class BinaryExpression extends Expression {
         w.line("}");
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        BinaryExpression that = (BinaryExpression) o;
+        return declarationNeeded == that.declarationNeeded &&
+                Objects.equals(left, that.left) &&
+                Objects.equals(right, that.right) &&
+                op == that.op;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(declarationNeeded, left, right, op);
+    }
+
+    public Expression getLeft() {
+        return left;
+    }
+
+    public Expression getRight() {
+        return right;
+    }
+
+    public Operator getOp() {
+        return op;
+    }
+
+    @Override
+    public String toString() {
+        return left + " " + op + " " + right;
+    }
 }

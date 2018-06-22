@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 /**
  *
  * @author michael
@@ -72,5 +74,21 @@ public class Band implements Node {
             w.append("(int)(").append(index).append(")");
         }
     }
-    
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Band band = (Band) o;
+        return Objects.equals(index, band.index);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(index);
+    }
+
+    public Expression getIndex() {
+        return index;
+    }
 }

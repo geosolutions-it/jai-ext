@@ -43,6 +43,7 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -50,7 +51,7 @@ import java.util.List;
  *
  * @author michael
  */
-public class GlobalVars extends AbstractNode {
+public class GlobalVars implements Node {
     private final List<BinaryExpression> inits;
 
     /**
@@ -90,5 +91,9 @@ public class GlobalVars extends AbstractNode {
                 w.append(", ");
             }
         }
+    }
+
+    public List<BinaryExpression> getInits() {
+        return new ArrayList<>(inits);
     }
 }

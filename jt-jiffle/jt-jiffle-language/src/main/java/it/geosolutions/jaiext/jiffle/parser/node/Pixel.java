@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 import it.geosolutions.jaiext.jiffle.util.Strings;
 
 /**
@@ -80,5 +82,25 @@ public class Pixel implements Node {
        w.append(x).append(", ").append(y);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Pixel pixel = (Pixel) o;
+        return Objects.equals(x, pixel.x) &&
+                Objects.equals(y, pixel.y);
+    }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, y);
+    }
+
+    public Expression getX() {
+        return x;
+    }
+
+    public Expression getY() {
+        return y;
+    }
 }

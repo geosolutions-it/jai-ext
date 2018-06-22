@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 import it.geosolutions.jaiext.jiffle.util.Strings;
 
 /**
@@ -67,5 +69,28 @@ public class PostfixUnaryExpression extends Expression {
 
     public void write(SourceWriter w) {
         w.append(arg).append(op);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        PostfixUnaryExpression that = (PostfixUnaryExpression) o;
+        return Objects.equals(arg, that.arg) &&
+                Objects.equals(op, that.op);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), arg, op);
+    }
+
+    public Expression getArg() {
+        return arg;
+    }
+
+    public String getOp() {
+        return op;
     }
 }

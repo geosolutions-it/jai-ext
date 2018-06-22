@@ -50,11 +50,13 @@ import it.geosolutions.jaiext.jiffle.parser.JiffleParserException;
 import it.geosolutions.jaiext.jiffle.parser.OptionLookup;
 import it.geosolutions.jaiext.jiffle.parser.UndefinedOptionException;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /** @author michael */
-public class Script extends AbstractNode {
+public class Script implements Node {
     private final StatementList stmts;
     private Map<String, String> options;
     private Set<String> sourceImages;
@@ -227,5 +229,42 @@ public class Script extends AbstractNode {
         // closing class
         w.dec();
         w.line("}");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Script script = (Script) o;
+        return Objects.equals(stmts, script.stmts) &&
+                Objects.equals(options, script.options) &&
+                Objects.equals(sourceImages, script.sourceImages) &&
+                Objects.equals(destImages, script.destImages) &&
+                Objects.equals(globals, script.globals);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(stmts, options, sourceImages, destImages, globals);
+    }
+
+    public StatementList getStmts() {
+        return stmts;
+    }
+
+    public Map<String, String> getOptions() {
+        return Collections.unmodifiableMap(options);
+    }
+
+    public Set<String> getSourceImages() {
+        return Collections.unmodifiableSet(sourceImages);
+    }
+
+    public Set<String> getDestImages() {
+        return Collections.unmodifiableSet(destImages);
+    }
+
+    public GlobalVars getGlobals() {
+        return globals;
     }
 }

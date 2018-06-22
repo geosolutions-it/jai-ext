@@ -43,6 +43,9 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 import it.geosolutions.jaiext.jiffle.parser.Errors;
 import it.geosolutions.jaiext.jiffle.parser.FunctionInfo;
 import it.geosolutions.jaiext.jiffle.parser.FunctionLookup;
@@ -91,7 +94,7 @@ public class FunctionCall extends Expression {
     @Override
     public String toString() {
         // All other functions
-        String tail = proxy ? "" : String.format("(%s)", Strings.commas((Object []) args));
+        String tail = proxy ? "()" : String.format("(%s)", Strings.commas((Object []) args));
         return runtimeName + tail;
     }
 
@@ -108,5 +111,35 @@ public class FunctionCall extends Expression {
             }
             w.append(")");
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        FunctionCall that = (FunctionCall) o;
+        return proxy == that.proxy &&
+                Objects.equals(runtimeName, that.runtimeName) &&
+                Arrays.equals(args, that.args);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(super.hashCode(), runtimeName, proxy);
+        result = 31 * result + Arrays.hashCode(args);
+        return result;
+    }
+
+    public String getRuntimeName() {
+        return runtimeName;
+    }
+
+    public boolean isProxy() {
+        return proxy;
+    }
+
+    public Expression[] getArgs() {
+        return args;
     }
 }

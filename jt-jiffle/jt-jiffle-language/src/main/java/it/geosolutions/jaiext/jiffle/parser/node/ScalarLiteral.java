@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 import it.geosolutions.jaiext.jiffle.parser.JiffleType;
 
 /**
@@ -65,5 +67,23 @@ public abstract class ScalarLiteral extends Expression {
     public void write(SourceWriter w) {
         String line = toString();
         w.append(line);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ScalarLiteral that = (ScalarLiteral) o;
+        return Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), value);
+    }
+
+    public String getValue() {
+        return value;
     }
 }

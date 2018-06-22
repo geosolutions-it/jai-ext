@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 import it.geosolutions.jaiext.jiffle.parser.JiffleType;
 
 /**
@@ -77,6 +79,37 @@ public class GetSourceValue extends Expression {
         } else {
             w.append("readFromImage(\"").append(varName).append("\", ").append(pos).append(")");                
         }
-        
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        GetSourceValue that = (GetSourceValue) o;
+        return Objects.equals(varName, that.varName) &&
+                Objects.equals(pos, that.pos);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(super.hashCode(), varName, pos);
+    }
+
+    /**
+     * The variable name
+     * @return
+     */
+    public String getVarName() {
+        return varName;
+    }
+
+    /**
+     * The image position being read
+     * @return
+     */
+    public ImagePos getPos() {
+        return pos;
     }
 }

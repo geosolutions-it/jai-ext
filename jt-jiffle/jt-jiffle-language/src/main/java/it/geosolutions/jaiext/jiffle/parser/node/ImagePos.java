@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 import it.geosolutions.jaiext.jiffle.util.Strings;
 
 /**
@@ -75,5 +77,27 @@ public class ImagePos implements Node {
         if (band != null) {
             w.append(band);
         } 
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ImagePos imagePos = (ImagePos) o;
+        return Objects.equals(band, imagePos.band) &&
+                Objects.equals(pixel, imagePos.pixel);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(band, pixel);
+    }
+
+    public Band getBand() {
+        return band;
+    }
+
+    public Pixel getPixel() {
+        return pixel;
     }
 }

@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 public class ListAppend implements Statement {
 
     private Variable var;
@@ -56,5 +58,27 @@ public class ListAppend implements Statement {
     @Override
     public void write(SourceWriter w) {
         w.indent().append(var).append(".add(").append(expression).append(");").newLine();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ListAppend that = (ListAppend) o;
+        return Objects.equals(var, that.var) &&
+                Objects.equals(expression, that.expression);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(var, expression);
+    }
+
+    public Variable getVar() {
+        return var;
+    }
+
+    public Expression getExpression() {
+        return expression;
     }
 }

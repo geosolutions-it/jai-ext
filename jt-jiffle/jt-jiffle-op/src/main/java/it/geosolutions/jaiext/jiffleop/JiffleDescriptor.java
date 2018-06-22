@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffleop;
 
+import com.vividsolutions.jts.geom.Coordinate;
+
 import java.awt.*;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
@@ -53,6 +55,7 @@ import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderedRegistryMode;
 
+import it.geosolutions.jaiext.jiffle.runtime.CoordinateTransform;
 import it.geosolutions.jaiext.range.Range;
 
 /**
