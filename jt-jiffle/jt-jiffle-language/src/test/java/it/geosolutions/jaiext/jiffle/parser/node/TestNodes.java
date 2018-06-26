@@ -88,7 +88,7 @@ public class TestNodes {
     
     @Test
     public void pixelDefault() throws Exception {
-        assertThat( Pixel.DEFAULT.toString(), is("_x,_y") );
+        assertThat( Pixel.DEFAULT.toString(), is("_x(),_y()") );
     }
     
     @Test
@@ -107,7 +107,7 @@ public class TestNodes {
         FunctionInfo info = getFnInfo(name);
         
         FunctionCall fn = FunctionCall.of(name);
-        assertThat(fn.toString(), is(info.getRuntimeName()));
+        assertThat(fn.toString(), is(info.getRuntimeName() + "()"));
     }
 
     @Test
@@ -139,7 +139,7 @@ public class TestNodes {
     @Test
     public void imageRead() throws Exception {
         Expression e = new GetSourceValue("src", ImagePos.DEFAULT);
-        assertThat(e.toString(), is("readFromImage(src,_x,_y,0)"));
+        assertThat(e.toString(), is("readFromImage(src,_x(),_y(),0)"));
     }
 
     

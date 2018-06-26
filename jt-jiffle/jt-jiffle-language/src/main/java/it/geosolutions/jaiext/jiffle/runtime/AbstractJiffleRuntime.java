@@ -56,7 +56,12 @@ import java.util.Map;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.jiffle.Jiffle;
 import it.geosolutions.jaiext.jiffle.JiffleException;
+import it.geosolutions.jaiext.range.NoDataContainer;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeDouble;
+import it.geosolutions.jaiext.range.RangeFactory;
 
+import javax.media.jai.ROI;
 import javax.media.jai.iterator.RandomIter;
 
 
@@ -110,6 +115,8 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
     protected class SourceImage {
         final String imageName;
         final RenderedImage image;
+        final RandomIter roiIterator;
+        final Range noDataRange;
         BandTransform bandTransform;
         CoordinateTransform transform;
         boolean defaultTransform;
@@ -118,7 +125,7 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
         final int maxX;
         final int minY;
         final int maxY;
-        
+
         public SourceImage(String imageName, RenderedImage image) {
             this.imageName = imageName;
             this.image = image;
@@ -127,6 +134,31 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
             this.minY = image.getMinY();
             this.maxY = image.getMinY() + image.getHeight();
             this.iterator = RandomIterFactory.create(image, null, true, true);
+
+            Object property = image.getProperty("ROI");
+            if (property instanceof ROI) {
+                ROI roi = (ROI) property;
+                RenderedImage roiImage = roi.getAsImage();
+                this.roiIterator = RandomIterFactory.create(roiImage, null, true, true);
+            } else {
+                this.roiIterator = null;
+            }
+
+            Object noDataProperty = image.getProperty(NoDataContainer.GC_NODATA);
+            if (noDataProperty instanceof NoDataContainer) {
+                NoDataContainer noData = (NoDataContainer) noDataProperty;
+                Range range = noData.getAsRange();
+                if (range == null && noData.getAsArray() != null && noData.getAsArray().length > 0) {
+                    double noDataValue = noData.getAsArray()[0];
+                    range = RangeFactory.create(noDataValue, true, noDataValue, true, true);
+                } else {
+                    double noDataValue = noData.getAsSingleValue();
+                    range = RangeFactory.create(noDataValue, true, noDataValue, true, true);
+                }
+                this.noDataRange = range;
+            } else {
+                this.noDataRange = null;
+            }
         }
         
         public double read(double x, double y, int band) {
@@ -153,7 +185,16 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
                 band = bandTransform.scriptToImage(x, y, band);
             }
 
+            if (roiIterator != null && (roiIterator.getSample(posx, posy, 0) & 0xff) == 0) {
+                return Double.NaN;
+            }
+            
             final double result = iterator.getSampleDouble(posx, posy, band);
+
+            if (noDataRange != null && noDataRange.contains(result)) {
+                return Double.NaN;
+            }
+            
             return result;
         }
 
