@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 public class LoopInRange implements Statement {
 
     private Statement statement;
@@ -70,5 +72,37 @@ public class LoopInRange implements Statement {
         statement.write(w);
         w.dec();
         w.line("}");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LoopInRange that = (LoopInRange) o;
+        return Objects.equals(statement, that.statement) &&
+                Objects.equals(loopVariable, that.loopVariable) &&
+                Objects.equals(low, that.low) &&
+                Objects.equals(high, that.high);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(statement, loopVariable, low, high);
+    }
+
+    public Statement getStatement() {
+        return statement;
+    }
+
+    public Variable getLoopVariable() {
+        return loopVariable;
+    }
+
+    public Expression getLow() {
+        return low;
+    }
+
+    public Expression getHigh() {
+        return high;
     }
 }

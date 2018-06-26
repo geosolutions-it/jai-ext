@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 public class Until implements Statement {
 
     private final Expression condition;
@@ -68,5 +70,27 @@ public class Until implements Statement {
         statement.write(w);
         w.dec();
         w.line("}");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Until until = (Until) o;
+        return Objects.equals(condition, until.condition) &&
+                Objects.equals(statement, until.statement);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(condition, statement);
+    }
+
+    public Expression getCondition() {
+        return condition;
+    }
+
+    public Statement getStatement() {
+        return statement;
     }
 }

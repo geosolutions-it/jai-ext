@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 public class While implements Statement {
 
     private final Expression condition;
@@ -68,5 +70,27 @@ public class While implements Statement {
         statement.write(w);
         w.dec();
         w.line("}");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        While aWhile = (While) o;
+        return Objects.equals(condition, aWhile.condition) &&
+                Objects.equals(statement, aWhile.statement);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(condition, statement);
+    }
+
+    public Expression getCondition() {
+        return condition;
+    }
+
+    public Statement getStatement() {
+        return statement;
     }
 }

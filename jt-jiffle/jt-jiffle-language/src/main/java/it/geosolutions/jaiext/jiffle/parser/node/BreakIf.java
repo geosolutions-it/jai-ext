@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 public class BreakIf implements Statement {
 
     private final Expression condition;
@@ -55,5 +57,22 @@ public class BreakIf implements Statement {
         w.indent().append("if (_FN.isTrue(");
         condition.write(w);
         w.append(")) break;").newLine();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        BreakIf breakIf = (BreakIf) o;
+        return Objects.equals(condition, breakIf.condition);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(condition);
+    }
+
+    public Expression getCondition() {
+        return condition;
     }
 }

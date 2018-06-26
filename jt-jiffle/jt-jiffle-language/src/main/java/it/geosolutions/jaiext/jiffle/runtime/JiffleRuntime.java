@@ -261,6 +261,22 @@ public interface JiffleRuntime {
     void setSourceImage(String varName, RenderedImage image);
 
     /**
+     * Associates a given source image with a BandTransform  
+     * @param varName script variable representing the source image
+     * @param bandTransform the script to band transform 
+     * @throws JiffleException
+     */
+    void setSourceImageBandTransform(String varName, BandTransform br) throws JiffleException;
+
+    /**
+     * Associates a given source image with a CoordinateTransform  
+     * @param varName script variable representing the source image
+     * @param tr transform for processing area to image coordinates
+     * @throws JiffleException
+     */
+    void setSourceImageCoordinateTransform(String varName, CoordinateTransform tr) throws JiffleException;
+
+    /**
      * Gets a value from a source image for a given world position and
      * image band.
      * 

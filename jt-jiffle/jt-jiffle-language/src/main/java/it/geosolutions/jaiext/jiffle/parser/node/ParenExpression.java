@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 /**
  *
  * @author michael
@@ -65,5 +67,22 @@ public class ParenExpression extends Expression {
         expr.write(w);
         w.append(")");
     }
-    
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ParenExpression that = (ParenExpression) o;
+        return Objects.equals(expr, that.expr);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), expr);
+    }
+
+    public Expression getExpr() {
+        return expr;
+    }
 }

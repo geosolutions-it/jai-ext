@@ -46,7 +46,9 @@ package it.geosolutions.jaiext.jiffle.parser.node;
 import it.geosolutions.jaiext.jiffle.parser.JiffleType;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  *
@@ -77,5 +79,23 @@ public class ListLiteral extends Expression {
             }
             w.append("))"); 
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ListLiteral that = (ListLiteral) o;
+        return Objects.equals(args, that.args);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), args);
+    }
+
+    public List<Expression> getArgs() {
+        return Collections.unmodifiableList(args);
     }
 }

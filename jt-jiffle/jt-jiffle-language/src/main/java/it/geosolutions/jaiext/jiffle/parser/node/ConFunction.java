@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Arrays;
+
 import it.geosolutions.jaiext.jiffle.parser.DirectSources;
 import it.geosolutions.jaiext.jiffle.parser.Errors;
 import it.geosolutions.jaiext.jiffle.parser.JiffleType;
@@ -98,6 +100,21 @@ public class ConFunction extends Expression {
 
         w.append(DirectSources.conCall(argStrs));
     }
-    
-    
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ConFunction that = (ConFunction) o;
+        return Arrays.equals(args, that.args);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(args);
+    }
+
+    public Expression[] getArgs() {
+        return args;
+    }
 }

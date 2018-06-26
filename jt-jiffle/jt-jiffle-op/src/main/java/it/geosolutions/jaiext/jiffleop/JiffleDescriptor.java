@@ -53,7 +53,8 @@ import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.registry.RenderedRegistryMode;
 
-import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.jiffle.runtime.BandTransform;
+import it.geosolutions.jaiext.jiffle.runtime.CoordinateTransform;
 
 /**
  * Jiffle operation.
@@ -69,19 +70,25 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
     static final int SCRIPT_ARG = 2;
     static final int DEST_BOUNDS_ARG = 3;
     static final int DEST_TYPE_ARG = 4;
+    static final int SRC_COORDINATE_TRANSFORM_ARG = 5;
+    static final int SRC_BAND_TRANSFORM_ARG = 6;
 
     public static final String SOURCE_NAMES = "sourceNames";
     public static final String DEST_NAME = "destName";
     public static final String SCRIPT = "script";
     public static final String DEST_BOUNDS = "destBounds";
     public static final String DEST_TYPE = "destType";
+    public static final String SRC_COORDINATE_TRANSFORMS = "srcCoordinateTransforms";
+    public static final String SRC_BAND_TRANSFORMS = "srcBandTransforms";
     
     private static final String[] paramNames = {
             SOURCE_NAMES,
             DEST_NAME,
             SCRIPT,
             DEST_BOUNDS,
-            DEST_TYPE    
+            DEST_TYPE,
+            SRC_COORDINATE_TRANSFORMS,
+            SRC_BAND_TRANSFORMS
     };
 
     private static final Class[] paramClasses = {
@@ -89,7 +96,9 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
          String.class,
          String.class,
          Rectangle.class,
-         Integer.class   
+         Integer.class,
+         CoordinateTransform[].class,
+         BandTransform[].class
     };
 
     private static final Object[] paramDefaults = {
@@ -97,7 +106,9 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
          "dest",   
          NO_PARAMETER_DEFAULT,
          null,
-         DataBuffer.TYPE_DOUBLE   
+         DataBuffer.TYPE_DOUBLE,
+         null,
+         null   
     };
 
     public JiffleDescriptor() {
@@ -116,8 +127,12 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
                              "the Jiffle script"},
                     {"arg3Desc", paramNames[3] + " (Rectangle, default will use the image layout if provided, or the union of the sources otherwise):" +
                                 "the output bounds"},
-                    {"arg4Desc", paramNames[4] + " (Output data type, default is DataBuffer.TYPE_DOUBEL):" +
-                                "the output data type, as a DataBuffer.TYPE_* constant"}
+                    {"arg4Desc", paramNames[4] + " (Output data type, default is DataBuffer.TYPE_DOUBLE):" +
+                                "the output data type, as a DataBuffer.TYPE_* constant"},
+                    {"arg5Desc", paramNames[4] + " (Source coordinate transforms):" +
+                                "the world to image source transforms, if needed"},
+                    {"arg6Desc", paramNames[4] + " (Source band transforms):" +
+                                "the script to image band transforms, if needed"}
                 },
                 new String[]{RenderedRegistryMode.MODE_NAME},   // supported modes
                 1,                                              // number of sources
@@ -143,6 +158,8 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
      * @param destName The name of the destination image. Can be null, in such case "dest" will be used
      * @param destBounds The output bounds. It is required only if there are no sources, and no {@link javax.media.jai.ImageLayout} is provided in the hints, otherwise can be null.
      * @param destType The destination type. Not required, will default to {@link DataBuffer#TYPE_DOUBLE}
+     * @param sourceCoordinateTransforms The world to image coordinate transforms for the sources                
+     * @param sourceBandTransforms The band transforms for the source images
      * @param renderingHints This value sets the rendering hints for the operation.
      * @return A RenderedOp that performs the Jiffle operation.
      */
@@ -152,6 +169,8 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
             String script,
             Rectangle destBounds,
             Integer destType,
+            CoordinateTransform[] sourceCoordinateTransforms,
+            BandTransform[] sourceBandTransforms,
             RenderingHints renderingHints) {
         ParameterBlockJAI pb = new ParameterBlockJAI("Jiffle", RenderedRegistryMode.MODE_NAME);
 
@@ -166,6 +185,8 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
         pb.setParameter(SCRIPT, script);
         pb.setParameter(DEST_BOUNDS, destBounds);
         pb.setParameter(DEST_TYPE, destType);
+        pb.setParameter(SRC_COORDINATE_TRANSFORMS, sourceCoordinateTransforms);
+        pb.setParameter(SRC_BAND_TRANSFORMS, sourceBandTransforms);
         // JAI operation performed.
         return JAI.create("Jiffle", pb, renderingHints);
     }

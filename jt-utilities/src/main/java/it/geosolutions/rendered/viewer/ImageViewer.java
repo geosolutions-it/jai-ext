@@ -17,6 +17,9 @@
 */
 package it.geosolutions.rendered.viewer;
 
+import static java.awt.image.DataBuffer.TYPE_DOUBLE;
+import static java.awt.image.DataBuffer.TYPE_FLOAT;
+
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
@@ -61,8 +64,6 @@ public class ImageViewer extends JPanel
     private RandomIter pixelIter;
     private int[] ipixel;
     private double[] dpixel;
-    //US9834:SUPPRESSION:Dead Code: Unused Field (Code Quality, Structural):Low:STIGCAT2
-    private int dataType;
     private StringBuffer sb = new StringBuffer();
     private RenderedImage image;
     protected File lastDirectory;
@@ -217,7 +218,8 @@ public class ImageViewer extends JPanel
                         {
                             sb.append("Value at ");
                             sb.append(x).append(", ").append(y).append(": [");
-                            if ((dataType == DataBuffer.TYPE_DOUBLE) || (dataType == DataBuffer.TYPE_FLOAT))
+                            int dataType = image.getSampleModel().getDataType();
+                            if ((dataType == TYPE_DOUBLE) || (dataType == TYPE_FLOAT))
                             {
                                 pixelIter.getPixel(x, y, dpixel);
                                 for (int i = 0; i < dpixel.length; i++)

@@ -42,6 +42,8 @@
  */   
 package it.geosolutions.jaiext.jiffle.runtime;
 
+import com.vividsolutions.jts.geom.Coordinate;
+
 import java.awt.*;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.RenderedImage;
@@ -108,6 +110,7 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
     protected class SourceImage {
         final String imageName;
         final RenderedImage image;
+        BandTransform bandTransform;
         CoordinateTransform transform;
         boolean defaultTransform;
         final RandomIter iterator;
@@ -145,6 +148,10 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
                             x, y, imageName));
                 }
             }
+            
+            if (bandTransform != null) {
+                band = bandTransform.scriptToImage(x, y, band);
+            }
 
             final double result = iterator.getSampleDouble(posx, posy, band);
             return result;
@@ -158,6 +165,7 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
             this.transform = transform;
             this.defaultTransform = defaultTransform;
         }
+       
     }
     
     
@@ -553,6 +561,28 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
             copy.put(sourceImage.imageName, sourceImage.image);
         }
         return copy;
+    }
+
+    @Override
+    public void setSourceImageBandTransform(String varName, BandTransform btr)
+            throws JiffleException {
+        SourceImage image = _images.get(varName);
+        if (image == null) {
+            throw new JiffleException("Unknown source image " + varName);
+        }
+        
+        image.bandTransform = btr;
+    }
+
+    @Override
+    public void setSourceImageCoordinateTransform(String varName, CoordinateTransform tr)
+            throws JiffleException {
+        SourceImage image = _images.get(varName);
+        if (image == null) {
+            throw new JiffleException("Unknown source image " + varName);
+        }
+
+        image.setTransform(tr, tr == null);
     }
 
     public abstract void setDefaultBounds();

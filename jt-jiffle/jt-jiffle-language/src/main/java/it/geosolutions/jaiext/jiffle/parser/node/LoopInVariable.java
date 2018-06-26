@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 public class LoopInVariable implements Statement {
 
     private Statement statement;
@@ -63,5 +65,32 @@ public class LoopInVariable implements Statement {
         statement.write(w);
         w.dec();
         w.line("}");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LoopInVariable that = (LoopInVariable) o;
+        return Objects.equals(statement, that.statement) &&
+                Objects.equals(loopVariable, that.loopVariable) &&
+                Objects.equals(listVariable, that.listVariable);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(statement, loopVariable, listVariable);
+    }
+
+    public Statement getStatement() {
+        return statement;
+    }
+
+    public Variable getLoopVariable() {
+        return loopVariable;
+    }
+
+    public Variable getListVariable() {
+        return listVariable;
     }
 }

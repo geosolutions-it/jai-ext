@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 public class IfElse implements Statement {
 
     private final Expression condition;
@@ -68,5 +70,32 @@ public class IfElse implements Statement {
             w.dec();
         }
         w.line("}");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        IfElse ifElse = (IfElse) o;
+        return Objects.equals(condition, ifElse.condition) &&
+                Objects.equals(ifStatement, ifElse.ifStatement) &&
+                Objects.equals(elseStatement, ifElse.elseStatement);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(condition, ifStatement, elseStatement);
+    }
+
+    public Expression getCondition() {
+        return condition;
+    }
+
+    public Node getIfStatement() {
+        return ifStatement;
+    }
+
+    public Node getElseStatement() {
+        return elseStatement;
     }
 }

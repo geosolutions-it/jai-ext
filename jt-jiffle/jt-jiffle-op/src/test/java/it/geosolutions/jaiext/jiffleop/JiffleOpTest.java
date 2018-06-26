@@ -29,6 +29,7 @@ import javax.media.jai.RenderedOp;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
 
+import it.geosolutions.jaiext.jiffle.runtime.BandTransform;
 import it.geosolutions.jaiext.testclasses.TestBase;
 import it.geosolutions.jaiext.utilities.ImageUtilities;
 
@@ -38,7 +39,16 @@ public class JiffleOpTest extends TestBase {
     public void testCopyDefaults() {
         RenderedImage src = buildTestImage(10, 10);
         RenderedOp op = JiffleDescriptor.create(new RenderedImage[] {src}, null, null,
-                "dest = src;", null, null, null);
+                "dest = src;", null, null, null, null, null);
+        assertCopy(src, op, DataBuffer.TYPE_DOUBLE);
+    }
+
+    @Test
+    public void testCopyRemappedDefaults() {
+        RenderedImage src = buildTestImage(10, 10);
+        BandTransform transform = (x, y, b) -> 0;
+        RenderedOp op = JiffleDescriptor.create(new RenderedImage[] {src}, null, null,
+                "dest = src[10];", null, null, null, new BandTransform[] {transform}, null);
         assertCopy(src, op, DataBuffer.TYPE_DOUBLE);
     }
 
@@ -46,7 +56,7 @@ public class JiffleOpTest extends TestBase {
     public void testCopyNonDefaults() {
         RenderedImage src = buildTestImage(10, 10);
         RenderedOp op = JiffleDescriptor.create(new RenderedImage[] {src}, new String[] {"a"}, "b",
-                "b = a;", null, DataBuffer.TYPE_BYTE, null);
+                "b = a;", null, DataBuffer.TYPE_BYTE, null, null, null);
         assertCopy(src, op, DataBuffer.TYPE_BYTE);
     }
 
@@ -55,7 +65,7 @@ public class JiffleOpTest extends TestBase {
         RenderedImage src1 = buildTestImage(10, 10);
         RenderedImage src2 = buildTestImage(10, 10);
         RenderedOp op = JiffleDescriptor.create(new RenderedImage[] {src1, src2}, new String[] {"a", "b"}, "res",
-                "res = a + b;", null, DataBuffer.TYPE_INT, null);
+                "res = a + b;", null, DataBuffer.TYPE_INT, null, null, null);
 
         // check same size and expected 
         assertEquals(src1.getMinX(), op.getMinX());

@@ -43,6 +43,8 @@
 
 package it.geosolutions.jaiext.jiffle.parser.node;
 
+import java.util.Objects;
+
 import it.geosolutions.jaiext.jiffle.Jiffle;
 import it.geosolutions.jaiext.jiffle.Jiffle.RuntimeModel;
 import it.geosolutions.jaiext.jiffle.parser.*;
@@ -97,5 +99,28 @@ public class SetDestValue extends Expression {
             default:
                 throw new IllegalArgumentException("Invalid runtime model: " + runtimeModel);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        SetDestValue that = (SetDestValue) o;
+        return Objects.equals(destVar, that.destVar) &&
+                Objects.equals(expr, that.expr);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), destVar, expr);
+    }
+
+    public String getDestVar() {
+        return destVar;
+    }
+
+    public Expression getExpr() {
+        return expr;
     }
 }

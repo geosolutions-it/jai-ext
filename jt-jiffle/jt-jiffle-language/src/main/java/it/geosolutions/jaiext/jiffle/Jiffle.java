@@ -49,6 +49,21 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.codehaus.janino.SimpleCompiler;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import it.geosolutions.jaiext.jiffle.parser.ExpressionWorker;
 import it.geosolutions.jaiext.jiffle.parser.ImagesBlockWorker;
 import it.geosolutions.jaiext.jiffle.parser.InitBlockWorker;
@@ -58,23 +73,14 @@ import it.geosolutions.jaiext.jiffle.parser.JiffleParserErrorListener;
 import it.geosolutions.jaiext.jiffle.parser.Messages;
 import it.geosolutions.jaiext.jiffle.parser.OptionsBlockWorker;
 import it.geosolutions.jaiext.jiffle.parser.RuntimeModelWorker;
+import it.geosolutions.jaiext.jiffle.parser.SourcePositionsWorker;
 import it.geosolutions.jaiext.jiffle.parser.VarWorker;
+import it.geosolutions.jaiext.jiffle.parser.node.GetSourceValue;
 import it.geosolutions.jaiext.jiffle.parser.node.Script;
 import it.geosolutions.jaiext.jiffle.parser.node.SourceWriter;
 import it.geosolutions.jaiext.jiffle.runtime.JiffleDirectRuntime;
 import it.geosolutions.jaiext.jiffle.runtime.JiffleIndirectRuntime;
 import it.geosolutions.jaiext.jiffle.runtime.JiffleRuntime;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 /**
  * Compiles scripts and generates Java sources and executable bytecode for
@@ -388,7 +394,7 @@ public class Jiffle {
             throw new it.geosolutions.jaiext.jiffle.JiffleException("No script has been set");
         }
         
-        Jiffle.Result<ParseTree> parseResult = parseScript();
+        Jiffle.Result<ParseTree> parseResult = parseScript(theScript);
         if (parseResult.messages.isError()) {
             reportMessages(parseResult);
             return;
@@ -637,9 +643,10 @@ public class Jiffle {
     
     /**
      * Builds the parse tree from the script.
+     * @param script
      */
-    private Jiffle.Result<ParseTree> parseScript() {
-        CharStream input = CharStreams.fromString(theScript);
+    private static Jiffle.Result<ParseTree> parseScript(String script) {
+        CharStream input = CharStreams.fromString(script);
         
         JiffleLexer lexer = new JiffleLexer(input);
         TokenStream tokens = new CommonTokenStream(lexer);
@@ -654,17 +661,17 @@ public class Jiffle {
         return new Jiffle.Result(tree, errListener.messages);
     }
     
-    private Jiffle.Result<Map<String, Jiffle.ImageRole>> getScriptImageParams(ParseTree tree) {
+    private static Jiffle.Result<Map<String, Jiffle.ImageRole>> getScriptImageParams(ParseTree tree) {
         ImagesBlockWorker reader = new ImagesBlockWorker(tree);
         return new Jiffle.Result(reader.imageVars, reader.messages);
     }
 
-    private void reportMessages(Jiffle.Result result) throws
+    private static void reportMessages(Jiffle.Result result) throws
             it.geosolutions.jaiext.jiffle.JiffleException {
         reportMessages(result.messages);
     }
 
-    private void reportMessages(Messages messages) throws
+    private static void reportMessages(Messages messages) throws
             it.geosolutions.jaiext.jiffle.JiffleException {
         if (messages.isError()) {
             String expectionMessage = messages.toString();
@@ -672,31 +679,6 @@ public class Jiffle {
         }
     }
     
-    /**
-     * Write error messages to a string
-     */
-    private String messagesToString() {
-        // TODO
-        return "";
-    }
-    
-    /**
-     * Sets the image parameters to those read from the script (if any). If any 
-     * previous parameters were set using {@link #setImageParams(java.util.Map)}
-     * they are discarded and a warning message is logged.
-     * 
-     * @param scriptImageParams parameters read from the script (may be empty)
-     */
-    private void loadScriptImageParameters(Map<String, Jiffle.ImageRole> scriptImageParams) {
-        if (!scriptImageParams.isEmpty()) {
-            if (!imageParams.isEmpty()) {
-                LOGGER.warning("Image parameters read from script override those previously set");
-            }
-            
-            imageParams = scriptImageParams;
-        }
-    }
-
     private static class Result<T> {
         final T result;
         final Messages messages;
@@ -706,5 +688,42 @@ public class Jiffle {
             this.messages = messages;
         }
     }
-    
+
+    /**
+     * A utility method returning the source positions used in a given script
+     *
+     * @param script
+     * @return
+     */
+    public static Set<GetSourceValue> getReadPositions(String script, List<String> sourceImageNames)
+            throws JiffleException {
+        Jiffle.Result<ParseTree> parseResult = parseScript(script);
+        if (parseResult.messages.isError()) {
+            reportMessages(parseResult);
+            return Collections.emptySet();
+        }
+
+        // If image var parameters were provided by the caller we  ignore any in the script.
+        // Otherwise, we look for an images block in the script.
+        ParseTree tree = parseResult.result;
+        if (sourceImageNames == null) {
+            Jiffle.Result<Map<String, Jiffle.ImageRole>> r = getScriptImageParams(tree);
+            sourceImageNames =
+                    r.result
+                            .entrySet()
+                            .stream()
+                            .filter(k -> k.getValue() == ImageRole.SOURCE)
+                            .map(k -> k.getKey())
+                            .collect(Collectors.toList());
+        }
+
+        if (sourceImageNames.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        SourcePositionsWorker worker = new SourcePositionsWorker(tree, sourceImageNames);
+        Set<GetSourceValue> positions = worker.getPositions();
+
+        return positions;
+    }
 }

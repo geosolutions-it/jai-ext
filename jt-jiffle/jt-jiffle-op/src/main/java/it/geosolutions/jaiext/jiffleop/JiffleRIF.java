@@ -56,6 +56,9 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.RasterFactory;
 
+import it.geosolutions.jaiext.jiffle.runtime.BandTransform;
+import it.geosolutions.jaiext.jiffle.runtime.CoordinateTransform;
+
 /**
  * The image factory for the "Jiffle" operation.
  *
@@ -91,7 +94,8 @@ public class JiffleRIF implements RenderedImageFactory {
             layout = buildLayout(destBounds, getPreferredTileSize(paramBlock), dataType);
         }
 
-        Map<String, RenderedImage> sourceImages = buildSourceImageMap(paramBlock);
+        Map<String, JiffleOpImage.ImageSpecification> sourceImages =
+                buildSourceImageMap(paramBlock);
 
         return new JiffleOpImage(sourceImages, layout, renderHints, script, destVarName);
     }
@@ -107,10 +111,15 @@ public class JiffleRIF implements RenderedImageFactory {
         }
     }
 
-    private Map<String, RenderedImage> buildSourceImageMap(ParameterBlock pb) {
-        Map<String, RenderedImage> result = new HashMap<>();
+    private Map<String, JiffleOpImage.ImageSpecification> buildSourceImageMap(ParameterBlock pb) {
+        Map<String, JiffleOpImage.ImageSpecification> result = new HashMap<>();
         Vector<Object> sources = pb.getSources();
         String[] names = (String[]) pb.getObjectParameter(JiffleDescriptor.SOURCE_IMAGE_NAMES_ARG);
+        CoordinateTransform[] cts =
+                (CoordinateTransform[])
+                        pb.getObjectParameter(JiffleDescriptor.SRC_COORDINATE_TRANSFORM_ARG);
+        BandTransform[] bts =
+                (BandTransform[]) pb.getObjectParameter(JiffleDescriptor.SRC_BAND_TRANSFORM_ARG);
 
         // input-less case (possible, e.g., mandelbrot, surfaces defined by function/algorithm in
         // general)
@@ -122,9 +131,9 @@ public class JiffleRIF implements RenderedImageFactory {
         if (names == null) {
             for (int i = 0; i < sources.size(); i++) {
                 if (i == 0) {
-                    result.put("src", (RenderedImage) sources.get(i));
+                    result.put("src", getImageSpecification(sources, cts, bts, i));
                 } else {
-                    result.put("src" + i, (RenderedImage) sources.get(i));
+                    result.put("src" + i, getImageSpecification(sources, cts, bts, i));
                 }
             }
         } else {
@@ -138,11 +147,40 @@ public class JiffleRIF implements RenderedImageFactory {
             }
 
             for (int i = 0; i < sources.size(); i++) {
-                result.put(names[i], (RenderedImage) sources.get(i));
+                result.put(names[i], getImageSpecification(sources, cts, bts, i));
             }
         }
 
         return result;
+    }
+
+    private JiffleOpImage.ImageSpecification getImageSpecification(
+            Vector<Object> sources, CoordinateTransform[] cts, BandTransform[] bts, int i) {
+        RenderedImage image = (RenderedImage) sources.get(i);
+        CoordinateTransform ct = null;
+        if (cts != null) {
+            if (cts.length != sources.size()) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                "Have %d sources, but the coordinate transformation argument contains %d entries instead"
+                                        + sources.size()
+                                        + cts.length));
+            }
+            ct = cts[i];
+        }
+        BandTransform bt = null;
+        if (bts != null) {
+            if (bts.length != sources.size()) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                "Have %d sources, but the band transformation argument contains %d entries instead"
+                                        + sources.size()
+                                        + bts.length));
+            }
+            bt = bts[i];
+        }
+        
+        return new JiffleOpImage.ImageSpecification(image, ct, bt);
     }
 
     private ImageLayout buildLayout(Rectangle bounds, Dimension tileSize, int dataType) {
@@ -157,7 +195,7 @@ public class JiffleRIF implements RenderedImageFactory {
                         dataType, tileSize.width, tileSize.height, 1);
         layout.setSampleModel(sm);
         layout.setColorModel(PlanarImage.createColorModel(sm));
-        
+
         return layout;
     }
 
