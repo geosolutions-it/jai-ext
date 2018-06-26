@@ -101,7 +101,7 @@ public abstract class RuntimeTestBase {
         }
     }
     
-    protected RenderedImage createSequenceImage() {
+    protected TiledImage createSequenceImage() {
         TiledImage img = ImageUtilities.createConstantImage(IMG_WIDTH, IMG_WIDTH, 0.0);
         int k = 0;
         for (int y = 0; y < IMG_WIDTH; y++) {
@@ -111,8 +111,18 @@ public abstract class RuntimeTestBase {
         }
         return img;
     }
+
+    protected TiledImage createTriangleImage() {
+        TiledImage img = ImageUtilities.createConstantImage(IMG_WIDTH, IMG_WIDTH, 0.0);
+        for (int y = 0; y < IMG_WIDTH; y++) {
+            for (int x = 0; x < IMG_WIDTH; x++) {
+                img.setSample(x, y, 0, x > y ? 1 : 0);
+            }
+        }
+        return img;
+    }
     
-    protected RenderedImage createRowValueImage() {
+    protected TiledImage createRowValueImage() {
         TiledImage img = ImageUtilities.createConstantImage(IMG_WIDTH, IMG_WIDTH, 0.0);
         for (int y = 0; y < IMG_WIDTH; y++) {
             for (int x = 0; x < IMG_WIDTH; x++) {

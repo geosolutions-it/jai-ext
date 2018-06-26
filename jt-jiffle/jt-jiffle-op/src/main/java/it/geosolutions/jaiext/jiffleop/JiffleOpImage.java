@@ -60,6 +60,7 @@ import it.geosolutions.jaiext.jiffle.JiffleException;
 import it.geosolutions.jaiext.jiffle.runtime.BandTransform;
 import it.geosolutions.jaiext.jiffle.runtime.CoordinateTransform;
 import it.geosolutions.jaiext.jiffle.runtime.JiffleIndirectRuntime;
+import it.geosolutions.jaiext.range.NoDataContainer;
 
 /**
  * Jiffle operation.
@@ -137,6 +138,9 @@ public class JiffleOpImage extends OpImage {
         } catch (JiffleException ex) {
             throw new RuntimeException(ex);
         }
+
+        // by default Jiffle does nodata with NaN
+        setProperty(NoDataContainer.GC_NODATA, new NoDataContainer(Double.NaN));
     }
 
     private static Vector specsToImages(

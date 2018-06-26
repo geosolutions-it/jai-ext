@@ -47,6 +47,7 @@ import org.junit.Test;
 import java.awt.image.RenderedImage;
 import java.util.HashMap;
 
+import javax.media.jai.ROI;
 import javax.media.jai.TiledImage;
 
 import it.geosolutions.jaiext.jiffle.Jiffle;
@@ -79,7 +80,6 @@ public class SimpleStatementsTest extends RuntimeTestBase {
     @Test
     public void mappedSrcValue() throws Exception {
         String src = "dest = src[10];";
-        System.out.println("   " + src);
 
         RenderedImage srcImg = createSequenceImage();
         Evaluator evaluator = new Evaluator() {
@@ -98,6 +98,36 @@ public class SimpleStatementsTest extends RuntimeTestBase {
         directRuntimeInstance.setSourceImage("src", srcImg);
         // map band 10 to band 0
         directRuntimeInstance.setSourceImageBandTransform("src", (x, y, scriptBand) -> 0);
+
+        TiledImage destImg = ImageUtilities.createConstantImage(
+                srcImg.getMinX(), srcImg.getMinY(), srcImg.getWidth(), srcImg.getHeight(), 0.0);
+        directRuntimeInstance.setDestinationImage("dest", destImg);
+
+        directRuntimeInstance.evaluateAll(null);
+        assertImage(srcImg, destImg, evaluator);
+    }
+
+    @Test
+    public void srcValueWithROI() throws Exception {
+        String src = "dest = src;";
+
+        TiledImage srcImg = createSequenceImage();
+        RenderedImage triangleImage = createTriangleImage();
+        srcImg.setProperty("ROI", new ROI(triangleImage));
+        Evaluator evaluator = new Evaluator() {
+
+            public double eval(double val) {
+                return x > y ? val : Double.NaN;
+            }
+        };
+        imageParams = new HashMap<>();
+        imageParams.put("dest", Jiffle.ImageRole.DEST);
+        imageParams.put("src", Jiffle.ImageRole.SOURCE);
+
+        // test the direct runtime
+        Jiffle jiffle = new Jiffle(src, imageParams);
+        directRuntimeInstance = jiffle.getRuntimeInstance();
+        directRuntimeInstance.setSourceImage("src", srcImg);
 
         TiledImage destImg = ImageUtilities.createConstantImage(
                 srcImg.getMinX(), srcImg.getMinY(), srcImg.getWidth(), srcImg.getHeight(), 0.0);
