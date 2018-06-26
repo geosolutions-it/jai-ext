@@ -595,6 +595,71 @@
            <outputDirectory>${project.build.directory}/release</outputDirectory>
           </configuration>
        </plugin>
+       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.10.3</version>
+        <configuration>
+           <!-- Necessary to enable javadoc to handle J2SE 1.4 features. -->
+          <source>1.8</source>
+          <!-- source>1.5</source -->
+            <!-- Specifies whether or not the version text is included.-->
+          <version>false</version>
+            <!-- Omit qualifying package name before class names in output.-->
+          <noqualifier>all</noqualifier>
+            <!-- Shuts off non-error and non-warning messages.-->
+          <quiet>true</quiet>
+            <!-- The maximum Java heap size to be used to run javadoc. -->
+          <maxmemory>512M</maxmemory>
+            <!-- Specifies the encoding name of the source files.-->
+          <encoding>ISO-8859-1</encoding>
+            <!-- Whether to build an aggregated report at the root.-->
+          <aggregate>true</aggregate>
+
+          <!-- Set an additional parameter for the command line. -->
+          <additionalparam>-keywords -Xdoclint:none</additionalparam>
+          <breakiterator>true</breakiterator>
+
+          <!-- Enables the Javadoc tool to interpret a simple, one-argument -->
+          <!-- custom block tag tagname in doc comments. Note: <placement/> -->
+          <!-- should be a combinaison of the letters Xaoptcmf.             -->
+          <tags>
+            <tag>
+              <name>todo</name>
+              <placement>a</placement>
+              <head>TODO:</head>
+            </tag>
+            <tag>
+              <name>todo:</name>
+              <placement>a</placement>
+              <head>TODO:</head>
+            </tag>
+            <tag>
+              <name>TODO</name>
+              <placement>a</placement>
+              <head>TODO:</head>
+            </tag>
+            <tag>
+              <name>task</name>
+              <placement>tfmc</placement>
+              <head>TODO:</head>
+            </tag>
+            <tag>
+              <name>UML</name>
+              <placement>a</placement>
+              <head>UML:</head>
+            </tag>
+            <tag>
+              <name>uml.property</name>
+              <placement>a</placement>
+              <head>UML property:</head>
+            </tag>
+          </tags>
+
+          <!-- Separates packages on the overview page into the    -->
+          <!-- groups  specified.                                  -->
+        </configuration>
+      </plugin>
     </plugins>
    
   <!-- ======================================================== -->
