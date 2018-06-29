@@ -40,9 +40,9 @@ import javax.media.jai.RasterFormatTag;
 import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.ImageUtil;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.index.strtree.STRtree;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.index.strtree.STRtree;
 
 public class BufferOpImage extends AreaOpImage {
 

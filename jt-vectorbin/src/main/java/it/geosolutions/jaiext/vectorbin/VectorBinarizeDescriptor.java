@@ -22,8 +22,8 @@ import java.awt.image.renderable.ParameterBlock;
 import javax.media.jai.OperationDescriptorImpl;
 import javax.media.jai.registry.RenderedRegistryMode;
 
-import com.vividsolutions.jts.geom.Polygonal;
-import com.vividsolutions.jts.geom.prep.PreparedGeometry;
+import org.locationtech.jts.geom.Polygonal;
+import org.locationtech.jts.geom.prep.PreparedGeometry;
 
 /**
  * Describes the "VectorBinarize" operation which creates a binary image based on pixel inclusion in a polygonal {@code Geometry} object. No source

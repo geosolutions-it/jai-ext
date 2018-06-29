@@ -43,7 +43,7 @@ import it.geosolutions.jaiext.utilities.ImageLayout2;
 import it.geosolutions.jaiext.vectorbin.ROIGeometry;
 
 import com.sun.media.jai.util.PropertyGeneratorImpl;
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;

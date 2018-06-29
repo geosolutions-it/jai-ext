@@ -44,19 +44,19 @@ import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import it.geosolutions.jaiext.utilities.shape.LiteShape;
 import it.geosolutions.jaiext.jts.CoordinateSequence2D;
-import com.vividsolutions.jts.awt.ShapeReader;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryComponentFilter;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.geom.PrecisionModel;
-import com.vividsolutions.jts.geom.TopologyException;
-import com.vividsolutions.jts.geom.prep.PreparedGeometry;
-import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory;
-import com.vividsolutions.jts.geom.util.AffineTransformation;
+import org.locationtech.jts.awt.ShapeReader;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryComponentFilter;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.geom.TopologyException;
+import org.locationtech.jts.geom.prep.PreparedGeometry;
+import org.locationtech.jts.geom.prep.PreparedGeometryFactory;
+import org.locationtech.jts.geom.util.AffineTransformation;
 
 
 /**
@@ -125,7 +125,7 @@ public class ROIGeometry extends ROI {
     private final static GeometryFactory FLOAT_PRECISION_FACTORY = new GeometryFactory(FLOAT_PRECISION);
 
     private final CoordinateSequence2D testPointCS;
-    private final com.vividsolutions.jts.geom.Point testPoint;
+    private final org.locationtech.jts.geom.Point testPoint;
     
     private final CoordinateSequence2D testRectCS;
     private final Polygon testRect;

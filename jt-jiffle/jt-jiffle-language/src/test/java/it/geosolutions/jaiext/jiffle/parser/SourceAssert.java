@@ -109,7 +109,7 @@ public class SourceAssert {
             }
         } else {
             String expectedSource = FileUtils.readFileToString(expectedFile);
-            if (!expectedSource.equals(actualSource)) {
+            if (!compareSourceStrings(expectedSource, actualSource)) {
                 // check with the user
                 boolean overwrite = false;
                 if (INTERACTIVE) {
@@ -127,5 +127,12 @@ public class SourceAssert {
                 }
             }
         }
+    }
+
+    public static boolean compareSourceStrings(String expectedSource, String actualSource) {
+        if( System.lineSeparator().equals("\r\n") ) {
+            expectedSource = expectedSource.replaceAll("\\r\\n", "\n");
+        }
+        return expectedSource.equals(actualSource);
     }
 }

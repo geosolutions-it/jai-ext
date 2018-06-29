@@ -18,6 +18,7 @@
      <fork.javac>true</fork.javac>
     <javac.maxHeapSize>256M</javac.maxHeapSize>
     <guava.version>17.0</guava.version>
+    <jts.version>1.15.1</jts.version>
     <project.version>1.0-SNAPSHOT</project.version>
   </properties>
 
@@ -417,9 +418,9 @@
 		<scope>test</scope>
       </dependency>
      <dependency>
-        <groupId>com.vividsolutions</groupId>
-        <artifactId>jts</artifactId>
-        <version>1.12</version>
+        <groupId>org.locationtech.jts</groupId>
+        <artifactId>jts-core</artifactId>
+	<version>${jts.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>
@@ -460,8 +461,8 @@
    <artifactId>jai_imageio</artifactId>
  </dependency>
  <dependency>
-     <groupId>com.vividsolutions</groupId>
-     <artifactId>jts</artifactId>
+     <groupId>org.locationtech.jts</groupId>
+     <artifactId>jts-core</artifactId>
   </dependency>
   <dependency>
 	<groupId>junit</groupId>

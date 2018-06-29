@@ -17,30 +17,20 @@
  */
 package it.geosolutions.jaiext.vectorbin;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.Shape;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBuffer;
-import java.awt.image.Raster;
-import java.awt.image.SampleModel;
-import java.awt.image.WritableRaster;
-import java.util.Arrays;
-import java.util.Map;
+import it.geosolutions.jaiext.utilities.shape.LiteShape;
+import org.locationtech.jts.geom.*;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.impl.CoordinateArraySequence;
+import org.locationtech.jts.geom.impl.PackedCoordinateSequence;
+import org.locationtech.jts.geom.prep.PreparedGeometry;
 
 import javax.media.jai.ImageLayout;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.SourcelessOpImage;
-
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.geom.TopologyException;
-import com.vividsolutions.jts.geom.prep.PreparedGeometry;
-import com.vividsolutions.jtsexample.geom.ExtendedCoordinate;
-import com.vividsolutions.jtsexample.geom.ExtendedCoordinateSequence;
-
-import it.geosolutions.jaiext.utilities.shape.LiteShape;
+import java.awt.*;
+import java.awt.image.*;
+import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Creates a binary image based on tests of pixel inclusion in a polygonal {@code Geometry}. See {@link VectorBinarizeDescriptor} for details.
@@ -272,7 +262,7 @@ public class VectorBinarizeOpImage extends SourcelessOpImage {
      * @param y origin Y ordinate
      */
     private Polygon getTestRect(int x, int y) {
-        ExtendedCoordinate[] copyCoords = new ExtendedCoordinate[5];
+        Coordinate[] copyCoords = new Coordinate[5];
         for (int i = 0; i < 5; i++) {
             int xx = x;
             int yy = y;
@@ -282,10 +272,10 @@ public class VectorBinarizeOpImage extends SourcelessOpImage {
             if (i == 2 || i == 3) {
                 xx = x + tileWidth;
             }
-            copyCoords[i] = new ExtendedCoordinate(xx, yy, 0, 0);
+            copyCoords[i] = new Coordinate(xx, yy);
         }
 
-        ExtendedCoordinateSequence seq = new ExtendedCoordinateSequence(copyCoords);
+        CoordinateSequence seq = new CoordinateArraySequence(copyCoords, 2);
 
         return gf.createPolygon(gf.createLinearRing(seq), null);
     }
