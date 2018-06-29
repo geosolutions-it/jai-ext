@@ -18,7 +18,7 @@
      <fork.javac>true</fork.javac>
     <javac.maxHeapSize>256M</javac.maxHeapSize>
     <guava.version>17.0</guava.version>
-    <jts.version>1.15.0</jts.version>
+    <jts.version>1.15.1</jts.version>
     <project.version>1.0-SNAPSHOT</project.version>
   </properties>
 
