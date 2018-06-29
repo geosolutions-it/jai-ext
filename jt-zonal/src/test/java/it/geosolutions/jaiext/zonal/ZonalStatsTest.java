@@ -37,9 +37,9 @@ import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import it.geosolutions.jaiext.testclasses.TestBase;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.index.strtree.STRtree;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.index.strtree.STRtree;
 
 /**
  * This test class is used for evaluating the functionalities of the ZonalStats operation. This operation consists of calculating different statistics

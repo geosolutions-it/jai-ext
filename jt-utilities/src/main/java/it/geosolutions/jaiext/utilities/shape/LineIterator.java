@@ -19,9 +19,9 @@ package it.geosolutions.jaiext.utilities.shape;
 
 import java.awt.geom.AffineTransform;
 
-import com.vividsolutions.jts.geom.CoordinateSequence;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.LinearRing;
+import org.locationtech.jts.geom.CoordinateSequence;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.LinearRing;
 
 /**
  * A path iterator for the LiteShape class, specialized to iterate over LineString object. This class was ported back and simplified from GeoTools,

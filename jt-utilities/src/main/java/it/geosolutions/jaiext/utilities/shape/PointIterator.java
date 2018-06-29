@@ -19,7 +19,7 @@ package it.geosolutions.jaiext.utilities.shape;
 
 import java.awt.geom.AffineTransform;
 
-import com.vividsolutions.jts.geom.Point;
+import org.locationtech.jts.geom.Point;
 
 /**
  * A path iterator for the LiteShape class, specialized to iterate over Point objects. This class was ported back and simplified from GeoTools, with

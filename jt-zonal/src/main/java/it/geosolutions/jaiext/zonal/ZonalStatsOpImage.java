@@ -52,9 +52,9 @@ import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RectIter;
 import javax.media.jai.iterator.RectIterFactory;
 import com.sun.media.jai.util.PropertyUtil;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.index.strtree.STRtree;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.index.strtree.STRtree;
 
 /**
  * This class extends the {@link OpImage} class and executes the "ZonalStats" operation. This operation consists of calculating the image statistics
