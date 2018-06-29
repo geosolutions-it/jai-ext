@@ -15,10 +15,10 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.11</junit.version>
     <apache.version>2.1</apache.version>
-     <fork.javac>true</fork.javac>
+    <fork.javac>true</fork.javac>
     <javac.maxHeapSize>256M</javac.maxHeapSize>
-    <guava.version>17.0</guava.version>
     <project.version>1.0-SNAPSHOT</project.version>
+    <guava.version>25.1-jre</guava.version>
   </properties>
 
   <!-- ======================================================== -->
