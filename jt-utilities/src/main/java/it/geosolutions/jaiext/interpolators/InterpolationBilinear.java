@@ -866,8 +866,10 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
     
     
     
-    /* Private method for calculate bilinear interpolation for byte, short/ushort, integer dataType */
-    private int computeValue(int s00, int s01, int s10, int s11, int w00, int w01, int w10,
+    /**
+     *  Calculates bilinear interpolation for byte, short/ushort, integer dataType
+     */
+    public int computeValue(int s00, int s01, int s10, int s11, int w00, int w01, int w10,
             int w11, int xfrac, int yfrac) {
 
         int s0 = 0;
@@ -1104,73 +1106,6 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
     }
     
     
-    
-//    /* Private method for calculate bilinear interpolation for float/double dataType */
-//    private Number computeValueDouble(double s00, double s01, double s10, double s11, double w00,
-//            double w01, double w10, double w11, double xfrac, double yfrac, int dataType) {
-//
-//        double s0 = 0;
-//        double s1 = 0;
-//        double s = 0;
-//
-//        // Complementary values of the fractional part
-//        double xfracCompl = 1 - xfrac;
-//        double yfracCompl = 1 - yfrac;
-//
-//        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-//            return destinationNoData;
-//        }
-//
-//        if (w00 == 0 || w01 == 0 || w10 == 0 || w11 == 0) {
-//
-//            if (w00 == 0 && w01 == 0) {
-//                s0 = 0;
-//            } else if (w00 == 0) { // w01 = 1
-//                s0 = s01 * xfrac;
-//            } else if (w01 == 0) {// w00 = 1
-//                s0 = s00 * xfracCompl;// s00;
-//            } else {// w00 = 1 & W01 = 1
-//                s0 = (s01 - s00) * xfrac + s00;
-//            }
-//
-//            // lower value
-//
-//            if (w10 == 0 && w11 == 0) {
-//                s1 = 0;
-//            } else if (w10 == 0) { // w11 = 1
-//                s1 = s11 * xfrac;
-//            } else if (w11 == 0) { // w10 = 1
-//                s1 = s10 * xfracCompl;// - (s10 * xfrac); //s10;
-//            } else {
-//                s1 = (s11 - s10) * xfrac + s10;
-//            }
-//
-//            if (w00 == 0 && w01 == 0) {
-//                s = s1 * yfrac;
-//            } else {
-//                if (w10 == 0 && w11 == 0) {
-//                    s = s0 * yfracCompl;
-//                } else {
-//                    s = (s1 - s0) * yfrac + s0;
-//                }
-//            }
-//        } else {
-//
-//            // Perform the bilinear interpolation because all the weight are not 0.
-//            s0 = (s01 - s00) * xfrac + s00;
-//            s1 = (s11 - s10) * xfrac + s10;
-//            s = (s1 - s0) * yfrac + s0;
-//        }
-//
-//        // Simple conversion for float dataType.
-//        if (dataType == DataBuffer.TYPE_FLOAT) {
-//            return (float) s;
-//        } else {
-//            return s;
-//        }
-//
-//    }
-//    
     /* Private method for calculate bilinear interpolation for float/double dataType */
     public static Number computeValueDouble(double s00, double s01, double s10, double s11, boolean w00z,
             boolean w01z, boolean w10z, boolean w11z, double xfrac, double yfrac, int dataType, double destinationNoData) {

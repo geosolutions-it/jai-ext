@@ -55,6 +55,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
     // Use weighted contribute only if the fraction is greater than the threshold.
     private final static int FRACTION_THRESHOLD_I = 128;
     private final static int FULL_WEIGHT_SHIFT = 8; // a*256 = a<<8
+    private InterpolationBilinear bilinearInterpolator;
 
     public ScaleBilinearOpImage(RenderedImage source, ImageLayout layout, Map configuration,
             BorderExtender extender, Interpolation interp, float scaleX, float scaleY,
@@ -149,7 +150,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         shift = 29 - subsampleBits;
         shift2 = 2 * subsampleBits;
         round2 = 1 << (shift2 - 1);
-
+        
         // Number of subsample positions
         one = 1 << subsampleBits;
 
@@ -201,6 +202,14 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         caseB = hasROI && !hasNoData;
         caseC = !hasROI && hasNoData;
 
+        // object to delegate to directly to avoid code duplication
+        int denstinationDataType = getSampleModel().getDataType();
+        if (!caseA && (denstinationDataType == DataBuffer.TYPE_BYTE ||
+                denstinationDataType == DataBuffer.TYPE_SHORT ||
+                denstinationDataType == DataBuffer.TYPE_USHORT ||
+                denstinationDataType == DataBuffer.TYPE_INT)) {
+            bilinearInterpolator = new InterpolationBilinear(subsampleBits, nodata, false, destinationNoData, denstinationDataType);
+        }
     }
 
     @Override
@@ -2547,248 +2556,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
     /* Private method for calculate bilinear interpolation for byte, short/ushort, integer dataType */
     int computeValue(int s00, int s01, int s10, int s11, int w00, int w01, int w10,
             int w11, int xfrac, int yfrac, int k) {
-
-        int s0 = 0;
-        int s1 = 0;
-        int s = 0;
-
-        long s0L = 0;
-        long s1L = 0;
-
-        // Complementary values of the fractional part
-        int xfracCompl = one - xfrac;
-        int yfracCompl = one - yfrac;
-
-        // Boolean indicating if a pixel weight is 0
-        boolean w00z = w00 == 0;
-        boolean w01z = w01 == 0;
-        boolean w10z = w10 == 0;
-        boolean w11z = w11 == 0;
-
-        // Boolean indicating if 2 same line-pixel weights are 0
-        boolean w0z = w00z && w01z;
-        boolean w1z = w10z && w11z;
-
-        if (w0z && w1z) {
-            switch (dataType) {
-            case DataBuffer.TYPE_BYTE:
-                return destinationNoDataByte[k];
-            case DataBuffer.TYPE_USHORT:
-                return destinationNoDataUShort[k];
-            case DataBuffer.TYPE_SHORT:
-                return destinationNoDataShort[k];
-            case DataBuffer.TYPE_INT:
-                return destinationNoDataInt[k];
-            }
-        }
-
-        int shift = 29 - subsampleBits;
-        // For Integer value is possible that a bitshift of "subsampleBits" could shift over the integer bit number
-        // so the samples, in this case, are expanded to Long.
-        boolean s0Long = ((s00 | s10) >>> shift == 0);
-        boolean s1Long = ((s01 | s11) >>> shift == 0);
-
-        // boolean indicating if the data type is DataBuffer.TYPE_INT
-        boolean dataINT = dataType == DataBuffer.TYPE_INT;
-        // All the possible weight combination are checked
-        if (w00z || w01z || w10z || w11z) {
-            // For integers is even considered the case when the integers are expanded to longs
-            if (dataINT) {
-
-                // S00 .......... S01
-                //  .              .
-                //  .              .
-                //  .              .
-                //  .              .
-                //  .         *    .   <- yfrac
-                //  .              .
-                //  .              .
-                // S10 .......... S11
-                //
-                //            ^
-                //            |
-                //          xfrac
-
-                // bilinear interpolation does 2 interpolations along X and then interpolates
-                // the results along y.
-                // In case any of these interpolations involves a noData source pixel, 
-                // the value of the other pixel will be only used in case the frac component
-                // is nearest to that pixel. Otherwise, the result will be noData too.
-                // To give an example: in case S01 is noData, S00 will not contribute to the 
-                // output value since it is too far from the position.
-                // This avoids having shaded dark edges going out of the original valid bounds
-
-                // Whether S*1 Pixel will fully contribute if opposite S*0 pixel is nodata
-                final boolean xt1 = xfrac >= FRACTION_THRESHOLD_I;
-
-                // Whether S*0 Pixel will fully contribute if opposite S*1 pixel is nodata
-                final boolean xt0 = xfracCompl >= FRACTION_THRESHOLD_I;
-
-                // Whether Previous horizontal interpolation on S1* pixels will contribute
-                final boolean yt1 = yfrac >= FRACTION_THRESHOLD_I;
-
-                // Whether Previous horizontal interpolation on S0* pixels will contribute
-                final boolean yt0 = yfracCompl >= FRACTION_THRESHOLD_I;
-
-                if (w0z) {
-                    s0L = 0;
-                } else if (w00z) {// w01 = 1
-                    s0L = xt1 ? s01 << FULL_WEIGHT_SHIFT : 0;
-                } else if (w01z) {// w00 = 1
-                    s0L = xt0 ? s00 << FULL_WEIGHT_SHIFT: 0;
-                } else {// w00 = 1 & W01 = 1
-                    if (s0Long) {
-                        if (s1Long) {
-                            s0L = (s01 - s00) * xfrac + (s00 << subsampleBits);
-                        } else {
-                            s0L = (1L * s01 - s00) * xfrac + (1L * s00 << subsampleBits);
-                        }
-                    } else {
-                        s0L = (1L * s01 - s00) * xfrac + (1L * s00 << subsampleBits);
-                    }
-                }
-
-                // lower value
-                if (w1z) {
-                    s1L = 0;
-                } else if (w10z) { // w11 = 1
-                    s1L = xt1 ? s11 << FULL_WEIGHT_SHIFT : 0;
-                } else if (w11z) { // w10 = 1 // - (s10 * xfrac); //s10;
-                    s1L = xt0 ? s10 << FULL_WEIGHT_SHIFT : 0;
-                } else {
-                    if (s0Long) {
-                        if (s1Long) {
-                            s1L = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                        } else {
-                            s1L = (1L * s11 - s10) * xfrac + (1L * s10 << subsampleBits);
-                        }
-                    } else {
-                        s1L = (1L * s11 - s10) * xfrac + (1L * s10 << subsampleBits);
-                    }
-                }
-
-                // Combining threshold weights with the nodata flags
-                w00z &= xt0;
-                w01z &= xt1;
-                w10z &= xt0;
-                w11z &= xt1;
-
-                // Vertical interpolation
-                if (w0z || w00z || w01z) {
-                    s = (int) (yt1 && !w1z && !w10z && !w11z
-                            ? (((s1L << FULL_WEIGHT_SHIFT) + round2) >> shift2)
-                            : destinationNoDataInt[k]);
-                } else if (w1z || w10z || w11z) {
-                    s = (int) (yt0 && !w0z && !w00z && !w01z
-                            ? (((s0L << FULL_WEIGHT_SHIFT) + round2) >> shift2)
-                            : destinationNoDataInt[k]);
-                } else {
-                    s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
-                }
-            } else {
-
-                // S00 .......... S01
-                //  .              .
-                //  .              .
-                //  .              .
-                //  .              .
-                //  .         *    .   <- yfrac
-                //  .              .
-                //  .              .
-                // S10 .......... S11
-                //
-                //            ^
-                //            |
-                //          xfrac
-
-                // bilinear interpolation does 2 interpolations along X and then interpolates
-                // the results along y.
-                // In case any of these interpolations involves a noData source pixel, 
-                // the value of the other pixel will be only used in case the frac component
-                // is nearest to that pixel. Otherwise, the result will be noData too.
-                // To give an example: in case S01 is noData, S00 will not contribute to the 
-                // output value since it is too far from the position.
-                // This avoids having shaded dark edges going out of the original valid bounds
-
-                // Whether S*1 Pixel will fully contribute if opposite S*0 pixel is nodata
-                final boolean xt1 = xfrac >= FRACTION_THRESHOLD_I;
-
-                // Whether S*0 Pixel will fully contribute if opposite S*1 pixel is nodata
-                final boolean xt0 = xfracCompl >= FRACTION_THRESHOLD_I;
-
-                // Whether Previous horizontal interpolation on S1* pixels will contribute
-                final boolean yt1 = yfrac >= FRACTION_THRESHOLD_I;
-
-                // Whether Previous horizontal interpolation on S0* pixels will contribute
-                final boolean yt0 = yfracCompl >= FRACTION_THRESHOLD_I;
-
-                // First horizontal interpolation
-                if (w0z) {
-                    s0 = 0;
-                } else if (w00z) { // w01 = 1
-                    s0 = xt1 ? s01 << FULL_WEIGHT_SHIFT : 0;
-                } else if (w01z) {// w00 = 1
-                    s0 = xt0 ? s00 << FULL_WEIGHT_SHIFT : 0;
-                } else {// w00 = 1 & W01 = 1
-                    s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
-                }
-
-                // Second horizontal interpolation
-                if (w1z) {
-                    s1 = 0;
-                } else if (w10z) { // w11 = 1
-                    s1 = xt1 ? s11 << FULL_WEIGHT_SHIFT : 0;
-                } else if (w11z) { // w10 = 1
-                    s1 = xt0 ? s10 << FULL_WEIGHT_SHIFT : 0;
-                } else {
-                    s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                }
-
-                // Combining threshold weights with the nodata flags
-                w00z &= xt0;
-                w01z &= xt1;
-                w10z &= xt0;
-                w11z &= xt1;
-
-                // Vertical interpolation
-                if (w0z || w00z || w01z) {
-                    s = yt1 && !w1z && !w10z && !w11z
-                            ? (((s1 << FULL_WEIGHT_SHIFT) + round2) >> shift2)
-                            : destinationNoDataInt[k];
-                } else if (w1z || w10z || w11z) {
-                    s = yt0 && !w0z && !w00z && !w01z
-                            ? (((s0 << FULL_WEIGHT_SHIFT) + round2) >> shift2)
-                            : destinationNoDataInt[k];
-                } else {
-                    s = (((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2);
-                }
-            }
-        } else {
-            // Perform the bilinear interpolation
-            if (dataINT) {
-                if (s0Long) {
-                    if (s1Long) {
-                        s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
-                        s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                        s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
-                    } else {
-                        s0L = (1L * s01 - s00) * xfrac + (s00 << subsampleBits);
-                        s1L = (1L * s11 - s10) * xfrac + (s10 << subsampleBits);
-                        s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
-                    }
-                } else {
-                    s0L = (1L * s01 - s00) * xfrac + (1L * s00 << subsampleBits);
-                    s1L = (1L * s11 - s10) * xfrac + (1L * s10 << subsampleBits);
-                    s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
-                }
-            } else {
-                s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
-                s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
-            }
-        }
-
-        return s;
+        return bilinearInterpolator.computeValue(s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac);
     }
 
 }
