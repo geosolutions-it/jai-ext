@@ -39,6 +39,7 @@ import javax.media.jai.operator.ConstantDescriptor;
 import javax.media.jai.registry.RenderableRegistryMode;
 import javax.media.jai.registry.RenderedRegistryMode;
 
+import it.geosolutions.jaiext.translate.TranslateIntOpImage;
 import it.geosolutions.jaiext.utilities.ImageLayout2;
 import it.geosolutions.jaiext.vectorbin.ROIGeometry;
 
@@ -130,8 +131,13 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
 
             Rectangle dstBounds = op.getBounds();
             PlanarImage roiImage = null;
-            
-            if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear) {
+
+            // parallel to the ScaleCRIF, use a TranslateInt when possible
+            if (sx == 1.0F && sy == 1.0F && (Math.abs(tx - (int) tx) < ScaleCRIF.TOLERANCE)
+                    && (Math.abs(ty - (int) ty) < ScaleCRIF.TOLERANCE)) {
+                // It's an integer translate.
+                roiImage = new TranslateIntOpImage(srcROI.getAsImage(), null, (int) tx, (int) ty);
+            } else if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear) {
                 // Setting constant image to be scaled as a ROI
 
                 ImageLayout2 layout = new ImageLayout2();
