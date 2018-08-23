@@ -17,14 +17,14 @@
 */
 package it.geosolutions.jaiext.interpolators;
 
-import it.geosolutions.jaiext.range.Range;
-
-import java.awt.Rectangle;
+import java.awt.*;
 import java.awt.image.DataBuffer;
 
 import javax.media.jai.Interpolation;
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.iterator.RandomIter;
+
+import it.geosolutions.jaiext.range.Range;
 
 public class InterpolationBilinear extends Interpolation implements InterpolationNoData{
 
@@ -366,50 +366,49 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
             int x0 = src.getX() + posXlow / srcPixelStride;
             int y0 = src.getY() + (posYlow - srcBandOffset) / srcScanLineStride;
             // ROI control
-            if (roiBounds.contains(x0, y0)) {
                 switch (dataType) {
                 case DataBuffer.TYPE_BYTE:
-                    w00 = roiIter.getSample(x0, y0, 0) & 0xFF;
-                    w01 = roiIter.getSample(x0 + 1, y0, 0) & 0xFF;
-                    w10 = roiIter.getSample(x0, y0 + 1, 0) & 0xFF;
-                    w11 = roiIter.getSample(x0 + 1, y0 + 1, 0) & 0xFF;
+                    w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) & 0xFF : 0;
+                    w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) & 0xFF : 0;
+                    w10 = roiBounds.contains(x0, y0 + 1 ) ? roiIter.getSample(x0, y0 + 1, 0) & 0xFF : 0;
+                    w11 = roiBounds.contains(x0 + 1, y0 + 1) ?roiIter.getSample(x0 + 1, y0 + 1, 0) & 0xFF : 0;
                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                         return destinationNoData;
                     }
                     break;
                 case DataBuffer.TYPE_USHORT:
-                    w00 = roiIter.getSample(x0, y0, 0) & 0xFFFF;
-                    w01 = roiIter.getSample(x0 + 1, y0, 0) & 0xFFFF;
-                    w10 = roiIter.getSample(x0, y0 + 1, 0) & 0xFFFF;
-                    w11 = roiIter.getSample(x0 + 1, y0 + 1, 0) & 0xFFFF;
+                    w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) &  0xFFFF : 0;
+                    w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) &  0xFFFF : 0;
+                    w10 = roiBounds.contains(x0, y0 + 1 ) ? roiIter.getSample(x0, y0 + 1, 0) &  0xFFFF : 0;
+                    w11 = roiBounds.contains(x0 + 1, y0 + 1) ?roiIter.getSample(x0 + 1, y0 + 1, 0) &  0xFFFF : 0;
                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                         return destinationNoData;
                     }
                     break;
                 case DataBuffer.TYPE_SHORT:
                 case DataBuffer.TYPE_INT:
-                    w00 = roiIter.getSample(x0, y0, 0);
-                    w01 = roiIter.getSample(x0 + 1, y0, 0);
-                    w10 = roiIter.getSample(x0, y0 + 1, 0);
-                    w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
+                    w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0): 0;
+                    w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                    w10 = roiBounds.contains(x0, y0 + 1 ) ? roiIter.getSample(x0, y0 + 1, 0): 0;
+                    w11 = roiBounds.contains(x0 + 1, y0 + 1) ?roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
                     if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                         return destinationNoData;
                     }
                     break;
                 case DataBuffer.TYPE_FLOAT:
-                    w00f = roiIter.getSample(x0, y0, 0);
-                    w01f = roiIter.getSample(x0 + 1, y0, 0);
-                    w10f = roiIter.getSample(x0, y0 + 1, 0);
-                    w11f = roiIter.getSample(x0 + 1, y0 + 1, 0);
+                    w00f = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0): 0;
+                    w01f = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                    w10f = roiBounds.contains(x0, y0 + 1 ) ? roiIter.getSample(x0, y0 + 1, 0): 0;
+                    w11f = roiBounds.contains(x0 + 1, y0 + 1) ?roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
                     if (w00f == 0 && w01f == 0 && w10f == 0 && w11f == 0) {
                         return destinationNoData;
                     }
                     break;
                 case DataBuffer.TYPE_DOUBLE:
-                    w00d = roiIter.getSample(x0, y0, 0);
-                    w01d = roiIter.getSample(x0 + 1, y0, 0);
-                    w10d = roiIter.getSample(x0, y0 + 1, 0);
-                    w11d = roiIter.getSample(x0 + 1, y0 + 1, 0);
+                    w00d = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0): 0;
+                    w01d = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                    w10d = roiBounds.contains(x0, y0 + 1 ) ? roiIter.getSample(x0, y0 + 1, 0): 0;
+                    w11d = roiBounds.contains(x0 + 1, y0 + 1) ?roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
                     if (w00d == 0 && w01d == 0 && w10d == 0 && w11d == 0) {
                         return destinationNoData;
                     }
@@ -417,25 +416,7 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
                 default:
                     break;
                 }
-            } else {
-                return destinationNoData;
-            }
         }
-
-        w00 = 1;
-        w01 = 1;
-        w10 = 1;
-        w11 = 1;
-
-        w00f = 1f;
-        w01f = 1f;
-        w10f = 1f;
-        w11f = 1f;
-
-        w00d = 1d;
-        w01d = 1d;
-        w10d = 1d;
-        w11d = 1d;
 
         // No Data Control for the 4 selected pixels.If any of these 4 pixel is NO DATA,
         // his related weight is set to 0, else it is leaved unchanged.
@@ -596,14 +577,10 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
             int x0 = coordinates[0];
             int y0 = coordinates[1];
             // ROI control
-            if (roiBounds.contains(x0, y0)) {
-                w00 = roiIter.getSample(x0, y0, 0) & 0x1;
-                w01 = roiIter.getSample(x0 + 1, y0, 0) & 0x1;
-                w10 = roiIter.getSample(x0, y0 + 1, 0) & 0x1;
-                w11 = roiIter.getSample(x0 + 1, y0 + 1, 0) & 0x1;
-            } else {
-                return black;
-            }
+            w00 = roiBounds.contains(x0, y0)  ? roiIter.getSample(x0, y0, 0) & 0x1 : 0;
+            w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) & 0x1 : 0;
+            w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) & 0x1 : 0;
+            w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) & 0x1 : 0;
         }
 
         // Calculates the interpolation for every type of data that allows binary images.
@@ -627,7 +604,7 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
                 int roiDataLength = roiDataArray.length;
                 w00index = roiYOffset + sbytenum;
 
-                if (w00index > roiDataLength || (roiDataArray[w00index] >> sshift & 0x01) == 0) {
+                if (w00index > roiDataLength) {
                     return black;
                 }
 
@@ -635,10 +612,10 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
                 w10index = roiYOffset + roiScanlineStride + sbytenum;
                 w11index = roiYOffset + roiScanlineStride + xNextByteNo;
 
-                w00 = w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01 : 0;
-                w01 = w01index < roiDataLength ? roiDataArray[w01index] >> xNextShiftNo & 0x01 : 0;
-                w10 = w10index < roiDataLength ? roiDataArray[w10index] >> sshift & 0x01 : 0;
-                w11 = w11index < roiDataLength ? roiDataArray[w11index] >> xNextShiftNo & 0x01 : 0;
+                w00 = w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01 : w00;
+                w01 = w01index < roiDataLength ? roiDataArray[w01index] >> xNextShiftNo & 0x01 : w01;
+                w10 = w10index < roiDataLength ? roiDataArray[w10index] >> sshift & 0x01 : w10;
+                w11 = w11index < roiDataLength ? roiDataArray[w11index] >> xNextShiftNo & 0x01 : w11;
             }
             break;
         case DataBuffer.TYPE_USHORT:
@@ -658,7 +635,7 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
                 int roiDataLength = roiDataArray.length;
                 w00index = roiYOffset + sshortnum;
 
-                if (w00index > roiDataLength || (roiDataArray[w00index] >> sshift & 0x01) == 0) {
+                if (w00index > roiDataLength) {
                     return black;
                 }
 
@@ -666,10 +643,10 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
                 w10index = roiYOffset + roiScanlineStride + sshortnum;
                 w11index = roiYOffset + roiScanlineStride + xNextShortNo;
 
-                w00 = w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01 : 0;
-                w01 = w01index < roiDataLength ? roiDataArray[w01index] >> xNextShiftNo & 0x01 : 0;
-                w10 = w10index < roiDataLength ? roiDataArray[w10index] >> sshift & 0x01 : 0;
-                w11 = w11index < roiDataLength ? roiDataArray[w11index] >> xNextShiftNo & 0x01 : 0;
+                w00 = w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01 : w00;
+                w01 = w01index < roiDataLength ? roiDataArray[w01index] >> xNextShiftNo & 0x01 : w01;
+                w10 = w10index < roiDataLength ? roiDataArray[w10index] >> sshift & 0x01 : w10;
+                w11 = w11index < roiDataLength ? roiDataArray[w11index] >> xNextShiftNo & 0x01 : w11;
             }
 
             break;
@@ -689,7 +666,7 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
                 int roiDataLength = roiDataArray.length;
                 w00index = roiYOffset + sintnum;
 
-                if (w00index > roiDataLength || (roiDataArray[w00index] >> sshift & 0x01) == 0) {
+                if (w00index > roiDataLength) {
                     return black;
                 }
 
@@ -697,10 +674,10 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
                 w10index = roiYOffset + roiScanlineStride + sintnum;
                 w11index = roiYOffset + roiScanlineStride + xNextIntNo;
 
-                w00 = w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01 : 0;
-                w01 = w01index < roiDataLength ? roiDataArray[w01index] >> xNextShiftNo & 0x01 : 0;
-                w10 = w10index < roiDataLength ? roiDataArray[w10index] >> sshift & 0x01 : 0;
-                w11 = w11index < roiDataLength ? roiDataArray[w11index] >> xNextShiftNo & 0x01 : 0;
+                w00 = w00index < roiDataLength ? roiDataArray[w00index] >> sshift & 0x01 : w00;
+                w01 = w01index < roiDataLength ? roiDataArray[w01index] >> xNextShiftNo & 0x01 : w01;
+                w10 = w10index < roiDataLength ? roiDataArray[w10index] >> sshift & 0x01 : w10;
+                w11 = w11index < roiDataLength ? roiDataArray[w11index] >> xNextShiftNo & 0x01 : w11;
             }
 
             break;
@@ -931,12 +908,47 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
             // For integers is even considered the case when the integers are expanded to longs
             if (dataINT) {
 
+                // S00 .......... S01
+                //  .              .
+                //  .              .
+                //  .              .
+                //  .              .
+                //  .         *    .   <- yfrac
+                //  .              .
+                //  .              .
+                // S10 .......... S11
+                //
+                //            ^
+                //            |
+                //          xfrac
+
+                // bilinear interpolation does 2 interpolations along X and then interpolates
+                // the results along y.
+                // In case any of these interpolations involves a noData source pixel,
+                // the value of the other pixel will be only used in case the frac component
+                // is nearest to that pixel. Otherwise, the result will be noData too.
+                // To give an example: in case S01 is noData, S00 will not contribute to the
+                // output value since it is too far from the position.
+                // This avoids having shaded dark edges going out of the original valid bounds
+
+                // Whether S*1 Pixel will fully contribute if opposite S*0 pixel is nodata
+                final boolean xt1 = xfrac >= FRACTION_THRESHOLD_I;
+
+                // Whether S*0 Pixel will fully contribute if opposite S*1 pixel is nodata
+                final boolean xt0 = xfracCompl >= FRACTION_THRESHOLD_I;
+
+                // Whether Previous horizontal interpolation on S1* pixels will contribute
+                final boolean yt1 = yfrac >= FRACTION_THRESHOLD_I;
+
+                // Whether Previous horizontal interpolation on S0* pixels will contribute
+                final boolean yt0 = yfracCompl >= FRACTION_THRESHOLD_I;
+
                 if (w0z) {
                     s0L = 0;
                 } else if (w00z) {// w01 = 1
-                    s0L = s01 * xfrac;
+                    s0L = xt1 ? s01  << FULL_WEIGHT_SHIFT : 0;
                 } else if (w01z) {// w00 = 1
-                    s0L = s00 * xfracCompl;
+                    s0L = xt0 ? s00  << FULL_WEIGHT_SHIFT : 0;
                 } else {// w00 = 1 & W01 = 1
                     if (s0Long) {
                         if (s1Long) {
@@ -954,9 +966,9 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
                 if (w1z) {
                     s1L = 0;
                 } else if (w10z) { // w11 = 1
-                    s1L = s11 * xfrac;
+                    s1L = xt1 ? s11 << FULL_WEIGHT_SHIFT : 0;
                 } else if (w11z) { // w10 = 1 // - (s10 * xfrac); //s10;
-                    s1L = s10 * xfracCompl;
+                    s1L = xt0 ? s10  << FULL_WEIGHT_SHIFT : 0;
                 } else {
                     if (s0Long) {
                         if (s1Long) {
@@ -969,16 +981,24 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
                     }
                 }
 
-                if (w0z) {
-                    s = (int) ((s1L * yfrac + round2) >> shift2);
-                } else {
-                    if (w1z) {
-                        s = (int) ((s0L * yfracCompl + round2) >> shift2);
-                    } else {
-                        s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
-                    }
-                }
+                // Combining threshold weights with the nodata flags
+                w00z &= xt0;
+                w01z &= xt1;
+                w10z &= xt0;
+                w11z &= xt1;
 
+                // Vertical interpolation
+                if (w0z || w00z || w01z) {
+                    s = (int) (yt1 && !w1z && !w10z && !w11z
+                            ? (((s1L  << FULL_WEIGHT_SHIFT)  + round2) >> shift2)
+                            : destinationNoData);
+                } else if (w1z || w10z || w11z) {
+                    s = (int) (yt0 && !w0z && !w00z && !w01z
+                            ? (((s0L  << FULL_WEIGHT_SHIFT) + round2) >> shift2)
+                            : destinationNoData);
+                } else {
+                    s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                }
             } else {
 
                 // S00 .......... S01

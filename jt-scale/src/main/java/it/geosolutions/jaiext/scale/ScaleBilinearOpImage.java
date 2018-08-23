@@ -430,16 +430,14 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int w11 = w11index < roiDataLength ? roiDataArray[w11index] & 0xff
                                         : 0;
 
-                                if (baseIndex > roiDataLength || w00 == 0) {
+                                if (baseIndex > roiDataLength) {
                                     dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 } else {
                                     // Perform the bilinear interpolation
-                                    final int s0 = (s01 - s00) * xfrac[i] + (s00 << subsampleBits);
-                                    final int s1 = (s11 - s10) * xfrac[i] + (s10 << subsampleBits);
-                                    final int s = ((s1 - s0) * yfrac[j] + (s0 << subsampleBits) + round2) >> shift2;
+                                    final int s = computeValue(s00, s01, s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k);
 
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = (byte) (s & 0xff);
@@ -474,37 +472,28 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int x0 = src.getX() + posx / srcPixelStride;
                                 final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                if (roiBounds.contains(x0, y0)) {
+                                final int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                final int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                final int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                final int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                    final int w00 = roiIter.getSample(x0, y0, 0);
-                                    final int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                    final int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                    final int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
-
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                        // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
-                                    } else {
-                                        // Get the four surrounding pixel values
-                                        final int s00 = srcData[posx + posy] & 0xff;
-                                        final int s01 = srcData[posx + srcPixelStride + posy] & 0xff;
-                                        final int s10 = srcData[posx + posy + srcScanlineStride] & 0xff;
-                                        final int s11 = srcData[posx + srcPixelStride + posy
-                                                + srcScanlineStride] & 0xff;
-                                        // Perform the bilinear interpolation
-                                        final int s0 = (s01 - s00) * xfrac[i]
-                                                + (s00 << subsampleBits);
-                                        final int s1 = (s11 - s10) * xfrac[i]
-                                                + (s10 << subsampleBits);
-                                        final int s = ((s1 - s0) * yfrac[j] + (s0 << subsampleBits) + round2) >> shift2;
-
-                                        // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = (byte) (s & 0xff);
-                                    }
-                                } else {
+                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataByte[k];
+                                } else {
+                                    // Get the four surrounding pixel values
+                                    final int s00 = srcData[posx + posy] & 0xff;
+                                    final int s01 = srcData[posx + srcPixelStride + posy] & 0xff;
+                                    final int s10 = srcData[posx + posy + srcScanlineStride] & 0xff;
+                                    final int s11 = srcData[posx + srcPixelStride + posy
+                                            + srcScanlineStride] & 0xff;
+                                    // Perform the bilinear interpolation
+                                    final int s = computeValue(s00, s01, s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k);
+
+                                    // The interpolated value is saved in the destination array
+                                    dstData[dstPixelOffset] = (byte) (s & 0xff);
                                 }
+                                
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
                             }
@@ -618,17 +607,17 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     int w11 = w11index < roiDataLength ? roiDataArray[w11index] & 0xff
                                             : 0;
 
-                                    if (baseIndex > roiDataLength || w00 == 0) {
+                                    if (baseIndex > roiDataLength) {
                                         dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else {
 
-                                        w00 = byteLookupTable[k][s00] == destinationNoDataByte[k] ? 0 : 1;
-                                        w01 = byteLookupTable[k][s01] == destinationNoDataByte[k] ? 0 : 1;
-                                        w10 = byteLookupTable[k][s10] == destinationNoDataByte[k] ? 0 : 1;
-                                        w11 = byteLookupTable[k][s11] == destinationNoDataByte[k] ? 0 : 1;
+                                        w00 = byteLookupTable[k][s00] == destinationNoDataByte[k] ? 0 : w00;
+                                        w01 = byteLookupTable[k][s01] == destinationNoDataByte[k] ? 0 : w01;
+                                        w10 = byteLookupTable[k][s10] == destinationNoDataByte[k] ? 0 : w10;
+                                        w11 = byteLookupTable[k][s11] == destinationNoDataByte[k] ? 0 : w11;
 
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = (byte) (computeValue(s00, s01,
@@ -666,38 +655,32 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     final int y0 = src.getY() + (posy - bandOffset)
                                             / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                    int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                    int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                    int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                        int w00 = roiIter.getSample(x0, y0, 0);
-                                        int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                        int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                        int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
-
-                                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                            // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataByte[k];
-                                        } else {
-
-                                            // Get the four surrounding pixel values
-                                            final int s00 = srcData[posx + posy] & 0xff;
-                                            final int s01 = srcData[posx + srcPixelStride + posy] & 0xff;
-                                            final int s10 = srcData[posx + posy + srcScanlineStride] & 0xff;
-                                            final int s11 = srcData[posx + srcPixelStride + posy
-                                                    + srcScanlineStride] & 0xff;
-
-                                            w00 = byteLookupTable[k][s00] == destinationNoDataByte[k] ? 0 : 1;
-                                            w01 = byteLookupTable[k][s01] == destinationNoDataByte[k] ? 0 : 1;
-                                            w10 = byteLookupTable[k][s10] == destinationNoDataByte[k] ? 0 : 1;
-                                            w11 = byteLookupTable[k][s11] == destinationNoDataByte[k] ? 0 : 1;
-
-                                            // compute value
-                                            dstData[dstPixelOffset] = (byte) (computeValue(s00,
-                                                    s01, s10, s11, w00, w01, w10, w11, xfrac[i],
-                                                    yfrac[j], k) & 0xff);
-                                        }
-                                    } else {
+                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataByte[k];
+                                    } else {
+
+                                        // Get the four surrounding pixel values
+                                        final int s00 = srcData[posx + posy] & 0xff;
+                                        final int s01 = srcData[posx + srcPixelStride + posy] & 0xff;
+                                        final int s10 = srcData[posx + posy + srcScanlineStride] & 0xff;
+                                        final int s11 = srcData[posx + srcPixelStride + posy
+                                                + srcScanlineStride] & 0xff;
+
+                                        w00 = byteLookupTable[k][s00] == destinationNoDataByte[k] ? 0 : w00;
+                                        w01 = byteLookupTable[k][s01] == destinationNoDataByte[k] ? 0 : w01;
+                                        w10 = byteLookupTable[k][s10] == destinationNoDataByte[k] ? 0 : w10;
+                                        w11 = byteLookupTable[k][s11] == destinationNoDataByte[k] ? 0 : w11;
+
+                                        // compute value
+                                        dstData[dstPixelOffset] = (byte) (computeValue(s00,
+                                                s01, s10, s11, w00, w01, w10, w11, xfrac[i],
+                                                yfrac[j], k) & 0xff);
                                     }
 
                                     // destination pixel offset update
@@ -830,16 +813,14 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int w11 = w11index < roiDataLength ? roiDataArray[w11index] & 0xffff
                                         : 0;
 
-                                if (baseIndex > roiDataLength || w00 == 0) {
+                                if (baseIndex > roiDataLength) {
                                     dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else {
                                     // Perform the bilinear interpolation
-                                    final int s0 = (s01 - s00) * xfrac[i] + (s00 << subsampleBits);
-                                    final int s1 = (s11 - s10) * xfrac[i] + (s10 << subsampleBits);
-                                    final int s = ((s1 - s0) * yfrac[j] + (s0 << subsampleBits) + round2) >> shift2;
+                                    final int s = computeValue(s00, s01, s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k);
 
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = (short) (s & 0xffff);
@@ -874,37 +855,26 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int x0 = src.getX() + posx / srcPixelStride;
                                 final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                if (roiBounds.contains(x0, y0)) {
+                                final int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                final int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                final int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                final int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                    final int w00 = roiIter.getSample(x0, y0, 0);
-                                    final int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                    final int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                    final int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
-
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                        // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
-
-                                    } else {
-                                        // Get the four surrounding pixel values
-                                        final int s00 = srcData[posx + posy] & 0xffff;
-                                        final int s01 = srcData[posx + srcPixelStride + posy] & 0xffff;
-                                        final int s10 = srcData[posx + posy + srcScanlineStride] & 0xffff;
-                                        final int s11 = srcData[posx + srcPixelStride + posy
-                                                + srcScanlineStride] & 0xffff;
-                                        // Perform the bilinear interpolation
-                                        final int s0 = (s01 - s00) * xfrac[i]
-                                                + (s00 << subsampleBits);
-                                        final int s1 = (s11 - s10) * xfrac[i]
-                                                + (s10 << subsampleBits);
-                                        final int s = ((s1 - s0) * yfrac[j] + (s0 << subsampleBits) + round2) >> shift2;
-
-                                        // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = (short) (s & 0xffff);
-                                    }
-                                } else {
+                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataUShort[k];
+                                } else {
+                                    // Get the four surrounding pixel values
+                                    final int s00 = srcData[posx + posy] & 0xffff;
+                                    final int s01 = srcData[posx + srcPixelStride + posy] & 0xffff;
+                                    final int s10 = srcData[posx + posy + srcScanlineStride] & 0xffff;
+                                    final int s11 = srcData[posx + srcPixelStride + posy
+                                            + srcScanlineStride] & 0xffff;
+                                    // Perform the bilinear interpolation
+                                    final int s = computeValue(s00, s01, s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k);
+
+                                    // The interpolated value is saved in the destination array
+                                    dstData[dstPixelOffset] = (short) (s & 0xffff);
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1009,16 +979,16 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     int w11 = w11index < roiDataLength ? roiDataArray[w11index] & 0xffff
                                             : 0;
 
-                                    if (baseIndex > roiDataLength || w00 == 0) {
+                                    if (baseIndex > roiDataLength) {
                                         dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     } else {
-                                        w00 = noData.contains(s00) ? 0 : 1;
-                                        w01 = noData.contains(s01) ? 0 : 1;
-                                        w10 = noData.contains(s10) ? 0 : 1;
-                                        w11 = noData.contains(s11) ? 0 : 1;
+                                        w00 = noData.contains(s00) ? 0 : w00;
+                                        w01 = noData.contains(s01) ? 0 : w01;
+                                        w10 = noData.contains(s10) ? 0 : w10;
+                                        w11 = noData.contains(s11) ? 0 : w11;
 
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = (short) (computeValue(s00, s01,
@@ -1056,39 +1026,33 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     final int y0 = src.getY() + (posy - bandOffset)
                                             / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                    int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                    int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                    int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                        int w00 = roiIter.getSample(x0, y0, 0);
-                                        int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                        int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                        int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
-
-                                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                            // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataUShort[k];
-                                        } else {
-                                            // Get the four surrounding pixel values
-                                            final short s00 = (short) (srcData[posx + posy] & 0xffff);
-                                            final short s01 = (short) (srcData[posx
-                                                    + srcPixelStride + posy] & 0xffff);
-                                            final short s10 = (short) (srcData[posx + posy
-                                                    + srcScanlineStride] & 0xffff);
-                                            final short s11 = (short) (srcData[posx
-                                                    + srcPixelStride + posy + srcScanlineStride] & 0xffff);
-
-                                            w00 = noData.contains(s00) ? 0 : 1;
-                                            w01 = noData.contains(s01) ? 0 : 1;
-                                            w10 = noData.contains(s10) ? 0 : 1;
-                                            w11 = noData.contains(s11) ? 0 : 1;
-
-                                            // compute value
-                                            dstData[dstPixelOffset] = (short) (computeValue(s00,
-                                                    s01, s10, s11, w00, w01, w10, w11, xfrac[i],
-                                                    yfrac[j], k) & 0xffff);
-                                        }
-                                    } else {
+                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataUShort[k];
+                                    } else {
+                                        // Get the four surrounding pixel values
+                                        final short s00 = (short) (srcData[posx + posy] & 0xffff);
+                                        final short s01 = (short) (srcData[posx
+                                                + srcPixelStride + posy] & 0xffff);
+                                        final short s10 = (short) (srcData[posx + posy
+                                                + srcScanlineStride] & 0xffff);
+                                        final short s11 = (short) (srcData[posx
+                                                + srcPixelStride + posy + srcScanlineStride] & 0xffff);
+
+                                        w00 = noData.contains(s00) ? 0 : w00;
+                                        w01 = noData.contains(s01) ? 0 : w01;
+                                        w10 = noData.contains(s10) ? 0 : w10;
+                                        w11 = noData.contains(s11) ? 0 : w11;
+
+                                        // compute value
+                                        dstData[dstPixelOffset] = (short) (computeValue(s00,
+                                                s01, s10, s11, w00, w01, w10, w11, xfrac[i],
+                                                yfrac[j], k) & 0xffff);
                                     }
 
                                     // destination pixel offset update
@@ -1222,16 +1186,14 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int w11 = w11index < roiDataLength ? roiDataArray[w11index]
                                         : 0;
 
-                                if (baseIndex > roiDataLength || w00 == 0) {
+                                if (baseIndex > roiDataLength) {
                                     dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else {
                                     // Perform the bilinear interpolation
-                                    final int s0 = (s01 - s00) * xfrac[i] + (s00 << subsampleBits);
-                                    final int s1 = (s11 - s10) * xfrac[i] + (s10 << subsampleBits);
-                                    final int s = ((s1 - s0) * yfrac[j] + (s0 << subsampleBits) + round2) >> shift2;
+                                    final int s = computeValue(s00, s01, s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k);
 
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = (short) s;
@@ -1266,37 +1228,27 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int x0 = src.getX() + posx / srcPixelStride;
                                 final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                if (roiBounds.contains(x0, y0)) {
+                                final int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                final int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                final int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                final int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                    final int w00 = roiIter.getSample(x0, y0, 0);
-                                    final int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                    final int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                    final int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
-
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                        // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
-                                    } else {
-                                        // Get the four surrounding pixel values
-                                        final int s00 = srcData[posx + posy];
-                                        final int s01 = srcData[posx + srcPixelStride + posy];
-                                        final int s10 = srcData[posx + posy + srcScanlineStride];
-                                        final int s11 = srcData[posx + srcPixelStride + posy
-                                                + srcScanlineStride];
-                                        // Perform the bilinear interpolation
-                                        final int s0 = (s01 - s00) * xfrac[i]
-                                                + (s00 << subsampleBits);
-                                        final int s1 = (s11 - s10) * xfrac[i]
-                                                + (s10 << subsampleBits);
-                                        final int s = ((s1 - s0) * yfrac[j] + (s0 << subsampleBits) + round2) >> shift2;
-
-                                        // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = (short) s;
-                                    }
-                                } else {
+                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataShort[k];
-                                }
+                                } else {
+                                    // Get the four surrounding pixel values
+                                    final int s00 = srcData[posx + posy];
+                                    final int s01 = srcData[posx + srcPixelStride + posy];
+                                    final int s10 = srcData[posx + posy + srcScanlineStride];
+                                    final int s11 = srcData[posx + srcPixelStride + posy
+                                            + srcScanlineStride];
+                                    // Perform the bilinear interpolation
+                                    final int s = computeValue(s00, s01, s10, s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k);
+
+                                    // The interpolated value is saved in the destination array
+                                    dstData[dstPixelOffset] = (short) s;
+                                    }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
                             }
@@ -1395,17 +1347,16 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     int w10 = w10index < roiDataLength ? roiDataArray[w10index] : 0;
                                     int w11 = w11index < roiDataLength ? roiDataArray[w11index] : 0;
 
-                                    if (baseIndex > roiDataLength || w00 == 0) {
+                                    if (baseIndex > roiDataLength) {
                                         dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     } else {
-
-                                        w00 = noData.contains(s00) ? 0 : 1;
-                                        w01 = noData.contains(s01) ? 0 : 1;
-                                        w10 = noData.contains(s10) ? 0 : 1;
-                                        w11 = noData.contains(s11) ? 0 : 1;
+                                        w00 = noData.contains(s00) ? 0 : w00;
+                                        w01 = noData.contains(s01) ? 0 : w01;
+                                        w10 = noData.contains(s10) ? 0 : w10;
+                                        w11 = noData.contains(s11) ? 0 : w11;
 
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = (short) (computeValue(s00, s01,
@@ -1443,38 +1394,32 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     final int y0 = src.getY() + (posy - bandOffset)
                                             / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                    int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                    int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                    int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                        int w00 = roiIter.getSample(x0, y0, 0);
-                                        int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                        int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                        int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
-
-                                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                            // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataShort[k];
-                                        } else {
-                                            // Get the four surrounding pixel values
-                                            final short s00 = srcData[posx + posy];
-                                            final short s01 = srcData[posx + srcPixelStride + posy];
-                                            final short s10 = srcData[posx + posy
-                                                    + srcScanlineStride];
-                                            final short s11 = srcData[posx + srcPixelStride + posy
-                                                    + srcScanlineStride];
-
-                                            w00 = noData.contains(s00) ? 0 : 1;
-                                            w01 = noData.contains(s01) ? 0 : 1;
-                                            w10 = noData.contains(s10) ? 0 : 1;
-                                            w11 = noData.contains(s11) ? 0 : 1;
-
-                                            // compute value
-                                            dstData[dstPixelOffset] = (short) (computeValue(s00,
-                                                    s01, s10, s11, w00, w01, w10, w11, xfrac[i],
-                                                    yfrac[j], k));
-                                        }
-                                    } else {
+                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataShort[k];
+                                    } else {
+                                        // Get the four surrounding pixel values
+                                        final short s00 = srcData[posx + posy];
+                                        final short s01 = srcData[posx + srcPixelStride + posy];
+                                        final short s10 = srcData[posx + posy
+                                                + srcScanlineStride];
+                                        final short s11 = srcData[posx + srcPixelStride + posy
+                                                + srcScanlineStride];
+
+                                        w00 = noData.contains(s00) ? 0 : w00;
+                                        w01 = noData.contains(s01) ? 0 : w01;
+                                        w10 = noData.contains(s10) ? 0 : w10;
+                                        w11 = noData.contains(s11) ? 0 : w11;
+
+                                        // compute value
+                                        dstData[dstPixelOffset] = (short) (computeValue(s00,
+                                                s01, s10, s11, w00, w01, w10, w11, xfrac[i],
+                                                yfrac[j], k));
                                     }
 
                                     // destination pixel offset update
@@ -1608,15 +1553,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int w11 = w11index < roiDataLength ? roiDataArray[w11index]
                                         : 0;
 
-                                if (baseIndex > roiDataLength || w00 == 0) {
+                                if (baseIndex > roiDataLength) {
                                     dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
-                                    dstData[dstPixelOffset] = (computeValue(s00, s01, s10, s11, 1,
-                                            1, 1, 1, xfrac[i], yfrac[j], k));
+                                    dstData[dstPixelOffset] = computeValue(s00, s01, s10, s11, w00,
+                                            w01, w10, w11, xfrac[i], yfrac[j], k);
                                 }
 
                                 // destination pixel offset update
@@ -1648,30 +1593,24 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int x0 = src.getX() + posx / srcPixelStride;
                                 final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                if (roiBounds.contains(x0, y0)) {
+                                final int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                final int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                final int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                final int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                    final int w00 = roiIter.getSample(x0, y0, 0);
-                                    final int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                    final int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                    final int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
-
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                        // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
-                                    } else {
-                                        // Get the four surrounding pixel values
-                                        final int s00 = srcData[posx + posy];
-                                        final int s01 = srcData[posx + srcPixelStride + posy];
-                                        final int s10 = srcData[posx + posy + srcScanlineStride];
-                                        final int s11 = srcData[posx + srcPixelStride + posy
-                                                + srcScanlineStride];
-                                        // compute value
-                                        dstData[dstPixelOffset] = (computeValue(s00, s01, s10, s11,
-                                                1, 1, 1, 1, xfrac[i], yfrac[j], k));
-                                    }
-                                } else {
+                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataInt[k];
+                                } else {
+                                    // Get the four surrounding pixel values
+                                    final int s00 = srcData[posx + posy];
+                                    final int s01 = srcData[posx + srcPixelStride + posy];
+                                    final int s10 = srcData[posx + posy + srcScanlineStride];
+                                    final int s11 = srcData[posx + srcPixelStride + posy
+                                            + srcScanlineStride];
+                                    // compute value
+                                    dstData[dstPixelOffset] = (computeValue(s00, s01, s10, s11,
+                                            w00, w01, w10, w11, xfrac[i], yfrac[j], k));
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1771,16 +1710,16 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     int w10 = w10index < roiDataLength ? roiDataArray[w10index] : 0;
                                     int w11 = w11index < roiDataLength ? roiDataArray[w11index] : 0;
 
-                                    if (baseIndex > roiDataLength || w00 == 0) {
+                                    if (baseIndex > roiDataLength) {
                                         dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     } else {
-                                        w00 = noData.contains(s00) ? 0 : 1;
-                                        w01 = noData.contains(s01) ? 0 : 1;
-                                        w10 = noData.contains(s10) ? 0 : 1;
-                                        w11 = noData.contains(s11) ? 0 : 1;
+                                        w00 = noData.contains(s00) ? 0 : w00;
+                                        w01 = noData.contains(s01) ? 0 : w01;
+                                        w10 = noData.contains(s10) ? 0 : w10;
+                                        w11 = noData.contains(s11) ? 0 : w11;
 
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = (computeValue(s00, s01, s10, s11,
@@ -1818,36 +1757,30 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     final int y0 = src.getY() + (posy - bandOffset)
                                             / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                    int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                    int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                    int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                        int w00 = roiIter.getSample(x0, y0, 0);
-                                        int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                        int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                        int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
-
-                                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                            // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataInt[k];
-                                        } else {
-                                            // Get the four surrounding pixel values
-                                            final int s00 = srcData[posx + posy];
-                                            final int s01 = srcData[posx + srcPixelStride + posy];
-                                            final int s10 = srcData[posx + posy + srcScanlineStride];
-                                            final int s11 = srcData[posx + srcPixelStride + posy
-                                                    + srcScanlineStride];
-
-                                            w00 = noData.contains(s00) ? 0 : 1;
-                                            w01 = noData.contains(s01) ? 0 : 1;
-                                            w10 = noData.contains(s10) ? 0 : 1;
-                                            w11 = noData.contains(s11) ? 0 : 1;
-
-                                            // compute value
-                                            dstData[dstPixelOffset] = (computeValue(s00, s01, s10,
-                                                    s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k));
-                                        }
-                                    } else {
+                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataInt[k];
+                                    } else {
+                                        // Get the four surrounding pixel values
+                                        final int s00 = srcData[posx + posy];
+                                        final int s01 = srcData[posx + srcPixelStride + posy];
+                                        final int s10 = srcData[posx + posy + srcScanlineStride];
+                                        final int s11 = srcData[posx + srcPixelStride + posy
+                                                + srcScanlineStride];
+
+                                        w00 = noData.contains(s00) ? 0 : w00;
+                                        w01 = noData.contains(s01) ? 0 : w01;
+                                        w10 = noData.contains(s10) ? 0 : w10;
+                                        w11 = noData.contains(s11) ? 0 : w11;
+
+                                        // compute value
+                                        dstData[dstPixelOffset] = (computeValue(s00, s01, s10,
+                                                s11, w00, w01, w10, w11, xfrac[i], yfrac[j], k));
                                     }
 
                                     // destination pixel offset update
@@ -1982,16 +1915,16 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int w11 = w11index < roiDataLength ? roiDataArray[w11index]
                                         : 0;
 
-                                if (baseIndex > roiDataLength || w00 == 0) {
+                                if (baseIndex > roiDataLength) {
                                     dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else {
                                     // Perform the bilinear interpolation
-                                    final float s0 = (s01 - s00) * xfrac[i] + s00;
-                                    final float s1 = (s11 - s10) * xfrac[i] + s10;
-                                    final float s = (s1 - s0) * yfrac[j] + s0;
+                                    final float s = InterpolationBilinear.computeValueDouble(s00, s01,
+                                            s10, s11, w00 == 0, w01 == 0, w10 == 0, w11 == 0, xfrac[i], yfrac[j],
+                                            dataType, destinationNoDataFloat[k]).floatValue();
 
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = s;
@@ -2026,35 +1959,30 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int x0 = src.getX() + posx / srcPixelStride;
                                 final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                if (roiBounds.contains(x0, y0)) {
+                                final int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                final int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                final int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                final int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                    final int w00 = roiIter.getSample(x0, y0, 0);
-                                    final int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                    final int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                    final int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
 
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                        // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
-                                    } else {
-
-                                        // Get the four surrounding pixel values
-                                        final float s00 = srcData[posx + posy];
-                                        final float s01 = srcData[posx + srcPixelStride + posy];
-                                        final float s10 = srcData[posx + posy + srcScanlineStride];
-                                        final float s11 = srcData[posx + srcPixelStride + posy
-                                                + srcScanlineStride];
-                                        // Perform the bilinear interpolation
-                                        final float s0 = (s01 - s00) * xfrac[i] + s00;
-                                        final float s1 = (s11 - s10) * xfrac[i] + s10;
-                                        final float s = (s1 - s0) * yfrac[j] + s0;
-
-                                        // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = s;
-                                    }
-                                } else {
+                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataFloat[k];
+                                } else {
+
+                                    // Get the four surrounding pixel values
+                                    final float s00 = srcData[posx + posy];
+                                    final float s01 = srcData[posx + srcPixelStride + posy];
+                                    final float s10 = srcData[posx + posy + srcScanlineStride];
+                                    final float s11 = srcData[posx + srcPixelStride + posy
+                                            + srcScanlineStride];
+                                    // Perform the bilinear interpolation
+                                    final float s = InterpolationBilinear.computeValueDouble(s00, s01,
+                                            s10, s11, w00 == 0, w01 == 0, w10 == 0, w11 == 0, xfrac[i], yfrac[j],
+                                            dataType, destinationNoDataFloat[k]).floatValue();
+
+                                    // The interpolated value is saved in the destination array
+                                    dstData[dstPixelOffset] = s;
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -2155,21 +2083,20 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     int w10 = w10index < roiDataLength ? roiDataArray[w10index] : 0;
                                     int w11 = w11index < roiDataLength ? roiDataArray[w11index] : 0;
 
-                                    if (baseIndex > roiDataLength || w00 == 0) {
+                                    if (baseIndex > roiDataLength) {
                                         dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else {
-
-                                        boolean w00z = noData.contains(s00);
-                                        boolean w01z = noData.contains(s01);
-                                        boolean w10z = noData.contains(s10);
-                                        boolean w11z = noData.contains(s11);
+                                        w00 = noData.contains(s00) ? 0 : w00;
+                                        w01 = noData.contains(s01) ? 0 : w01;
+                                        w10 = noData.contains(s10) ? 0 : w10;
+                                        w11 = noData.contains(s11) ? 0 : w11;
 
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(s00,
-                                                s01, s10, s11, w00z, w01z, w10z, w11z, xfrac[i],
+                                                s01, s10, s11, w00 == 0, w01 == 0, w10 == 0, w11 == 0, xfrac[i],
                                                 yfrac[j], dataType, destinationNoDataFloat[k]).floatValue();
                                     }
                                     // destination pixel offset update
@@ -2204,38 +2131,32 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     final int y0 = src.getY() + (posy - bandOffset)
                                             / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                    int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                    int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                    int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                        int w00 = roiIter.getSample(x0, y0, 0);
-                                        int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                        int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                        int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
-
-                                        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                            // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataFloat[k];
-                                        } else {
-                                            // Get the four surrounding pixel values
-                                            final float s00 = srcData[posx + posy];
-                                            final float s01 = srcData[posx + srcPixelStride + posy];
-                                            final float s10 = srcData[posx + posy
-                                                    + srcScanlineStride];
-                                            final float s11 = srcData[posx + srcPixelStride + posy
-                                                    + srcScanlineStride];
-
-                                            boolean w00z = noData.contains(s00);
-                                            boolean w01z = noData.contains(s01);
-                                            boolean w10z = noData.contains(s10);
-                                            boolean w11z = noData.contains(s11);
-
-                                            // compute value
-                                            dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(
-                                                    s00, s01, s10, s11, w00z, w01z, w10z, w11z,
-                                                    xfrac[i], yfrac[j], dataType, destinationNoDataFloat[k]).floatValue();
-                                        }
-                                    } else {
+                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataFloat[k];
+                                    } else {
+                                        // Get the four surrounding pixel values
+                                        final float s00 = srcData[posx + posy];
+                                        final float s01 = srcData[posx + srcPixelStride + posy];
+                                        final float s10 = srcData[posx + posy
+                                                + srcScanlineStride];
+                                        final float s11 = srcData[posx + srcPixelStride + posy
+                                                + srcScanlineStride];
+
+                                        w00 = noData.contains(s00) ? 0 : w00;
+                                        w01 = noData.contains(s01) ? 0 : w01;
+                                        w10 = noData.contains(s10) ? 0 : w10;
+                                        w11 = noData.contains(s11) ? 0 : w11;
+
+                                        // compute value
+                                        dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(
+                                                s00, s01, s10, s11, w00 == 0, w01 == 0, w10 == 0, w11 == 0,
+                                                xfrac[i], yfrac[j], dataType, destinationNoDataFloat[k]).floatValue();
                                     }
 
                                     // destination pixel offset update
@@ -2369,16 +2290,15 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int w11 = w11index < roiDataLength ? roiDataArray[w11index]
                                         : 0;
 
-                                if (baseIndex > roiDataLength || w00 == 0) {
+                                if (baseIndex > roiDataLength) {
                                     dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else {
                                     // Perform the bilinear interpolation
-                                    final double s0 = (s01 - s00) * xfrac[i] + s00;
-                                    final double s1 = (s11 - s10) * xfrac[i] + s10;
-                                    final double s = (s1 - s0) * yfrac[j] + s0;
+                                    final double s = InterpolationBilinear.computeValueDouble(s00, s01, s10,
+                                            s11, w00 == 0, w01 == 0, w10 == 0, w11 == 0, xfrac[i], yfrac[j], dataType, destinationNoDataDouble[k]).doubleValue();
 
                                     // The interpolated value is saved in the destination array
                                     dstData[dstPixelOffset] = s;
@@ -2413,34 +2333,27 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                 final int x0 = src.getX() + posx / srcPixelStride;
                                 final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                if (roiBounds.contains(x0, y0)) {
-
-                                    final int w00 = roiIter.getSample(x0, y0, 0);
-                                    final int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                    final int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                    final int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
-
-                                    if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-                                        // The destination no data value is saved in the destination array
-                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
-                                    } else {
-                                        // Get the four surrounding pixel values
-                                        final double s00 = srcData[posx + posy];
-                                        final double s01 = srcData[posx + srcPixelStride + posy];
-                                        final double s10 = srcData[posx + posy + srcScanlineStride];
-                                        final double s11 = srcData[posx + srcPixelStride + posy
-                                                + srcScanlineStride];
-                                        // Perform the bilinear interpolation
-                                        final double s0 = (s01 - s00) * xfrac[i];
-                                        final double s1 = (s11 - s10) * xfrac[i];
-                                        final double s = (s1 - s0) * yfrac[j] + s0;
-
-                                        // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = s;
-                                    }
-                                } else {
+                                final int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                final int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                final int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                final int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
+                                
+                                if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array
                                     dstData[dstPixelOffset] = destinationNoDataDouble[k];
+                                } else {
+                                    // Get the four surrounding pixel values
+                                    final double s00 = srcData[posx + posy];
+                                    final double s01 = srcData[posx + srcPixelStride + posy];
+                                    final double s10 = srcData[posx + posy + srcScanlineStride];
+                                    final double s11 = srcData[posx + srcPixelStride + posy
+                                            + srcScanlineStride];
+                                    // Perform the bilinear interpolation
+                                    final double s = InterpolationBilinear.computeValueDouble(s00, s01, s10,
+                                            s11, w00 == 0, w01 == 0, w10 == 0, w11 == 0, xfrac[i], yfrac[j], dataType, destinationNoDataDouble[k]).doubleValue();
+
+                                    // The interpolated value is saved in the destination array
+                                    dstData[dstPixelOffset] = s;
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -2540,21 +2453,20 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     int w10 = w10index < roiDataLength ? roiDataArray[w10index] : 0;
                                     int w11 = w11index < roiDataLength ? roiDataArray[w11index] : 0;
 
-                                    if (baseIndex > roiDataLength || w00 == 0) {
+                                    if (baseIndex > roiDataLength) {
                                         dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else {
-
-                                        boolean w00z = noData.contains(s00);
-                                        boolean w01z = noData.contains(s01);
-                                        boolean w10z = noData.contains(s10);
-                                        boolean w11z = noData.contains(s11);
+                                        w00 = noData.contains(s00) ? 0 : w00;
+                                        w01 = noData.contains(s01) ? 0 : w01;
+                                        w10 = noData.contains(s10) ? 0 : w10;
+                                        w11 = noData.contains(s11) ? 0 : w11;
 
                                         // The interpolated value is saved in the destination array
                                         dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(s00, s01, s10,
-                                                s11, w00z, w01z, w10z, w11z, xfrac[i], yfrac[j],
+                                                s11, w00 == 0, w01 == 0, w10 == 0, w11 == 0, xfrac[i], yfrac[j],
                                                 dataType, destinationNoDataDouble[k]).doubleValue();
                                     }
                                     // destination pixel offset update
@@ -2589,37 +2501,30 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                                     final int y0 = src.getY() + (posy - bandOffset)
                                             / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                    int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                    int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                    int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
-                                        int w00 = roiIter.getSample(x0, y0, 0);
-                                        int w01 = roiIter.getSample(x0 + 1, y0, 0);
-                                        int w10 = roiIter.getSample(x0, y0 + 1, 0);
-                                        int w11 = roiIter.getSample(x0 + 1, y0 + 1, 0);
+                                    if (!(w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0)) {
+                                        // Get the four surrounding pixel values
+                                        final double s00 = srcData[posx + posy];
+                                        final double s01 = srcData[posx + srcPixelStride + posy];
+                                        final double s10 = srcData[posx + posy
+                                                + srcScanlineStride];
+                                        final double s11 = srcData[posx + srcPixelStride + posy
+                                                + srcScanlineStride];
 
-                                        if (!(w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0)) {
+                                        w00 = noData.contains(s00) ? 0 : w00;
+                                        w01 = noData.contains(s01) ? 0 : w01;
+                                        w10 = noData.contains(s10) ? 0 : w10;
+                                        w11 = noData.contains(s11) ? 0 : w11;
 
-                                            // Get the four surrounding pixel values
-                                            final double s00 = srcData[posx + posy];
-                                            final double s01 = srcData[posx + srcPixelStride + posy];
-                                            final double s10 = srcData[posx + posy
-                                                    + srcScanlineStride];
-                                            final double s11 = srcData[posx + srcPixelStride + posy
-                                                    + srcScanlineStride];
+                                        // compute value
+                                        dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(s00, s01,
+                                                s10, s11, w00 == 0, w01 == 0, w10 == 0, w11 == 0, xfrac[i],
+                                                yfrac[j], dataType, destinationNoDataDouble[k]).doubleValue();
 
-                                            boolean w00z = noData.contains(s00);
-                                            boolean w01z = noData.contains(s01);
-                                            boolean w10z = noData.contains(s10);
-                                            boolean w11z = noData.contains(s11);
-
-                                            // compute value
-                                            dstData[dstPixelOffset] = InterpolationBilinear.computeValueDouble(s00, s01,
-                                                    s10, s11, w00z, w01z, w10z, w11z, xfrac[i],
-                                                    yfrac[j], dataType, destinationNoDataDouble[k]).doubleValue();
-
-                                        } else {
-                                            // The destination no data value is saved in the destination array
-                                            dstData[dstPixelOffset] = destinationNoDataDouble[k];
-                                        }
                                     } else {
                                         // The destination no data value is saved in the destination array
                                         dstData[dstPixelOffset] = destinationNoDataDouble[k];
@@ -2640,7 +2545,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
 
 
     /* Private method for calculate bilinear interpolation for byte, short/ushort, integer dataType */
-    private int computeValue(int s00, int s01, int s10, int s11, int w00, int w01, int w10,
+    int computeValue(int s00, int s01, int s10, int s11, int w00, int w01, int w10,
             int w11, int xfrac, int yfrac, int k) {
 
         int s0 = 0;
@@ -2690,12 +2595,47 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             // For integers is even considered the case when the integers are expanded to longs
             if (dataINT) {
 
+                // S00 .......... S01
+                //  .              .
+                //  .              .
+                //  .              .
+                //  .              .
+                //  .         *    .   <- yfrac
+                //  .              .
+                //  .              .
+                // S10 .......... S11
+                //
+                //            ^
+                //            |
+                //          xfrac
+
+                // bilinear interpolation does 2 interpolations along X and then interpolates
+                // the results along y.
+                // In case any of these interpolations involves a noData source pixel, 
+                // the value of the other pixel will be only used in case the frac component
+                // is nearest to that pixel. Otherwise, the result will be noData too.
+                // To give an example: in case S01 is noData, S00 will not contribute to the 
+                // output value since it is too far from the position.
+                // This avoids having shaded dark edges going out of the original valid bounds
+
+                // Whether S*1 Pixel will fully contribute if opposite S*0 pixel is nodata
+                final boolean xt1 = xfrac >= FRACTION_THRESHOLD_I;
+
+                // Whether S*0 Pixel will fully contribute if opposite S*1 pixel is nodata
+                final boolean xt0 = xfracCompl >= FRACTION_THRESHOLD_I;
+
+                // Whether Previous horizontal interpolation on S1* pixels will contribute
+                final boolean yt1 = yfrac >= FRACTION_THRESHOLD_I;
+
+                // Whether Previous horizontal interpolation on S0* pixels will contribute
+                final boolean yt0 = yfracCompl >= FRACTION_THRESHOLD_I;
+
                 if (w0z) {
                     s0L = 0;
                 } else if (w00z) {// w01 = 1
-                    s0L = s01 * xfrac;
+                    s0L = xt1 ? s01 << FULL_WEIGHT_SHIFT : 0;
                 } else if (w01z) {// w00 = 1
-                    s0L = s00 * xfracCompl;
+                    s0L = xt0 ? s00 << FULL_WEIGHT_SHIFT: 0;
                 } else {// w00 = 1 & W01 = 1
                     if (s0Long) {
                         if (s1Long) {
@@ -2709,13 +2649,12 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                 }
 
                 // lower value
-
                 if (w1z) {
                     s1L = 0;
                 } else if (w10z) { // w11 = 1
-                    s1L = s11 * xfrac;
+                    s1L = xt1 ? s11 << FULL_WEIGHT_SHIFT : 0;
                 } else if (w11z) { // w10 = 1 // - (s10 * xfrac); //s10;
-                    s1L = s10 * xfracCompl;
+                    s1L = xt0 ? s10 << FULL_WEIGHT_SHIFT : 0;
                 } else {
                     if (s0Long) {
                         if (s1Long) {
@@ -2728,16 +2667,24 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                     }
                 }
 
-                if (w0z) {
-                    s = (int) ((s1L * yfrac + round2) >> shift2);
-                } else {
-                    if (w1z) {
-                        s = (int) ((s0L * yfracCompl + round2) >> shift2);
-                    } else {
-                        s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
-                    }
-                }
+                // Combining threshold weights with the nodata flags
+                w00z &= xt0;
+                w01z &= xt1;
+                w10z &= xt0;
+                w11z &= xt1;
 
+                // Vertical interpolation
+                if (w0z || w00z || w01z) {
+                    s = (int) (yt1 && !w1z && !w10z && !w11z
+                            ? (((s1L << FULL_WEIGHT_SHIFT) + round2) >> shift2)
+                            : destinationNoDataInt[k]);
+                } else if (w1z || w10z || w11z) {
+                    s = (int) (yt0 && !w0z && !w00z && !w01z
+                            ? (((s0L << FULL_WEIGHT_SHIFT) + round2) >> shift2)
+                            : destinationNoDataInt[k]);
+                } else {
+                    s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
+                }
             } else {
 
                 // S00 .......... S01

@@ -580,14 +580,14 @@ public class InterpolationBicubic extends InterpolationTable implements Interpol
         }
         
         
-        // If The pixel is not outside the ROI
-        for (int i = 0; i < weightArrayLength; i++) {
-            for (int j = 0; j < weightArrayLength; j++) {
-                weightArray[i][j] = 1;
-
-            }
-        }
-        
+//        // If The pixel is not outside the ROI
+//        for (int i = 0; i < weightArrayLength; i++) {
+//            for (int j = 0; j < weightArrayLength; j++) {
+//                weightArray[i][j] = 1;
+//
+//            }
+//        }
+//        
         // -------------------------NO-DATA-CONTROL--------------------------------
         if (noDataRange != null) {
             switch (dataType) {
