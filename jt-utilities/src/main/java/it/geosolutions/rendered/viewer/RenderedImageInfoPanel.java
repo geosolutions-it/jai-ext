@@ -184,7 +184,7 @@ public class RenderedImageInfoPanel extends JPanel
         }
         else
         {
-            operationPanel.setEnabled(false);
+            operationPanel.setText("This image is not an operation");
         }
         if (showHistogram)
         {
@@ -208,6 +208,8 @@ public class RenderedImageInfoPanel extends JPanel
                         ROI roi = (ROI) object;
                         roiViewer.setImage(roi.getAsImage());
                     }
+                } else {
+                    roiViewer.setImage(null);
                 }
             } catch(Exception e) {
                 e.printStackTrace();
@@ -283,6 +285,7 @@ public class RenderedImageInfoPanel extends JPanel
         String[] properties = source.getPropertyNames();
         if (properties == null)
         {
+            propertiesPanel.setText("No properties found in this image");
             return;
         }
         Arrays.sort(properties);

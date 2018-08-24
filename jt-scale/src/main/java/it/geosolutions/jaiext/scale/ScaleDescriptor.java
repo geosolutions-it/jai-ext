@@ -16,8 +16,12 @@
 * limitations under the License.
 */
 package it.geosolutions.jaiext.scale;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
+
+import com.sun.media.jai.util.PropertyGeneratorImpl;
+
+import org.locationtech.jts.geom.Geometry;
+
+import java.awt.*;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderableImage;
@@ -39,16 +43,12 @@ import javax.media.jai.operator.ConstantDescriptor;
 import javax.media.jai.registry.RenderableRegistryMode;
 import javax.media.jai.registry.RenderedRegistryMode;
 
-import it.geosolutions.jaiext.translate.TranslateIntOpImage;
-import it.geosolutions.jaiext.utilities.ImageLayout2;
-import it.geosolutions.jaiext.vectorbin.ROIGeometry;
-
-import com.sun.media.jai.util.PropertyGeneratorImpl;
-import org.locationtech.jts.geom.Geometry;
-
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.translate.TranslateIntOpImage;
+import it.geosolutions.jaiext.utilities.ImageLayout2;
+import it.geosolutions.jaiext.vectorbin.ROIGeometry;
 
 /**
  * This property generator computes the properties for the operation
@@ -162,22 +162,33 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
                 RenderingHints scalingHints = op.getRenderingHints();
                 scalingHints.remove(JAI.KEY_IMAGE_LAYOUT);
 
-                if (srcROI instanceof ROIGeometry) {
-                    ROIGeometry roiGeom = (ROIGeometry) srcROI;
-                    Geometry geom = roiGeom.getAsGeometry();
-                    if (geom != null && !geom.isEmpty()) {
-                        constantImage.setProperty("roi", srcROI);
-                    }
-                } else {
-                    constantImage.setProperty("roi", srcROI);
-                }
+                
 
                 InterpolationBilinear interpBilinear = new InterpolationBilinear(
                         interp.getSubsampleBitsH(), null, false, 0,
                         constantImage.getSampleModel().getDataType());
 
-                roiImage = new ScaleGeneralOpImage(constantImage, null, scalingHints, extender,
-                        interpBilinear, sx, sy, tx, ty, false, null, null);
+                ParameterBlock paramBlock = new ParameterBlock();
+                paramBlock.setSource(constantImage, 0);
+                paramBlock.add(Float.valueOf(sx));
+                paramBlock.add(Float.valueOf(sy));
+                paramBlock.add(Float.valueOf(tx));
+                paramBlock.add(Float.valueOf(ty));
+                paramBlock.add(interpBilinear);
+                if (srcROI instanceof ROIGeometry) {
+                    ROIGeometry roiGeom = (ROIGeometry) srcROI;
+                    Geometry geom = roiGeom.getAsGeometry();
+                    if (geom != null && !geom.isEmpty()) {
+                        paramBlock.add(srcROI);
+                    }
+                } else {
+                    paramBlock.add(srcROI);
+                }
+                roiImage = JAI.create("Scale", paramBlock, scalingHints);
+                
+                
+//                roiImage = new ScaleGeneralOpImage(constantImage, null, scalingHints, extender,
+//                        interpBilinear, sx, sy, tx, ty, false, null, null);
             } else {
                 PlanarImage roiMod = srcROI.getAsImage();
                 ParameterBlock paramBlock = new ParameterBlock();
