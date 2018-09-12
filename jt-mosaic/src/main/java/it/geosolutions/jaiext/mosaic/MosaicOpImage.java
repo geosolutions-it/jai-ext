@@ -17,10 +17,9 @@
 */
 package it.geosolutions.jaiext.mosaic;
 
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.Transparency;
+import com.sun.media.jai.util.ImageUtil;
+
+import java.awt.*;
 import java.awt.color.ColorSpace;
 import java.awt.image.ColorModel;
 import java.awt.image.ComponentColorModel;
@@ -52,8 +51,6 @@ import javax.media.jai.RasterFormatTag;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.MosaicDescriptor;
 import javax.media.jai.operator.MosaicType;
-
-import com.sun.media.jai.util.ImageUtil;
 
 import it.geosolutions.jaiext.lookup.LookupTable;
 import it.geosolutions.jaiext.lookup.LookupTableFactory;
@@ -311,7 +308,7 @@ public class MosaicOpImage extends OpImage {
                 boolean uniformPalettes = hasUniformPalettes(sources, noDatas);
                 if (!uniformPalettes) {
                     // force RGB expansion
-                    setRGBLayout(result, first);
+                    setRGBLayout(result, first, hasAlpha(sources));
                 }
             }
             return result;
@@ -337,19 +334,45 @@ public class MosaicOpImage extends OpImage {
             result.setSampleModel(sm);
         } else {
             // take a leap of faith and assume we can manage this with a RGB output
-            setRGBLayout(result, first);
+            setRGBLayout(result, first, hasAlpha(sources));
         }
 
         return result;
     }
 
-    private static void setRGBLayout(ImageLayout result, RenderedImage reference) {
+    private static boolean hasAlpha(List sources) {
+        int numSources = sources.size();
+        boolean hasAlphaBand = false;
+        for (int i = 1; i < numSources; i++) {
+            RenderedImage source = (RenderedImage) sources.get(i);
+            SampleModel sourceSampleModel = source.getSampleModel();
+            ColorModel sourceColorModel = source.getColorModel();
+            hasAlphaBand |=
+                    sourceSampleModel.getNumBands() > 1
+                            && sourceColorModel.hasAlpha()
+                            && sourceColorModel.getTransparency() == ColorModel.TRANSLUCENT;
+        }
+        return hasAlphaBand;
+    }
+
+    private static void setRGBLayout(
+            ImageLayout result, RenderedImage reference, boolean hasAlpha) {
         ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);
-        int[] nBits = { 8, 8, 8 };
-        ColorModel cm = new ComponentColorModel(cs, nBits, false, false, Transparency.OPAQUE,
-                DataBuffer.TYPE_BYTE);
-        SampleModel sm = cm.createCompatibleSampleModel(reference.getSampleModel().getWidth(),
-                reference.getSampleModel().getWidth());
+        ColorModel cm;
+        if (hasAlpha) {
+            int[] nBits = new int[] {8, 8, 8, 8};
+            cm =
+                    new ComponentColorModel(
+                            cs, nBits, true, false, Transparency.TRANSLUCENT, DataBuffer.TYPE_BYTE);
+        } else {
+            int[] nBits = new int[] {8, 8, 8};
+            cm =
+                    new ComponentColorModel(
+                            cs, nBits, false, false, Transparency.OPAQUE, DataBuffer.TYPE_BYTE);
+        }
+        SampleModel sampleModel = reference.getSampleModel();
+        SampleModel sm =
+                cm.createCompatibleSampleModel(sampleModel.getWidth(), sampleModel.getHeight());
         result.setColorModel(cm);
         result.setSampleModel(sm);
     }

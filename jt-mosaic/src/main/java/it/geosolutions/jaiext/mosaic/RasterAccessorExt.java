@@ -23,6 +23,7 @@ import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.util.Arrays;
 
 import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
@@ -63,9 +64,10 @@ public class RasterAccessorExt extends RasterAccessor {
         super(raster, rect, rft, theColorModel);
 
         // gray to multiband expansion
-        if (rft.getNumBands() == 1 && (rft.getFormatTagID() & GRAY_EXPANSION_MASK) == GRAY_TO_RGB) {
+        int numBands = rft.getNumBands();
+        if (isGray(theColorModel, numBands) && (rft.getFormatTagID() & GRAY_EXPANSION_MASK) == GRAY_TO_RGB) {
             int newNumBands = targetBands;
-            // all zero, we are just replicating the arrays
+            boolean sourceAlpha = theColorModel.hasAlpha();
             int newBandDataOffsets[] = new int[newNumBands];
             for (int i = 0; i < newBandDataOffsets.length; i++) {
                 newBandDataOffsets[i] = this.bandDataOffsets[0];
@@ -74,6 +76,11 @@ public class RasterAccessorExt extends RasterAccessor {
             for (int i = 0; i < newBandOffsets.length; i++) {
                 newBandOffsets[i] = this.bandOffsets[0];
             }
+            // if there is a source alpha, retain it
+            if (sourceAlpha) {
+                newBandDataOffsets[newBandDataOffsets.length - 1] = this.bandDataOffsets[bandDataOffsets.length - 1];
+                newBandOffsets[newBandOffsets.length - 1] = this.bandOffsets[bandOffsets.length - 1];
+            }
 
             switch (formatTagID & DATATYPE_MASK) {
             case DataBuffer.TYPE_BYTE:
@@ -81,6 +88,12 @@ public class RasterAccessorExt extends RasterAccessor {
                 byteDataArrays = new byte[newNumBands][];
                 for (int i = 0; i < newNumBands; i++) {
                     byteDataArrays[i] = byteDataArray;
+                }
+                // did we go from opaque to translucent?
+                if (numBands == 1 && newNumBands == 4) {
+                    byte[] alpha = new byte[byteDataArray.length];
+                    Arrays.fill(alpha, (byte) 255);
+                    byteDataArrays[3] = alpha;
                 }
 
                 break;
@@ -91,6 +104,12 @@ public class RasterAccessorExt extends RasterAccessor {
                 shortDataArrays = new short[newNumBands][];
                 for (int i = 0; i < newNumBands; i++) {
                     shortDataArrays[i] = shortDataArray;
+                }
+                // did we go from opaque to translucent?
+                if (numBands == 1 && newNumBands == 4) {
+                    short[] alpha = new short[shortDataArray.length];
+                    Arrays.fill(alpha, Short.MAX_VALUE);
+                    shortDataArrays[3] = alpha;
                 }
 
                 break;
@@ -113,6 +132,12 @@ public class RasterAccessorExt extends RasterAccessor {
                 for (int i = 0; i < newNumBands; i++) {
                     intDataArrays[i] = intDataArray;
                 }
+                // did we go from opaque to translucent?
+                if (numBands == 1 && newNumBands == 4) {
+                    int[] alpha = new int[intDataArray.length];
+                    Arrays.fill(alpha, Integer.MAX_VALUE);
+                    intDataArrays[3] = alpha;
+                }
 
                 break;
 
@@ -122,6 +147,8 @@ public class RasterAccessorExt extends RasterAccessor {
                 for (int i = 0; i < newNumBands; i++) {
                     floatDataArrays[i] = floatDataArray;
                 }
+                // did we go from opaque to translucent? however, don't think it's possible
+                // to represent an alpha channel as float...
 
                 break;
 
@@ -131,6 +158,8 @@ public class RasterAccessorExt extends RasterAccessor {
                 for (int i = 0; i < newNumBands; i++) {
                     doubleDataArrays[i] = doubleDataArray;
                 }
+                // did we go from opaque to translucent? however, don't think it's possible
+                // to represent an alpha channel as double...
 
                 break;
 
@@ -138,7 +167,7 @@ public class RasterAccessorExt extends RasterAccessor {
             this.numBands = newNumBands;
             this.bandDataOffsets = newBandDataOffsets;
             this.bandOffsets = newBandDataOffsets;
-        } else if (rft.getNumBands() == 1
+        } else if (numBands == 1
                 && (rft.getFormatTagID() & GRAY_EXPANSION_MASK) == GRAY_SCALE) {
             int sourceDataType = raster.getSampleModel().getDataType();
             if (targetDataType == DataBuffer.TYPE_USHORT
@@ -154,6 +183,10 @@ public class RasterAccessorExt extends RasterAccessor {
                         + sourceDataType + " to data type " + targetDataType);
             }
         }
+    }
+
+    static boolean isGray(ColorModel theColorModel, int numBands) {
+        return numBands == 1 || (numBands == 2 && theColorModel.hasAlpha());
     }
 
     /**
@@ -195,7 +228,8 @@ public class RasterAccessorExt extends RasterAccessor {
         if (dst.getSampleModel().getNumBands() > 1) {
             for (int i = 0; i < srcs.length; i++) {
                 RenderedImage src = srcs[i];
-                if (src.getSampleModel().getNumBands() == 1
+                int numBands = src.getSampleModel().getNumBands();
+                if ((numBands == 1 || numBands == 2) 
                         && !(src.getColorModel() instanceof IndexColorModel)) {
                     tags[i] = applyMask(src, tags[i], GRAY_TO_RGB);
                 }
