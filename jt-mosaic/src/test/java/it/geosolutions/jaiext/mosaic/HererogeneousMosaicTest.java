@@ -22,8 +22,11 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.awt.*;
+import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.ComponentColorModel;
@@ -35,12 +38,12 @@ import java.awt.image.WritableRaster;
 import java.util.Arrays;
 
 import javax.media.jai.InterpolationNearest;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.RenderedOp;
+import javax.media.jai.TiledImage;
+import javax.media.jai.operator.BandSelectDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
@@ -146,7 +149,7 @@ public class HererogeneousMosaicTest {
         // RenderedImageBrowser.showChain(mosaic);
 
         // check it's RGB
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         // check the physical extent
         assertExtent(mosaic, 0, 0, 150, 100);
@@ -175,7 +178,7 @@ public class HererogeneousMosaicTest {
         // RenderedImageBrowser.showChain(mosaic);
 
         // check it's RGB
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         // check the physical extent
         assertExtent(mosaic, 0, 0, 150, 100);
@@ -204,7 +207,7 @@ public class HererogeneousMosaicTest {
         // RenderedImageBrowser.showChain(mosaic);
 
         // check it's RGB
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         // check the physical extent
         assertExtent(mosaic, 0, 0, 150, 100);
@@ -232,7 +235,7 @@ public class HererogeneousMosaicTest {
         // RenderedImageBrowser.showChain(mosaic);
 
         // check it's RGB
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         // check the physical extent
         assertExtent(mosaic, 0, 0, 150, 100);
@@ -244,6 +247,81 @@ public class HererogeneousMosaicTest {
         // verify the blue is still there
         mosaic.getData().getPixel(120, 10, pixel);
         assertArrayEquals(new int[] { 0, 0, 255 }, pixel);
+    }
+
+    @Test
+    public void testGrayAlphaRGBA() {
+        BufferedImage blueArgb = buildABGR(Color.BLUE);
+        RenderedOp blueRgbTranslated = TranslateDescriptor.create(blueArgb, 50f, 0f, new InterpolationNearest(), null);
+        RenderedImage grayAlpha = buildByteGrayAlpha(Color.GRAY);
+
+        RenderedOp mosaic =
+                MosaicDescriptor.create(
+                        new RenderedImage[] {grayAlpha, blueRgbTranslated},
+                        javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY,
+                        new PlanarImage[] {getAlpha(grayAlpha), getAlpha(blueRgbTranslated)},
+                        null,
+                        null,
+                        null,
+                        null,
+                        null);
+
+        // RenderedImageBrowser.showChain(mosaic);
+
+        // check it's RGB
+        assertRGB(mosaic, true);
+
+        // check the physical extent
+        assertExtent(mosaic, 0, 0, 150, 100);
+
+        // make sure we preserved the gray
+        int[] pixel = new int[4];
+        mosaic.getData().getPixel(10, 10, pixel);
+        // yes, the GRAY with this made up color model is turned into 55... not sure why, but it's not
+        // the core of the test
+        assertArrayEquals(new int[] { 55, 55, 55, 255 }, pixel);
+        // verify the blue is still there
+        mosaic.getData().getPixel(120, 10, pixel);
+        assertArrayEquals(new int[] { 0, 0, 255, 255 }, pixel);
+    }
+
+    @Test
+    public void testGrayRGBA() {
+        BufferedImage blueArgb = buildABGR(Color.BLUE);
+        RenderedOp blueRgbTranslated = TranslateDescriptor.create(blueArgb, 50f, 0f, new InterpolationNearest(), null);
+        RenderedImage grayAlpha = buildByteGray(Color.GRAY);
+
+        RenderedOp mosaic =
+                MosaicDescriptor.create(
+                        new RenderedImage[] {grayAlpha, blueRgbTranslated},
+                        javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY,
+                        new PlanarImage[] {getAlpha(grayAlpha), getAlpha(blueRgbTranslated)},
+                        null,
+                        null,
+                        null,
+                        null,
+                        null);
+
+        // RenderedImageBrowser.showChain(mosaic);
+
+        // check it's RGB
+        assertRGB(mosaic, true);
+
+        // check the physical extent
+        assertExtent(mosaic, 0, 0, 150, 100);
+
+        // make sure we preserved the gray
+        int[] pixel = new int[4];
+        mosaic.getData().getPixel(10, 10, pixel);
+        assertArrayEquals(new int[] { 128, 128, 128, 255 }, pixel);
+        // verify the blue is still there
+        mosaic.getData().getPixel(120, 10, pixel);
+        assertArrayEquals(new int[] { 0, 0, 255, 255 }, pixel);
+    }
+
+    private PlanarImage getAlpha(RenderedImage image) {
+        int[] retained = new int[] {image.getSampleModel().getNumBands() - 1};
+        return BandSelectDescriptor.create(image, retained, null);
     }
 
     @Test
@@ -289,7 +367,7 @@ public class HererogeneousMosaicTest {
         // RenderedImageBrowser.showChain(mosaic);
 
         // check it's RGB
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         // check the physical extent
         assertExtent(mosaic, 0, 0, 150, 100);
@@ -319,7 +397,7 @@ public class HererogeneousMosaicTest {
         // RenderedImageBrowser.showChain(mosaic);
 
         // check it's RGB
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         // check the physical extent
         assertExtent(mosaic, 0, 0, 150, 100);
@@ -394,7 +472,7 @@ public class HererogeneousMosaicTest {
                 new Range[] { RangeFactory.create((byte) 0, (byte) 0), null }, null);
 
         // it has been expanded
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         // RenderedImageBrowser.showChain(mosaic);
 
@@ -446,7 +524,7 @@ public class HererogeneousMosaicTest {
                 new double[] { 0, 0, 0 }, new Range[] { noDataBlue, noDataRed }, null);
 
         // it has been expanded
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         // RenderedImageBrowser.showChain(mosaic);
 
@@ -580,7 +658,7 @@ public class HererogeneousMosaicTest {
                 javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, null, null,
                 new double[] { 0 }, new Range[] { noData10, null }, null);
 
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         // check top left quadrant, should be yellow
         int[] pixel = new int[3];
@@ -620,7 +698,7 @@ public class HererogeneousMosaicTest {
 
         // RenderedImageBrowser.showChain(mosaic);
 
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         // check top left quadrant, should be yellow (nodata in the gray one)
         int[] pixel = new int[3];
@@ -644,13 +722,14 @@ public class HererogeneousMosaicTest {
         assertEquals(maxY, mosaic.getMaxY());
     }
 
-    private void assertRGB(RenderedOp mosaic) {
+    private void assertRGB(RenderedOp mosaic, boolean alpha) {
         SampleModel sm = mosaic.getSampleModel();
-        assertEquals(3, sm.getNumBands());
+        assertEquals(alpha ? 4 : 3, sm.getNumBands());
         assertEquals(DataBuffer.TYPE_BYTE, sm.getDataType());
         ColorModel cm = mosaic.getColorModel();
         assertEquals(3, cm.getNumColorComponents());
         assertThat(cm, instanceOf(ComponentColorModel.class));
+        assertEquals(alpha, cm.hasAlpha());
     }
 
     private void assertGray(RenderedOp mosaic, int dataType) {
@@ -671,7 +750,7 @@ public class HererogeneousMosaicTest {
     }
 
     private void checkMixedWhiteRed(RenderedOp mosaic) {
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         assertExtent(mosaic, 0, 0, 150, 100);
 
@@ -685,7 +764,7 @@ public class HererogeneousMosaicTest {
     }
 
     private void checkMixedRedWhite(RenderedOp mosaic) {
-        assertRGB(mosaic);
+        assertRGB(mosaic, false);
 
         assertExtent(mosaic, 0, 0, 150, 100);
 
@@ -750,6 +829,15 @@ public class HererogeneousMosaicTest {
         return bi;
     }
 
+    private BufferedImage buildABGR(Color color) {
+        BufferedImage bi = new BufferedImage(100, 100, BufferedImage.TYPE_4BYTE_ABGR);
+        Graphics2D gr = bi.createGraphics();
+        gr.setColor(color);
+        gr.fillRect(0, 0, 100, 100);
+        gr.dispose();
+        return bi;
+    }
+
     private BufferedImage buildByteGray(Color color) {
         BufferedImage bi = new BufferedImage(100, 100, BufferedImage.TYPE_BYTE_GRAY);
         Graphics2D gr = bi.createGraphics();
@@ -758,6 +846,21 @@ public class HererogeneousMosaicTest {
         gr.dispose();
         return bi;
     }
+
+    private RenderedImage buildByteGrayAlpha(Color color) {
+        ComponentColorModel colorModel = new ComponentColorModel(
+                ColorSpace.getInstance(ColorSpace.CS_GRAY), true, false, ColorModel.TRANSLUCENT,
+                DataBuffer.TYPE_BYTE);
+        SampleModel sampleModel = colorModel.createCompatibleSampleModel(100, 100);
+        TiledImage image = new TiledImage(0, 0, 100, 100, 0, 0, sampleModel, colorModel);
+        Graphics2D gr = image.createGraphics();
+        gr.setColor(color);
+        gr.fillRect(0, 0, 100, 100);
+        gr.dispose();
+        return image;
+    }
+
+    
 
     private BufferedImage buildUShortGray(Color color) {
         BufferedImage bi = new BufferedImage(100, 100, BufferedImage.TYPE_USHORT_GRAY);
