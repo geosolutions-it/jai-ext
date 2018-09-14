@@ -18,11 +18,15 @@
 package it.geosolutions.jaiext.mosaic;
 
 import java.awt.Rectangle;
+import java.awt.image.BandedSampleModel;
 import java.awt.image.ColorModel;
+import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
+import java.awt.image.PixelInterleavedSampleModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.util.Arrays;
 
 import javax.media.jai.RasterAccessor;
@@ -167,20 +171,69 @@ public class RasterAccessorExt extends RasterAccessor {
             this.numBands = newNumBands;
             this.bandDataOffsets = newBandDataOffsets;
             this.bandOffsets = newBandDataOffsets;
-        } else if (numBands == 1
-                && (rft.getFormatTagID() & GRAY_EXPANSION_MASK) == GRAY_SCALE) {
-            int sourceDataType = raster.getSampleModel().getDataType();
-            if (targetDataType == DataBuffer.TYPE_USHORT
-                    && sourceDataType == DataBuffer.TYPE_BYTE) {
-                for (int i = 0; i < intDataArrays.length; i++) {
-                    int[] pixels = intDataArrays[i];
-                    for (int j = 0; j < pixels.length; j++) {
-                        pixels[j] = byteToShort(pixels[j]);
+        } else {
+            SampleModel sampleModel = raster.getSampleModel();
+            if (numBands == 1
+                    && (rft.getFormatTagID() & GRAY_EXPANSION_MASK) == GRAY_SCALE) {
+                int sourceDataType = sampleModel.getDataType();
+                if (targetDataType == DataBuffer.TYPE_USHORT
+                        && sourceDataType == DataBuffer.TYPE_BYTE) {
+                    for (int i = 0; i < intDataArrays.length; i++) {
+                        int[] pixels = intDataArrays[i];
+                        for (int j = 0; j < pixels.length; j++) {
+                            pixels[j] = byteToShort(pixels[j]);
+                        }
                     }
+                } else {
+                    throw new IllegalArgumentException("Cannot perform gray rescaling from data type "
+                            + sourceDataType + " to data type " + targetDataType);
                 }
-            } else {
-                throw new IllegalArgumentException("Cannot perform gray rescaling from data type "
-                        + sourceDataType + " to data type " + targetDataType);
+            } else if (numBands == 3 && targetBands == 4 && sampleModel.getDataType() == DataBuffer.TYPE_BYTE) {
+                // RGB to RGBA, assuming the output is ordered as RGBA (which is what the mosaic layout does
+                // in case of color expansion
+                if (sampleModel instanceof ComponentSampleModel) {
+                    // turn it into a component representation
+                    byte[][] newDataArrays = new byte[targetBands][];
+                    for (int i = 0; i < numBands; i++) {
+                        newDataArrays[i] = new byte[raster.getWidth() * raster.getHeight()];
+                    }
+                    // scan the original array and redistribute
+                    int width = this.getWidth();
+                    int offset = this.scanlineStride - (width * numBands);
+                    int interleavedPos = 0;
+                    int pos = 0;
+                    int height = this.getHeight();
+                    int[] bandOffsets = ((ComponentSampleModel) sampleModel).getBandOffsets();
+                    for (int y = 0; y < height; y++) {
+                        for (int x = 0; x < width; x++) {
+                            for (int b = 0; b < numBands; b++) {
+                                newDataArrays[b][pos] = this.byteDataArrays[b][interleavedPos + bandOffsets[b]];
+                            }
+                            pos++;
+                        }
+                        interleavedPos += offset;
+                    }
+                    byte[] alpha = new byte[raster.getWidth() * raster.getHeight()];
+                    Arrays.fill(alpha, (byte) 255);
+                    newDataArrays[3] = alpha;
+
+                    this.byteDataArrays = newDataArrays;
+                    int newBandDataOffsets[] = new int[targetBands];
+                    for (int i = 0; i < newBandDataOffsets.length; i++) {
+                        newBandDataOffsets[i] = 0;
+                    }
+                    int newBandOffsets[] = new int[targetBands];
+                    for (int i = 0; i < newBandOffsets.length; i++) {
+                        newBandOffsets[i] = 0;
+                    }
+                    this.bandOffsets = newBandOffsets;
+                    this.bandDataOffsets = newBandDataOffsets;
+                    this.scanlineStride = width;
+                    this.pixelStride = 1;
+                    this.numBands = 4;
+                } else {
+                    throw new IllegalArgumentException("Expansion from RGB to RGBA on this sample model not supported: " + sampleModel);
+                }
             }
         }
     }
