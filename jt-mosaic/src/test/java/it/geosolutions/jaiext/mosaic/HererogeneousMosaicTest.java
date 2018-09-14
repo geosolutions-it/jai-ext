@@ -319,9 +319,44 @@ public class HererogeneousMosaicTest {
         assertArrayEquals(new int[] { 0, 0, 255, 255 }, pixel);
     }
 
+    @Test
+    public void testBGROpaqueAlpha() {
+        BufferedImage blueArgb = buildABGR(Color.BLUE);
+        RenderedOp blueRgbTranslated = TranslateDescriptor.create(blueArgb, 50f, 0f, new InterpolationNearest(), null);
+        BufferedImage redRGB = buildBGR(Color.RED);
+
+        RenderedOp mosaic =
+                MosaicDescriptor.create(
+                        new RenderedImage[] {redRGB, blueRgbTranslated},
+                        javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY,
+                        new PlanarImage[] {getAlpha(redRGB), getAlpha(blueRgbTranslated)},
+                        null,
+                        null,
+                        null,
+                        null,
+                        null);
+
+        assertRGB(mosaic, true);
+
+        // check the physical extent
+        assertExtent(mosaic, 0, 0, 150, 100);
+
+        // make sure we preserved the red
+        int[] pixel = new int[4];
+        mosaic.getData().getPixel(10, 10, pixel);
+        assertArrayEquals(new int[] { 255, 0, 0, 255 }, pixel);
+        // verify the blue is still there
+        mosaic.getData().getPixel(120, 10, pixel);
+        assertArrayEquals(new int[] { 0, 0, 255, 255 }, pixel);
+    }
+
     private PlanarImage getAlpha(RenderedImage image) {
-        int[] retained = new int[] {image.getSampleModel().getNumBands() - 1};
-        return BandSelectDescriptor.create(image, retained, null);
+        if (image.getColorModel().hasAlpha()) {
+            int[] retained = new int[] {image.getSampleModel().getNumBands() - 1};
+            return BandSelectDescriptor.create(image, retained, null);
+        } else {
+            return null;
+        }
     }
 
     @Test
