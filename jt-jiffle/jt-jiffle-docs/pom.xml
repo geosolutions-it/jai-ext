@@ -3,7 +3,7 @@
     <parent>
         <groupId>it.geosolutions.jaiext.jiffle</groupId>
         <artifactId>jt-jiffle</artifactId>
-        <version>1.0.25</version>
+        <version>1.0-SNAPSHOT</version>
     </parent>
     <artifactId>jt-jiffle-docs</artifactId>
     <packaging>jar</packaging>
