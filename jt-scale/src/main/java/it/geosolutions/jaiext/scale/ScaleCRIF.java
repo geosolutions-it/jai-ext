@@ -54,7 +54,7 @@ import it.geosolutions.jaiext.utilities.ImageUtilities;
  */
 public class ScaleCRIF extends CRIFImpl {
 
-    private static final float TOLERANCE = 0.01F;
+    static final float TOLERANCE = 0.01F;
 
     /** Constructor. */
     public ScaleCRIF() {
