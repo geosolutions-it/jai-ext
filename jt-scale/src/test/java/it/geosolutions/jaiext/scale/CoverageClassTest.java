@@ -21,11 +21,10 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import org.junit.Test;
-
-import java.awt.*;
+import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+import java.io.IOException;
 
 import javax.media.jai.Interpolation;
 import javax.media.jai.PlanarImage;
@@ -34,6 +33,9 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.NullDescriptor;
 
+import org.junit.Test;
+
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.range.Range;
@@ -50,7 +52,7 @@ public class CoverageClassTest extends TestScale {
 
     // this test-case is used for testing the getProperty() method of the ScaleDescriptor class
     @Test
-    public void testROIProperty() {
+    public void testROIProperty() throws IOException {
         ScaleDescriptor descriptor = new ScaleDescriptor();
         ScalePropertyGenerator propertyGenerator = (ScalePropertyGenerator) descriptor
                 .getPropertyGenerators()[0];
@@ -94,7 +96,7 @@ public class CoverageClassTest extends TestScale {
         scaleImgBil.getTile(0, 0);
         scaleImgBic.getTile(0, 0);
 
-        // Scale operstion on ROI
+        // Scale operation on ROI
         ROI roiNear = (ROI) propertyGenerator.getProperty("roi", scaleImgNear);
         ROI roiBil = (ROI) propertyGenerator.getProperty("roi", scaleImgBil);
         ROI roiBic = (ROI) propertyGenerator.getProperty("roi", scaleImgBic);
@@ -116,6 +118,13 @@ public class CoverageClassTest extends TestScale {
         int roiBilWidth = roiBil.getBounds().width;
         int roiBilHeighth = roiBil.getBounds().height;
 
+        Rectangle scaleImgBicBounds = new Rectangle(testIMG.getMinX() + interpBic.getLeftPadding(),
+                testIMG.getMinY() + interpBic.getTopPadding(), testIMG.getWidth()
+                        - interpBic.getWidth() + 2, testIMG.getHeight() - interpBic.getHeight() + 2);
+
+        int roiBoundBicWidth = (int) scaleImgBicBounds.getWidth();
+        int roiBoundBicHeight = (int) scaleImgBicBounds.getHeight();
+
         int roiBicWidth = roiBic.getBounds().width ;
         int roiBicHeight = roiBic.getBounds().height;
 
@@ -126,8 +135,8 @@ public class CoverageClassTest extends TestScale {
         assertEquals((int) (roiBoundWidth * scaleX), roiBilWidth);
         assertEquals((int) (roiBoundHeight * scaleY), roiBilHeighth);
         // Bicubic
-        assertEquals((int) (roiWidth * scaleX), roiBicWidth);
-        assertEquals((int) (roiHeight * scaleY), roiBicHeight);
+        assertEquals((int) (roiBoundBicWidth * scaleX), roiBicWidth);
+        assertEquals((int) (roiBoundBicHeight * scaleY), roiBicHeight);
 
         //Final Images disposal
         if(scaleImgNear instanceof RenderedOp){
@@ -139,7 +148,6 @@ public class CoverageClassTest extends TestScale {
         if(scaleImgBic instanceof RenderedOp){
             ((RenderedOp)scaleImgBic).dispose();
         }
-        
     }
 
     @Test
@@ -169,8 +177,8 @@ public class CoverageClassTest extends TestScale {
                 interpBilinear);
 
         // bicubic
-        InterpolationBilinear interpBicubic = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRange,
-                useROIAccessor, destinationNoData, dataType);
+        InterpolationBicubic interpBicubic = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRange,
+                useROIAccessor, destinationNoData, dataType, true, 8);
         testTranslation(useROIAccessor, dataType, xScale, yScale, xTrans, yTrans, imageValue,
                 interpBicubic);
     }

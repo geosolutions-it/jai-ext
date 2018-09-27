@@ -17,9 +17,13 @@
 */
 package it.geosolutions.rendered.viewer;
 
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.imageio.ImageReadParam;
 
 
 /**
@@ -35,6 +39,7 @@ public final class HTMLRenderers
     static
     {
         renderers.add(new ArrayRenderer());
+        renderers.add(new ImageReadParamRenderer());
         //renderers.add(new ROIGeometryRenderer());
     }
 
@@ -63,7 +68,7 @@ public final class HTMLRenderers
         public String render(Object o)
         {
             int length = Array.getLength(o);
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append('[');
             for (int i = 0; i < length; i++)
             {
@@ -78,6 +83,43 @@ public final class HTMLRenderers
                 }
             }
 
+            return sb.toString();
+        }
+
+    }
+
+    /** 
+     * Renderer for ImageReadParam parameters, such as source subsampling,
+     * source region rectangle, source bands, ...
+     */
+    private static class ImageReadParamRenderer implements HTMLRenderer {
+
+        public boolean canRender(Object o) {
+            return (o != null) && ImageReadParam.class.isAssignableFrom(o.getClass());
+        }
+
+        public String render(Object o) {
+            ImageReadParam param = (ImageReadParam) o;
+            StringBuilder sb = new StringBuilder();
+            sb.append('[').append(o.getClass().toString()).append("\n");
+            int ssx = param.getSourceXSubsampling();
+            int ssy = param.getSourceYSubsampling();
+            Rectangle rect = param.getSourceRegion();
+            Point p = param.getDestinationOffset();
+            int[] bands = param.getSourceBands();
+            if (rect != null) {
+                sb.append(String.format(
+                        "    SourceRegion(Rectangle)[x:%d, y:%d, width:%d, height:%d]\n", rect.x,
+                        rect.y, rect.width, rect.height));
+            }
+            sb.append(String.format("    SourceSubsampling[ssx:%d, ssy:%d]\n", ssx, ssy));
+            if (bands != null) {
+                sb.append("    SourceBands[").append(HTMLBuilder.render(bands)).append("]\n");
+            }
+            if (p != null) {
+                sb.append(String.format("    DestinationOffset(Point)[x:%d, y:%d]", p.x, p.y));
+            }
+            sb.append("]");
             return sb.toString();
         }
 

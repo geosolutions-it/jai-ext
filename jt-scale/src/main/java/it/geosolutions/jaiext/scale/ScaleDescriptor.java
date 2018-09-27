@@ -137,7 +137,8 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
                     && (Math.abs(ty - (int) ty) < ScaleCRIF.TOLERANCE)) {
                 // It's an integer translate.
                 roiImage = new TranslateIntOpImage(srcROI.getAsImage(), null, (int) tx, (int) ty);
-            } else if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear) {
+            } else if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear
+                    || interp instanceof InterpolationBicubic || interp instanceof javax.media.jai.InterpolationBicubic) {
                 // Setting constant image to be scaled as a ROI
 
                 ImageLayout2 layout = new ImageLayout2();
@@ -161,12 +162,14 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
                 // Make sure to specify tileCache, tileScheduler, tileRecyclier, by cloning hints.
                 RenderingHints scalingHints = op.getRenderingHints();
                 scalingHints.remove(JAI.KEY_IMAGE_LAYOUT);
+                scalingHints.put(JAI.KEY_BORDER_EXTENDER, extender);
 
-                
-
-                InterpolationBilinear interpBilinear = new InterpolationBilinear(
-                        interp.getSubsampleBitsH(), null, false, 0,
-                        constantImage.getSampleModel().getDataType());
+                boolean isBilinear = (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear);
+                Interpolation interpParam = isBilinear
+                        ? new InterpolationBilinear(interp.getSubsampleBitsH(), null, false, 0,
+                                constantImage.getSampleModel().getDataType())
+                        : new InterpolationBicubic(interp.getSubsampleBitsH(), null, false, 0,
+                                constantImage.getSampleModel().getDataType(), false, 8);
 
                 ParameterBlock paramBlock = new ParameterBlock();
                 paramBlock.setSource(constantImage, 0);
@@ -174,7 +177,7 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
                 paramBlock.add(Float.valueOf(sy));
                 paramBlock.add(Float.valueOf(tx));
                 paramBlock.add(Float.valueOf(ty));
-                paramBlock.add(interpBilinear);
+                paramBlock.add(interpParam);
                 if (srcROI instanceof ROIGeometry) {
                     ROIGeometry roiGeom = (ROIGeometry) srcROI;
                     Geometry geom = roiGeom.getAsGeometry();
@@ -185,10 +188,6 @@ class ScalePropertyGenerator extends PropertyGeneratorImpl {
                     paramBlock.add(srcROI);
                 }
                 roiImage = JAI.create("Scale", paramBlock, scalingHints);
-                
-                
-//                roiImage = new ScaleGeneralOpImage(constantImage, null, scalingHints, extender,
-//                        interpBilinear, sx, sy, tx, ty, false, null, null);
             } else {
                 PlanarImage roiMod = srcROI.getAsImage();
                 ParameterBlock paramBlock = new ParameterBlock();
