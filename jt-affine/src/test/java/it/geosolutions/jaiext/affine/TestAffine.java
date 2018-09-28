@@ -268,7 +268,7 @@ public class TestAffine extends TestBase {
 
                 Raster simpleTile = destinationIMG.getTile(xFirstTile, ySecondTile);
 
-                testEmptyImage(dataType, simpleTile, isBinary);
+                testEmptyImage(dataType, simpleTile, isBinary, interpNear);
 
             }
             // width
@@ -299,7 +299,7 @@ public class TestAffine extends TestBase {
                 int ySecondTile = destinationIMG.getMinTileY() + destinationIMG.getNumYTiles() - 1;
 
                 Raster simpleTile = destinationIMG.getTile(xFirstTile, ySecondTile);
-                testEmptyImage(dataType, simpleTile, isBinary);
+                testEmptyImage(dataType, simpleTile, isBinary, interpNear);
 
             }
             double actualX = destinationIMG.getMinX();
@@ -338,7 +338,7 @@ public class TestAffine extends TestBase {
 
                 Raster simpleTile = destinationIMG.getTile(xFirstTile, ySecondTile);
 
-                testEmptyImage(dataType, simpleTile, isBinary);
+                testEmptyImage(dataType, simpleTile, isBinary, interpNear);
 
             }
             // width
@@ -396,12 +396,13 @@ public class TestAffine extends TestBase {
         }
     }
 
-    protected void testEmptyImage(int dataType, Raster simpleTile, boolean isBinary) {
+    protected void testEmptyImage(int dataType, Raster simpleTile, boolean isBinary, boolean interpNear) {
 
-        int tileminX = simpleTile.getMinX();
-        int tileminY = simpleTile.getMinY();
-        int tileWidth = tileminX + simpleTile.getWidth();
-        int tileHeight = tileminY + simpleTile.getHeight();
+        int padding =  (interpNear ? 0 : 1);
+        int tileminX = simpleTile.getMinX() + padding;
+        int tileminY = simpleTile.getMinY() + padding;
+        int tileWidth = tileminX + simpleTile.getWidth() - padding;
+        int tileHeight = tileminY + simpleTile.getHeight() - padding;
         
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:
