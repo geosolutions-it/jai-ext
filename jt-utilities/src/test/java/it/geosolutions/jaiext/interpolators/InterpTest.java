@@ -17,14 +17,14 @@
 */
 package it.geosolutions.jaiext.interpolators;
 
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.iterators.RandomIterFactory;
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
+import com.sun.media.jai.util.Rational;
 
-import java.awt.Rectangle;
+import junit.framework.TestCase;
+
+import org.junit.Ignore;
+import org.junit.Test;
+
+import java.awt.*;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
@@ -39,11 +39,9 @@ import javax.media.jai.RasterFormatTag;
 import javax.media.jai.TiledImage;
 import javax.media.jai.iterator.RandomIter;
 
-import org.junit.Test;
-
-import com.sun.media.jai.util.Rational;
-
-import junit.framework.TestCase;
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 
 
 
@@ -305,7 +303,7 @@ public class InterpTest extends TestCase {
     }
 
     @Test
-    public void testInterpolatorBicubicNew() {
+    public void TestInterpolatorBicubicNew() {
 
         // Data Initialization and image creation
         if (!initialSetup) {
@@ -1653,7 +1651,7 @@ public class InterpTest extends TestCase {
         shift2 = 2 * subsampleBits;
         round2 = 1 << (shift2 - 1);
         destinationNoData = 80;
-
+        
         testImages = new RenderedImage[DataBuffer.TYPE_DOUBLE + 1];
         Raster[] testRasters = new Raster[testImages.length];
         // Cycle for creating all of the various image, each of them with a different dataType
@@ -1976,154 +1974,9 @@ public class InterpTest extends TestCase {
     private Number computeValue(int dataType, int s00, int s01, int s10, int s11, int w00, int w01,
             int w10, int w11, int xfrac, int yfrac) {
 
-        int s0 = 0;
-        int s1 = 0;
-        int s = 0;
-
-        long s0L = 0;
-        long s1L = 0;
-
-      //Complementary values of the fractional part
-        int xfracCompl= (int) Math.pow(2, subsampleBits) - xfrac;
-        int yfracCompl= (int) Math.pow(2, subsampleBits) - yfrac;
-        
-        int shift = 29 - subsampleBits;
-        // For Integer value is possible that a bitshift of "subsampleBits" could shift over the integer bit number
-        // so the samples, in this case, are expanded to Long.
-        boolean s0Long = ((s00 | s10) >>> shift == 0);
-        boolean s1Long = ((s01 | s11) >>> shift == 0);
-        // If all the weight are 0 the destination NO DATA is returned
-        if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
-            return destinationNoData;
-        }
-        // Otherwise all the possible weight combination are checked
-        if (w00 == 0 || w01 == 0 || w10 == 0 || w11 == 0) {
-            // For integers is even considered the case when the integers are expanded to longs
-            if (dataType == DataBuffer.TYPE_INT) {
-
-                if (w00 == 0 && w01 == 0) {
-
-                    s0L = 0;
-                } else if (w00 == 0) { // w01 = 1
-                    if (s1Long) {
-                        s0L = -s01*xfracCompl + (s01 << subsampleBits);
-                    } else {
-                        s0L = -s01*xfracCompl + ((long) s01 << subsampleBits);
-                    }
-                } else if (w01 == 0) {// w00 = 1
-                    if (s0Long) {
-                        s0L = -s00*xfrac + (s00 << subsampleBits);
-                    } else {
-                        s0L = -s00*xfrac + ((long) s00 << subsampleBits);
-                    }
-                } else {// w00 = 1 & W01 = 1
-                    if (s0Long) {
-                        if (s1Long) {
-                            s0L = (s01 - s00) * xfrac + (s00 << subsampleBits);
-                        } else {
-                            s0L = ((long) s01 - s00) * xfrac + (s00 << subsampleBits);
-                        }
-                    } else {
-                        s0L = ((long) s01 - s00) * xfrac + ((long) s00 << subsampleBits);
-                    }
-                }
-
-                // lower value
-
-                if (w10 == 0 && w11 == 0) {
-                    s1L = 0;
-                } else if (w10 == 0) { // w11 = 1
-                    if (s1Long) {
-                        s1L = -s11*xfracCompl + (s11 << subsampleBits);
-                    } else {
-                        s1L = -s11*xfracCompl + ((long) s11 << subsampleBits);
-                    }
-                } else if (w11 == 0) { // w10 = 1
-                    if (s0Long) {// - (s10 * xfrac); //s10;
-                        s1L = -s10*xfrac + (s10 << subsampleBits);
-                    } else {
-                        s1L = -s10*xfrac + ((long) s10 << subsampleBits);
-                    }
-                } else {
-                    if (s0Long) {
-                        if (s1Long) {
-                            s1L = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                        } else {
-                            s1L = ((long) s11 - s10) * xfrac + (s10 << subsampleBits);
-                        }
-                    } else {
-                        s1L = ((long) s11 - s10) * xfrac + ((long) s10 << subsampleBits);
-                    }
-                }
-                if (w00 == 0 && w01 == 0) {
-                    s = (int) ((-s1L*yfracCompl + (s1L << subsampleBits) + round2) >> shift2);
-                } else {
-                    if (w10 == 0 && w11 == 0) {
-                        s = (int) ((-s0L*yfrac + (s0L << subsampleBits) + round2) >> shift2);
-                    } else {
-                        s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
-                    }
-                }
-
-            } else {
-                // Interpolation for type byte, ushort, short
-                if (w00 == 0 && w01 == 0) {
-                    s0 = 0;
-                } else if (w00 == 0) { // w01 = 1
-                    s0 = -s01*xfracCompl + (s01 << subsampleBits);
-                } else if (w01 == 0) {// w00 = 1
-                    s0 = -s00*xfrac + (s00 << subsampleBits);// s00;
-                } else {// w00 = 1 & W01 = 1
-                    s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
-                }
-
-                // lower value
-
-                if (w10 == 0 && w11 == 0) {
-                    s1 = 0;
-                } else if (w10 == 0) { // w11 = 1
-                    s1 = -s11*xfracCompl + (s11 << subsampleBits);
-                } else if (w11 == 0) { // w10 = 1
-                    s1 = -s10*xfrac + (s10 << subsampleBits);// - (s10 * xfrac); //s10;
-                } else {
-                    s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                }
-
-                if (w00 == 0 && w01 == 0) {
-                    s = (-s1*yfracCompl + (s1 << subsampleBits) + round2) >> shift2;
-                } else {
-                    if (w10 == 0 && w11 == 0) {
-                        s = (-s0*yfrac + (s0 << subsampleBits) + round2) >> shift2;
-                    } else {
-                        s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
-                    }
-                }
-
-            }
-        } else {
-            // Perform the bilinear interpolation
-            if (dataType == DataBuffer.TYPE_INT) {
-                if (s0Long) {
-                    if (s1Long) {
-                        s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
-                        s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                        s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
-                    } else {
-                        s0L = ((long) s01 - s00) * xfrac + (s00 << subsampleBits);
-                        s1L = ((long) s11 - s10) * xfrac + (s10 << subsampleBits);
-                        s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
-                    }
-                } else {
-                    s0L = ((long) s01 - s00) * xfrac + ((long) s00 << subsampleBits);
-                    s1L = ((long) s11 - s10) * xfrac + ((long) s10 << subsampleBits);
-                    s = (int) (((s1L - s0L) * yfrac + (s0L << subsampleBits) + round2) >> shift2);
-                }
-            } else {
-                s0 = (s01 - s00) * xfrac + (s00 << subsampleBits);
-                s1 = (s11 - s10) * xfrac + (s10 << subsampleBits);
-                s = ((s1 - s0) * yfrac + (s0 << subsampleBits) + round2) >> shift2;
-            }
-        }
+        InterpolationBilinear interpolator = new InterpolationBilinear(subsampleBits,
+                RangeFactory.create(noData, noData), true, destinationNoData, dataType);
+        int s = interpolator.computeValue(s00, s01, s10, s11, w00, w01, w10, w11, xfrac, yfrac);
 
         switch (dataType) {
         case DataBuffer.TYPE_BYTE:

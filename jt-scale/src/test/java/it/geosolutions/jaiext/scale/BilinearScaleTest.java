@@ -17,9 +17,12 @@
 */
 package it.geosolutions.jaiext.scale;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.awt.RenderingHints;
+import org.junit.Test;
+
+import java.awt.*;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
@@ -30,10 +33,11 @@ import javax.media.jai.BorderExtender;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
+import javax.xml.crypto.Data;
 
-import org.junit.Test;
-
+import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
@@ -43,7 +47,9 @@ import it.geosolutions.jaiext.range.RangeFactory;
  * performs the scale operation with all the components. The last method is similar to the 4th method but executes its operations 
  * on binary images. 
  */
-public class BilinearScaleTest extends TestScale{
+public class BilinearScaleTest extends TestScale {
+    
+    public static boolean VERBOSE = Boolean.getBoolean("verbose");
 
     @Test
     public void testImageScaling() {
@@ -186,5 +192,150 @@ public class BilinearScaleTest extends TestScale{
     public void testInterpolateInHole() {
         assertInterpolateInHole(Interpolation.getInstance(Interpolation.INTERP_BILINEAR));
     }
+
+    @Test
+    public void testBilinearInterpolationROI() {
+        for (int i = 0; i <= 5; i++) {
+            if (VERBOSE) {
+                System.out.println("Testing data type " + i);
+            }
+            // using ROI accessor
+            RenderedImage image =
+                    buildImageWithROI(
+                            i,
+                            Interpolation.getInstance(Interpolation.INTERP_BILINEAR),
+                            true,
+                            null);
+            assertBilinearInterpolationROI(image);
+            if (VERBOSE) {
+                System.out.println("Testing data type " + i + " no roi accessor");
+            }
+            // not using ROI accessor
+            image =
+                    buildImageWithROI(
+                            i,
+                            Interpolation.getInstance(Interpolation.INTERP_BILINEAR),
+                            false,
+                            null);
+            assertBilinearInterpolationROI(image);
+        }
+    }
+
+    public void assertBilinearInterpolationROI(RenderedImage image) {
+        // Expected layout is
+        // 0 0 0 0 0 0 0 0
+        // 0 0 0 0 0 0 0 0
+        // 0 0 2 2 3 3 0 0
+        // 0 0 2 3 3 3 0 0
+        // 0 0 3 3 4 4 0 0
+        // 0 0 3 3 4 4 0 0
+        // 0 0 0 0 0 0 0 0
+        // 0 0 0 0 0 0 0 0
+        Raster data = image.getData();
+
+        printValues(image, data);
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                int sample;
+                if (image.getSampleModel().getDataType() < DataBuffer.TYPE_FLOAT) {
+                    sample = data.getSample(c, r, 0);
+                } else {
+                    sample = (int) Math.round(data.getSampleDouble(c, r, 0));
+                }
+                
+                if (r < 2 || r > 5 || c < 2 || c > 5) {
+                    assertEquals("Unexpected value at " + c + " " + r, 0, sample);
+                } else if (r < 4 && c < 4 && !(r == 3 && c == 3)) {
+                    assertEquals("Unexpected value at " + c + " " + r, 2, sample);
+                } else if (r < 4 || (r < 6 && c < 4)) {
+                    assertEquals("Unexpected value at " + c + " " + r, 3, sample);
+                } else {
+                    assertEquals("Unexpected value at " + c + " " + r, 4, sample);
+                }
+            }
+        }
+    }
+
+    public void printValues(RenderedImage image, Raster data) {
+        if (VERBOSE) {
+            for (int r = 0; r < 8; r++) {
+                for (int c = 0; c < 8; c++) {
+                    if (image.getSampleModel().getDataType() < DataBuffer.TYPE_FLOAT) {
+                        int sample = data.getSample(c, r, 0);
+                        System.out.print(sample + " ");
+                    } else {
+                        double sample = data.getSampleDouble(c, r, 0);
+                        System.out.print(String.format("%1$8s", sample));
+                    }
+                }
+                System.out.println();
+            }
+        }
+    }
+
+    @Test
+    public void testBilinearInterpolationROINoData() {
+        for (int i = 0; i <= 5; i++) {
+            if (VERBOSE) {
+                System.out.println("Testing data type " + i);
+            }
+            // using ROI accessor
+            Range noData = RangeFactory.create(2, 2);
+            RenderedImage image =
+                    buildImageWithROI(
+                            i,
+                            Interpolation.getInstance(Interpolation.INTERP_BILINEAR),
+                            true,
+                            noData);
+            assertBilinearInterpolationROINoData(image);
+            if (VERBOSE) {
+                System.out.println("Testing data type " + i + " no roi accessor");
+            }
+            // not using ROI accessor
+            image =
+                    buildImageWithROI(
+                            i,
+                            Interpolation.getInstance(Interpolation.INTERP_BILINEAR),
+                            false,
+                            noData);
+            assertBilinearInterpolationROINoData(image);
+        }
+    }
+
+    public void assertBilinearInterpolationROINoData(RenderedImage image) {
+        // Expected layout is
+        // 0 0 0 0 0 0 0 0
+        // 0 0 0 0 0 0 0 0
+        // 0 0 0 0 3 3 0 0
+        // 0 0 0 0 3 3 0 0
+        // 0 0 3 3 4 4 0 0
+        // 0 0 3 3 4 4 0 0
+        // 0 0 0 0 0 0 0 0
+        // 0 0 0 0 0 0 0 0
+        Raster data = image.getData();
+
+        printValues(image, data);
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                int sample;
+                if (image.getSampleModel().getDataType() < DataBuffer.TYPE_FLOAT) {
+                    sample = data.getSample(c, r, 0);
+                } else {
+                    sample = (int) Math.round(data.getSampleDouble(c, r, 0));
+                }
+
+                if (r < 2 || r > 5 || c < 2 || c > 5 || (r < 4 && c < 4)) {
+                    assertEquals("Unexpected value at " + c + " " + r, 0, sample);
+                } else if (r < 4 && c < 4 && !(r == 3 && c == 3)) {
+                    assertEquals("Unexpected value at " + c + " " + r, 2, sample);
+                } else if (r < 4 || (r < 6 && c < 4)) {
+                    assertEquals("Unexpected value at " + c + " " + r, 3, sample);
+                } else {
+                    assertEquals("Unexpected value at " + c + " " + r, 4, sample);
+                }
+            }
+        }
+    }
+
 
 }
