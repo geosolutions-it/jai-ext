@@ -555,55 +555,52 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
-                                if (roiBounds.contains(x0, y0)) {
 
-                                    int temp = 0;
-                                    // X offset initialization
-                                    int offsetX = 4 * xfrac[i];
-                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                    // and by 1 on the y axis.
-                                    for (int h = 0; h < 4; h++) {
-                                        for (int z = 0; z < 4; z++) {
-                                            // Selection of one pixel
-                                            pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                    * srcPixelStride + (h - 1) * srcScanlineStride] & 0xff;
-                                            temp += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xff;
-                                        }
+                                int temp = 0;
+                                // X offset initialization
+                                int offsetX = 4 * xfrac[i];
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                // and by 1 on the y axis.
+                                for (int h = 0; h < 4; h++) {
+                                    for (int z = 0; z < 4; z++) {
+                                        // Selection of one pixel
+                                        pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                * srcPixelStride + (h - 1) * srcScanlineStride] & 0xff;
+                                        final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ? 
+                                                roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                        temp += increment & 0xff;
                                     }
-                                    // Control if the 16 pixel are outside the ROI
-                                    if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataByte[k];
-                                    } else {
-                                        long sum = 0;
-                                        int s = 0;
-
-                                        for (int h = 0; h < 4; h++) {
-                                            // Row temporary sum initialization
-                                            long tempSum = 0;
-                                            for (int z = 0; z < 4; z++) {
-                                                // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
-                                            }
-                                            // Vertical sum update
-                                            sum += ((tempSum + round) >> precisionBits)
-                                                    * dataVi[offsetY + h];
-                                        }
-                                        // Interpolation
-                                        s = (int) ((sum + round) >> precisionBits);
-
-                                        // Clamp
-                                        if (s > 255) {
-                                            s = 255;
-                                        } else if (s < 0) {
-                                            s = 0;
-                                        }
-
-                                        dstData[dstPixelOffset] = (byte) (s & 0xff);
-                                    }
-                                } else {
-                                    // The destination no data value is saved in the destination array
+                                }
+                                // Control if the 16 pixel are outside the ROI
+                                if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataByte[k];
+                                } else {
+                                    long sum = 0;
+                                    int s = 0;
+
+                                    for (int h = 0; h < 4; h++) {
+                                        // Row temporary sum initialization
+                                        long tempSum = 0;
+                                        for (int z = 0; z < 4; z++) {
+                                            // Update of the temporary sum
+                                            tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
+                                        }
+                                        // Vertical sum update
+                                        sum += ((tempSum + round) >> precisionBits)
+                                                * dataVi[offsetY + h];
+                                    }
+                                    // Interpolation
+                                    s = (int) ((sum + round) >> precisionBits);
+
+                                    // Clamp
+                                    if (s > 255) {
+                                        s = 255;
+                                    } else if (s < 0) {
+                                        s = 0;
+                                    }
+
+                                    dstData[dstPixelOffset] = (byte) (s & 0xff);
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -893,85 +890,80 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     int x0 = src.getX() + posx / srcPixelStride;
                                     int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int pos = posx + posy;
 
-                                        int pos = posx + posy;
+                                    // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
+                                    // Otherwise it takes the related value.
 
-                                        // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                        // Otherwise it takes the related value.
+                                    // int tempND = 0;
+                                    int tempROI = 0;
+                                    // X offset initialization
+                                    int offsetX = 4 * xfrac[i];
+                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                    // and by roiscanlinestride on the y axis.
+                                    for (int h = 0; h < 4; h++) {
+                                        for (int z = 0; z < 4; z++) {
+                                            // Selection of one pixel
+                                            pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                    * srcPixelStride + (h - 1)
+                                                    * srcScanlineStride] & 0xff;
 
-                                        // int tempND = 0;
-                                        int tempROI = 0;
-                                        // X offset initialization
-                                        int offsetX = 4 * xfrac[i];
-                                        // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                        // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                        // and by roiscanlinestride on the y axis.
-                                        for (int h = 0; h < 4; h++) {
-                                            for (int z = 0; z < 4; z++) {
-                                                // Selection of one pixel
-                                                pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                        * srcPixelStride + (h - 1)
-                                                        * srcScanlineStride] & 0xff;
+                                            final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                    roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                            tempROI += increment & 0xff;
 
-                                                tempROI += roiIter.getSample(x0 + h - 1,
-                                                        y0 + z - 1, 0) & 0xff;
-
-                                                if (byteLookupTable[k][(int) pixelKernel[h][z]] != destinationNoDataByte[k]) {
-                                                    weight |= (0x01 << (4 * h + z));
-                                                } else {
-                                                    weight &= (0xffff - (0x01 << 4 * h + z));
-                                                }
+                                            if (byteLookupTable[k][(int) pixelKernel[h][z]] != destinationNoDataByte[k]) {
+                                                weight |= (0x01 << (4 * h + z));
+                                            } else {
+                                                weight &= (0xffff - (0x01 << 4 * h + z));
                                             }
                                         }
+                                    }
 
-                                        // Control if the 16 pixel are outside the ROI
-                                        if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataByte[k];
-                                        } else {
-
-                                            long sum = 0;
-                                            int s = 0;
-
-                                            for (int h = 0; h < 4; h++) {
-                                                // Row temporary sum initialization
-                                                long tempSum = 0;
-                                                temp = (byte) ((weight >> 4 * h) & 0x0F);
-                                                long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        temp, emptyArray);
-                                                for (int z = 0; z < 4; z++) {
-                                                    // Update of the temporary sum
-                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
-                                                }
-                                                if (temp > 0) {
-                                                    weightVert |= (0x01 << h);
-                                                } else {
-                                                    weightVert &= (0x0F - (0x01 << h));
-                                                }
-                                                sumArray[h] = ((tempSum + round) >> precisionBits);
-                                            }
-
-                                            long[] tempData = bicubicInpainting(sumArray,
-                                                    weightVert, emptyArray);
-                                            // weight reset
-                                            weight = 0;
-                                            weightVert = 0;
-                                            // Vertical sum update
-                                            for (int h = 0; h < 4; h++) {
-                                                // Update of the temporary sum
-                                                sum += tempData[h] * dataVi[offsetY + h];
-                                            }
-
-                                            // Interpolation
-                                            s = (int) ((sum + round) >> precisionBits);
-
-                                            // Clamp and overshooting fix
-                                            s = InterpolationBicubic.clampAndFixOvershootingByte(s, destinationNoDataByte[k]);
-                                            dstData[dstPixelOffset] = (byte) (s & 0xff);
-                                        }
-
-                                    } else {
+                                    // Control if the 16 pixel are outside the ROI
+                                    if (weight == 0 || tempROI == 0) {
                                         dstData[dstPixelOffset] = destinationNoDataByte[k];
+                                    } else {
+
+                                        long sum = 0;
+                                        int s = 0;
+
+                                        for (int h = 0; h < 4; h++) {
+                                            // Row temporary sum initialization
+                                            long tempSum = 0;
+                                            temp = (byte) ((weight >> 4 * h) & 0x0F);
+                                            long[] tempData = bicubicInpainting(pixelKernel[h],
+                                                    temp, emptyArray);
+                                            for (int z = 0; z < 4; z++) {
+                                                // Update of the temporary sum
+                                                tempSum += (tempData[z] * dataHi[offsetX + z]);
+                                            }
+                                            if (temp > 0) {
+                                                weightVert |= (0x01 << h);
+                                            } else {
+                                                weightVert &= (0x0F - (0x01 << h));
+                                            }
+                                            sumArray[h] = ((tempSum + round) >> precisionBits);
+                                        }
+
+                                        long[] tempData = bicubicInpainting(sumArray,
+                                                weightVert, emptyArray);
+                                        // weight reset
+                                        weight = 0;
+                                        weightVert = 0;
+                                        // Vertical sum update
+                                        for (int h = 0; h < 4; h++) {
+                                            // Update of the temporary sum
+                                            sum += tempData[h] * dataVi[offsetY + h];
+                                        }
+
+                                        // Interpolation
+                                        s = (int) ((sum + round) >> precisionBits);
+
+                                        // Clamp and overshooting fix
+                                        s = InterpolationBicubic.clampAndFixOvershootingByte(s, destinationNoDataByte[k]);
+                                        dstData[dstPixelOffset] = (byte) (s & 0xff);
                                     }
 
                                     // destination pixel offset update
@@ -1201,50 +1193,47 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
-                                if (roiBounds.contains(x0, y0)) {
+                                int temp = 0;
+                                // X offset initialization
+                                int offsetX = 4 * xfrac[i];
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                // and by roiscanlinestride on the y axis.
+                                for (int h = 0; h < 4; h++) {
+                                    for (int z = 0; z < 4; z++) {
+                                        // Selection of one pixel
+                                        pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
+                                        final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
 
-                                    int temp = 0;
-                                    // X offset initialization
-                                    int offsetX = 4 * xfrac[i];
-                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                    // and by roiscanlinestride on the y axis.
-                                    for (int h = 0; h < 4; h++) {
-                                        for (int z = 0; z < 4; z++) {
-                                            // Selection of one pixel
-                                            pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                    * srcPixelStride + (h - 1) * srcScanlineStride] & 0xffff;
-                                            temp += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) & 0xffff;
-                                        }
+                                        temp += increment & 0xffff;
                                     }
-                                    // Control if the 16 pixel are outside the ROI
-                                    if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataUShort[k];
-                                    } else {
-                                        long sum = 0;
-                                        int s = 0;
-
-                                        for (int h = 0; h < 4; h++) {
-                                            // Row temporary sum initialization
-                                            long tempSum = 0;
-                                            for (int z = 0; z < 4; z++) {
-                                                // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
-                                            }
-                                            // Vertical sum update
-                                            sum += ((tempSum + round) >> precisionBits)
-                                                    * dataVi[offsetY + h];
-                                        }
-                                        // Interpolation
-                                        s = (int) ((sum + round) >> precisionBits);
-
-                                        // Clamp and overshooting fix
-                                        s = InterpolationBicubic.clampAndFixOvershootingUShort(s, destinationNoDataUShort[k]);
-                                        dstData[dstPixelOffset] = (short) (s & 0xffff);
-                                    }
-                                } else {
-                                    // The destination no data value is saved in the destination array
+                                }
+                                // Control if the 16 pixel are outside the ROI
+                                if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataUShort[k];
+                                } else {
+                                    long sum = 0;
+                                    int s = 0;
+
+                                    for (int h = 0; h < 4; h++) {
+                                        // Row temporary sum initialization
+                                        long tempSum = 0;
+                                        for (int z = 0; z < 4; z++) {
+                                            // Update of the temporary sum
+                                            tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
+                                        }
+                                        // Vertical sum update
+                                        sum += ((tempSum + round) >> precisionBits)
+                                                * dataVi[offsetY + h];
+                                    }
+                                    // Interpolation
+                                    s = (int) ((sum + round) >> precisionBits);
+
+                                    // Clamp and overshooting fix
+                                    s = InterpolationBicubic.clampAndFixOvershootingUShort(s, destinationNoDataUShort[k]);
+                                    dstData[dstPixelOffset] = (short) (s & 0xffff);
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -1509,83 +1498,77 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     int x0 = src.getX() + posx / srcPixelStride;
                                     int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int pos = posx + posy;
 
-                                        int pos = posx + posy;
+                                    // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
+                                    // Otherwise it takes the related value.
 
-                                        // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                        // Otherwise it takes the related value.
+                                    int tempROI = 0;
+                                    // X offset initialization
+                                    int offsetX = 4 * xfrac[i];
+                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                    // and by roiscanlinestride on the y axis.
+                                    for (int h = 0; h < 4; h++) {
+                                        for (int z = 0; z < 4; z++) {
+                                            // Selection of one pixel
+                                            pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                    * srcPixelStride + (h - 1)
+                                                    * srcScanlineStride] & 0xffff;
+                                            final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                    roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                            tempROI += increment & 0xffff;
 
-                                        int tempROI = 0;
-                                        // X offset initialization
-                                        int offsetX = 4 * xfrac[i];
-                                        // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                        // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                        // and by roiscanlinestride on the y axis.
-                                        for (int h = 0; h < 4; h++) {
-                                            for (int z = 0; z < 4; z++) {
-                                                // Selection of one pixel
-                                                pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                        * srcPixelStride + (h - 1)
-                                                        * srcScanlineStride] & 0xffff;
-
-                                                tempROI += roiIter.getSample(x0 + h - 1,
-                                                        y0 + z - 1, 0) & 0xffff;
-
-                                                if (!noData.contains((short) pixelKernel[h][z])) {
-                                                    weight |= (0x01 << (4 * h + z));
-                                                } else {
-                                                    weight &= (0xffff - (0x01 << 4 * h + z));
-                                                }
+                                            if (!noData.contains((short) pixelKernel[h][z])) {
+                                                weight |= (0x01 << (4 * h + z));
+                                            } else {
+                                                weight &= (0xffff - (0x01 << 4 * h + z));
                                             }
                                         }
+                                    }
 
-                                        // Control if the 16 pixel are outside the ROI
-                                        if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataUShort[k];
-                                        } else {
-
-                                            long sum = 0;
-                                            int s = 0;
-
-                                            for (int h = 0; h < 4; h++) {
-                                                // Row temporary sum initialization
-                                                long tempSum = 0;
-                                                temp = (byte) ((weight >> 4 * h) & 0x0F);
-                                                long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        temp, emptyArray);
-                                                for (int z = 0; z < 4; z++) {
-                                                    // Update of the temporary sum
-                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
-                                                }
-                                                if (temp > 0) {
-                                                    weightVert |= (0x01 << h);
-                                                } else {
-                                                    weightVert &= (0x0F - (0x01 << h));
-                                                }
-                                                sumArray[h] = ((tempSum + round) >> precisionBits);
-                                            }
-
-                                            long[] tempData = bicubicInpainting(sumArray,
-                                                    weightVert, emptyArray);
-                                            weight = 0;
-                                            weightVert = 0;
-                                            // Vertical sum update
-                                            for (int h = 0; h < 4; h++) {
-                                                // Update of the temporary sum
-                                                sum += tempData[h] * dataVi[offsetY + h];
-                                            }
-
-                                            // Interpolation
-                                            s = (int) ((sum + round) >> precisionBits);
-
-                                            // Clamp and overshooting fix
-                                            s = InterpolationBicubic.clampAndFixOvershootingUShort(s, destinationNoDataUShort[k]);
-                                            dstData[dstPixelOffset] = (short) (s & 0xffff);
-                                        }
-
-                                    } else {
+                                    // Control if the 16 pixel are outside the ROI
+                                    if (weight == 0 || tempROI == 0) {
                                         dstData[dstPixelOffset] = destinationNoDataUShort[k];
+                                    } else {
+
+                                        long sum = 0;
+                                        int s = 0;
+
+                                        for (int h = 0; h < 4; h++) {
+                                            // Row temporary sum initialization
+                                            long tempSum = 0;
+                                            temp = (byte) ((weight >> 4 * h) & 0x0F);
+                                            long[] tempData = bicubicInpainting(pixelKernel[h],
+                                                    temp, emptyArray);
+                                            for (int z = 0; z < 4; z++) {
+                                                // Update of the temporary sum
+                                                tempSum += (tempData[z] * dataHi[offsetX + z]);
+                                            }
+                                            if (temp > 0) {
+                                                weightVert |= (0x01 << h);
+                                            } else {
+                                                weightVert &= (0x0F - (0x01 << h));
+                                            }
+                                            sumArray[h] = ((tempSum + round) >> precisionBits);
+                                        }
+
+                                        long[] tempData = bicubicInpainting(sumArray,
+                                                weightVert, emptyArray);
+                                        weight = 0;
+                                        weightVert = 0;
+                                        // Vertical sum update
+                                        for (int h = 0; h < 4; h++) {
+                                            // Update of the temporary sum
+                                            sum += tempData[h] * dataVi[offsetY + h];
+                                        }
+
+                                        // Interpolation
+                                        s = (int) ((sum + round) >> precisionBits);
+
+                                        // Clamp and overshooting fix
+                                        s = InterpolationBicubic.clampAndFixOvershootingUShort(s, destinationNoDataUShort[k]);
+                                        dstData[dstPixelOffset] = (short) (s & 0xffff);
                                     }
 
                                     // destination pixel offset update
@@ -1819,55 +1802,51 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
-                                if (roiBounds.contains(x0, y0)) {
-
-                                    int temp = 0;
-                                    // X offset initialization
-                                    int offsetX = 4 * xfrac[i];
-                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                    // and by roiscanlinestride on the y axis.
-                                    for (int h = 0; h < 4; h++) {
-                                        for (int z = 0; z < 4; z++) {
-                                            // Selection of one pixel
-                                            pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                    * srcPixelStride + (h - 1) * srcScanlineStride];
-                                            temp += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0);
-                                        }
+                                int temp = 0;
+                                // X offset initialization
+                                int offsetX = 4 * xfrac[i];
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                // and by roiscanlinestride on the y axis.
+                                for (int h = 0; h < 4; h++) {
+                                    for (int z = 0; z < 4; z++) {
+                                        // Selection of one pixel
+                                        pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                * srcPixelStride + (h - 1) * srcScanlineStride];
+                                        final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                        temp += increment & 0xffff;
                                     }
-                                    // Control if the 16 pixel are outside the ROI
-                                    if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataShort[k];
-                                    } else {
-                                        long sum = 0;
-                                        int s = 0;
-
-                                        for (int h = 0; h < 4; h++) {
-                                            // Row temporary sum initialization
-                                            long tempSum = 0;
-                                            for (int z = 0; z < 4; z++) {
-                                                // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
-                                            }
-                                            // Vertical sum update
-                                            sum += ((tempSum + round) >> precisionBits)
-                                                    * dataVi[offsetY + h];
-                                        }
-                                        // Interpolation
-                                        s = (int) ((sum + round) >> precisionBits);
-
-                                        // Clamp
-                                        if (s > Short.MAX_VALUE) {
-                                            s = Short.MAX_VALUE;
-                                        } else if (s < Short.MIN_VALUE) {
-                                            s = Short.MIN_VALUE;
-                                        }
-
-                                        dstData[dstPixelOffset] = (short) s;
-                                    }
-                                } else {
-                                    // The destination no data value is saved in the destination array
+                                }
+                                // Control if the 16 pixel are outside the ROI
+                                if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataShort[k];
+                                } else {
+                                    long sum = 0;
+                                    int s = 0;
+
+                                    for (int h = 0; h < 4; h++) {
+                                        // Row temporary sum initialization
+                                        long tempSum = 0;
+                                        for (int z = 0; z < 4; z++) {
+                                            // Update of the temporary sum
+                                            tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
+                                        }
+                                        // Vertical sum update
+                                        sum += ((tempSum + round) >> precisionBits)
+                                                * dataVi[offsetY + h];
+                                    }
+                                    // Interpolation
+                                    s = (int) ((sum + round) >> precisionBits);
+
+                                    // Clamp
+                                    if (s > Short.MAX_VALUE) {
+                                        s = Short.MAX_VALUE;
+                                    } else if (s < Short.MIN_VALUE) {
+                                        s = Short.MIN_VALUE;
+                                    }
+
+                                    dstData[dstPixelOffset] = (short) s;
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -2140,87 +2119,82 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     int x0 = src.getX() + posx / srcPixelStride;
                                     int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int pos = posx + posy;
 
-                                        int pos = posx + posy;
+                                    // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
+                                    // Otherwise it takes the related value.
+                                    int tempROI = 0;
+                                    // X offset initialization
+                                    int offsetX = 4 * xfrac[i];
+                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                    // and by roiscanlinestride on the y axis.
+                                    for (int h = 0; h < 4; h++) {
+                                        for (int z = 0; z < 4; z++) {
+                                            // Selection of one pixel
+                                            pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                    * srcPixelStride + (h - 1)
+                                                    * srcScanlineStride];
 
-                                        // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                        // Otherwise it takes the related value.
-                                        int tempROI = 0;
-                                        // X offset initialization
-                                        int offsetX = 4 * xfrac[i];
-                                        // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                        // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                        // and by roiscanlinestride on the y axis.
-                                        for (int h = 0; h < 4; h++) {
-                                            for (int z = 0; z < 4; z++) {
-                                                // Selection of one pixel
-                                                pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                        * srcPixelStride + (h - 1)
-                                                        * srcScanlineStride];
+                                            final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                    roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                            tempROI += increment;
 
-                                                tempROI += roiIter.getSample(x0 + h - 1,
-                                                        y0 + z - 1, 0);
-
-                                                if (!noData.contains((short) pixelKernel[h][z])) {
-                                                    weight |= (0x01 << (4 * h + z));
-                                                } else {
-                                                    weight &= (0xffff - (0x01 << 4 * h + z));
-                                                }
+                                            if (!noData.contains((short) pixelKernel[h][z])) {
+                                                weight |= (0x01 << (4 * h + z));
+                                            } else {
+                                                weight &= (0xffff - (0x01 << 4 * h + z));
                                             }
                                         }
+                                    }
 
-                                        // Control if the 16 pixel are outside the ROI
-                                        if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataShort[k];
-                                        } else {
-
-                                            long sum = 0;
-                                            int s = 0;
-
-                                            for (int h = 0; h < 4; h++) {
-                                                // Row temporary sum initialization
-                                                long tempSum = 0;
-                                                temp = (byte) ((weight >> 4 * h) & 0x0F);
-                                                long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        temp, emptyArray);
-                                                for (int z = 0; z < 4; z++) {
-                                                    // Update of the temporary sum
-                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
-                                                }
-                                                if (temp > 0) {
-                                                    weightVert |= (0x01 << h);
-                                                } else {
-                                                    weightVert &= (0x0F - (0x01 << h));
-                                                }
-                                                sumArray[h] = ((tempSum + round) >> precisionBits);
-                                            }
-
-                                            long[] tempData = bicubicInpainting(sumArray,
-                                                    weightVert, emptyArray);
-                                            weight = 0;
-                                            weightVert = 0;
-                                            // Vertical sum update
-                                            for (int h = 0; h < 4; h++) {
-                                                // Update of the temporary sum
-                                                sum += tempData[h] * dataVi[offsetY + h];
-                                            }
-
-                                            // Interpolation
-                                            s = (int) ((sum + round) >> precisionBits);
-
-                                            // Clamp
-                                            if (s > Short.MAX_VALUE) {
-                                                s = Short.MAX_VALUE;
-                                            } else if (s < Short.MIN_VALUE) {
-                                                s = Short.MIN_VALUE;
-                                            }
-
-                                            dstData[dstPixelOffset] = (short) s;
-                                        }
-
-                                    } else {
+                                    // Control if the 16 pixel are outside the ROI
+                                    if (weight == 0 || tempROI == 0) {
                                         dstData[dstPixelOffset] = destinationNoDataShort[k];
+                                    } else {
+
+                                        long sum = 0;
+                                        int s = 0;
+
+                                        for (int h = 0; h < 4; h++) {
+                                            // Row temporary sum initialization
+                                            long tempSum = 0;
+                                            temp = (byte) ((weight >> 4 * h) & 0x0F);
+                                            long[] tempData = bicubicInpainting(pixelKernel[h],
+                                                    temp, emptyArray);
+                                            for (int z = 0; z < 4; z++) {
+                                                // Update of the temporary sum
+                                                tempSum += (tempData[z] * dataHi[offsetX + z]);
+                                            }
+                                            if (temp > 0) {
+                                                weightVert |= (0x01 << h);
+                                            } else {
+                                                weightVert &= (0x0F - (0x01 << h));
+                                            }
+                                            sumArray[h] = ((tempSum + round) >> precisionBits);
+                                        }
+
+                                        long[] tempData = bicubicInpainting(sumArray,
+                                                weightVert, emptyArray);
+                                        weight = 0;
+                                        weightVert = 0;
+                                        // Vertical sum update
+                                        for (int h = 0; h < 4; h++) {
+                                            // Update of the temporary sum
+                                            sum += tempData[h] * dataVi[offsetY + h];
+                                        }
+
+                                        // Interpolation
+                                        s = (int) ((sum + round) >> precisionBits);
+
+                                        // Clamp
+                                        if (s > Short.MAX_VALUE) {
+                                            s = Short.MAX_VALUE;
+                                        } else if (s < Short.MIN_VALUE) {
+                                            s = Short.MIN_VALUE;
+                                        }
+
+                                        dstData[dstPixelOffset] = (short) s;
                                     }
 
                                     // destination pixel offset update
@@ -2440,48 +2414,44 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
-                                if (roiBounds.contains(x0, y0)) {
-
-                                    int temp = 0;
-                                    // X offset initialization
-                                    int offsetX = 4 * xfrac[i];
-                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                    // and by roiscanlinestride on the y axis.
-                                    for (int h = 0; h < 4; h++) {
-                                        for (int z = 0; z < 4; z++) {
-                                            // Selection of one pixel
-                                            pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                    * srcPixelStride + (h - 1) * srcScanlineStride];
-                                            temp += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0);
-                                        }
+                                int temp = 0;
+                                // X offset initialization
+                                int offsetX = 4 * xfrac[i];
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                // and by roiscanlinestride on the y axis.
+                                for (int h = 0; h < 4; h++) {
+                                    for (int z = 0; z < 4; z++) {
+                                        // Selection of one pixel
+                                        pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                * srcPixelStride + (h - 1) * srcScanlineStride];
+                                        final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                        temp += increment;
                                     }
-                                    // Control if the 16 pixel are outside the ROI
-                                    if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
-                                    } else {
-                                        long sum = 0;
-                                        int s = 0;
-
-                                        for (int h = 0; h < 4; h++) {
-                                            // Row temporary sum initialization
-                                            long tempSum = 0;
-                                            for (int z = 0; z < 4; z++) {
-                                                // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
-                                            }
-                                            // Vertical sum update
-                                            sum += ((tempSum + round) >> precisionBits)
-                                                    * dataVi[offsetY + h];
-                                        }
-                                        // Interpolation
-                                        s = (int) ((sum + round) >> precisionBits);
-
-                                        dstData[dstPixelOffset] = s;
-                                    }
-                                } else {
-                                    // The destination no data value is saved in the destination array
+                                }
+                                // Control if the 16 pixel are outside the ROI
+                                if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataInt[k];
+                                } else {
+                                    long sum = 0;
+                                    int s = 0;
+
+                                    for (int h = 0; h < 4; h++) {
+                                        // Row temporary sum initialization
+                                        long tempSum = 0;
+                                        for (int z = 0; z < 4; z++) {
+                                            // Update of the temporary sum
+                                            tempSum += (pixelKernel[h][z] * dataHi[offsetX + z]);
+                                        }
+                                        // Vertical sum update
+                                        sum += ((tempSum + round) >> precisionBits)
+                                                * dataVi[offsetY + h];
+                                    }
+                                    // Interpolation
+                                    s = (int) ((sum + round) >> precisionBits);
+
+                                    dstData[dstPixelOffset] = s;
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -2743,82 +2713,75 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     int x0 = src.getX() + posx / srcPixelStride;
                                     int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int pos = posx + posy;
 
-                                        int pos = posx + posy;
+                                    // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
+                                    // Otherwise it takes the related value.
+                                    int tempROI = 0;
+                                    // X offset initialization
+                                    int offsetX = 4 * xfrac[i];
+                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                    // and by roiscanlinestride on the y axis.
+                                    for (int h = 0; h < 4; h++) {
+                                        for (int z = 0; z < 4; z++) {
+                                            // Selection of one pixel
+                                            pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                    * srcPixelStride + (h - 1)
+                                                    * srcScanlineStride];
+                                            final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                    roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                            tempROI += increment;
 
-                                        // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                        // Otherwise it takes the related value.
-                                        int tempROI = 0;
-                                        // X offset initialization
-                                        int offsetX = 4 * xfrac[i];
-                                        // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                        // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                        // and by roiscanlinestride on the y axis.
-                                        for (int h = 0; h < 4; h++) {
-                                            for (int z = 0; z < 4; z++) {
-                                                // Selection of one pixel
-                                                pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                        * srcPixelStride + (h - 1)
-                                                        * srcScanlineStride];
-
-                                                tempROI += roiIter.getSample(x0 + h - 1,
-                                                        y0 + z - 1, 0);
-
-                                                if (!noData.contains((int) pixelKernel[h][z])) {
-                                                    weight |= (0x01 << (4 * h + z));
-                                                } else {
-                                                    weight &= (0xffff - (0x01 << 4 * h + z));
-                                                }
+                                            if (!noData.contains((int) pixelKernel[h][z])) {
+                                                weight |= (0x01 << (4 * h + z));
+                                            } else {
+                                                weight &= (0xffff - (0x01 << 4 * h + z));
                                             }
                                         }
-
-                                        // Control if the 16 pixel are outside the ROI
-                                        if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataInt[k];
-                                        } else {
-
-                                            long sum = 0;
-                                            int s = 0;
-
-                                            for (int h = 0; h < 4; h++) {
-                                                // Row temporary sum initialization
-                                                long tempSum = 0;
-                                                temp = (byte) ((weight >> 4 * h) & 0x0F);
-                                                long[] tempData = bicubicInpainting(pixelKernel[h],
-                                                        temp, emptyArray);
-                                                for (int z = 0; z < 4; z++) {
-                                                    // Update of the temporary sum
-                                                    tempSum += (tempData[z] * dataHi[offsetX + z]);
-                                                }
-                                                if (temp > 0) {
-                                                    weightVert |= (0x01 << h);
-                                                } else {
-                                                    weightVert &= (0x0F - (0x01 << h));
-                                                }
-                                                sumArray[h] = ((tempSum + round) >> precisionBits);
-                                            }
-
-                                            long[] tempData = bicubicInpainting(sumArray,
-                                                    weightVert, emptyArray);
-                                            weight = 0;
-                                            weightVert = 0;
-                                            // Vertical sum update
-                                            for (int h = 0; h < 4; h++) {
-                                                // Update of the temporary sum
-                                                sum += tempData[h] * dataVi[offsetY + h];
-                                            }
-
-                                            // Interpolation
-                                            s = (int) ((sum + round) >> precisionBits);
-
-                                            dstData[dstPixelOffset] = s;
-                                        }
-
-                                    } else {
-                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     }
 
+                                    // Control if the 16 pixel are outside the ROI
+                                    if (weight == 0 || tempROI == 0) {
+                                        dstData[dstPixelOffset] = destinationNoDataInt[k];
+                                    } else {
+
+                                        long sum = 0;
+                                        int s = 0;
+
+                                        for (int h = 0; h < 4; h++) {
+                                            // Row temporary sum initialization
+                                            long tempSum = 0;
+                                            temp = (byte) ((weight >> 4 * h) & 0x0F);
+                                            long[] tempData = bicubicInpainting(pixelKernel[h],
+                                                    temp, emptyArray);
+                                            for (int z = 0; z < 4; z++) {
+                                                // Update of the temporary sum
+                                                tempSum += (tempData[z] * dataHi[offsetX + z]);
+                                            }
+                                            if (temp > 0) {
+                                                weightVert |= (0x01 << h);
+                                            } else {
+                                                weightVert &= (0x0F - (0x01 << h));
+                                            }
+                                            sumArray[h] = ((tempSum + round) >> precisionBits);
+                                        }
+
+                                        long[] tempData = bicubicInpainting(sumArray,
+                                                weightVert, emptyArray);
+                                        weight = 0;
+                                        weightVert = 0;
+                                        // Vertical sum update
+                                        for (int h = 0; h < 4; h++) {
+                                            // Update of the temporary sum
+                                            sum += tempData[h] * dataVi[offsetY + h];
+                                        }
+
+                                        // Interpolation
+                                        s = (int) ((sum + round) >> precisionBits);
+
+                                        dstData[dstPixelOffset] = s;
+                                    }
                                     // destination pixel offset update
                                     dstPixelOffset += dstPixelStride;
                                 }
@@ -3043,52 +3006,48 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
-                                if (roiBounds.contains(x0, y0)) {
-
-                                    int temp = 0;
-                                    // X offset initialization
-                                    int offsetX = 4 * xfrac[i];
-                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                    // and by roiscanlinestride on the y axis.
-                                    for (int h = 0; h < 4; h++) {
-                                        for (int z = 0; z < 4; z++) {
-                                            // Selection of one pixel
-                                            pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                    * srcPixelStride + (h - 1) * srcScanlineStride];
-                                            temp += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0);
-                                        }
+                                int temp = 0;
+                                // X offset initialization
+                                int offsetX = 4 * xfrac[i];
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                // and by roiscanlinestride on the y axis.
+                                for (int h = 0; h < 4; h++) {
+                                    for (int z = 0; z < 4; z++) {
+                                        // Selection of one pixel
+                                        pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                * srcPixelStride + (h - 1) * srcScanlineStride];
+                                        final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                        temp += increment;
                                     }
-                                    // Control if the 16 pixel are outside the ROI
-                                    if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataFloat[k];
-                                    } else {
-                                        double sum = 0;
-
-                                        for (int h = 0; h < 4; h++) {
-                                            // Row temporary sum initialization
-                                            double tempSum = 0;
-                                            for (int z = 0; z < 4; z++) {
-                                                // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * dataHf[offsetX + z]);
-                                            }
-                                            // Vertical sum update
-                                            sum += tempSum * dataVf[offsetY + h];
-                                        }
-
-                                        // Clamp
-                                        if (sum > Float.MAX_VALUE) {
-                                            sum = Float.MAX_VALUE;
-                                        } else if (sum < -Float.MAX_VALUE) {
-                                            sum = -Float.MAX_VALUE;
-                                        }
-
-                                        // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = (float) sum;
-                                    }
-                                } else {
-                                    // The destination no data value is saved in the destination array
+                                }
+                                // Control if the 16 pixel are outside the ROI
+                                if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataFloat[k];
+                                } else {
+                                    double sum = 0;
+
+                                    for (int h = 0; h < 4; h++) {
+                                        // Row temporary sum initialization
+                                        double tempSum = 0;
+                                        for (int z = 0; z < 4; z++) {
+                                            // Update of the temporary sum
+                                            tempSum += (pixelKernel[h][z] * dataHf[offsetX + z]);
+                                        }
+                                        // Vertical sum update
+                                        sum += tempSum * dataVf[offsetY + h];
+                                    }
+
+                                    // Clamp
+                                    if (sum > Float.MAX_VALUE) {
+                                        sum = Float.MAX_VALUE;
+                                    } else if (sum < -Float.MAX_VALUE) {
+                                        sum = -Float.MAX_VALUE;
+                                    }
+
+                                    // The interpolated value is saved in the destination array
+                                    dstData[dstPixelOffset] = (float) sum;
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -3358,84 +3317,77 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     int x0 = src.getX() + posx / srcPixelStride;
                                     int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int pos = posx + posy;
 
-                                        int pos = posx + posy;
-
-                                        // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                        // Otherwise it takes the related value.
-                                        int tempROI = 0;
-                                        // X offset initialization
-                                        int offsetX = 4 * xfrac[i];
-                                        // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                        // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                        // and by roiscanlinestride on the y axis.
-                                        for (int h = 0; h < 4; h++) {
-                                            for (int z = 0; z < 4; z++) {
-                                                // Selection of one pixel
-                                                pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                        * srcPixelStride + (h - 1)
-                                                        * srcScanlineStride];
-
-                                                tempROI += roiIter.getSample(x0 + h - 1,
-                                                        y0 + z - 1, 0);
-
-                                                if (!noData.contains((float) pixelKernel[h][z])) {
-                                                    weight |= (0x01 << (4 * h + z));
-                                                } else {
-                                                    weight &= (0xffff - (0x01 << 4 * h + z));
-                                                }
+                                    // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
+                                    // Otherwise it takes the related value.
+                                    int tempROI = 0;
+                                    // X offset initialization
+                                    int offsetX = 4 * xfrac[i];
+                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                    // and by roiscanlinestride on the y axis.
+                                    for (int h = 0; h < 4; h++) {
+                                        for (int z = 0; z < 4; z++) {
+                                            // Selection of one pixel
+                                            pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                    * srcPixelStride + (h - 1)
+                                                    * srcScanlineStride];
+                                            final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                    roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                            tempROI += increment;
+                                            if (!noData.contains((float) pixelKernel[h][z])) {
+                                                weight |= (0x01 << (4 * h + z));
+                                            } else {
+                                                weight &= (0xffff - (0x01 << 4 * h + z));
                                             }
                                         }
+                                    }
 
-                                        // Control if the 16 pixel are outside the ROI
-                                        if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataFloat[k];
-                                        } else {
-
-                                            double sum = 0;
-
-                                            for (int h = 0; h < 4; h++) {
-                                                // Row temporary sum initialization
-                                                double tempSum = 0;
-                                                temp = (byte) ((weight >> 4 * h) & 0x0F);
-                                                double[] tempData = bicubicInpaintingDouble(
-                                                        pixelKernel[h], temp, emptyArray);
-                                                for (int z = 0; z < 4; z++) {
-                                                    // Update of the temporary sum
-                                                    tempSum += (tempData[z] * dataHf[offsetX + z]);
-                                                }
-                                                if (temp > 0) {
-                                                    weightVert |= (0x01 << h);
-                                                } else {
-                                                    weightVert &= (0x0F - (0x01 << h));
-                                                }
-                                                sumArray[h] = tempSum;
-                                            }
-
-                                            double[] tempData = bicubicInpaintingDouble(sumArray,
-                                                    weightVert, emptyArray);
-                                            weight = 0;
-                                            weightVert = 0;
-                                            // Vertical sum update
-                                            for (int h = 0; h < 4; h++) {
-                                                // Update of the temporary sum
-                                                sum += tempData[h] * dataVf[offsetY + h];
-                                            }
-
-                                            // Clamp
-                                            if (sum > Float.MAX_VALUE) {
-                                                sum = Float.MAX_VALUE;
-                                            } else if (sum < -Float.MAX_VALUE) {
-                                                sum = -Float.MAX_VALUE;
-                                            }
-
-                                            // The interpolated value is saved in the destination array
-                                            dstData[dstPixelOffset] = (float) sum;
-                                        }
-
-                                    } else {
+                                    // Control if the 16 pixel are outside the ROI
+                                    if (weight == 0 || tempROI == 0) {
                                         dstData[dstPixelOffset] = destinationNoDataFloat[k];
+                                    } else {
+
+                                        double sum = 0;
+
+                                        for (int h = 0; h < 4; h++) {
+                                            // Row temporary sum initialization
+                                            double tempSum = 0;
+                                            temp = (byte) ((weight >> 4 * h) & 0x0F);
+                                            double[] tempData = bicubicInpaintingDouble(
+                                                    pixelKernel[h], temp, emptyArray);
+                                            for (int z = 0; z < 4; z++) {
+                                                // Update of the temporary sum
+                                                tempSum += (tempData[z] * dataHf[offsetX + z]);
+                                            }
+                                            if (temp > 0) {
+                                                weightVert |= (0x01 << h);
+                                            } else {
+                                                weightVert &= (0x0F - (0x01 << h));
+                                            }
+                                            sumArray[h] = tempSum;
+                                        }
+
+                                        double[] tempData = bicubicInpaintingDouble(sumArray,
+                                                weightVert, emptyArray);
+                                        weight = 0;
+                                        weightVert = 0;
+                                        // Vertical sum update
+                                        for (int h = 0; h < 4; h++) {
+                                            // Update of the temporary sum
+                                            sum += tempData[h] * dataVf[offsetY + h];
+                                        }
+
+                                        // Clamp
+                                        if (sum > Float.MAX_VALUE) {
+                                            sum = Float.MAX_VALUE;
+                                        } else if (sum < -Float.MAX_VALUE) {
+                                            sum = -Float.MAX_VALUE;
+                                        }
+
+                                        // The interpolated value is saved in the destination array
+                                        dstData[dstPixelOffset] = (float) sum;
                                     }
 
                                     // destination pixel offset update
@@ -3648,45 +3600,41 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
 
                                 // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
                                 // Otherwise it takes the related value.
-                                if (roiBounds.contains(x0, y0)) {
-
-                                    int temp = 0;
-                                    // X offset initialization
-                                    int offsetX = 4 * xfrac[i];
-                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                    // and by roiscanlinestride on the y axis.
-                                    for (int h = 0; h < 4; h++) {
-                                        for (int z = 0; z < 4; z++) {
-                                            // Selection of one pixel
-                                            pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                    * srcPixelStride + (h - 1) * srcScanlineStride];
-                                            temp += roiIter.getSample(x0 + h - 1, y0 + z - 1, 0);
-                                        }
+                                int temp = 0;
+                                // X offset initialization
+                                int offsetX = 4 * xfrac[i];
+                                // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                // and by roiscanlinestride on the y axis.
+                                for (int h = 0; h < 4; h++) {
+                                    for (int z = 0; z < 4; z++) {
+                                        // Selection of one pixel
+                                        pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                * srcPixelStride + (h - 1) * srcScanlineStride];
+                                        final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                        temp += increment;
                                     }
-                                    // Control if the 16 pixel are outside the ROI
-                                    if (temp == 0) {
-                                        dstData[dstPixelOffset] = destinationNoDataDouble[k];
-                                    } else {
-                                        double sum = 0;
-
-                                        for (int h = 0; h < 4; h++) {
-                                            // Row temporary sum initialization
-                                            double tempSum = 0;
-                                            for (int z = 0; z < 4; z++) {
-                                                // Update of the temporary sum
-                                                tempSum += (pixelKernel[h][z] * dataHd[offsetX + z]);
-                                            }
-                                            // Vertical sum update
-                                            sum += tempSum * dataVd[offsetY + h];
-                                        }
-
-                                        // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = sum;
-                                    }
-                                } else {
-                                    // The destination no data value is saved in the destination array
+                                }
+                                // Control if the 16 pixel are outside the ROI
+                                if (temp == 0) {
                                     dstData[dstPixelOffset] = destinationNoDataDouble[k];
+                                } else {
+                                    double sum = 0;
+
+                                    for (int h = 0; h < 4; h++) {
+                                        // Row temporary sum initialization
+                                        double tempSum = 0;
+                                        for (int z = 0; z < 4; z++) {
+                                            // Update of the temporary sum
+                                            tempSum += (pixelKernel[h][z] * dataHd[offsetX + z]);
+                                        }
+                                        // Vertical sum update
+                                        sum += tempSum * dataVd[offsetY + h];
+                                    }
+
+                                    // The interpolated value is saved in the destination array
+                                    dstData[dstPixelOffset] = sum;
                                 }
                                 // destination pixel offset update
                                 dstPixelOffset += dstPixelStride;
@@ -3941,78 +3889,71 @@ public class ScaleBicubicOpImage extends ScaleOpImage {
                                     int x0 = src.getX() + posx / srcPixelStride;
                                     int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                    if (roiBounds.contains(x0, y0)) {
+                                    int pos = posx + posy;
 
-                                        int pos = posx + posy;
+                                    // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
+                                    // Otherwise it takes the related value.
 
-                                        // Check if the selected index belongs to the roi data array: if it is not present, the weight is 0,
-                                        // Otherwise it takes the related value.
-
-                                        int tempROI = 0;
-                                        // X offset initialization
-                                        int offsetX = 4 * xfrac[i];
-                                        // Cycle through all the 16 kernel pixel and calculation of the interpolated value
-                                        // and cycle for filling all the ROI index by shifting of 1 on the x axis
-                                        // and by roiscanlinestride on the y axis.
-                                        for (int h = 0; h < 4; h++) {
-                                            for (int z = 0; z < 4; z++) {
-                                                // Selection of one pixel
-                                                pixelKernel[h][z] = srcData[pos + (z - 1)
-                                                        * srcPixelStride + (h - 1)
-                                                        * srcScanlineStride];
-
-                                                tempROI += roiIter.getSample(x0 + h - 1,
-                                                        y0 + z - 1, 0);
-
-                                                if (!noData.contains(pixelKernel[h][z])) {
-                                                    weight |= (0x01 << (4 * h + z));
-                                                } else {
-                                                    weight &= (0xffff - (0x01 << 4 * h + z));
-                                                }
+                                    int tempROI = 0;
+                                    // X offset initialization
+                                    int offsetX = 4 * xfrac[i];
+                                    // Cycle through all the 16 kernel pixel and calculation of the interpolated value
+                                    // and cycle for filling all the ROI index by shifting of 1 on the x axis
+                                    // and by roiscanlinestride on the y axis.
+                                    for (int h = 0; h < 4; h++) {
+                                        for (int z = 0; z < 4; z++) {
+                                            // Selection of one pixel
+                                            pixelKernel[h][z] = srcData[pos + (z - 1)
+                                                    * srcPixelStride + (h - 1)
+                                                    * srcScanlineStride];
+                                            final int increment = roiBounds.contains(x0 + h - 1, y0 + z - 1) ?
+                                                    roiIter.getSample(x0 + h - 1, y0 + z - 1, 0) : 0;
+                                            tempROI += increment;
+                                            if (!noData.contains(pixelKernel[h][z])) {
+                                                weight |= (0x01 << (4 * h + z));
+                                            } else {
+                                                weight &= (0xffff - (0x01 << 4 * h + z));
                                             }
                                         }
+                                    }
 
-                                        // Control if the 16 pixel are outside the ROI
-                                        if (weight == 0 || tempROI == 0) {
-                                            dstData[dstPixelOffset] = destinationNoDataDouble[k];
-                                        } else {
-
-                                            double sum = 0;
-
-                                            for (int h = 0; h < 4; h++) {
-                                                // Row temporary sum initialization
-                                                double tempSum = 0;
-                                                temp = (byte) ((weight >> 4 * h) & 0x0F);
-                                                double[] tempData = bicubicInpaintingDouble(
-                                                        pixelKernel[h], temp, emptyArray);
-                                                for (int z = 0; z < 4; z++) {
-                                                    // Update of the temporary sum
-                                                    tempSum += (tempData[z] * dataHd[offsetX + z]);
-                                                }
-                                                if (temp > 0) {
-                                                    weightVert |= (0x01 << h);
-                                                } else {
-                                                    weightVert &= (0x0F - (0x01 << h));
-                                                }
-                                                sumArray[h] = tempSum;
-                                            }
-
-                                            double[] tempData = bicubicInpaintingDouble(sumArray,
-                                                    weightVert, emptyArray);
-                                            weight = 0;
-                                            weightVert = 0;
-                                            // Vertical sum update
-                                            for (int h = 0; h < 4; h++) {
-                                                // Update of the temporary sum
-                                                sum += tempData[h] * dataVd[offsetY + h];
-                                            }
-
-                                            // The interpolated value is saved in the destination array
-                                            dstData[dstPixelOffset] = sum;
-                                        }
-
-                                    } else {
+                                    // Control if the 16 pixel are outside the ROI
+                                    if (weight == 0 || tempROI == 0) {
                                         dstData[dstPixelOffset] = destinationNoDataDouble[k];
+                                    } else {
+
+                                        double sum = 0;
+
+                                        for (int h = 0; h < 4; h++) {
+                                            // Row temporary sum initialization
+                                            double tempSum = 0;
+                                            temp = (byte) ((weight >> 4 * h) & 0x0F);
+                                            double[] tempData = bicubicInpaintingDouble(
+                                                    pixelKernel[h], temp, emptyArray);
+                                            for (int z = 0; z < 4; z++) {
+                                                // Update of the temporary sum
+                                                tempSum += (tempData[z] * dataHd[offsetX + z]);
+                                            }
+                                            if (temp > 0) {
+                                                weightVert |= (0x01 << h);
+                                            } else {
+                                                weightVert &= (0x0F - (0x01 << h));
+                                            }
+                                            sumArray[h] = tempSum;
+                                        }
+
+                                        double[] tempData = bicubicInpaintingDouble(sumArray,
+                                                weightVert, emptyArray);
+                                        weight = 0;
+                                        weightVert = 0;
+                                        // Vertical sum update
+                                        for (int h = 0; h < 4; h++) {
+                                            // Update of the temporary sum
+                                            sum += tempData[h] * dataVd[offsetY + h];
+                                        }
+
+                                        // The interpolated value is saved in the destination array
+                                        dstData[dstPixelOffset] = sum;
                                     }
 
                                     // destination pixel offset update
