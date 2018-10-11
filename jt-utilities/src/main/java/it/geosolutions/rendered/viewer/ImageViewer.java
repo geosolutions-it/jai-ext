@@ -156,13 +156,17 @@ public class ImageViewer extends JPanel
                             @Override
                             public String getDescription()
                             {
-                                return "*.png";
+                                return "images";
                             }
 
                             @Override
                             public boolean accept(File file)
                             {
-                                return file.isDirectory() || file.getName().toLowerCase().endsWith(".png");
+                                if (file.isDirectory()) {
+                                    return true;
+                                }
+                                String name = file.getName().toLowerCase();
+                                return name.endsWith(".png") || name.endsWith(".tif") || name.endsWith(".tiff");
                             }
                         });
 
@@ -170,14 +174,18 @@ public class ImageViewer extends JPanel
                     if (result == JFileChooser.APPROVE_OPTION)
                     {
                         File selected = chooser.getSelectedFile();
-                        if (!selected.getName().toLowerCase().endsWith(".png"))
-                        {
+                        String name = selected.getName().toLowerCase();
+                        if (!(name.endsWith(".png") || name.endsWith(".tif") || name.endsWith(".tiff"))) {
                             selected = new File(selected.getParentFile(), selected.getName() + ".png");
                         }
                         lastDirectory = selected.getParentFile();
                         try
                         {
-                            ImageIO.write(image, "PNG", selected);
+                            String format = "PNG";
+                            if (name.endsWith(".tif") || name.endsWith(".tiff")) {
+                                format = "TIF";
+                            }
+                            ImageIO.write(image, format, selected);
                             status.setText("File successfully saved");
                         }
                         catch (IOException e)
