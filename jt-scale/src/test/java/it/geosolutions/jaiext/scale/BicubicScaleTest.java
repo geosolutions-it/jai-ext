@@ -152,4 +152,9 @@ public class BicubicScaleTest extends TestScale{
         assertInterpolateInHole(Interpolation.getInstance(Interpolation.INTERP_BICUBIC));
     }
 
+    @Test
+    public void testPackedImage() {
+        super.testPackedImage(InterpolationType.BICUBIC_INTERP);
+    }
+
 }

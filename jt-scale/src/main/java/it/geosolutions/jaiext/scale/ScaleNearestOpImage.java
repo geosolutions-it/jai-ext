@@ -285,6 +285,12 @@ public class ScaleNearestOpImage extends ScaleOpImage {
             break;
         }
 
+        if (dstAccessor.isDataCopy()) {
+            if (dstAccessor.needsClamping()) {
+                dstAccessor.clampDataArrays();
+            }
+            dstAccessor.copyDataToRaster();
+        }
     }
 
     private void byteLoop(RasterAccessor src, Rectangle srcRect, Rectangle dstRect,
