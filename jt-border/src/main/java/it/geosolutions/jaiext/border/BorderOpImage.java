@@ -357,6 +357,9 @@ public class BorderOpImage extends OpImage {
         for (int ty = startTileY; ty <= endTileY; ty++) {
             for (int tx = startTileX; tx <= endTileX; tx++) {
                 Raster tile = sourceImage.getTile(tx, ty);
+                if (tile == null) {
+                    continue;
+                }
 
                 Rectangle subRegion = region.intersection(tile.getBounds());
                 // RasterAccessor associated with the input and output tiles
@@ -364,7 +367,7 @@ public class BorderOpImage extends OpImage {
                         sourceImage.getColorModel());
                 RasterAccessor dst = new RasterAccessor(dest, subRegion, dstTag, null);
                 // Elaboration of the RasterAccessors
-                switch (dataType) {
+                switch (dst.getDataType()) {
                 case DataBuffer.TYPE_BYTE:
                     byteLoop(src, dst);
                     break;

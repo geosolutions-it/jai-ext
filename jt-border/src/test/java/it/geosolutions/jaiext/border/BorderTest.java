@@ -17,18 +17,19 @@
 */
 package it.geosolutions.jaiext.border;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.awt.image.DataBuffer;
+import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.io.IOException;
 
 import javax.media.jai.BorderExtender;
 import javax.media.jai.RenderedOp;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
@@ -85,7 +86,7 @@ public class BorderTest extends TestBase {
     private static Range noDataDouble;
 
     /** BorderExtender array */
-    private static BorderExtender[] extender;
+    private static BorderExtender[] extenders;
 
     /** Output value for the No Data */
     private static double destNoData;
@@ -146,15 +147,15 @@ public class BorderTest extends TestBase {
         IMAGE_FILLER = false;
 
         // Creation of the BorderExtender array
-        extender = new BorderExtender[BorderExtender.BORDER_WRAP + 1];
+        extenders = new BorderExtender[BorderExtender.BORDER_WRAP + 1];
 
-        extender[BorderExtender.BORDER_ZERO] = BorderExtender
+        extenders[BorderExtender.BORDER_ZERO] = BorderExtender
                 .createInstance(BorderExtender.BORDER_ZERO);
-        extender[BorderExtender.BORDER_COPY] = BorderExtender
+        extenders[BorderExtender.BORDER_COPY] = BorderExtender
                 .createInstance(BorderExtender.BORDER_COPY);
-        extender[BorderExtender.BORDER_REFLECT] = BorderExtender
+        extenders[BorderExtender.BORDER_REFLECT] = BorderExtender
                 .createInstance(BorderExtender.BORDER_REFLECT);
-        extender[BorderExtender.BORDER_WRAP] = BorderExtender
+        extenders[BorderExtender.BORDER_WRAP] = BorderExtender
                 .createInstance(BorderExtender.BORDER_WRAP);
 
         // Destination NoData value
@@ -264,7 +265,7 @@ public class BorderTest extends TestBase {
         // Selection of the source
         RenderedImage source = sourceIMG[dataType];
         // Selection of the BorderExtender
-        BorderExtender extend = extender[borderType];
+        BorderExtender extend = extenders[borderType];
 
         // The precalculated NoData Range is used, if selected by the related boolean.
         Range noDataRange;
@@ -313,7 +314,11 @@ public class BorderTest extends TestBase {
             // Else all the image tiles are calculated
             borderIMG.getTiles();
         }
+        checkBorderImage(noDataRangeUsed, borderType, borderIMG);
 
+    }
+
+    private void checkBorderImage(boolean noDataRangeUsed, int borderType, RenderedOp borderIMG) {
         // Calculation of all the variables for iterating on the image borders
         int minX = borderIMG.getMinX();
         int minY = borderIMG.getMinY();
@@ -481,6 +486,48 @@ public class BorderTest extends TestBase {
                         throw new IllegalArgumentException("Wrong BorderExtender type");
                     }
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testPackedImage() {
+        Number validData = 1;
+
+        int[] dataTypes =
+                new int[] {DataBuffer.TYPE_BYTE, DataBuffer.TYPE_USHORT, DataBuffer.TYPE_INT};
+        for (int dataType : dataTypes) {
+            for (int borderType = 0; borderType < extenders.length; borderType++) {
+                BorderExtender extender = extenders[borderType];
+
+                MultiPixelPackedSampleModel sm =
+                        new MultiPixelPackedSampleModel(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, 2);
+                RenderedImage image =
+                        createTestImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, 0, 1, validData, sm);
+
+                // The precalculated NoData Range is used, if selected by the related boolean.
+                Range noDataRange = null;
+
+                // Border operation execution
+                RenderedOp borderImg =
+                        BorderDescriptor.create(
+                                image,
+                                leftPad,
+                                rightPad,
+                                topPad,
+                                bottomPad,
+                                extender,
+                                noDataRange,
+                                destNoData,
+                                null);
+
+                // used to go kaboom, if this passes we're good
+                borderImg.getData();
+                
+                // for extra measure
+                checkBorderImage(false, borderType, borderImg);
+                
+                borderImg.dispose();
             }
         }
     }
