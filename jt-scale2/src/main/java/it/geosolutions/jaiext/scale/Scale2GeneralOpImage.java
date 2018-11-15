@@ -320,6 +320,13 @@ public class Scale2GeneralOpImage extends Scale2OpImage {
             }
         }
 
+        if (dstAccessor.isDataCopy()) {
+            if (dstAccessor.needsClamping()) {
+                dstAccessor.clampDataArrays();
+            }
+            dstAccessor.copyDataToRaster();
+        }
+
     }
 
     // This method precompute the integer and fractional position of every pixel

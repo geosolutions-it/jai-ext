@@ -319,6 +319,12 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             break;
         }
 
+        if (dstAccessor.isDataCopy()) {
+            if (dstAccessor.needsClamping()) {
+                dstAccessor.clampDataArrays();
+            }
+            dstAccessor.copyDataToRaster();
+        }
     }
 
     private void byteLoop(RasterAccessor src, Rectangle dstRect, RasterAccessor dst, int[] xpos,

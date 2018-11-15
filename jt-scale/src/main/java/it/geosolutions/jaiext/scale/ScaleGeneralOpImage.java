@@ -316,6 +316,12 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
             }
         }
 
+        if (dstAccessor.isDataCopy()) {
+            if (dstAccessor.needsClamping()) {
+                dstAccessor.clampDataArrays();
+            }
+            dstAccessor.copyDataToRaster();
+        }
     }
 
     // This method precompute the integer and fractional position of every pixel

@@ -18,8 +18,13 @@
 package it.geosolutions.jaiext.scale;
 
 import static org.junit.Assert.assertFalse;
+
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.awt.image.DataBuffer;
+import java.awt.image.MultiPixelPackedSampleModel;
+import java.awt.image.RenderedImage;
 
 /**
  * This test-class extends the TestScale class and is used for testing the nearest interpolation inside the Scale operation.
@@ -116,5 +121,10 @@ public class NearestScaleTest extends TestScale {
         
         testGlobal(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
                 ,roiPresent,InterpolationType.NEAREST_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
+    }
+
+    @Test
+    public void tesPackedImage() {
+        super.testPackedImage(InterpolationType.NEAREST_INTERP);
     }
 }

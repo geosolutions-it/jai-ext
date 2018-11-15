@@ -19,11 +19,13 @@ package it.geosolutions.jaiext.scale;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.awt.*;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
+import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
@@ -63,55 +65,84 @@ public class TestScale extends TestBase {
             it.geosolutions.jaiext.testclasses.TestBase.TestSelection testSelect,
             ScaleType scaleValue) {
 
-        Byte sourceNoDataByte = 100;
-        Short sourceNoDataUshort = Short.MAX_VALUE - 1;
-        Short sourceNoDataShort = -255;
-        Integer sourceNoDataInt = Integer.MAX_VALUE - 1;
-        Float sourceNoDataFloat = -15.2f;
-        Double sourceNoDataDouble = Double.NEGATIVE_INFINITY;
-
-        if (isBinary) {
-            sourceNoDataByte = 1;
-            sourceNoDataUshort = 1;
-            sourceNoDataInt = 1;
-        }
-
         // ImageTest
         // starting dataType
         int dataType = DataBuffer.TYPE_BYTE;
-        testImage(dataType, sourceNoDataByte, useROIAccessor, isBinary, bicubic2Disabled,
+        testImage(dataType, useROIAccessor, isBinary, bicubic2Disabled,
                 noDataRangeUsed, roiPresent, interpType, testSelect, scaleValue);
 
         dataType = DataBuffer.TYPE_USHORT;
-        testImage(dataType, sourceNoDataUshort, useROIAccessor, isBinary, bicubic2Disabled,
+        testImage(dataType, useROIAccessor, isBinary, bicubic2Disabled,
                 noDataRangeUsed, roiPresent, interpType, testSelect, scaleValue);
 
         dataType = DataBuffer.TYPE_INT;
-        testImage(dataType, sourceNoDataInt, useROIAccessor, isBinary, bicubic2Disabled,
+        testImage(dataType, useROIAccessor, isBinary, bicubic2Disabled,
                 noDataRangeUsed, roiPresent, interpType, testSelect, scaleValue);
 
         if (!isBinary) {
             dataType = DataBuffer.TYPE_SHORT;
-            testImage(dataType, sourceNoDataShort, useROIAccessor, isBinary, bicubic2Disabled,
+            testImage(dataType, useROIAccessor, isBinary, bicubic2Disabled,
                     noDataRangeUsed, roiPresent, interpType, testSelect, scaleValue);
 
             dataType = DataBuffer.TYPE_FLOAT;
-            testImage(dataType, sourceNoDataFloat, useROIAccessor, isBinary, bicubic2Disabled,
+            testImage(dataType, useROIAccessor, isBinary, bicubic2Disabled,
                     noDataRangeUsed, roiPresent, interpType, testSelect, scaleValue);
 
             dataType = DataBuffer.TYPE_DOUBLE;
-            testImage(dataType, sourceNoDataDouble, useROIAccessor, isBinary, bicubic2Disabled,
+            testImage(dataType, useROIAccessor, isBinary, bicubic2Disabled,
                     noDataRangeUsed, roiPresent, interpType, testSelect, scaleValue);
         }
 
     }
 
-
     protected <T extends Number & Comparable<? super T>> void testImage(int dataType,
-            T noDataValue, boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
+            boolean useROIAccessor, boolean isBinary, boolean bicubic2Disabled,
             boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
             TestSelection testSelect, ScaleType scaleValue) {
 
+        Number noDataValue = getNoDataValueFor(dataType);
+
+        RenderedImage  sourceImage = createTestImage(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataValue,
+                isBinary);
+
+        testImage(dataType, noDataValue, useROIAccessor, isBinary, noDataRangeUsed, roiPresent,
+                interpType,
+                testSelect, scaleValue, sourceImage);
+
+    }
+
+    protected Number getNoDataValueFor(int dataType) {
+        Number noDataValue;
+        switch(dataType){
+            case DataBuffer.TYPE_BYTE:
+                noDataValue = (byte) 100;
+                break;
+            case DataBuffer.TYPE_USHORT:
+                noDataValue = (short) (Short.MAX_VALUE - 1);
+                break;
+            case DataBuffer.TYPE_SHORT:
+                noDataValue = (short) (-255);
+                break;
+            case DataBuffer.TYPE_INT:
+                noDataValue = Integer.MAX_VALUE - 1;
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                noDataValue = -15.2f;
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                noDataValue = Double.NEGATIVE_INFINITY;
+                break;
+            default:
+                throw new IllegalArgumentException("Wrong data type " + dataType);
+
+        }
+        return noDataValue;
+    }
+
+    protected  void testImage(int dataType, Number noDataValue,
+            boolean useROIAccessor, boolean isBinary, boolean noDataRangeUsed, boolean roiPresent,
+            InterpolationType interpType, TestSelection testSelect,
+            ScaleType scaleValue, RenderedImage sourceImage) {
         if (scaleValue == ScaleType.REDUCTION) {
             scaleX = 0.5f;
             scaleY = 0.5f;
@@ -121,9 +152,6 @@ public class TestScale extends TestBase {
         }
 
         // No Data Range
-        Range noDataRange = null;
-        // Source test image
-        RenderedImage sourceImage = null;
         if (isBinary) {
             // destination no data Value
             destinationNoData = 0;
@@ -131,12 +159,8 @@ public class TestScale extends TestBase {
             // destination no data Value
             destinationNoData = 255;
         }
-
-        sourceImage = createTestImage(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataValue,
-                isBinary);
-
+        Range noDataRange = null;
         if (noDataRangeUsed && !isBinary) {
-            
             switch(dataType){
             case DataBuffer.TYPE_BYTE:
                 noDataRange = RangeFactory.create(noDataValue.byteValue(), true, noDataValue.byteValue(), true);
@@ -218,7 +242,7 @@ public class TestScale extends TestBase {
 
         // Background
         double[] bkg = new double[]{destinationNoData};
-        
+
         // Scale operation
         RenderedImage destinationIMG = ScaleDescriptor.create(sourceImage, scaleX, scaleY,
                 transX, transY, interp, roi, useROIAccessor, noDataRange, bkg, hints);
@@ -265,9 +289,9 @@ public class TestScale extends TestBase {
                     }
                 }
                 // Check if the values are not max and minimum value
-                assertFalse(minValue == maxValue);
-                assertFalse(minValue == Integer.MAX_VALUE);
-                assertFalse(maxValue == Integer.MIN_VALUE);
+                assertNotEquals(minValue, maxValue);
+                assertNotEquals(minValue, Integer.MAX_VALUE);
+                assertNotEquals(maxValue, Integer.MIN_VALUE);
             }
             break;
         case DataBuffer.TYPE_FLOAT:
@@ -367,14 +391,13 @@ public class TestScale extends TestBase {
         assertEquals((int) (DEFAULT_WIDTH * scaleX), destinationIMG.getWidth());
         // height
         assertEquals((int) (DEFAULT_HEIGHT * scaleY), destinationIMG.getHeight());
-        
+
         //Final Image disposal
         if(destinationIMG instanceof RenderedOp){
             ((RenderedOp)destinationIMG).dispose();
         }
-
     }
-    
+
     public void assertNoDataBleedByte(Interpolation interpolation) {
         final byte constant = (byte) (0xff & 255);
         RenderedImage source = getConstantImage(10, 10, new Byte[] {constant});
@@ -479,5 +502,36 @@ public class TestScale extends TestBase {
         RenderingHints hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,BorderExtender.createInstance(BorderExtender.BORDER_COPY));
         hints.put(JAI.KEY_IMAGE_LAYOUT, new ImageLayout(0, 0, width * 2, height * 2, 0, 0, width * 2, height * 2, null, null));
         return ScaleDescriptor.create(source, 2f, 2f, 0f, 0f, interpolation, roi, useROIAccessor, noData, new double[] {0}, hints);
+    }
+
+    protected void testPackedImage(InterpolationType interpolation) {
+        boolean roiPresent = true;
+        boolean noDataRangeUsed = true;
+        boolean useROIAccessor = true;
+        Number noData = 3;
+        Number validData = 1;
+
+        int[] dataTypes =
+                new int[] {DataBuffer.TYPE_BYTE, DataBuffer.TYPE_USHORT, DataBuffer.TYPE_INT};
+
+        for (ScaleType scaleType : ScaleType.values()) {
+            for (int dataType : dataTypes) {
+                MultiPixelPackedSampleModel sm =
+                        new MultiPixelPackedSampleModel(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, 2);
+                RenderedImage image =
+                        createTestImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, 0, 1, validData, sm);
+                testImage(
+                        image.getSampleModel().getDataType(),
+                        noData,
+                        useROIAccessor,
+                        false,
+                        noDataRangeUsed,
+                        roiPresent,
+                        interpolation,
+                        TestSelection.ROI_ACCESSOR_NO_DATA,
+                        scaleType,
+                        image);
+            }
+        }
     }
 }
