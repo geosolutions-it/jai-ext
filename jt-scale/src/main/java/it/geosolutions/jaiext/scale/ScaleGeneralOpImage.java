@@ -314,13 +314,13 @@ public class ScaleGeneralOpImage extends ScaleOpImage {
                 computeLoop(srcAccessor, destRect, dstAccessor, xpos, ypos, xfracvalues,
                         yfracvalues, null, null, null);
             }
-        }
 
-        if (dstAccessor.isDataCopy()) {
-            if (dstAccessor.needsClamping()) {
-                dstAccessor.clampDataArrays();
+            if (dstAccessor.isDataCopy()) {
+                if (dstAccessor.needsClamping()) {
+                    dstAccessor.clampDataArrays();
+                }
+                dstAccessor.copyDataToRaster();
             }
-            dstAccessor.copyDataToRaster();
         }
     }
 

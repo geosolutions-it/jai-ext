@@ -38,6 +38,7 @@ import javax.media.jai.iterator.RandomIter;
 
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.range.NoDataContainer;
 import it.geosolutions.jaiext.range.Range;
 
 public class Scale2NearestOpImage extends Scale2OpImage {
@@ -178,6 +179,9 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                     }
                 }
             }
+        }
+        if (hasNoData && destinationNoDataDouble != null) {
+            setProperty(NoDataContainer.GC_NODATA, new NoDataContainer(destinationNoDataDouble));
         }
 
         //Definition of the possible cases that can be found

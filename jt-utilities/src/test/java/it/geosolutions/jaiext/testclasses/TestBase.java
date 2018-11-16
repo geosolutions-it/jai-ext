@@ -229,12 +229,12 @@ public abstract class TestBase {
         }
 
 
-        Byte crossValueByte = null;
-        Short crossValueUShort = null;
-        Short crossValueShort = null;
-        Integer crossValueInteger = null;
-        Float crossValueFloat = null;
-        Double crossValueDouble = null;
+        Byte crossValueByte = 0;
+        Short crossValueUShort = 0;
+        Short crossValueShort = 0;
+        Integer crossValueInteger = 0;
+        Float crossValueFloat = 0f;
+        Double crossValueDouble = 0d;
         int dataType = sm.getDataType();
         if (noDataValue != null) {
             switch (dataType) {

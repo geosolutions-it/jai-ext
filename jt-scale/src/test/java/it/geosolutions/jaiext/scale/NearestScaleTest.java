@@ -127,4 +127,9 @@ public class NearestScaleTest extends TestScale {
     public void tesPackedImage() {
         super.testPackedImage(InterpolationType.NEAREST_INTERP);
     }
+
+    @Test
+    public void testNoDataOutput() {
+        super.testNoDataOutput(InterpolationType.NEAREST_INTERP);
+    }
 }

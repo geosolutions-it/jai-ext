@@ -157,4 +157,9 @@ public class BicubicScaleTest extends TestScale{
         super.testPackedImage(InterpolationType.BICUBIC_INTERP);
     }
 
+    @Test
+    public void testNoDataOutput() {
+        super.testNoDataOutput(InterpolationType.BICUBIC_INTERP);
+    }
+
 }
