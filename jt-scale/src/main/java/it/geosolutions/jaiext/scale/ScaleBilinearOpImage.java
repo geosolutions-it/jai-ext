@@ -127,8 +127,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         }
         if (destNod != null) {
             destinationNoDataDouble = destNod;
-        } else if (this.backgroundValues != null && this.backgroundValues.length > 0) {
-            destinationNoDataDouble = this.backgroundValues;
         }
         // Expand the destination nodata values if not defined
         if(destinationNoDataDouble != null && destinationNoDataDouble.length < numBands){
@@ -160,6 +158,7 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
         interp_left = interp.getLeftPadding();
         interp_top = interp.getTopPadding();
 
+        // Creation of a lookuptable containing the values to use for no data
         // Create the destination No data arrays
         destinationNoDataByte = new byte[numBands];
         destinationNoDataShort = new short[numBands];
@@ -174,7 +173,6 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             destinationNoDataInt[i] = (int) destinationNoDataDouble[i];
             destinationNoDataFloat[i] = (float) destinationNoDataDouble[i];
         }
-        // Creation of a lookuptable containing the values to use for no data
         if (hasNoData) {
             // Creation of a lookuptable containing the values to use for no data
             byteLookupTable = new byte[numBands][256];
@@ -187,9 +185,20 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
                     }
                 }
             }
+        } else {
+            // due to ROI we might want to set a value in output anyways, set the background one
+            // Populate the arrays
+            for (int i = 0; i < numBands; i++) {
+                destinationNoDataByte[i] = (byte) ((int) this.backgroundValues[i] & 0xFF);
+                destinationNoDataUShort[i] = (short) (((short) this.backgroundValues[i]) & 0xffff);
+                destinationNoDataShort[i] = (short) this.backgroundValues[i];
+                destinationNoDataInt[i] = (int) this.backgroundValues[i];
+                destinationNoDataFloat[i] = (float) this.backgroundValues[i];
+            }
+
         }
         
-        if (destinationNoDataDouble != null) {
+        if (hasNoData && destinationNoDataDouble != null) {
             setProperty(NoDataContainer.GC_NODATA, new NoDataContainer(destinationNoDataDouble));
         }
         
@@ -319,6 +328,12 @@ public class ScaleBilinearOpImage extends ScaleOpImage {
             break;
         }
 
+        if (dstAccessor.isDataCopy()) {
+            if (dstAccessor.needsClamping()) {
+                dstAccessor.clampDataArrays();
+            }
+            dstAccessor.copyDataToRaster();
+        }
     }
 
     private void byteLoop(RasterAccessor src, Rectangle dstRect, RasterAccessor dst, int[] xpos,
