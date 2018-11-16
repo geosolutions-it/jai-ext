@@ -17,9 +17,11 @@
 */
 package it.geosolutions.jaiext.scale;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.awt.*;
@@ -42,6 +44,7 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
 
+import it.geosolutions.jaiext.range.NoDataContainer;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
@@ -102,13 +105,21 @@ public class TestScale extends TestBase {
 
         Number noDataValue = getNoDataValueFor(dataType);
 
-        RenderedImage  sourceImage = createTestImage(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataValue,
+        testImage(dataType, useROIAccessor, isBinary, noDataRangeUsed, roiPresent, interpType,
+                testSelect,
+                scaleValue, noDataValue);
+
+    }
+
+    protected void testImage(int dataType, boolean useROIAccessor, boolean isBinary,
+            boolean noDataRangeUsed, boolean roiPresent, InterpolationType interpType,
+            TestSelection testSelect, ScaleType scaleValue, Number noDataValue) {
+        RenderedImage sourceImage = createTestImage(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataValue,
                 isBinary);
 
         testImage(dataType, noDataValue, useROIAccessor, isBinary, noDataRangeUsed, roiPresent,
                 interpType,
                 testSelect, scaleValue, sourceImage);
-
     }
 
     protected Number getNoDataValueFor(int dataType) {
@@ -140,6 +151,20 @@ public class TestScale extends TestBase {
     }
 
     protected  void testImage(int dataType, Number noDataValue,
+            boolean useROIAccessor, boolean isBinary, boolean noDataRangeUsed, boolean roiPresent,
+            InterpolationType interpType, TestSelection testSelect,
+            ScaleType scaleValue, RenderedImage sourceImage) {
+        RenderedImage destinationIMG = testAndReturnImage(dataType, noDataValue, useROIAccessor,
+                isBinary, noDataRangeUsed, roiPresent,
+                interpType, testSelect, scaleValue, sourceImage);
+
+        //Final Image disposal
+        if(destinationIMG instanceof RenderedOp){
+            ((RenderedOp)destinationIMG).dispose();
+        }
+    }
+
+    protected RenderedImage testAndReturnImage(int dataType, Number noDataValue,
             boolean useROIAccessor, boolean isBinary, boolean noDataRangeUsed, boolean roiPresent,
             InterpolationType interpType, TestSelection testSelect,
             ScaleType scaleValue, RenderedImage sourceImage) {
@@ -391,11 +416,7 @@ public class TestScale extends TestBase {
         assertEquals((int) (DEFAULT_WIDTH * scaleX), destinationIMG.getWidth());
         // height
         assertEquals((int) (DEFAULT_HEIGHT * scaleY), destinationIMG.getHeight());
-
-        //Final Image disposal
-        if(destinationIMG instanceof RenderedOp){
-            ((RenderedOp)destinationIMG).dispose();
-        }
+        return destinationIMG;
     }
 
     public void assertNoDataBleedByte(Interpolation interpolation) {
@@ -534,4 +555,56 @@ public class TestScale extends TestBase {
             }
         }
     }
+
+    protected void testNoDataOutput(InterpolationType interpolation) {
+        boolean roiPresent = true;
+        boolean useROIAccessor = true;
+        Number noData = 3;
+
+        int[] dataTypes =
+                new int[] {DataBuffer.TYPE_BYTE, DataBuffer.TYPE_USHORT, DataBuffer.TYPE_INT};
+        for (ScaleType scaleType : ScaleType.values()) {
+            for (int dataType : dataTypes) {
+                Number[] noDataValues = new Number[] {null, getNoDataValueFor(dataType)};
+                for (Number noDataValue : noDataValues) {
+
+                    RenderedImage source = createTestImage(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataValue, false);
+                    RenderedImage result = testAndReturnImage(
+                            dataType,
+                            noData,
+                            useROIAccessor,
+                            false,
+                            noDataValue != null,
+                            roiPresent,
+                            interpolation,
+                            TestSelection.ROI_ACCESSOR_NO_DATA,
+                            scaleType,
+                            source);
+
+                    // right now it's using the background data as destination nodata... believe
+                    // this is wrong, but won't get down this alley for now as it would require
+                    // reviewing and changing many jai-ext operations
+                    checkNoData(result, noDataValue == null ? null: 255);
+
+                    ((RenderedOp) result).dispose();
+                }
+                                
+                
+                
+            }
+        }
+    }
+
+    private void checkNoData(RenderedImage result, Number noDataValue) {
+        Object property = result.getProperty(NoDataContainer.GC_NODATA);
+        if (noDataValue != null) {
+            assertThat(property, instanceOf(NoDataContainer.class));
+            NoDataContainer container = (NoDataContainer) property;
+            assertEquals(noDataValue.doubleValue(), container.getAsSingleValue(), 0d);
+        } else {
+            assertEquals(property, Image.UndefinedProperty);
+        }
+    }
+
+
 }

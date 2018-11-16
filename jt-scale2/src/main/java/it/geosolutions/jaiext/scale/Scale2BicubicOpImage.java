@@ -165,8 +165,6 @@ public class Scale2BicubicOpImage extends Scale2OpImage {
         }
         if (destNod != null) {
             destinationNoDataDouble = destNod;
-        } else if (this.backgroundValues != null && this.backgroundValues.length > 0) {
-            destinationNoDataDouble = this.backgroundValues;
         }
         // Expand the destination nodata values if not defined
         if(destinationNoDataDouble != null && destinationNoDataDouble.length < numBands){
@@ -222,8 +220,18 @@ public class Scale2BicubicOpImage extends Scale2OpImage {
                     }
                 }
             }
+        } else {
+            // due to ROI we might want to set a value in output anyways, set the background one
+            // Populate the arrays
+            for (int i = 0; i < numBands; i++) {
+                destinationNoDataByte[i] = (byte) ((int) this.backgroundValues[i] & 0xFF);
+                destinationNoDataUShort[i] = (short) (((short) this.backgroundValues[i]) & 0xffff);
+                destinationNoDataShort[i] = (short) this.backgroundValues[i];
+                destinationNoDataInt[i] = (int) this.backgroundValues[i];
+                destinationNoDataFloat[i] = (float) this.backgroundValues[i];
+            }
         }
-        if (destinationNoDataDouble != null) {
+        if (hasNoData && destinationNoDataDouble != null) {
             setProperty(NoDataContainer.GC_NODATA, new NoDataContainer(destinationNoDataDouble));
         }
         
