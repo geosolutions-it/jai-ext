@@ -337,5 +337,14 @@ public class BilinearScaleTest extends TestScale {
         }
     }
 
+    @Test
+    public void testPackedImage() {
+        super.testPackedImage(InterpolationType.BILINEAR_INTERP);
+    }
+
+    @Test
+    public void testNoDataOutput() {
+        super.testNoDataOutput(InterpolationType.BILINEAR_INTERP);
+    }
 
 }

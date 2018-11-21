@@ -19,6 +19,7 @@ package it.geosolutions.jaiext.testclasses;
 
 
 import it.geosolutions.jaiext.JAIExt;
+import it.geosolutions.jaiext.utilities.ImageUtilities;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
@@ -66,7 +67,7 @@ public abstract class TestBase {
 
     public static boolean INTERACTIVE = Boolean.getBoolean("JAI.Ext.Interactive");
     
-    public static boolean IMAGE_FILLER = Boolean.getBoolean("JAI.Ext.ImageFill");
+    public static boolean IMAGE_FILLER = Boolean.valueOf(System.getProperty("JAI.Ext.ImageFill", "true"));
     
     public static Integer INVERSE_SCALE = Integer.getInteger("JAI.Ext.InverseScale",0);
 
@@ -171,13 +172,29 @@ public abstract class TestBase {
     
     /** Simple method for image creation */
     public static RenderedImage createTestImage(int dataType, int width, int height, Number noDataValue,
-            boolean isBinary, int bands, Number validData) {
-        // parameter block initialization
-        int tileW = width / 8;
-        int tileH = height / 8;
-        int imageDim = width * height;
+            boolean isBinary, int numBands, Number validData) {
+        final SampleModel sm;
+        if (isBinary) {
+            // Binary images Sample Model
+            sm = new MultiPixelPackedSampleModel(dataType, width, height, 1);
+            numBands = 1;
+        } else {
+            int imageDim = width * height;
 
-        
+            if(numBands == 3){
+                sm = new ComponentSampleModel(dataType, width, height, 3, width, new int[] { 0,
+                        imageDim, imageDim * 2 }); 
+            }else{
+                sm = new ComponentSampleModel(dataType, width, height, 1, width, new int[] {0}); 
+            }
+        }
+        return createTestImage(width, height, noDataValue, numBands, validData, sm);
+
+    }
+
+    public static RenderedImage createTestImage(int width, int height,
+            Number noDataValue, int numBands, Number validData, SampleModel sm) {
+        boolean isBinary = ImageUtilities.isBinary(sm);
         
         // This values could be used for fill all the image
         byte valueB = validData != null ? validData.byteValue() : 64;
@@ -188,65 +205,68 @@ public abstract class TestBase {
         double valueD = validData != null ? validData.doubleValue() : (255 / 1) * 4d;
 
         boolean fillImage = IMAGE_FILLER;
-        
 
-        Byte crossValueByte = null;
-        Short crossValueUShort = null;
-        Short crossValueShort = null;
-        Integer crossValueInteger = null;
-        Float crossValueFloat = null;
-        Double crossValueDouble = null;
 
-        int numBands = bands;
-
-        final SampleModel sm;
-        if (isBinary) {
-            // Binary images Sample Model
-            sm = new MultiPixelPackedSampleModel(dataType, width, height, 1);
-            numBands = 1;
-        } else {
-            
-            if(numBands == 3){
-                sm = new ComponentSampleModel(dataType, width, height, 3, width, new int[] { 0,
-                        imageDim, imageDim * 2 }); 
-            }else{
-                sm = new ComponentSampleModel(dataType, width, height, 1, width, new int[] {0}); 
-            }
-        }
-        
         // Create the constant operation.
-        TiledImage used = new TiledImage(sm, tileW, tileH);
+        // parameter block initialization
+        int tileW = width / 8;
+        int tileH = height / 8;
+        TiledImage used;
+        if (sm instanceof MultiPixelPackedSampleModel) {
+            MultiPixelPackedSampleModel mpsm = (MultiPixelPackedSampleModel) sm;
+            int bits = mpsm.getSampleSize(0);
+            int size = (int) Math.pow(2, bits);
+            byte[] reds = new byte[size];
+            byte[] blues = new byte[size];
+            byte[] greens = new byte[size];
+            for (int i = 0; i < size; i++) {
+                reds[i] = blues[i] = greens[i] = (byte) (255 *  size / (double) (i + 1));
+            }
+            IndexColorModel icm = new IndexColorModel(bits, size, reds, blues, greens);
+            used = new TiledImage(0, 0, width, height, 0, 0, sm, icm);
+        } else {
+            used = new TiledImage(sm, tileW, tileH);
+        }
 
 
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            crossValueByte = (Byte) noDataValue;
-            break;
-        case DataBuffer.TYPE_USHORT:
-            crossValueUShort = (Short) noDataValue;
-            break;
-        case DataBuffer.TYPE_SHORT:
-            crossValueShort = (Short) noDataValue;
-            break;
-        case DataBuffer.TYPE_INT:
-            crossValueInteger = (Integer) noDataValue;
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            crossValueFloat = (Float) noDataValue;
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            crossValueDouble = (Double) noDataValue;
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data type");
+        Byte crossValueByte = 0;
+        Short crossValueUShort = 0;
+        Short crossValueShort = 0;
+        Integer crossValueInteger = 0;
+        Float crossValueFloat = 0f;
+        Double crossValueDouble = 0d;
+        int dataType = sm.getDataType();
+        if (noDataValue != null) {
+            switch (dataType) {
+                case DataBuffer.TYPE_BYTE:
+                    crossValueByte = noDataValue.byteValue();
+                    break;
+                case DataBuffer.TYPE_USHORT:
+                    crossValueUShort = noDataValue.shortValue();
+                    break;
+                case DataBuffer.TYPE_SHORT:
+                    crossValueShort = noDataValue.shortValue();
+                    break;
+                case DataBuffer.TYPE_INT:
+                    crossValueInteger = noDataValue.intValue();
+                    break;
+                case DataBuffer.TYPE_FLOAT:
+                    crossValueFloat = noDataValue.floatValue();
+                    break;
+                case DataBuffer.TYPE_DOUBLE:
+                    crossValueDouble = noDataValue.doubleValue();
+                    break;
+                default:
+                    throw new IllegalArgumentException("Wrong data type");
+            }
         }
 
         int imgBinX=width/4;
         int imgBinY=height/4;
-        
+
         int imgBinWidth=imgBinX + width/4;
         int imgBinHeight=imgBinY + height/4;
-        
+
         for (int b = 0; b < numBands; b++) {
             for (int j = 0; j < width; j++) {
                 for (int k = 0; k < height; k++) {
