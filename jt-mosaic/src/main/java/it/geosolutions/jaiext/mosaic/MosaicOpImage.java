@@ -488,33 +488,33 @@ public class MosaicOpImage extends OpImage {
         this.zeroBorderExtender = BorderExtender.createInstance(BorderExtender.BORDER_ZERO);
 
         // Stores the destination no data values.
-        if (destinationNoData == null) {
+        if (destinationNoData == null || destinationNoData.length == 0) {
             this.destinationNoDataDouble = DEFAULT_DESTINATION_NO_DATA_VALUE;
             switch (dataType) {
             case DataBuffer.TYPE_BYTE:
-                this.destinationNoDataInt = new int[numSources];
+                this.destinationNoDataInt = new int[numBands];
                 Arrays.fill(this.destinationNoDataInt, Integer.MIN_VALUE);
-                this.destinationNoDataByte = new byte[numSources];
+                this.destinationNoDataByte = new byte[numBands];
                 Arrays.fill(this.destinationNoDataByte, (byte) 0);
                 break;
             case DataBuffer.TYPE_USHORT:
-                this.destinationNoDataInt = new int[numSources];
+                this.destinationNoDataInt = new int[numBands];
                 Arrays.fill(this.destinationNoDataInt, Integer.MIN_VALUE);
-                this.destinationNoDataUShort = new short[numSources];
+                this.destinationNoDataUShort = new short[numBands];
                 Arrays.fill(this.destinationNoDataUShort, (short) 0);
                 break;
             case DataBuffer.TYPE_SHORT:
-                this.destinationNoDataInt = new int[numSources];
+                this.destinationNoDataInt = new int[numBands];
                 Arrays.fill(this.destinationNoDataInt, Integer.MIN_VALUE);
-                this.destinationNoDataShort = new short[numSources];
+                this.destinationNoDataShort = new short[numBands];
                 Arrays.fill(this.destinationNoDataShort, Short.MIN_VALUE);
                 break;
             case DataBuffer.TYPE_INT:
-                this.destinationNoDataInt = new int[numSources];
+                this.destinationNoDataInt = new int[numBands];
                 Arrays.fill(this.destinationNoDataInt, Integer.MIN_VALUE);
                 break;
             case DataBuffer.TYPE_FLOAT:
-                this.destinationNoDataFloat = new float[numSources];
+                this.destinationNoDataFloat = new float[numBands];
                 Arrays.fill(this.destinationNoDataFloat, -Float.MAX_VALUE);
                 break;
             case DataBuffer.TYPE_DOUBLE:

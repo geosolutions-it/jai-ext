@@ -16,8 +16,12 @@
 * limitations under the License.
 */
 package it.geosolutions.jaiext.scale;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
+
+import com.sun.media.jai.util.PropertyGeneratorImpl;
+
+import org.locationtech.jts.geom.Geometry;
+
+import java.awt.*;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderableImage;
@@ -39,15 +43,12 @@ import javax.media.jai.operator.ConstantDescriptor;
 import javax.media.jai.registry.RenderableRegistryMode;
 import javax.media.jai.registry.RenderedRegistryMode;
 
-import it.geosolutions.jaiext.utilities.ImageLayout2;
-import it.geosolutions.jaiext.vectorbin.ROIGeometry;
-
-import com.sun.media.jai.util.PropertyGeneratorImpl;
-import org.locationtech.jts.geom.Geometry;
-
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.translate.TranslateIntOpImage;
+import it.geosolutions.jaiext.utilities.ImageLayout2;
+import it.geosolutions.jaiext.vectorbin.ROIGeometry;
 
 /**
  * This property generator computes the properties for the operation
@@ -121,8 +122,13 @@ class Scale2PropertyGenerator extends PropertyGeneratorImpl {
             Rectangle dstBounds = op.getBounds();
             PlanarImage roiImage = null;
 
-            if (interp instanceof InterpolationBilinear
-                    || interp instanceof javax.media.jai.InterpolationBilinear) {
+            // parallel to the ScaleCRIF, use a TranslateInt when possible
+            if (sx == 1.0D && sy == 1.0D && (Math.abs(tx - (int) tx) < Scale2CRIF.TOLERANCE)
+                    && (Math.abs(ty - (int) ty) < Scale2CRIF.TOLERANCE)) {
+                // It's an integer translate.
+                roiImage = new TranslateIntOpImage(srcROI.getAsImage(), null, (int) tx, (int) ty);
+            } else if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear
+                    || interp instanceof InterpolationBicubic || interp instanceof javax.media.jai.InterpolationBicubic) {
                 // Setting constant image to be scaled as a ROI
 
                 ImageLayout2 layout = new ImageLayout2();
@@ -146,23 +152,32 @@ class Scale2PropertyGenerator extends PropertyGeneratorImpl {
                 // Make sure to specify tileCache, tileScheduler, tileRecyclier, by cloning hints.
                 RenderingHints scalingHints = op.getRenderingHints();
                 scalingHints.remove(JAI.KEY_IMAGE_LAYOUT);
+                scalingHints.put(JAI.KEY_BORDER_EXTENDER, extender);
 
+                boolean isBilinear = (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear);
+                Interpolation interpParam = isBilinear
+                        ? new InterpolationBilinear(interp.getSubsampleBitsH(), null, false, 0,
+                                constantImage.getSampleModel().getDataType())
+                        : new InterpolationBicubic(interp.getSubsampleBitsH(), null, false, 0,
+                                constantImage.getSampleModel().getDataType(), false, 8);
+
+                ParameterBlock paramBlock = new ParameterBlock();
+                paramBlock.setSource(constantImage, 0);
+                paramBlock.add(Double.valueOf(sx));
+                paramBlock.add(Double.valueOf(sy));
+                paramBlock.add(Double.valueOf(tx));
+                paramBlock.add(Double.valueOf(ty));
+                paramBlock.add(interpParam);
                 if (srcROI instanceof ROIGeometry) {
                     ROIGeometry roiGeom = (ROIGeometry) srcROI;
                     Geometry geom = roiGeom.getAsGeometry();
                     if (geom != null && !geom.isEmpty()) {
-                        constantImage.setProperty("roi", srcROI);
+                        paramBlock.add(srcROI);
                     }
                 } else {
-                    constantImage.setProperty("roi", srcROI);
+                    paramBlock.add(srcROI);
                 }
-
-                InterpolationBilinear interpBilinear = new InterpolationBilinear(
-                        interp.getSubsampleBitsH(), null, false, 0,
-                        constantImage.getSampleModel().getDataType());
-
-                roiImage = new Scale2GeneralOpImage(constantImage, null, scalingHints, extender,
-                        interpBilinear, sx, sy, tx, ty, false, null, null);
+                roiImage = JAI.create("Scale2", paramBlock, scalingHints);
             } else {
                 PlanarImage roiMod = srcROI.getAsImage();
                 ParameterBlock paramBlock = new ParameterBlock();
@@ -507,8 +522,20 @@ public class Scale2Descriptor extends OperationDescriptorImpl {
         ParameterBlockJAI pb = new ParameterBlockJAI("Scale2", RenderedRegistryMode.MODE_NAME);
 
         pb.setSource("source0", source0);
-        setParameters(pb, xScale, yScale, xTrans, yTrans, interpolation, nodata, roi,
-                backgroundValues, useRoiAccessor);
+
+        pb.setParameter("xScale", xScale);
+        pb.setParameter("yScale", yScale);
+        pb.setParameter("xTrans", xTrans);
+        pb.setParameter("yTrans", yTrans);
+        pb.setParameter("interpolation", interpolation);
+        pb.setParameter("nodata", nodata);
+        if(roi!=null)
+            pb.setParameter("ROI", roi);
+        if(backgroundValues != null){
+        	pb.setParameter("backgroundValues", backgroundValues);
+        }
+        pb.setParameter("useRoiAccessor", useRoiAccessor);
+
         return JAI.create("Scale2", pb, hints);
     }
 
@@ -557,14 +584,6 @@ public class Scale2Descriptor extends OperationDescriptorImpl {
                                                 RenderingHints hints)  {
         ParameterBlockJAI pb = new ParameterBlockJAI("Scale2", RenderableRegistryMode.MODE_NAME);
         pb.setSource("source0", source0);
-        setParameters(pb, xScale, yScale, xTrans, yTrans, interpolation, nodata, roi,
-                backgroundValues, null);
-        return JAI.createRenderable("Scale2", pb, hints);
-    }
-
-    private static void setParameters(ParameterBlockJAI pb, Double xScale,
-            Double yScale, Double xTrans, Double yTrans, Interpolation interpolation, Range nodata,
-            ROI roi, double[] backgroundValues, Boolean useRoiAccessor) {
 
         pb.setParameter("xScale", xScale);
         pb.setParameter("yScale", yScale);
@@ -572,15 +591,13 @@ public class Scale2Descriptor extends OperationDescriptorImpl {
         pb.setParameter("yTrans", yTrans);
         pb.setParameter("interpolation", interpolation);
         pb.setParameter("nodata", nodata);
-        if (roi != null) {
+        if(roi!=null) {
             pb.setParameter("ROI", roi);
         }
         if (backgroundValues != null) {
             pb.setParameter("backgroundValues", backgroundValues);
         }
-        if (useRoiAccessor != null) {
-            pb.setParameter("useRoiAccessor", useRoiAccessor);
-        }
+        return JAI.createRenderable("Scale2", pb, hints);
     }
 
 }

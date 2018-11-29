@@ -54,7 +54,7 @@ import it.geosolutions.jaiext.utilities.ImageUtilities;
  */
 public class Scale2CRIF extends CRIFImpl {
 
-    private static final float TOLERANCE = 0.01F;
+    static final float TOLERANCE = 0.01F;
 
     /** Constructor. */
     public Scale2CRIF() {
@@ -177,22 +177,35 @@ public class Scale2CRIF extends CRIFImpl {
                     destinationNoData, dataType, false, bic.getPrecisionBits());
         }
 
-        if (isBinary) {
-            return new Scale2GeneralOpImage(source, layout, renderHints, extender, interp, xScale,
-                    yScale, xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
-        } else if (nearestInterp) {
-            return new Scale2NearestOpImage(source, layout, renderHints, extender, interp, xScale,
-                    yScale, xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
-        } else if (bilinearInterp) {
-            return new Scale2BilinearOpImage(source, layout, renderHints, extender, interp, xScale,
-                    yScale, xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
-        } else if (bicubicInterp) {
-            return new Scale2BicubicOpImage(source, layout, renderHints, extender, interp, xScale,
-                    yScale, xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
-        } else {
-            return new Scale2GeneralOpImage(source, layout, renderHints, extender, interp, xScale,
-                    yScale, xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
-        }
+		if (nearestInterp && isBinary) {
+			return new Scale2GeneralOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale,
+					xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
+		} else if (nearestInterp && !isBinary) {
+			return new Scale2NearestOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale, xTrans, yTrans,
+					useRoiAccessor, nodata, backgroundValues);
+		} else if (bilinearInterp && !isBinary) {
+			return new Scale2BilinearOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale, xTrans, yTrans,
+					useRoiAccessor, nodata, backgroundValues);
+		} else if (bilinearInterp && isBinary) {
+			return new Scale2GeneralOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale,
+					xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
+		} else if (bicubicInterp && !isBinary) {
+			return new Scale2BicubicOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale, xTrans, yTrans,
+					useRoiAccessor, nodata, backgroundValues);
+		} else if (bicubicInterp && isBinary) {
+			return new Scale2GeneralOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale,
+					xTrans, yTrans, useRoiAccessor, nodata, backgroundValues);
+		} else {
+			return new Scale2GeneralOpImage(source, layout, renderHints,
+					extender, interp, xScale, yScale, xTrans, yTrans,
+					useRoiAccessor, nodata, backgroundValues);
+		}
     }
 
     /**
