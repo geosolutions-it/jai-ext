@@ -156,6 +156,7 @@
 			  it.geosolutions.jaiext.threshold
 			  it.geosolutions.jaiext.clamp
 			  it.geosolutions.jaiext.shadedrelief
+              it.geosolutions.jaiext.classbreaks
 			  </includeGroupIds>
               <includeArtifactIds>
 			  jt-concurrent-tile-cache,
@@ -193,6 +194,7 @@
 			  jt-threshold
 			  jt-clamp
 			  jt-shadedrelief
+              jt-classbreaks
 			  </includeArtifactIds>
             </configuration>
           </execution>
@@ -730,5 +732,6 @@
     <module>jt-scale2</module>
     <module>jt-shadedrelief</module>
     <module>jt-jiffle</module>
+    <module>jt-classbreaks</module>
   </modules>
 </project>
