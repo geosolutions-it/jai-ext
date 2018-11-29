@@ -17,11 +17,14 @@
 */
 package it.geosolutions.jaiext.scale;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+import java.io.IOException;
 
 import javax.media.jai.Interpolation;
 import javax.media.jai.PlanarImage;
@@ -32,8 +35,11 @@ import javax.media.jai.operator.NullDescriptor;
 
 import org.junit.Test;
 
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.translate.TranslateIntOpImage;
 
 /**
  * This test-class extends the TestScale class and is used for extending the code-coverage of the project. In this test-class are checked the
@@ -50,6 +56,9 @@ public class CoverageClassTest extends TestScale2 {
                 .getPropertyGenerators()[0];
 
         boolean useROIAccessor = false;
+        boolean bicubic2Disabled = false;
+        int dataType = DataBuffer.TYPE_BYTE;
+        Range noDataRange = null;
 
         // Interpolators initialization
         // Nearest-Neighbor
@@ -85,7 +94,7 @@ public class CoverageClassTest extends TestScale2 {
         scaleImgBil.getTile(0, 0);
         scaleImgBic.getTile(0, 0);
 
-        // Scale operstion on ROI
+        // Scale operation on ROI
         ROI roiNear = (ROI) propertyGenerator.getProperty("roi", scaleImgNear);
         ROI roiBil = (ROI) propertyGenerator.getProperty("roi", scaleImgBil);
         ROI roiBic = (ROI) propertyGenerator.getProperty("roi", scaleImgBic);
@@ -108,6 +117,13 @@ public class CoverageClassTest extends TestScale2 {
         int roiBilWidth = roiBil.getBounds().width;
         int roiBilHeighth = roiBil.getBounds().height;
 
+        Rectangle scaleImgBicBounds = new Rectangle(testIMG.getMinX() + interpBic.getLeftPadding(),
+                testIMG.getMinY() + interpBic.getTopPadding(), testIMG.getWidth()
+                        - interpBic.getWidth() + 2, testIMG.getHeight() - interpBic.getHeight() + 2);
+
+        int roiBoundBicWidth = (int) scaleImgBicBounds.getWidth();
+        int roiBoundBicHeight = (int) scaleImgBicBounds.getHeight();
+
         int roiBicWidth = roiBic.getBounds().width;
         int roiBicHeight = roiBic.getBounds().height;
 
@@ -118,8 +134,8 @@ public class CoverageClassTest extends TestScale2 {
         assertEquals((int) (roiBoundWidth * scaleX), roiBilWidth);
         assertEquals((int) (roiBoundHeight * scaleY), roiBilHeighth);
         // Bicubic
-        assertEquals((int) (roiWidth * scaleX), roiBicWidth);
-        assertEquals((int) (roiHeight * scaleY), roiBicHeight);
+        assertEquals((int) (roiBoundBicWidth * scaleX), roiBicWidth);
+        assertEquals((int) (roiBoundBicHeight * scaleY), roiBicHeight);
 
         // Final Images disposal
         if (scaleImgNear instanceof RenderedOp) {
@@ -147,20 +163,46 @@ public class CoverageClassTest extends TestScale2 {
 
         byte imageValue = 127;
 
-        // Nearest-Neighbor
-        InterpolationNearest interpNear = new InterpolationNearest(noDataRange, useROIAccessor,
-                destinationNoData, dataType);
+        
+        // nearest
+        InterpolationNearest interpNear = new InterpolationNearest(noDataRange,
+                useROIAccessor, destinationNoData, dataType);
+        testTranslation(useROIAccessor, dataType, xScale, yScale, xTrans, yTrans, imageValue,
+                interpNear);
 
+        // bilinear
+        InterpolationBilinear interpBilinear = new InterpolationBilinear(DEFAULT_SUBSAMPLE_BITS, noDataRange,
+                useROIAccessor, destinationNoData, dataType);
+        testTranslation(useROIAccessor, dataType, xScale, yScale, xTrans, yTrans, imageValue,
+                interpBilinear);
+
+        // bicubic
+        InterpolationBicubic interpBicubic = new InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS, noDataRange,
+                useROIAccessor, destinationNoData, dataType, true, 8);
+        testTranslation(useROIAccessor, dataType, xScale, yScale, xTrans, yTrans, imageValue,
+                interpBicubic);
+    }
+
+    public void testTranslation(boolean useROIAccessor, int dataType, double xScale, double yScale,
+            double xTrans, double yTrans, byte imageValue, Interpolation interpolation) {
         RenderedImage testIMG = createTestImage(dataType, DEFAULT_WIDTH, DEFAULT_HEIGHT, imageValue,
                 false);
+        PlanarImage testImgWithROI = PlanarImage.wrapRenderedImage(testIMG);
+        testImgWithROI.setProperty("roi", new ROIShape(new Rectangle(0, 0, DEFAULT_WIDTH / 2, DEFAULT_HEIGHT / 2)));
 
         // Scaled images
-        PlanarImage scaleImgNear = Scale2Descriptor.create(testIMG, xScale, yScale, xTrans, yTrans,
-                interpNear, null, useROIAccessor, null, null, null);
+        RenderedOp scaleImgNear = Scale2Descriptor.create(testImgWithROI, xScale, yScale, xTrans,
+                yTrans, interpolation, null, useROIAccessor, null, null, null);
         scaleImgNear.getTiles();
 
-        double actualX = scaleImgNear.getMinX();
-        double actualY = scaleImgNear.getMinY();
+        // verify the translate int optimization, and that 
+        assertThat(scaleImgNear.getRendering(), instanceOf(TranslateIntOpImage.class));
+        Object roi = scaleImgNear.getProperty("roi");
+        assertThat(roi, instanceOf(ROI.class));
+        assertThat(((ROI) roi).getAsImage(), instanceOf(TranslateIntOpImage.class));
+
+        double actualX=scaleImgNear.getMinX();
+        double actualY=scaleImgNear.getMinY();
 
         double expectedX = testIMG.getMinX() + xTrans;
         double expectedY = testIMG.getMinY() + yTrans;
