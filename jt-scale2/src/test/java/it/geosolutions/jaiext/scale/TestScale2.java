@@ -21,7 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
@@ -31,9 +31,11 @@ import java.awt.image.renderable.ParameterBlock;
 import java.io.IOException;
 
 import javax.media.jai.BorderExtender;
+import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
@@ -460,5 +462,31 @@ public class TestScale2 extends TestBase {
                 assertTrue("Expected valid value but found nodata", value > 0);
             }
         }
+    }
+
+    /**
+     * Build a 4x4 image with pixels having value as the sum of their coordinates, attaches
+     * a ROI covering the 4 central pixels, and scales up by a factor of 2 with the given interpolation
+     * @param dataType
+     * @return
+     */
+    protected RenderedImage buildImageWithROI(int dataType, Interpolation interpolation, boolean useROIAccessor, Range noData) {
+        
+        int width = 4;
+        int height = 4;
+        SampleModel sm = new ComponentSampleModel(dataType, width, height, 1, width, new int[] {0});
+        TiledImage source =
+                new TiledImage(0, 0, width, height, 0, 0, sm, PlanarImage.createColorModel(sm));
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                source.setSample(x, y, 0, x + y);
+            }
+        }
+        
+        // build a ROI covering the center of the image and associate
+        ROI roi = new ROIShape(new Rectangle(1, 1, 2, 2));
+        RenderingHints hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,BorderExtender.createInstance(BorderExtender.BORDER_COPY));
+        hints.put(JAI.KEY_IMAGE_LAYOUT, new ImageLayout(0, 0, width * 2, height * 2, 0, 0, width * 2, height * 2, null, null));
+        return Scale2Descriptor.create(source, 2d, 2d, 0d, 0d, interpolation, roi, useROIAccessor, noData, new double[] {0}, hints);
     }
 }
