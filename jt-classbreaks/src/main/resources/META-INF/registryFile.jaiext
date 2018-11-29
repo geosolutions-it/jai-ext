@@ -1,0 +1,9 @@
+#
+# Image descriptors
+#
+descriptor  it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor
+
+#
+# RenderedImageFactories
+#
+rendered  it.geosolutions.jaiext.classbreaks.ClassBreaksRIF  it.geosolutions.jaiext  ClassBreaks  ClassBreaks
