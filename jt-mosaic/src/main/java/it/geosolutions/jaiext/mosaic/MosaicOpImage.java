@@ -78,10 +78,10 @@ public class MosaicOpImage extends OpImage {
     public static final double[] DEFAULT_DESTINATION_NO_DATA_VALUE = { 0 };
 
     /** mosaic type selected */
-    private MosaicType mosaicTypeSelected;
+    private final MosaicType mosaicTypeSelected;
 
     /** Number of bands for every image */
-    private int numBands;
+    private final int numBands;
 
     /** Bean used for storing image data, ROI, alpha channel, Nodata Range */
     private final ImageMosaicBean[] imageBeans;
@@ -99,10 +99,10 @@ public class MosaicOpImage extends OpImage {
     private boolean alphaPresent;
 
     /** Border extender for the source data */
-    private BorderExtender sourceBorderExtender;
+    private final BorderExtender sourceBorderExtender;
 
     /** Border extender for the ROI or alpha channel data */
-    private BorderExtender zeroBorderExtender;
+    private final BorderExtender zeroBorderExtender;
 
     /**
      * No data values for the destination image if the pixel of the same location are no Data (Byte)
@@ -143,13 +143,13 @@ public class MosaicOpImage extends OpImage {
      * Table used for checking no data values. The first index indicates the source, the second the
      * band, the third the value
      */
-    protected byte[][][] byteLookupTable;
+    private final byte[][][] byteLookupTable;
 
     /** Boolean array indicating which source images has No Data and not */
     private final boolean[] hasNoData;
 
     /** The format tag for the destination image */
-    private RasterFormatTag rasterFormatTag;
+    private final RasterFormatTag rasterFormatTag;
 
     /** Enumerator for the type of mosaic weigher */
     public enum WeightType {
@@ -633,7 +633,7 @@ public class MosaicOpImage extends OpImage {
         RasterFormatTag[] tags = getRasterFormatTags();
         for (int i = 0; i < numSources; i++) {
             // Selection of the i-th source.
-            RenderedImage img = getSourceImage(i);
+            PlanarImage img = getSourceImage(i);
             // Calculation of the padding
             int[] padding = calculatePadding(img, totalBounds);
             // Extend the Source image if padding is defined
@@ -674,9 +674,9 @@ public class MosaicOpImage extends OpImage {
                     RenderedOp create = JAI.create("border", pb);
                     imageBeans[i].setAlphaChannel(create);
                 } else {
-                    imageBeans[i].setAlphaChannel(alpha);
+                imageBeans[i].setAlphaChannel(alpha);
                 }
-
+  
                 if (alphaSampleModel.getNumBands() != 1) {
                     throw new IllegalArgumentException("Alpha bands number must be 1");
                 } else if (alphaSampleModel.getDataType() != sampleModel.getDataType()) {
@@ -709,7 +709,7 @@ public class MosaicOpImage extends OpImage {
                     RenderedOp create = JAI.create("border", pb);
                     imageBeans[i].setRoiImage(create);
                 } else {
-                    imageBeans[i].setRoiImage(roiIMG);
+                imageBeans[i].setRoiImage(roiIMG);
                 }
                 imageBeans[i].setRoi(roi);
             }
@@ -781,8 +781,7 @@ public class MosaicOpImage extends OpImage {
                         Range noDataByte = expandedNoDataRage;
 
                         // The lookup table is filled with the related no data or valid data for
-                        // every
-                        // value
+                        // every value
                         for (int b = 0; b < numBands; b++) {
                             for (int z = 0; z < byteLookupTable[i][0].length; z++) {
                                 if (noDataByte != null && noDataByte.contains(z)) {
@@ -893,6 +892,7 @@ public class MosaicOpImage extends OpImage {
         // Initialization of a new RasterBean for passing all the raster information
         // to the compute rect method
         Raster[] sourceRasters = new Raster[numSources];
+        Rectangle[] sourceRectangles = new Rectangle[numSources];
         RasterFormatTag[] sourceTags = new RasterFormatTag[numSources];
         ColorModel[] sourceColorModels = new ColorModel[numSources];
         Raster[] alphaRasters = new Raster[numSources];
@@ -918,6 +918,7 @@ public class MosaicOpImage extends OpImage {
             // If the data are present then we can check if Alpha and ROI are present
             if (data != null) {
                 sourceRasters[intersectingSourceCount] = data;
+                sourceRectangles[intersectingSourceCount] = srcRect != null && !srcRect.contains(destRectangle) ? srcRect : null;
                 sourceTags[intersectingSourceCount] = imageBeans[i].getRasterFormatTag();
                 sourceColorModels[intersectingSourceCount] = imageBeans[i].getColorModel();
                 noDataRanges[intersectingSourceCount] = imageBeans[i].getSourceNoData();
@@ -925,14 +926,14 @@ public class MosaicOpImage extends OpImage {
                 // Get the Alpha data from the padded alpha image if present
                 PlanarImage alpha = imageBeans[i].getAlphaChannel();
                 if (alphaPresent && alpha != null) {
-                    alphaRasters[intersectingSourceCount] = alpha.getData(destRectangle);
+                    alphaRasters[intersectingSourceCount] = alpha.getExtendedData(destRectangle, zeroBorderExtender);
                     alphaChannelColorModels[intersectingSourceCount] = imageBeans[i].getAlphaChannel().getColorModel();
                 }
 
                 // Get the ROI data from the padded ROI image if present
                 RenderedImage roi = imageBeans[i].getRoiImage();
                 if (roiPresent && roi != null) {
-                    roiRasters[intersectingSourceCount] = roi.getData(destRectangle);
+                    roiRasters[intersectingSourceCount] =  PlanarImage.wrapRenderedImage(roi).getExtendedData(destRectangle, zeroBorderExtender);// roi.getData(destRectangle);
                 }
                 
                 intersectingSourceCount++;
@@ -941,7 +942,7 @@ public class MosaicOpImage extends OpImage {
         }
         
         // For the given source destination rasters, the mosaic is calculated
-        computeRect(sourceRasters, sourceTags, sourceColorModels, destRaster, destRectangle,
+        computeRect(sourceRasters, sourceRectangles, sourceTags, sourceColorModels, destRaster, destRectangle,
                 alphaRasters, roiRasters, noDataRanges, alphaChannelColorModels, intersectingSourceCount);
 
         // Tile recycling if the Recycle is present
@@ -960,7 +961,7 @@ public class MosaicOpImage extends OpImage {
 
     }
 
-    private void computeRect(Raster[] sourceRasters, RasterFormatTag[] rasterFormatTags,
+    private void computeRect(Raster[] sourceRasters, Rectangle[] sourceRectangles, RasterFormatTag[] rasterFormatTags,
             ColorModel[] sourceColorModels, WritableRaster destRaster, Rectangle destRectangle,
             Raster[] alphaRasters, Raster[] roiRasters, Range[] noDataRanges, ColorModel[] alphaChannelColorModels, int sourcesNumber) {
 
@@ -976,6 +977,7 @@ public class MosaicOpImage extends OpImage {
         for (int i = 0; i < sourcesNumber; i++) {
             // RasterAccessorBean temporary file
             RasterBeanAccessor helpAccessor = new RasterBeanAccessor();
+            helpAccessor.setBounds(sourceRectangles[i]);
             if (sourceRasters[i] != null) {
                 helpAccessor.setDataRasterAccessor(new RasterAccessorExt(sourceRasters[i],
                         destRectangle, rasterFormatTags[i], sourceColorModels[i], getNumBands(),
@@ -1166,10 +1168,10 @@ public class MosaicOpImage extends OpImage {
         }
 
         // The destination data band are selected
-        byte[][] dBandDataByteS = dstDataByte;
+        final byte[][] dBandDataByteS = dstDataByte;
         // the destination lineOffset is initialized
-        int[] dLineOffsetS = new int[dstBands];
-        int[] dPixelOffsetS = new int[dstBands];
+        final int[] dLineOffsetS = new int[dstBands];
+        final int[] dPixelOffsetS = new int[dstBands];
         for (int b = 0; b < dstBands; b++) {
             dLineOffsetS[b] = dstBandOffsets[b];
         }
@@ -1211,6 +1213,17 @@ public class MosaicOpImage extends OpImage {
                         if (dataRA == null) {
                             continue;
                         }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
+                            continue;
+                        }
+
                         // The source valuse are initialized only for the switch
                         // method
                         for (int b = 0; b < dstBands; b++) {
@@ -1315,6 +1328,16 @@ public class MosaicOpImage extends OpImage {
 
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -1574,6 +1597,17 @@ public class MosaicOpImage extends OpImage {
                         if (dataRA == null) {
                             continue;
                         }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
+                            continue;
+                        }
+
                         // The source values are initialized only for the switch method
                         for (int b = 0; b < dstBands; b++) {
                             valueS[b] = sBandDataUshortS[s][b][sPixelOffsetsS[s][b]];
@@ -1679,6 +1713,16 @@ public class MosaicOpImage extends OpImage {
 
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -1943,6 +1987,17 @@ public class MosaicOpImage extends OpImage {
                         if (dataRA == null) {
                             continue;
                         }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
+                            continue;
+                        }
+
                         // The source values are initialized only for the switch method
                         for (int b = 0; b < dstBands; b++) {
                             sourceValueShortS[b] = sBandDataShortS[s][b][sPixelOffsetsS[s][b]];
@@ -2047,6 +2102,16 @@ public class MosaicOpImage extends OpImage {
 
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -2309,6 +2374,17 @@ public class MosaicOpImage extends OpImage {
                         if (dataRA == null) {
                             continue;
                         }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
+                            continue;
+                        }
+
                         // The source values are initialized only for the switch method
                         for (int b = 0; b < dstBands; b++) {
                             sourceValueIntS[b] = sBandDataIntS[s][b][sPixelOffsetsS[s][b]];
@@ -2412,6 +2488,16 @@ public class MosaicOpImage extends OpImage {
 
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -2674,6 +2760,17 @@ public class MosaicOpImage extends OpImage {
                         if (dataRA == null) {
                             continue;
                         }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
+                            continue;
+                        }
+
                         // The source values are initialized only for the switch method
                         for (int b = 0; b < dstBands; b++) {
                             sourceValueFloatS[b] = sBandDataFloatS[s][b][sPixelOffsetsS[s][b]];
@@ -2777,6 +2874,16 @@ public class MosaicOpImage extends OpImage {
 
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -3039,6 +3146,17 @@ public class MosaicOpImage extends OpImage {
                         if (dataRA == null) {
                             continue;
                         }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
+                            continue;
+                        }
+
                         // The source values are initialized only for the switch method
                         for (int b = 0; b < dstBands; b++) {
                             sourceValueDoubleS[b] = sBandDataDoubleS[s][b][sPixelOffsetsS[s][b]];
@@ -3142,6 +3260,16 @@ public class MosaicOpImage extends OpImage {
 
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBean[s].getDataRasterAccessor() == null) {
+                            continue;
+                        }
+
+                        final Rectangle rect = srcBean[s].getBounds();
+                        if (rect != null && !rect.contains(dstX, dstY)) {
+                            // just move forward the offsets
+                            for (int b = 0; b < dstBands; b++) {
+                                // Offset update
+                                sPixelOffsetsS[s][b] += srcPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -3290,6 +3418,7 @@ public class MosaicOpImage extends OpImage {
 
         // No data range
         private Range sourceNoDataRangeRasterAccessor;
+        private Rectangle bounds;
 
         // No-argument constructor as requested for the java beans
         RasterBeanAccessor() {
@@ -3329,6 +3458,13 @@ public class MosaicOpImage extends OpImage {
             this.sourceNoDataRangeRasterAccessor = sourceNoDataRangeRasterAccessor;
         }
 
+        public void setBounds(Rectangle bounds) {
+            this.bounds = bounds;
+        }
+
+        public Rectangle getBounds() {
+            return bounds;
+        }
     }
 
 }
