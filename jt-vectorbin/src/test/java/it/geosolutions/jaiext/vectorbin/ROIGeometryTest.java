@@ -74,6 +74,7 @@ import org.locationtech.jts.io.WKTReader;
 
 import it.geosolutions.jaiext.jts.CoordinateSequence2D;
 import it.geosolutions.jaiext.testclasses.TestBase;
+import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 /**
  * Unit tests for ROIGeometry.
@@ -929,7 +930,7 @@ public class ROIGeometryTest extends TestBase {
     void assertROIEquivalent(ROI first, ROI second, String title) throws IOException {
         RenderedImage firstImage = first.getAsImage();
         RenderedImage secondImage = second.getAsImage();
-        
+
         assertImagesEqual(firstImage, secondImage);
     }
     

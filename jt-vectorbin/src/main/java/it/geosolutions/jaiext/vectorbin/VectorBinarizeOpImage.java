@@ -246,11 +246,10 @@ public class VectorBinarizeOpImage extends SourcelessOpImage {
         }
 
         // flood fill
-        int w = sampleModel.getWidth();
-        int h = sampleModel.getHeight();
-        int[] data = new int[w * h];
-        Arrays.fill(data, value);
-        raster.setSamples(0, 0, w, h, 0, data);
+        DataBufferByte dataBuffer = (DataBufferByte) raster.getDataBuffer();
+        if (value == 1) {
+            Arrays.fill(dataBuffer.getData(), (byte) 255);
+        }
 
         return raster;
     }

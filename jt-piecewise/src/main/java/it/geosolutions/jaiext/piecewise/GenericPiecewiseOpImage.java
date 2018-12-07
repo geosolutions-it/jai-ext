@@ -20,6 +20,7 @@ package it.geosolutions.jaiext.piecewise;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.vectorbin.ROIGeometry;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -214,8 +215,6 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
     protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
 
         // ROI Parameters initialization
-        ROI roiTile = null;
-
         RandomIter roiIter = null;
 
         boolean roiContainsTile = false;
@@ -227,7 +226,7 @@ public class GenericPiecewiseOpImage<T extends PiecewiseTransform1DElement> exte
             // The tile dimension is extended for avoiding border errors
             srcRectExpanded.setRect(srcRectExpanded.getMinX() - 1, srcRectExpanded.getMinY() - 1,
                     srcRectExpanded.getWidth() + 2, srcRectExpanded.getHeight() + 2);
-            roiTile = roi.intersect(new ROIShape(srcRectExpanded));
+            ROI roiTile = roi.intersect(new ROIShape(srcRectExpanded));
 
             if (!roiBounds.intersects(srcRectExpanded)) {
                 roiDisjointTile = true;

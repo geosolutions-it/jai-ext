@@ -207,6 +207,8 @@ public class RenderedImageInfoPanel extends JPanel
                     {
                         ROI roi = (ROI) object;
                         roiViewer.setImage(roi.getAsImage());
+                    } else {
+                        roiViewer.setImage(null);
                     }
                 } else {
                     roiViewer.setImage(null);

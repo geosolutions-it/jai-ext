@@ -42,18 +42,23 @@ import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
+
 import it.geosolutions.jaiext.utilities.shape.LiteShape;
-import it.geosolutions.jaiext.jts.CoordinateSequence2D;
+
 import org.locationtech.jts.awt.ShapeReader;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryComponentFilter;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.geom.TopologyException;
+import org.locationtech.jts.geom.impl.CoordinateArraySequence;
 import org.locationtech.jts.geom.prep.PreparedGeometry;
 import org.locationtech.jts.geom.prep.PreparedGeometryFactory;
 import org.locationtech.jts.geom.util.AffineTransformation;
@@ -124,10 +129,10 @@ public class ROIGeometry extends ROI {
     private final static PrecisionModel FLOAT_PRECISION = new PrecisionModel(PrecisionModel.FLOATING_SINGLE);
     private final static GeometryFactory FLOAT_PRECISION_FACTORY = new GeometryFactory(FLOAT_PRECISION);
 
-    private final CoordinateSequence2D testPointCS;
+    private final CoordinateSequence testPointCS;
     private final org.locationtech.jts.geom.Point testPoint;
     
-    private final CoordinateSequence2D testRectCS;
+    private final CoordinateSequence testRectCS;
     private final Polygon testRect;
     
     private RenderingHints hints;
@@ -150,6 +155,23 @@ public class ROIGeometry extends ROI {
         this(geom, DEFAULT_ROIGEOMETRY_ANTIALISING, DEFAULT_ROIGEOMETRY_USEFIXEDPRECISION);
     }
     
+    public ROIGeometry(Rectangle rect) {
+        this(toGeometry(rect));
+    }
+
+    private static Polygon toGeometry(Rectangle rect) {
+        return FLOAT_PRECISION_FACTORY.createPolygon(
+                FLOAT_PRECISION_FACTORY.createLinearRing(
+                        new Coordinate[] {
+                                new Coordinate(rect.getMinX(), rect.getMinY()),
+                                new Coordinate(rect.getMaxX(), rect.getMinY()),
+                                new Coordinate(rect.getMaxX(), rect.getMaxY()),
+                                new Coordinate(rect.getMinX(), rect.getMaxY()),
+                                new Coordinate(rect.getMinX(), rect.getMinY())
+                        }),
+                null);
+    }
+
     /**
      * Constructor which takes a {@code Geometry} object and a {@code boolean}
      * value for whether to use fixed coordinate precision (equivalent to
@@ -246,7 +268,12 @@ public class ROIGeometry extends ROI {
         }
         
         this.useFixedPrecision = useFixedPrecision;
-        this.hints = hints;
+        if (hints == null) {
+            // try hard to grab a tile cache for the getAsImage operation
+            this.hints = JAI.getDefaultInstance().getRenderingHints();
+        } else {
+            this.hints = hints;
+        }
         
         Geometry cloned = null; 
         if (useFixedPrecision){
@@ -271,10 +298,12 @@ public class ROIGeometry extends ROI {
         
         theGeom = PreparedGeometryFactory.prepare(cloned);
         
-        testPointCS = new CoordinateSequence2D(1);
+        // use plain CoordinateArraySequence as any intersection test will ask for Coordinate objects
+        // out of them, best use one that does not have to allocate them at every call
+        testPointCS = new CoordinateArraySequence(1);
         testPoint = geomFactory.createPoint(testPointCS);
 
-        testRectCS = new CoordinateSequence2D(5);
+        testRectCS = new CoordinateArraySequence(5);
         testRect = geomFactory.createPolygon(geomFactory.createLinearRing(testRectCS), null);
     }
 
@@ -354,8 +383,8 @@ public class ROIGeometry extends ROI {
      */
     @Override
     public boolean contains(double x, double y) {
-        testPointCS.setX(0, x);
-        testPointCS.setY(0, y);
+        testPointCS.setOrdinate(0, 0, x);
+        testPointCS.setOrdinate(0, 1, y);
         testPoint.geometryChanged();
         return theGeom.contains(testPoint);
     }
@@ -470,13 +499,20 @@ public class ROIGeometry extends ROI {
                     int w = (int) Math.ceil(env.getMaxX()) - x;
                     int h = (int) Math.ceil(env.getMaxY()) - y;
 
+                    // TODO: for this case a "binary constant" operation would be much more efficient,
+                    // but the operation is to be built, the JAI Constant does not take an origin
+                    // samplemodel, colormodel
+                    boolean pixelPerfectRectangle = theGeom.getGeometry().isRectangle() && x == env.getMinX()
+                            && y == env.getMinY() && (x + w) == env.getMaxX() &&
+                            (y + h) == env.getMaxY();
+                    
                     ParameterBlockJAI pb = new ParameterBlockJAI("VectorBinarize");
                     pb.setParameter("minx", x);
                     pb.setParameter("miny", y);
                     pb.setParameter("width", w);
                     pb.setParameter("height", h);
                     pb.setParameter("geometry", theGeom);
-                    pb.setParameter("antiAliasing", useAntialiasing);
+                    pb.setParameter("antiAliasing", useAntialiasing && !pixelPerfectRectangle);
                     roiImage = JAI.create("VectorBinarize", pb, hints);
                 }
             }
@@ -742,11 +778,16 @@ public class ROIGeometry extends ROI {
      * @param h rectangle height
      */
     private void setTestRect(double x, double y, double w, double h) {
-        testRectCS.setXY(0, x, y);
-        testRectCS.setXY(1, x, y + h);
-        testRectCS.setXY(2, x + w, y + h);
-        testRectCS.setXY(3, x + w, y);
-        testRectCS.setXY(4, x, y);
+        testRectCS.setOrdinate(0, 0, x);
+        testRectCS.setOrdinate(0, 1, y);
+        testRectCS.setOrdinate(1, 0, x);
+        testRectCS.setOrdinate(1, 1, y + h);
+        testRectCS.setOrdinate(2, 0, x + w);
+        testRectCS.setOrdinate(2, 1, y + h);
+        testRectCS.setOrdinate(3, 0, x + w);
+        testRectCS.setOrdinate(3, 1, y);
+        testRectCS.setOrdinate(4, 0, x);
+        testRectCS.setOrdinate(4, 1, y);
         testRect.geometryChanged();
     }
     
@@ -780,7 +821,149 @@ public class ROIGeometry extends ROI {
             geom = geomFactory.createMultiPolygon(polygonArray);
         }
 
+        // remove collinear points, they make rectangles look like a complex polygons
+        // and break some PreparedGeometry optimization
+        if (!geom.isEmpty()) {
+            geom = removeCoaxialVertices(geom);
+        }
+
         return new ROIGeometry(geom, this.useAntialiasing, this.useFixedPrecision, this.hints);
     }
 
+    @Override
+    public String toString() {
+        return "ROIGeometry[" + this.theGeom.getGeometry().toText() + "]";
+    }
+
+    /**
+     * Removes vertices laid on the same axis (x or y) from the provided {@link Geometry}.
+     */
+    private Geometry removeCoaxialVertices(final Geometry g) {
+        if (g == null) {
+            throw new NullPointerException("The provided Geometry is null");
+        }
+        if (g instanceof LineString) {
+            return removeCoaxialVertices((LineString) g);
+        } else if (g instanceof Polygon) {
+            return removeCoaxialVertices((Polygon) g);
+        } else if (g instanceof MultiPolygon) {
+            MultiPolygon mp = (MultiPolygon) g;
+            Polygon[] parts = new Polygon[mp.getNumGeometries()];
+            for (int i = 0; i < mp.getNumGeometries(); i++) {
+                Polygon part = (Polygon) mp.getGeometryN(i);
+                part = removeCoaxialVertices(part);
+                parts[i] = part;
+            }
+
+            return g.getFactory().createMultiPolygon(parts);
+        }
+
+        throw new IllegalArgumentException(
+                "This method can work on LineString, Polygon and Multipolygon: " + g.getClass());
+    }
+
+    /**
+     * Removes co-axial points from the provided linestring.
+     */
+    private LineString removeCoaxialVertices(final LineString ls) {
+        if (ls == null) {
+            throw new NullPointerException("The provided linestring is null");
+        }
+
+        final int N = ls.getNumPoints();
+        final boolean isLinearRing = ls instanceof LinearRing;
+
+        List<Coordinate> retain = new ArrayList<Coordinate>();
+        retain.add(ls.getCoordinateN(0));
+
+        int i0 = 0, i1 = 1, i2 = 2;
+        Coordinate firstCoord = ls.getCoordinateN(i0);
+        Coordinate midCoord;
+        Coordinate lastCoord;
+        while (i2 < N) {
+            midCoord = ls.getCoordinateN(i1);
+            lastCoord = ls.getCoordinateN(i2);
+            
+            // only handle horizontal or vertical lines, simplifying the others moves
+            // pixels in the rendering on Oracle JDK (it should not, but there is probably
+            // some numerical issue in the Ductus renderer)
+            if (!isLaidOnSameAxis(firstCoord, midCoord, lastCoord)) {
+                // add midcoord and change head
+                retain.add(midCoord);
+                i0 = i1;
+                firstCoord = ls.getCoordinateN(i0);
+            }
+            i1++;
+            i2++;
+            
+        }
+        retain.add(ls.getCoordinateN(N - 1));
+        
+        // check co-axial between last and first segments too
+        if (isLinearRing && retain.size() > 5) {
+            firstCoord = ls.getCoordinateN(N - 2);
+            midCoord = ls.getCoordinateN(N - 1);
+            lastCoord = ls.getCoordinateN(1);
+            if (isLaidOnSameAxis(firstCoord, midCoord, lastCoord)) {
+                // remove last point and change first
+                retain.remove(retain.size() - 1);
+                retain.set(0, retain.get(retain.size() - 1));
+            }
+        }
+
+        //
+        // Return value
+        //
+        final int size = retain.size();
+        // nothing changed?
+        if (size == N) {
+            // free everything and return original
+            retain.clear();
+
+            return ls;
+        }
+
+        return isLinearRing
+                ? ls.getFactory().createLinearRing(retain.toArray(new Coordinate[size]))
+                : ls.getFactory().createLineString(retain.toArray(new Coordinate[size]));
+    }
+
+    private boolean isLaidOnSameAxis(Coordinate firstCoord, Coordinate midCoord,
+            Coordinate lastCoord) {
+        boolean vertical = firstCoord.x == midCoord.x && midCoord.x == lastCoord.x;
+        boolean horizontal = firstCoord.y == midCoord.y && midCoord.y == lastCoord.y;
+        return vertical || horizontal;
+    }
+
+    /**
+     * Removes co-axial vertices from the provided {@link Polygon}.
+     */
+    private Polygon removeCoaxialVertices(final Polygon polygon) {
+        if (polygon == null) {
+            throw new NullPointerException("The provided Polygon is null");
+        }
+
+        // reuse existing factory
+        final GeometryFactory gf = polygon.getFactory();
+
+        // work on the exterior ring
+        LineString exterior = polygon.getExteriorRing();
+        LineString shell = removeCoaxialVertices(exterior);
+        if ((shell == null) || shell.isEmpty()) {
+            return null;
+        }
+
+        // work on the holes
+        List<LineString> holes = new ArrayList<>();
+        final int size = polygon.getNumInteriorRing();
+        for (int i = 0; i < size; i++) {
+            LineString hole = polygon.getInteriorRingN(i);
+            hole = removeCoaxialVertices(hole);
+            if ((hole != null) && !hole.isEmpty()) {
+                holes.add(hole);
+            }
+        }
+
+        return gf.createPolygon((LinearRing) shell, holes.toArray(new LinearRing[holes.size()]));
+    }
 }

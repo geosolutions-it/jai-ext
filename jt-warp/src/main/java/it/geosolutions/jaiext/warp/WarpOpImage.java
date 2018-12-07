@@ -21,6 +21,8 @@ import it.geosolutions.jaiext.border.BorderDescriptor;
 import it.geosolutions.jaiext.interpolators.InterpolationNoData;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.vectorbin.ROIGeometry;
+
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -254,7 +256,7 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
                     srcRectExpanded.getMinY() - topPad, 
                     srcRectExpanded.getWidth() + rightPad + leftPad, 
                     srcRectExpanded.getHeight() + bottomPad + topPad);
-            roiTile = roi.intersect(new ROIShape(srcRectExpanded));
+            roiTile = roi.intersect(new ROIGeometry(srcRectExpanded));
             
             if(!roiBounds.intersects(srcRectExpanded)) {
                 roiDisjointTile = true;
