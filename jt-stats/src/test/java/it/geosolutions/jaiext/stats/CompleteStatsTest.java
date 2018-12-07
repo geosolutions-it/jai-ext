@@ -220,17 +220,17 @@ public class CompleteStatsTest extends TestBase {
         sourceIMG = new RenderedImage[6];
 
         sourceIMG[0] = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                noDataB, false);
+                noDataB, false, 3, 64);
         sourceIMG[1] = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                noDataU, false);
+                noDataU, false, 3, 64);
         sourceIMG[2] = createTestImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                noDataS, false);
+                noDataS, false, 3, 64);
         sourceIMG[3] = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
-                false);
+                false, 3, 64);
         sourceIMG[4] = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                noDataF, false);
+                noDataF, false, 3, 64);
         sourceIMG[5] = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                noDataD, false);
+                noDataD, false, 3, 64);
 
         // Statistical calculation
         numSamples = new long[4];
