@@ -1228,6 +1228,9 @@ public class MosaicOpImage extends OpImage {
                     dLineOffsetS[b] += dstLineStride;
                 }
                 for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+                    Arrays.fill(numerator, 0);
+                    Arrays.fill(denominator, 0);
+
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBeans[s].getDataRasterAccessor() == null) {
                             continue;
@@ -1237,6 +1240,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsetsS[s]);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -1244,7 +1250,7 @@ public class MosaicOpImage extends OpImage {
                         for (int b = 0; b < dstBands; b++) {
                             sourceValueByteS[b] = sBandDataByteS[s][b][sPixelOffsetsS[s][b]];
                             // Offset update
-                            sPixelOffsetsS[s][b] += srcPixelStride[s];
+                             sPixelOffsetsS[s][b] += srcPixelStride[s];
                         }
 
                         // The weight is calculated for every pixel
@@ -1509,6 +1515,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsets);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -1595,7 +1604,9 @@ public class MosaicOpImage extends OpImage {
                     dLineOffsetS[b] += dstLineStride;
                 }
                 for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
-
+                    Arrays.fill(numerator, 0);
+                    Arrays.fill(denominator, 0);
+                    
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBeans[s].getDataRasterAccessor() == null) {
                             continue;
@@ -1605,6 +1616,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsetsS[s]);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -1680,11 +1694,9 @@ public class MosaicOpImage extends OpImage {
                         } else {
                             dBandDataUshortS[b][dPixelOffsetS[b]] = ImageUtil
                                     .clampRoundUShort(numerator[b] / denominator[b]);
-                            // Offset update
-                            dPixelOffsetS[b] += dstPixelStride;
-
                         }
-
+                        // Offset update
+                        dPixelOffsetS[b] += dstPixelStride;
                     }
                 }
             }
@@ -1881,6 +1893,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsets);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -1965,6 +1980,9 @@ public class MosaicOpImage extends OpImage {
                     dLineOffsetS[b] += dstLineStride;
                 }
                 for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+                    Arrays.fill(numerator, 0);
+                    Arrays.fill(denominator, 0);
+                    
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBeans[s].getDataRasterAccessor() == null) {
                             continue;
@@ -1974,6 +1992,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsetsS[s]);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -2048,10 +2069,9 @@ public class MosaicOpImage extends OpImage {
                         } else {
                             dBandDataShortS[b][dPixelOffsetS[b]] = ImageUtil
                                     .clampRoundShort(numerator[b] / denominator[b]);
-                            // Offset update
-                            dPixelOffsetS[b] += dstPixelStride;
-
                         }
+                        // Offset update
+                        dPixelOffsetS[b] += dstPixelStride;
                     }
                 }
             }
@@ -2249,6 +2269,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsets);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -2333,6 +2356,9 @@ public class MosaicOpImage extends OpImage {
                     dLineOffsetS[b] += dstLineStride;
                 }
                 for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+                    Arrays.fill(numerator, 0);
+                    Arrays.fill(denominator, 0);
+                    
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBeans[s].getDataRasterAccessor() == null) {
                             continue;
@@ -2342,6 +2368,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsetsS[s]);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -2416,10 +2445,9 @@ public class MosaicOpImage extends OpImage {
                         } else {
                             dBandDataIntS[b][dPixelOffsetS[b]] = ImageUtil
                                     .clampRoundInt(numerator[b] / denominator[b]);
-                            // Offset update
-                            dPixelOffsetS[b] += dstPixelStride;
-
                         }
+                        // Offset update
+                        dPixelOffsetS[b] += dstPixelStride;
                     }
                 }
             }
@@ -2616,6 +2644,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsets);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -2700,6 +2731,9 @@ public class MosaicOpImage extends OpImage {
                     dLineOffsetS[b] += dstLineStride;
                 }
                 for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+                    Arrays.fill(numerator, 0);
+                    Arrays.fill(denominator, 0);
+
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBeans[s].getDataRasterAccessor() == null) {
                             continue;
@@ -2709,6 +2743,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsetsS[s]);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -2783,10 +2820,9 @@ public class MosaicOpImage extends OpImage {
                         } else {
                             dBandDataFloatS[b][dPixelOffsetS[b]] = ImageUtil
                                     .clampFloat(numerator[b] / denominator[b]);
-                            // Offset update
-                            dPixelOffsetS[b] += dstPixelStride;
-
                         }
+                        // Offset update
+                        dPixelOffsetS[b] += dstPixelStride;
                     }
                 }
             }
@@ -2983,6 +3019,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsets);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -3067,6 +3106,9 @@ public class MosaicOpImage extends OpImage {
                     dLineOffsetS[b] += dstLineStride;
                 }
                 for (int dstX = dstMinX; dstX < dstMaxX; dstX++) {
+                    Arrays.fill(numerator, 0);
+                    Arrays.fill(denominator, 0);                    
+                    
                     for (int s = 0; s < sourcesNumber; s++) {
                         if (srcBeans[s].getDataRasterAccessor() == null) {
                             continue;
@@ -3076,6 +3118,9 @@ public class MosaicOpImage extends OpImage {
                         if (rect != null && !rect.contains(dstX, dstY)) {
                             // just move forward the offsets
                             skipPixel(dstBands, srcPixelStride, s, sPixelOffsetsS[s]);
+                            if (weightTypesUsed[s] == WeightType.WEIGHT_TYPE_ALPHA) {
+                                aPixelOffsets[s] += alfaPixelStride[s];
+                            }
                             continue;
                         }
 
@@ -3146,13 +3191,12 @@ public class MosaicOpImage extends OpImage {
                     for (int b = 0; b < dstBands; b++) {
                         if (denominatorSum == 0.0) {
                             dBandDataDoubleS[b][dPixelOffsetS[b]] = destinationNoDataDouble[b];
-
                         } else {
                             dBandDataDoubleS[b][dPixelOffsetS[b]] = (numerator[b] / denominator[b]);
-                            // Offset update
-                            dPixelOffsetS[b] += dstPixelStride;
-
                         }
+                        // Offset update
+                        dPixelOffsetS[b] += dstPixelStride;
+
                     }
                 }
             }

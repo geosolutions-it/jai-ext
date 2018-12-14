@@ -20,6 +20,7 @@ package it.geosolutions.rendered.viewer;
 import java.awt.BorderLayout;
 import java.awt.RenderingHints;
 import java.awt.Transparency;
+import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
@@ -332,51 +333,55 @@ public class RenderedImageInfoPanel extends JPanel
         hb.dataLine("Bands", TYPE_MAP.get(sm.getDataType()));
 
         hb.title("Color model");
-        hb.dataLine("Color model", image.getColorModel().getClass());
-        switch (image.getColorModel().getTransparency())
-        {
-        case Transparency.OPAQUE:
-            hb.dataLine("Transparency", "Opaque");
-            break;
-        case Transparency.TRANSLUCENT:
-            hb.dataLine("Transparency", "Translucent");
-            break;
-        case Transparency.BITMASK:
-            hb.dataLine("Transparency", "Bitmask");
-            break;
-        }
-        if (image.getColorModel() instanceof IndexColorModel)
-        {
-            final IndexColorModel icm = (IndexColorModel) image.getColorModel();
-            // transparent pixel
-            hb.dataLine("Transparent Pixel", Integer.toString(icm.getTransparentPixel()));
-
-            // lut
-            hb.dataLine("ColorMap Size", Integer.toString(icm.getMapSize()));
-
-            final int numbands = icm.hasAlpha() ? 4 : 3;
-            final byte[][] cmap = new byte[numbands][icm.getMapSize()];
-            icm.getReds(cmap[0]);
-            icm.getGreens(cmap[1]);
-            icm.getBlues(cmap[2]);
-            if (numbands == 4)
+        final ColorModel colorModel = image.getColorModel();
+        if (colorModel != null) {
+            hb.dataLine("Color model", colorModel.getClass());
+            switch (colorModel.getTransparency())
             {
-                icm.getAlphas(cmap[3]);
+                case Transparency.OPAQUE:
+                    hb.dataLine("Transparency", "Opaque");
+                    break;
+                case Transparency.TRANSLUCENT:
+                    hb.dataLine("Transparency", "Translucent");
+                    break;
+                case Transparency.BITMASK:
+                    hb.dataLine("Transparency", "Bitmask");
+                    break;
             }
-
-            final StringBuilder b = new StringBuilder();
-            for (int i = 0; i < icm.getMapSize(); i++)
+            if (colorModel instanceof IndexColorModel)
             {
-                b.append('(').append(i).append(")-").append('[').append(cmap[0][i]).append(',').append(cmap[1][i]).append(',').append(cmap[2][i]);
+                final IndexColorModel icm = (IndexColorModel) colorModel;
+                // transparent pixel
+                hb.dataLine("Transparent Pixel", Integer.toString(icm.getTransparentPixel()));
+
+                // lut
+                hb.dataLine("ColorMap Size", Integer.toString(icm.getMapSize()));
+
+                final int numbands = icm.hasAlpha() ? 4 : 3;
+                final byte[][] cmap = new byte[numbands][icm.getMapSize()];
+                icm.getReds(cmap[0]);
+                icm.getGreens(cmap[1]);
+                icm.getBlues(cmap[2]);
                 if (numbands == 4)
                 {
-                    b.append(',').append(cmap[3][i]);
+                    icm.getAlphas(cmap[3]);
                 }
-                b.append(']').append('\n');
+
+                final StringBuilder b = new StringBuilder();
+                for (int i = 0; i < icm.getMapSize(); i++)
+                {
+                    b.append('(').append(i).append(")-").append('[').append(cmap[0][i]).append(',').append(cmap[1][i]).append(',').append(cmap[2][i]);
+                    if (numbands == 4)
+                    {
+                        b.append(',').append(cmap[3][i]);
+                    }
+                    b.append(']').append('\n');
+                }
+                hb.dataLine("ColorMap", b.toString());
             }
-            hb.dataLine("ColorMap", b.toString());
+            hb.dataLine("Color space", colorModel.getColorSpace().getClass());            
         }
-        hb.dataLine("Color space", image.getColorModel().getColorSpace().getClass());
+
 
         hb.title("Sources");
 
