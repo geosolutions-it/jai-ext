@@ -197,11 +197,11 @@ public class ClampOpImage extends PointOpImage {
             // The tile dimension is extended for avoiding border errors
             srcRectExpanded.setRect(srcRectExpanded.getMinX() - 1, srcRectExpanded.getMinY() - 1,
                     srcRectExpanded.getWidth() + 2, srcRectExpanded.getHeight() + 2);
-            roiTile = roi.intersect(new ROIShape(srcRectExpanded));
             // Check if the Tile bounds intersects the roi otherwise the computation is skipped
             if (!roiBounds.intersects(srcRectExpanded)) {
                 roiDisjointTile = true;
             } else {
+                roiTile = roi.intersect(new ROIShape(srcRectExpanded));
                 roiContainsTile = roiTile.contains(srcRectExpanded);
                 if (!roiContainsTile) {
                     if (!roiTile.intersects(srcRectExpanded)) {

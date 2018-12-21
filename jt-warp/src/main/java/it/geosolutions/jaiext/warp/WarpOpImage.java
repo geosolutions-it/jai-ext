@@ -17,7 +17,6 @@
 */
 package it.geosolutions.jaiext.warp;
 
-import it.geosolutions.jaiext.border.BorderDescriptor;
 import it.geosolutions.jaiext.interpolators.InterpolationNoData;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
 import it.geosolutions.jaiext.range.Range;
@@ -60,6 +59,12 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
 
     /** Constant indicating that the inner random iterators must cache the current tile position */
     protected static final boolean TILE_CACHED = true;
+
+    private static final long DEFAULT_THRESHOLD = 1024 * 1024;
+
+    /** Checks on roi.intersects will be made only if the roi bbox area is below the threshold */
+    private static final long THRESHOLD = Long.getLong("it.geosolutions.jaiext.intersect.threshold", 
+            DEFAULT_THRESHOLD);
 
     /** Current ROI object */
     protected final ROI roi;
@@ -209,11 +214,21 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
         }
 
         // are we outside the roi
-        if (roi != null && !roi.intersects(srcRect)) {
-            if (setBackground) {
-                ImageUtil.fillBackground(dest, destRect, backgroundValues);
+        if (roi != null) {
+            boolean optmizedCheck = roi instanceof ROIGeometry || roi instanceof ROIShape;
+            if (!optmizedCheck) {
+                Rectangle rect = roi.getBounds();
+                // The roi.intersects call will be a getData() if the roi is a 
+                // pure ROI image. If the roi is big, that getData may be an overkill
+                // so let's skip the optimization when this happens
+                optmizedCheck = (rect.getWidth() * rect.getHeight() < THRESHOLD);
             }
-            return dest; // outside of source roi
+            if (optmizedCheck && !roi.intersects(srcRect)) {
+                if (setBackground) {
+                    ImageUtil.fillBackground(dest, destRect, backgroundValues);
+                }
+                return dest; // outside of source roi
+            }
         }
 
         // This image only has one source.
@@ -256,11 +271,11 @@ public abstract class WarpOpImage extends javax.media.jai.WarpOpImage {
                     srcRectExpanded.getMinY() - topPad, 
                     srcRectExpanded.getWidth() + rightPad + leftPad, 
                     srcRectExpanded.getHeight() + bottomPad + topPad);
-            roiTile = roi.intersect(new ROIGeometry(srcRectExpanded));
-            
+
             if(!roiBounds.intersects(srcRectExpanded)) {
                 roiDisjointTile = true;
             } else {
+                roiTile = new ROIGeometry(srcRectExpanded).intersect(roi);
                 roiContainsTile = roiTile.contains(srcRectExpanded);
                 if (!roiContainsTile) {
                     if (!roiTile.intersects(srcRectExpanded)) {
