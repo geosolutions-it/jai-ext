@@ -143,7 +143,7 @@ public class MosaicOpImage extends OpImage {
      * Table used for checking no data values. The first index indicates the source, the second the
      * band, the third the value
      */
-    private final byte[][][] byteLookupTable;
+    private final boolean[][][] byteLookupTable;
 
     /** Boolean array indicating which source images has No Data and not */
     private final boolean[] hasNoData;
@@ -618,7 +618,7 @@ public class MosaicOpImage extends OpImage {
         List<PlanarImage> alphaList = new ArrayList<PlanarImage>();
 
         // NoDataRangeByte initialization
-        byteLookupTable = new byte[numSources][numBands][256];
+        byteLookupTable = new boolean[numSources][numBands][256];
 
         // Init the imagemosaic bean
         imageBeans = new ImageMosaicBean[numSources];
@@ -734,9 +734,9 @@ public class MosaicOpImage extends OpImage {
                         for (int b = 0; b < numBands; b++) {
                             for (int z = 0; z < byteLookupTable[i][0].length; z++) {
                                 if (noDataByte != null && noDataByte.contains(z)) {
-                                    byteLookupTable[i][b][z] = destinationNoDataByte[b];
+                                    byteLookupTable[i][b][z] = false;
                                 } else {
-                                    byteLookupTable[i][b][z] = (byte) z;
+                                    byteLookupTable[i][b][z] = true;
                                 }
                             }
                         }
@@ -1164,9 +1164,10 @@ public class MosaicOpImage extends OpImage {
 
                         // The source values are initialized only for the switch method
                         setDestinationFlag = !hasNoData[s];
+                        
                         for (int b = 0; b < dstBands; b++) {
                             byte value = sBandDataByteS[s][b][sPixelOffsets[b]];
-                            if (!setDestinationFlag && (byteLookupTable[s][b][value & 0xFF] != destinationNoDataByte[b])) {
+                            if (!setDestinationFlag && byteLookupTable[s][b][value & 0xFF]) {
                                 setDestinationFlag = true;
                             }
                             sourceValueByteS[b] = value;
@@ -1261,8 +1262,7 @@ public class MosaicOpImage extends OpImage {
                         // is set to 1 or 0 if the pixel has or not a No Data value
                         if (hasNoData[s]) {
                             for (int b = 0; b < dstBands; b++) {
-                                if ((byteLookupTable[s][b][sourceValueByteS[b]
-                                        & 0xFF] == destinationNoDataByte[b])) {
+                                if (!byteLookupTable[s][b][sourceValueByteS[b] & 0xFF]) {
                                     dataCount--;
                                 }
                             }

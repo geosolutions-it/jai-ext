@@ -53,7 +53,6 @@ import javax.media.jai.util.ImagingException;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
-import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
 /**
  * This test class is used for checking the functionality of the MosaicOpImage.
@@ -2499,5 +2498,33 @@ public class MosaicTest extends TestBase {
             return image;
         }
         return FormatDescriptor.create(image, dataType, null);
+    }
+
+    @Test
+    public void testOutputNoDataByte() {
+        final int validData = 100;
+        final byte noDataValue = (byte) 50;
+        final RenderedImage source =
+                createTestImage(DataBuffer.TYPE_BYTE, 256, 256, noDataValue, false, 1, validData);
+
+        final RenderedOp mosaic =
+                MosaicDescriptor.create(
+                        new PlanarImage[] {PlanarImage.wrapRenderedImage(source)},
+                        MOSAIC_TYPE_OVERLAY,
+                        null,
+                        null,
+                        null,
+                        new double[] {validData},
+                        new Range[] {RangeFactory.create(noDataValue, noDataValue)},
+                        null);
+
+        int[] pixel = new int[1];
+        final Raster data = mosaic.getData();
+        // pixel at valid value matching the background, it would have been set to 0 before the fix
+        assertArrayEquals(new int[] {100}, data.getPixel(10, 10, pixel));
+        // little square in the zero square, still input at 100
+        assertArrayEquals(new int[] {100}, data.getPixel(36, 26, pixel));
+        // the diagonal at nodata in the input, filled by background
+        assertArrayEquals(new int[] {100}, data.getPixel(128, 128, pixel));
     }
 }
