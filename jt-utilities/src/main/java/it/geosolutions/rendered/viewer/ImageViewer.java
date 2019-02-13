@@ -24,6 +24,8 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.image.DataBuffer;
@@ -38,13 +40,12 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JToggleButton;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileFilter;
-
-//import com.digitalglobe.util.security.SecurityValidator;
 
 
 /**
@@ -64,9 +65,13 @@ public class ImageViewer extends JPanel
     private RandomIter pixelIter;
     private int[] ipixel;
     private double[] dpixel;
+    JToggleButton tileGrid;
+    JToggleButton roiSync;
     private StringBuffer sb = new StringBuffer();
     private RenderedImage image;
     protected File lastDirectory;
+    private JScrollBar vScrollBar;
+    private JScrollBar hScrollBar;
 
     public ImageViewer(ImageViewer relatedViewer)
     {
@@ -81,7 +86,8 @@ public class ImageViewer extends JPanel
         // build the button bar
         JButton zoomIn = new JButton("Zoom in");
         JButton zoomOut = new JButton("Zoom out");
-        final JToggleButton tileGrid = new JToggleButton("Tile grid");
+        tileGrid = new JToggleButton("Tile grid");
+        roiSync = new JToggleButton("ROI sync");
         JButton save = new JButton("Save...");
         final JButton showChain = new JButton("Show chain in separate window");
         JPanel buttonBar = new JPanel();
@@ -89,6 +95,7 @@ public class ImageViewer extends JPanel
         buttonBar.add(zoomIn);
         buttonBar.add(zoomOut);
         buttonBar.add(tileGrid);
+        buttonBar.add(roiSync);
         buttonBar.add(save);
         buttonBar.add(showChain);
 
@@ -101,8 +108,12 @@ public class ImageViewer extends JPanel
         status = new JLabel("Move on the image to display pixel values... ");
 
         // compose
+        JScrollPane scrollPane = new JScrollPane(display);
+        vScrollBar = scrollPane.getVerticalScrollBar();
+        hScrollBar = scrollPane.getHorizontalScrollBar();
+
         add(buttonBar, BorderLayout.NORTH);
-        add(new JScrollPane(display), BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER);
         add(status, BorderLayout.SOUTH);
 
         // events
@@ -139,10 +150,45 @@ public class ImageViewer extends JPanel
                     if (relatedViewer != null)
                     {
                         relatedViewer.display.setTileGridVisible(tileGrid.isSelected());
+                        relatedViewer.tileGrid.setSelected(tileGrid.isSelected());
                     }
                 }
 
             });
+        roiSync.addChangeListener(new ChangeListener()
+        {
+
+            @Override
+            public void stateChanged(ChangeEvent e)
+            {
+                if (relatedViewer != null)
+                {
+                    relatedViewer.roiSync.setSelected(roiSync.isSelected());
+                }
+            }
+
+        });
+        vScrollBar.addAdjustmentListener(new AdjustmentListener() {
+
+            @Override
+            public void adjustmentValueChanged(AdjustmentEvent e)
+            {
+                if (roiSync.isSelected() && relatedViewer != null) {
+                    relatedViewer.vScrollBar.setValue(vScrollBar.getValue());
+                }
+            }
+        });
+        hScrollBar.addAdjustmentListener(new AdjustmentListener() {
+
+            @Override
+            public void adjustmentValueChanged(AdjustmentEvent e)
+            {
+                if (roiSync.isSelected() && relatedViewer != null) {
+                    relatedViewer.hScrollBar.setValue(hScrollBar.getValue());
+                }
+            }
+        });
+
         save.addActionListener(new ActionListener()
             {
 
@@ -260,24 +306,6 @@ public class ImageViewer extends JPanel
             });
     }
 
-//    protected File getStartupLocation()
-//    {
-//        if (lastDirectory != null)
-//        {
-//            // REMEDIATION:Path Manipulation:Critical:STIGCAT1
-//            SecurityValidator.getDirectoryPathValidator().validate(
-//                "PropertyUtil.getFileFromClasspath", lastDirectory.getAbsolutePath(), false);
-//
-//            return lastDirectory;
-//        }
-//        else
-//        {
-//            // REMEDIATION:Path Manipulation:Critical:STIGCAT1
-//            return new File(SecurityValidator.getFileNameValidator().validate(
-//                        "ImageViewer.getStartupLocation", "/tmp", false));
-//        }
-//    }
-
     public void setImage(RenderedImage image)
     {
         this.image = image;
@@ -309,3 +337,4 @@ public class ImageViewer extends JPanel
     }
 
 }
+
