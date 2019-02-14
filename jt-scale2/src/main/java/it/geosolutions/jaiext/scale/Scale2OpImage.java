@@ -350,7 +350,7 @@ public abstract class Scale2OpImage extends GeometricOpImage {
     // OR dstMax = ceil(A - 1)
     //
 
-    private static ImageLayout layoutHelper(RenderedImage source, double scaleX, double scaleY,
+    public static ImageLayout layoutHelper(RenderedImage source, double scaleX, double scaleY,
             double transX, double transY, Interpolation interp, ImageLayout il) {
 
         // Represent the scale factors as Rational numbers.
