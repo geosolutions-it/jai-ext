@@ -37,6 +37,11 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>org.huldra.math</groupId>
+			<artifactId>bigint</artifactId>
+			<version>0.7.1</version>
+		</dependency>
+		<dependency>
 			<groupId>it.geosolutions.jaiext.utilities</groupId>
 			<artifactId>jt-utilities</artifactId>
 			<version>${project.version}</version>

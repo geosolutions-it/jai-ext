@@ -43,6 +43,8 @@ import javax.media.jai.WarpOpImage;
 import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.Rational;
 
+import org.huldra.math.BigInt;
+
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
@@ -132,21 +134,21 @@ public abstract class Scale2OpImage extends GeometricOpImage {
     /*** Rational representations */
     protected Rational scaleXRational, scaleYRational;
 
-    protected BigInteger scaleXRationalNum, scaleXRationalDenom;
+    protected BigInt scaleXRationalNum, scaleXRationalDenom;
 
-    protected BigInteger scaleYRationalNum, scaleYRationalDenom;
+    protected BigInt scaleYRationalNum, scaleYRationalDenom;
 
     protected Rational invScaleXRational, invScaleYRational;
 
-    protected BigInteger invScaleXRationalNum, invScaleXRationalDenom;
+    protected BigInt invScaleXRationalNum, invScaleXRationalDenom;
 
-    protected BigInteger invScaleYRationalNum, invScaleYRationalDenom;
+    protected BigInt invScaleYRationalNum, invScaleYRationalDenom;
 
     protected Rational transXRational, transYRational;
 
-    protected BigInteger transXRationalNum, transXRationalDenom;
+    protected BigInt transXRationalNum, transXRationalDenom;
 
-    protected BigInteger transYRationalNum, transYRationalDenom;
+    protected BigInt transYRationalNum, transYRationalDenom;
 
     protected static float rationalTolerance = 0.00000001F;
 
@@ -172,13 +174,13 @@ public abstract class Scale2OpImage extends GeometricOpImage {
     protected long invScaleXInt;
 
     /** Inverse scale fractional value X */
-    protected BigInteger invScaleXFrac;
+    protected BigInt invScaleXFrac;
 
     /** Inverse scale value Y */
     protected long invScaleYInt;
 
     /** Inverse scale fractional value Y */
-    protected BigInteger invScaleYFrac;
+    protected BigInt invScaleYFrac;
 
     /** Interpolator provided to the Scale operator */
     protected Interpolation interpolator = null;
@@ -282,11 +284,6 @@ public abstract class Scale2OpImage extends GeometricOpImage {
     /** The extended bounds used by the roi iterator  */
     protected Rectangle roiRect;
 
-    final static BigInteger ZERO = BigInteger.valueOf(0);
-    final static BigInteger ONE = BigInteger.valueOf(1);
-    final static BigInteger TWO = BigInteger.valueOf(2);
-    final static BigInteger THREE = BigInteger.valueOf(3);
-
     /** ROI Border Extender */
     final static BorderExtender ROI_EXTENDER = BorderExtender
             .createInstance(BorderExtender.BORDER_ZERO);
@@ -360,18 +357,18 @@ public abstract class Scale2OpImage extends GeometricOpImage {
         Rational scaleXRational = Rational.approximate(scaleX, rationalTolerance);
         Rational scaleYRational = Rational.approximate(scaleY, rationalTolerance);
 
-        BigInteger scaleXRationalNum = BigInteger.valueOf(scaleXRational.num);
-        BigInteger scaleXRationalDenom = BigInteger.valueOf(scaleXRational.denom);
-        BigInteger scaleYRationalNum = BigInteger.valueOf(scaleYRational.num);
-        BigInteger scaleYRationalDenom = BigInteger.valueOf(scaleYRational.denom);
+        BigInt scaleXRationalNum = new BigInt(scaleXRational.num);
+        BigInt scaleXRationalDenom = new BigInt(scaleXRational.denom);
+        BigInt scaleYRationalNum = new BigInt(scaleYRational.num);
+        BigInt scaleYRationalDenom = new BigInt(scaleYRational.denom);
 
         Rational transXRational = Rational.approximate(transX, rationalTolerance);
         Rational transYRational = Rational.approximate(transY, rationalTolerance);
 
-        BigInteger transXRationalNum = BigInteger.valueOf(transXRational.num);
-        BigInteger transXRationalDenom = BigInteger.valueOf(transXRational.denom);
-        BigInteger transYRationalNum = BigInteger.valueOf(transYRational.num);
-        BigInteger transYRationalDenom = BigInteger.valueOf(transYRational.denom);
+        BigInt transXRationalNum = new BigInt(transXRational.num);
+        BigInt transXRationalDenom = new BigInt(transXRational.denom);
+        BigInt transYRationalNum = new BigInt(transYRational.num);
+        BigInt transYRationalDenom = new BigInt(transYRational.denom);
 
         ImageLayout layout = (il == null) ? new ImageLayout() : (ImageLayout) il.clone();
 
@@ -381,75 +378,75 @@ public abstract class Scale2OpImage extends GeometricOpImage {
         int h = source.getHeight();
 
         // Variables to store the calculated destination upper left coordinate
-        BigInteger dx0Num, dx0Denom, dy0Num, dy0Denom;
+        BigInt dx0Num, dx0Denom, dy0Num, dy0Denom;
 
         // Variables to store the calculated destination bottom right
         // coordinate
-        BigInteger dx1Num, dx1Denom, dy1Num, dy1Denom;
+        BigInt dx1Num, dx1Denom, dy1Num, dy1Denom;
 
         // Start calculations for destination
-        dx0Num = BigInteger.valueOf(x0);
-        dx0Denom = ONE;
+        dx0Num = new BigInt(x0);
+        dx0Denom = new BigInt(1);
 
-        dy0Num = BigInteger.valueOf(y0);
-        dy0Denom = ONE;
+        dy0Num = new BigInt(y0);
+        dy0Denom = new BigInt(1);
 
         // Formula requires srcMaxX + 1 = (x0 + w - 1) + 1 = x0 + w
-        dx1Num = BigInteger.valueOf(x0 + w);
-        dx1Denom = ONE;
+        dx1Num = new BigInt(x0 + w);
+        dx1Denom = new BigInt(1);
 
         // Formula requires srcMaxY + 1 = (y0 + h - 1) + 1 = y0 + h
-        dy1Num = BigInteger.valueOf(y0 + h);
-        dy1Denom = ONE;
+        dy1Num = new BigInt(y0 + h);
+        dy1Denom = new BigInt(1);
 
-        dx0Num = dx0Num.multiply(scaleXRationalNum);
-        dx0Denom = dx0Denom.multiply(scaleXRationalDenom);
+        dx0Num.mul(scaleXRationalNum);
+        dx0Denom.mul(scaleXRationalDenom);
 
-        dy0Num = dy0Num.multiply(scaleYRationalNum);
-        dy0Denom = dy0Denom.multiply(scaleYRationalDenom);
+        dy0Num.mul(scaleYRationalNum);
+        dy0Denom.mul(scaleYRationalDenom);
 
-        dx1Num = dx1Num.multiply(scaleXRationalNum);
-        dx1Denom = dx1Denom.multiply(scaleXRationalDenom);
+        dx1Num.mul(scaleXRationalNum);
+        dx1Denom.mul(scaleXRationalDenom);
 
-        dy1Num = dy1Num.multiply(scaleYRationalNum);
-        dy1Denom = dy1Denom.multiply(scaleYRationalDenom);
+        dy1Num.mul(scaleYRationalNum);
+        dy1Denom.mul(scaleYRationalDenom);
 
         // Equivalent to subtracting 0.5
-        dx0Num = dx0Num.multiply(TWO).subtract(dx0Denom);
-        dx0Denom = dx0Denom.multiply(TWO);
+        dx0Num.mul(2); dx0Num.sub(dx0Denom);
+        dx0Denom.mul(2);
 
-        dy0Num = dy0Num.multiply(TWO).subtract(dy0Denom);
-        dy0Denom = dy0Denom.multiply(TWO);
+        dy0Num.mul(2); dy0Num.sub(dy0Denom);
+        dy0Denom.mul(2);
 
         // Equivalent to subtracting 1.5
-        dx1Num = dx1Num.multiply(TWO).subtract(dx1Denom.multiply(THREE));
-        dx1Denom = dx1Denom.multiply(TWO);
+        dx1Num = subnew(mulnew(dx1Num, 2), mulnew(dx1Denom, 3));
+        dx1Denom.mul(2);
 
-        dy1Num = dy1Num.multiply(TWO).subtract(dy1Denom.multiply(THREE));
-        dy1Denom = dy1Denom.multiply(TWO);
+        dy1Num = subnew(mulnew(dy1Num, 2), mulnew(dy1Denom, 3));
+        dy1Denom.mul(2);
 
         // Adding translation factors
 
         // Equivalent to float dx0 += transX
-        dx0Num = dx0Num.multiply(transXRationalDenom).add(transXRationalNum.multiply(dx0Denom));
-        dx0Denom = dx0Denom.multiply(transXRationalDenom);
+        dx0Num.mul(transXRationalDenom); dx0Num.add(mulnew(transXRationalNum, dx0Denom));
+        dx0Denom.mul(transXRationalDenom);
 
         // Equivalent to float dy0 += transY
-        dy0Num = dy0Num.multiply(transYRationalDenom).add(transYRationalNum.multiply(dy0Denom));
-        dy0Denom = dy0Denom.multiply(transYRationalDenom);
+        dy0Num.mul(transYRationalDenom); dy0Num.add(mulnew(transYRationalNum, dy0Denom));
+        dy0Denom.mul(transYRationalDenom);
 
         // Equivalent to float dx1 += transX
-        dx1Num = dx1Num.multiply(transXRationalDenom).add(transXRationalNum.multiply(dx1Denom));
-        dx1Denom = dx1Denom.multiply(transXRationalDenom);
+        dx1Num.mul(transXRationalDenom); dx1Num.add(mulnew(transXRationalNum, dx1Denom));
+        dx1Denom.mul(transXRationalDenom);
 
         // Equivalent to float dy1 += transY
-        dy1Num = dy1Num.multiply(transYRationalDenom).add(transYRationalNum.multiply(dy1Denom));
-        dy1Denom = dy1Denom.multiply(transYRationalDenom);
+        dy1Num.mul(transYRationalDenom); dy1Num.add(mulnew(transYRationalNum, dy1Denom));
+        dy1Denom.mul(transYRationalDenom);
 
         // Get the integral coordinates
         int l_x0, l_y0, l_x1, l_y1;
 
-        // We may want to not use Rational.ceil and use bigIntegers again 
+        // We may want to not use Rational.ceil and use BigInts again 
         l_x0 = Rational.ceil(dx0Num.longValue(), dx0Denom.longValue());
         l_y0 = Rational.ceil(dy0Num.longValue(), dy0Denom.longValue());
 
@@ -491,74 +488,74 @@ public abstract class Scale2OpImage extends GeometricOpImage {
 
         // Initially the y source value is calculated by the destination value and then performing the inverse
         // scale operation on it.
-        BigInteger syNum = BigInteger.valueOf(dy);
-        BigInteger syDenom = ONE;
+        BigInt syNum = new BigInt(dy);
+        BigInt syDenom = new BigInt(1);
 
         // Subtract the X translation factor sy -= transY
-        syNum = syNum.multiply(transYRationalDenom).subtract(transYRationalNum.multiply(syDenom));
-        syDenom = syDenom.multiply(transYRationalDenom);
+        syNum.mul(transYRationalDenom); syNum.sub(mulnew(transYRationalNum, syDenom));
+        syDenom.mul(transYRationalDenom);
 
         // Add 0.5
-        syNum = syNum.multiply(TWO).add(syDenom);
-        syDenom =  syDenom.multiply(TWO);
+        syNum.mul(2); syNum.add(syDenom);
+        syDenom.mul(2);
 
         // Multply by invScaleX
-        syNum = syNum.multiply(invScaleYRationalNum);
-        syDenom = syDenom.multiply(invScaleYRationalDenom);
+        syNum.mul(invScaleYRationalNum);
+        syDenom.mul(invScaleYRationalDenom);
 
         if (isBilinearNew || isBicubicNew) {
             // Subtract 0.5
-            syNum = syNum.multiply(TWO).subtract(syDenom);
-            syDenom =  syDenom.multiply(TWO);
+            syNum.mul(2); syNum.sub(syDenom);
+            syDenom.mul(2);
         }
 
         // Separate the y source coordinate into integer and fractional part
         int srcYInt = Rational.floor(syNum.longValue(), syDenom.longValue());
-        BigInteger srcYFrac = syNum.mod(syDenom);
+        BigInt srcYFrac = modnew(syNum, syDenom);
         if (srcYInt < 0) {
-            srcYFrac = syDenom.add(srcYFrac);
+            srcYFrac = addnew(syDenom, srcYFrac);
         }
 
         // Normalize - Get a common denominator for the fracs of src and invScaleY
-        final BigInteger commonYDenom = syDenom.multiply(invScaleYRationalDenom);
-        srcYFrac = srcYFrac.multiply(invScaleYRationalDenom);
-        final BigInteger newInvScaleYFrac = invScaleYFrac.multiply(syDenom);
+        final BigInt commonYDenom = mulnew(syDenom, invScaleYRationalDenom);
+        srcYFrac.mul(invScaleYRationalDenom);
+        final BigInt newInvScaleYFrac = mulnew(invScaleYFrac, syDenom);
 
         // Initially the x source value is calculated by the destination value and then performing the inverse
         // scale operation on it.
-        BigInteger sxNum = BigInteger.valueOf(dx);
-        BigInteger sxDenom = ONE;
+        BigInt sxNum = new BigInt(dx);
+        BigInt sxDenom = new BigInt(1);
 
         // Subtract the X translation factor sx -= transX
-        sxNum = sxNum.multiply(transXRationalDenom).subtract(transXRationalNum.multiply(sxDenom));
-        sxDenom = sxDenom.multiply(transXRationalDenom);
+        sxNum.mul(transXRationalDenom); sxNum.sub(mulnew(transXRationalNum, sxDenom));
+        sxDenom.mul(transXRationalDenom);
 
         // Add 0.5
-        sxNum = sxNum.multiply(TWO).add(sxDenom);
-        sxDenom = sxDenom.multiply(TWO);
+        sxNum.mul(2); sxNum.add(sxDenom);
+        sxDenom.mul(2);
 
         // Multply by invScaleX
-        sxNum = sxNum.multiply(invScaleXRationalNum);
-        sxDenom = sxDenom.multiply(invScaleXRationalDenom);
+        sxNum.mul(invScaleXRationalNum);
+        sxDenom.mul(invScaleXRationalDenom);
 
         if (isBilinearNew || isBicubicNew) {
             // Subtract 0.5
-            sxNum = sxNum.multiply(TWO).subtract(sxDenom);
-            sxDenom = sxDenom.multiply(TWO);
+            sxNum.mul(2); sxNum.sub(sxDenom);
+            sxDenom.mul(2);
         }
 
         // Separate the x source coordinate into integer and fractional part
         int srcXInt = Rational.floor(sxNum.longValue(), sxDenom.longValue());
-        BigInteger srcXFrac = sxNum.mod(sxDenom);
+        BigInt srcXFrac = modnew(sxNum, sxDenom);
         if (srcXInt < 0) {
-            srcXFrac = sxDenom.add(srcXFrac);
+            srcXFrac = addnew(sxDenom, srcXFrac);
         }
 
         // Normalize - Get a common denominator for the fracs of
         // src and invScaleX
-        final BigInteger commonXDenom = sxDenom.multiply(invScaleXRationalDenom);
-        srcXFrac = srcXFrac.multiply(invScaleXRationalDenom);
-        final BigInteger newInvScaleXFrac = invScaleXFrac.multiply(sxDenom);
+        final BigInt commonXDenom = mulnew(sxDenom, invScaleXRationalDenom);
+        srcXFrac.mul(invScaleXRationalDenom);
+        final BigInt newInvScaleXFrac = mulnew(invScaleXFrac, sxDenom);
 
         // Store of the x positions
         for (int i = 0; i < dwidth; i++) {
@@ -578,14 +575,14 @@ public abstract class Scale2OpImage extends GeometricOpImage {
             srcXInt += invScaleXInt;
 
             // Add the fractional part of invScaleX to the fractional part of srcX
-            srcXFrac = srcXFrac.add(newInvScaleXFrac);
+            srcXFrac.add(newInvScaleXFrac);
 
             // If the fractional part is now greater than equal to the
             // denominator, divide so as to reduce the numerator to be less
             // than the denominator and add the overflow to the integral part.
             if (srcXFrac.compareTo(commonXDenom) >= 0) {
                 srcXInt += 1;
-                srcXFrac = srcXFrac.subtract(commonXDenom);
+                srcXFrac.sub(commonXDenom);
             }
         }
         // Store of the y positions
@@ -618,14 +615,14 @@ public abstract class Scale2OpImage extends GeometricOpImage {
             srcYInt += invScaleYInt;
 
             // Add the fractional part of invScaleY to the fractional part of srcY
-            srcYFrac = srcYFrac.add(newInvScaleYFrac);
+            srcYFrac.add(newInvScaleYFrac);
 
             // If the fractional part is now greater than equal to the
             // denominator, divide so as to reduce the numerator to be less
             // than the denominator and add the overflow to the integral part.
             if (srcYFrac.compareTo(commonYDenom) >= 0) {
                 srcYInt += 1;
-                srcYFrac = srcYFrac.subtract(commonYDenom);
+                srcYFrac.sub(commonYDenom);
             }
         }
     }
@@ -644,73 +641,73 @@ public abstract class Scale2OpImage extends GeometricOpImage {
 
         // Initially the y source value is calculated by the destination value and then performing the inverse
         // scale operation on it.
-        BigInteger syNum = BigInteger.valueOf(dy);
-        BigInteger syDenom = ONE;
+        BigInt syNum = new BigInt(dy);
+        BigInt syDenom = new BigInt(1);
 
         // Subtract the X translation factor sy -= transY
-        syNum = syNum.multiply(transYRationalDenom).subtract(transYRationalNum.multiply(syDenom));
-        syDenom = syDenom.multiply(transYRationalDenom);
+        syNum.mul(transYRationalDenom); syNum.sub(mulnew(transYRationalNum, syDenom));
+        syDenom.mul(transYRationalDenom);
 
         // Add 0.5
-        syNum = syNum.multiply(TWO).add(syDenom);
-        syDenom =  syDenom.multiply(TWO);
+        syNum.mul(2); syNum.add(syDenom);
+        syDenom.mul(2);
 
         // Multply by invScaleX
-        syNum = syNum.multiply(invScaleYRationalNum);
-        syDenom = syDenom.multiply(invScaleYRationalDenom);
+        syNum.mul(invScaleYRationalNum);
+        syDenom.mul(invScaleYRationalDenom);
 
         if (isBilinearNew || isBicubicNew) {
             // Subtract 0.5
-            syNum = syNum.multiply(TWO).subtract(syDenom);
-            syDenom =  syDenom.multiply(TWO);
+            syNum.mul(2); syNum.sub(syDenom);
+            syDenom.mul(2);
         }
 
         // Separate the y source coordinate into integer and fractional part
         int srcYInt = Rational.floor(syNum.longValue(), syDenom.longValue());
-        BigInteger srcYFrac = syNum.mod(syDenom);
+        BigInt srcYFrac = modnew(syNum, syDenom);
         if (srcYInt < 0) {
-            srcYFrac = syDenom.add(srcYFrac);
+            srcYFrac = addnew(syDenom, srcYFrac);
         }
 
         // Normalize - Get a common denominator for the fracs of src and invScaleY
-        final BigInteger commonYDenom = syDenom.multiply(invScaleYRationalDenom);
-        srcYFrac = srcYFrac.multiply(invScaleYRationalDenom);
-        final BigInteger newInvScaleYFrac = invScaleYFrac.multiply(syDenom);
+        final BigInt commonYDenom = mulnew(syDenom, invScaleYRationalDenom);
+        srcYFrac.mul(invScaleYRationalDenom);
+        final BigInt newInvScaleYFrac = mulnew(invScaleYFrac, syDenom);
 
         // Initially the x source value is calculated by the destination value and then performing the inverse
         // scale operation on it.
-        BigInteger sxNum = BigInteger.valueOf(dx);
-        BigInteger sxDenom = ONE;
+        BigInt sxNum = new BigInt(dx);
+        BigInt sxDenom = new BigInt(1);
 
         // Subtract the X translation factor sx -= transX
-        sxNum = sxNum.multiply(transXRationalDenom).subtract(transXRationalNum.multiply(sxDenom));
-        sxDenom = sxDenom.multiply(transXRationalDenom);
+        sxNum.mul(transXRationalDenom); sxNum.sub(mulnew(transXRationalNum, sxDenom));
+        sxDenom.mul(transXRationalDenom);
 
         // Add 0.5
-        sxNum = sxNum.multiply(TWO).add(sxDenom);
-        sxDenom = sxDenom.multiply(TWO);
+        sxNum.mul(2); sxNum.add(sxDenom);
+        sxDenom.mul(2);
 
         // Multply by invScaleX
-        sxNum = sxNum.multiply(invScaleXRationalNum);
-        sxDenom = sxDenom.multiply(invScaleXRationalDenom);
+        sxNum.mul(invScaleXRationalNum);
+        sxDenom.mul(invScaleXRationalDenom);
 
         if (isBilinearNew || isBicubicNew) {
             // Subtract 0.5
-            sxNum = sxNum.multiply(TWO).subtract(sxDenom);
-            sxDenom = sxDenom.multiply(TWO);
+            sxNum.mul(2); sxNum.sub(sxDenom);
+            sxDenom.mul(2);
         }
 
         // Separate the x source coordinate into integer and fractional part
         int srcXInt = Rational.floor(sxNum.longValue(), sxDenom.longValue());
-        BigInteger srcXFrac = sxNum.mod(sxDenom);
+        BigInt srcXFrac = modnew(sxNum, sxDenom);
         if (srcXInt < 0) {
-            srcXFrac = sxDenom.add(srcXFrac);
+            srcXFrac = addnew(sxDenom, srcXFrac);
         }
 
         // Normalize - Get a common denominator for the fracs of src and invScaleX
-        final BigInteger commonXDenom = sxDenom.multiply(invScaleXRationalDenom);
-        srcXFrac = srcXFrac.multiply(invScaleXRationalDenom);
-        final BigInteger newInvScaleXFrac = invScaleXFrac.multiply(sxDenom);
+        final BigInt commonXDenom = mulnew(sxDenom, invScaleXRationalDenom);
+        srcXFrac.mul(invScaleXRationalDenom);
+        final BigInt newInvScaleXFrac = mulnew(invScaleXFrac, sxDenom);
 
         // Store of the x positions
         for (int i = 0; i < dwidth; i++) {
@@ -730,14 +727,14 @@ public abstract class Scale2OpImage extends GeometricOpImage {
             srcXInt += invScaleXInt;
 
             // Add the fractional part of invScaleX to the fractional part of srcX
-            srcXFrac = srcXFrac.add(newInvScaleXFrac);
+            srcXFrac.add(newInvScaleXFrac);
 
             // If the fractional part is now greater than equal to the
             // denominator, divide so as to reduce the numerator to be less
             // than the denominator and add the overflow to the integral part.
             if (srcXFrac.compareTo(commonXDenom) >= 0) {
                 srcXInt += 1;
-                srcXFrac = srcXFrac.subtract(commonXDenom);
+                srcXFrac.sub(commonXDenom);
             }
         }
 
@@ -770,14 +767,14 @@ public abstract class Scale2OpImage extends GeometricOpImage {
             srcYInt += invScaleYInt;
 
             // Add the fractional part of invScaleY to the fractional part of srcY
-            srcYFrac = srcYFrac.add(newInvScaleYFrac);
+            srcYFrac.add(newInvScaleYFrac);
 
             // If the fractional part is now greater than equal to the
             // denominator, divide so as to reduce the numerator to be less
             // than the denominator and add the overflow to the integral part.
             if (srcYFrac.compareTo(commonYDenom) >= 0) {
                 srcYInt += 1;
-                srcYFrac = srcYFrac.subtract(commonYDenom);
+                srcYFrac.sub(commonYDenom);
             }
         }
     }
@@ -863,28 +860,28 @@ public abstract class Scale2OpImage extends GeometricOpImage {
         scaleXRational = Rational.approximate(scaleX, rationalTolerance);
         scaleYRational = Rational.approximate(scaleY, rationalTolerance);
 
-        scaleXRationalNum = BigInteger.valueOf(this.scaleXRational.num);
-        scaleXRationalDenom = BigInteger.valueOf(this.scaleXRational.denom);
-        scaleYRationalNum = BigInteger.valueOf(this.scaleYRational.num);
-        scaleYRationalDenom = BigInteger.valueOf(this.scaleYRational.denom);
+        scaleXRationalNum = new BigInt(this.scaleXRational.num);
+        scaleXRationalDenom = new BigInt(this.scaleXRational.denom);
+        scaleYRationalNum = new BigInt(this.scaleYRational.num);
+        scaleYRationalDenom = new BigInt(this.scaleYRational.denom);
 
         transXRational = Rational.approximate(transX, rationalTolerance);
         transYRational = Rational.approximate(transY, rationalTolerance);
 
-        transXRationalNum = BigInteger.valueOf(this.transXRational.num);
-        transXRationalDenom = BigInteger.valueOf(this.transXRational.denom);
-        transYRationalNum = BigInteger.valueOf(this.transYRational.num);
-        transYRationalDenom = BigInteger.valueOf(this.transYRational.denom);
+        transXRationalNum = new BigInt(this.transXRational.num);
+        transXRationalDenom = new BigInt(this.transXRational.denom);
+        transYRationalNum = new BigInt(this.transYRational.num);
+        transYRationalDenom = new BigInt(this.transYRational.denom);
 
         // Inverse scale factors as Rationals
         invScaleXRational = new Rational(scaleXRational);
         invScaleXRational.invert();
         invScaleYRational = new Rational(scaleYRational);
         invScaleYRational.invert();
-        invScaleXRationalNum = BigInteger.valueOf(invScaleXRational.num);
-        invScaleXRationalDenom = BigInteger.valueOf(invScaleXRational.denom);
-        invScaleYRationalNum = BigInteger.valueOf(invScaleYRational.num);
-        invScaleYRationalDenom = BigInteger.valueOf(invScaleYRational.denom);
+        invScaleXRationalNum = new BigInt(invScaleXRational.num);
+        invScaleXRationalDenom = new BigInt(invScaleXRational.denom);
+        invScaleYRationalNum = new BigInt(invScaleYRational.num);
+        invScaleYRationalDenom = new BigInt(invScaleYRational.denom);
 
         lpad = interp.getLeftPadding();
         rpad = interp.getRightPadding();
@@ -898,129 +895,129 @@ public abstract class Scale2OpImage extends GeometricOpImage {
             int y0 = source.getMinY();
             int w = source.getWidth();
             int h = source.getHeight();
-            BigInteger x0Big = BigInteger.valueOf(x0);
-            BigInteger y0Big = BigInteger.valueOf(y0);
-            BigInteger wBig = BigInteger.valueOf(w);
-            BigInteger hBig = BigInteger.valueOf(h);
+            BigInt x0Big = new BigInt(x0);
+            BigInt y0Big = new BigInt(y0);
+            BigInt wBig = new BigInt(w);
+            BigInt hBig = new BigInt(h);
 
          // The first source pixel (x0, y0)
-            BigInteger dx0Num, dx0Denom, dy0Num, dy0Denom;
+            BigInt dx0Num, dx0Denom, dy0Num, dy0Denom;
 
             // The first pixel (x1, y1) that is just outside the source
-            BigInteger dx1Num, dx1Denom, dy1Num, dy1Denom;
+            BigInt dx1Num, dx1Denom, dy1Num, dy1Denom;
 
             if (interp instanceof InterpolationNearest) {
 
              // First point inside the source
-                dx0Num = BigInteger.valueOf(x0);
-                dx0Denom = ONE;
+                dx0Num = new BigInt(x0);
+                dx0Denom = new BigInt(1);
 
-                dy0Num = BigInteger.valueOf(y0);
-                dy0Denom = ONE;
+                dy0Num = new BigInt(y0);
+                dy0Denom = new BigInt(1);
                 // First point outside source
                 // for nearest, x1 = x0 + w, y1 = y0 + h
                 // since anything >= a but < (a+1) maps to a for nearest
 
                 // Equivalent to float d_x1 = x0 + w
-                dx1Num = x0Big.add(wBig);
-                dx1Denom = ONE;
+                dx1Num = addnew(x0Big, wBig);
+                dx1Denom = new BigInt(1);
 
                 // Equivalent to float d_y1 = y0 + h
-                dy1Num = y0Big.add(hBig);
-                dy1Denom = ONE;
+                dy1Num = addnew(y0Big, hBig);
+                dy1Denom = new BigInt(1);
 
             } else {
 
                 // First point inside the source
-                dx0Num = x0Big.multiply(TWO).add(ONE); // x0 + 0.5
-                dx0Denom = TWO;
+                dx0Num = mul2Add1new(x0Big); // x0 + 0.5
+                dx0Denom = new BigInt(2);
 
-                dy0Num = y0Big.multiply(TWO).add(ONE); // y0 + 0.5
-                dy0Denom = TWO;
+                dy0Num = mul2Add1new(y0Big); // y0 + 0.5
+                dy0Denom = new BigInt(2);
 
                 // for other interpolations, x1 = x0+w+0.5, y1 = y0+h+0.5
                 // as derived in the formulae derivation above.
-                dx1Num = x0Big.multiply(TWO).add(wBig.multiply(TWO)).add(ONE);
-                dx1Denom = TWO;
+                dx1Num = addnew(mulnew(x0Big, 2), mulnew(wBig, 2)); dx1Num.add(1);
+                dx1Denom = new BigInt(2);
 
-                dy1Num = y0Big.multiply(TWO).add(hBig.multiply(TWO)).add(ONE);
-                dy1Denom = TWO;
+                dy1Num = addnew(mulnew(y0Big, 2), mulnew(hBig, 2)); dy1Num.add(1);
+                dy1Denom = new BigInt(2);
 
                 // Equivalent to x0 += lpad;
-                dx0Num = (dx0Denom.multiply(BigInteger.valueOf(lpad))).add(dx0Num);
-                // Equivalent to y0 += tpad;
-                dy0Num = (dy0Denom.multiply(BigInteger.valueOf(tpad))).add(dy0Num);
+                dx0Num = addnew(mulnew(dx0Denom, lpad), dx0Num);
+                dy0Num = addnew(mulnew(dy0Denom, tpad), dy0Num);
 
                 // Equivalent to x1 -= rpad;
-                dx1Num = dx1Num.subtract(dx1Denom.multiply(BigInteger.valueOf(rpad)));
+                dx1Num.sub(mulnew(dx1Denom, rpad));
                 // Equivalent to y1 += bpad;
-                dy1Num = dy1Num.subtract(dy1Denom.multiply(BigInteger.valueOf(bpad)));
+                dy1Num.sub(mulnew(dy1Denom, bpad));
             }
 
             // Forward map the first and last source points
 
             // Equivalent to float d_x0 = x0 * scaleX;
-            dx0Num = dx0Num.multiply(scaleXRationalNum);
-            dx0Denom = dx0Denom.multiply(scaleXRationalDenom);
+            dx0Num.mul(scaleXRationalNum);
+            dx0Denom.mul(scaleXRationalDenom);
 
             // Add the X translation factor d_x0 += transX
-            dx0Num = dx0Num.multiply(transXRationalDenom).add(transXRationalNum.multiply(dx0Denom));
-            dx0Denom = dx0Denom.multiply(transXRationalDenom);
+            dx0Num.mul(transXRationalDenom); dx0Num.add(mulnew(transXRationalNum, dx0Denom));
+            dx0Denom.mul(transXRationalDenom);
 
             // Equivalent to float d_y0 = y0 * scaleY;
-            dy0Num = dy0Num.multiply(scaleYRationalNum);
-            dy0Denom = dy0Denom.multiply(scaleYRationalDenom);
+            dy0Num.mul(scaleYRationalNum);
+            dy0Denom.mul(scaleYRationalDenom);
 
             // Add the Y translation factor, float d_y0 += transY
-            dy0Num = dy0Num.multiply(transYRationalDenom).add(transYRationalNum.multiply(dy0Denom));
-            dy0Denom = dy0Denom.multiply(transYRationalDenom);
+            dy0Num.mul(transYRationalDenom); dy0Num.add(mulnew(transYRationalNum, dy0Denom));
+            dy0Denom.mul(transYRationalDenom);
 
             // Equivalent to float d_x1 = x1 * scaleX;
-            dx1Num = dx1Num.multiply(scaleXRationalNum);
-            dx1Denom = dx1Denom.multiply(scaleXRationalDenom);
+            dx1Num.mul(scaleXRationalNum);
+            dx1Denom.mul(scaleXRationalDenom);
 
             // Add the X translation factor d_x1 += transX
-            dx1Num = dx1Num.multiply(transXRationalDenom).add(transXRationalNum.multiply(dx1Denom));
-            dx1Denom = dx1Denom.multiply(transXRationalDenom);
+            dx1Num.mul(transXRationalDenom); dx1Num.add(mulnew(transXRationalNum, dx1Denom));
+            dx1Denom.mul(transXRationalDenom);
 
             // Equivalent to float d_y1 = y1 * scaleY;
-            dy1Num = dy1Num.multiply(scaleYRationalNum);
-            dy1Denom = dy1Denom.multiply(scaleYRationalDenom);
+            dy1Num.mul(scaleYRationalNum);
+            dy1Denom.mul(scaleYRationalDenom);
 
             // Add the Y translation factor, float d_y1 += transY
-            dy1Num = dy1Num.multiply(transYRationalDenom).add(transYRationalNum.multiply(dy1Denom));
-            dy1Denom = dy1Denom.multiply(transYRationalDenom);
+            dy1Num.mul(transYRationalDenom); dy1Num.add(mulnew(transYRationalNum, dy1Denom));
+            dy1Denom.mul(transYRationalDenom);
 
             // Get the integral coordinates
             int l_x0, l_y0, l_x1, l_y1;
 
             // Subtract 0.5 from dx0, dy0
-            dx0Num = dx0Num.multiply(TWO).subtract(dx0Denom);
-            dx0Denom = dx0Denom.multiply(TWO);
+            dx0Num.mul(2); dx0Num.sub(dx0Denom);
+            dx0Denom.mul(2);
 
-            dy0Num = dy0Num.multiply(TWO).subtract(dy0Denom);
-            dy0Denom = dy0Denom.multiply(TWO);
+            dy0Num.mul(2); dy0Num.sub(dy0Denom);
+            dy0Denom.mul(2);
 
             l_x0 = Rational.ceil(dx0Num.longValue(), dx0Denom.longValue());
             l_y0 = Rational.ceil(dy0Num.longValue(), dy0Denom.longValue());
 
             // Subtract 0.5 from dx1, dy1
-            dx1Num = dx1Num.multiply(TWO).subtract(dx1Denom);
-            dx1Denom = dx1Denom.multiply(TWO);
+            dx1Num.mul(2); dx1Num.sub(dx1Denom);
+            dx1Denom.mul(2);
 
-            dy1Num = dy1Num.multiply(TWO).subtract(dy1Denom);
-            dy1Denom = dy1Denom.multiply(TWO);
+            dy1Num.mul(2); dy1Num.sub(dy1Denom);
+            dy1Denom.mul(2);
 
             l_x1 = (int) Rational.floor(dx1Num.longValue(), dx1Denom.longValue());
             // l_x1 must be less than but not equal to (dx1Num/dx1Denom)
-            if (dx1Num.equals(dx1Denom.multiply(BigInteger.valueOf(l_x1)))) {
+            if (dx1Num.equals(mulnew(dx1Denom, l_x1))) {
                 l_x1 -= 1;
             }
 
             l_y1 = (int) Rational.floor(dy1Num.longValue(), dy1Denom.longValue());
-            if (dy1Num.equals(dy1Denom.multiply(BigInteger.valueOf(l_y1)))) {
+            if (dy1Num.equals(mulnew(dy1Denom, l_y1))) {
                 l_y1 -= 1;
             }
+
 
             computableBounds = new Rectangle(l_x0, l_y0, (l_x1 - l_x0 + 1), (l_y1 - l_y0 + 1));
         } else {
@@ -1200,126 +1197,126 @@ public abstract class Scale2OpImage extends GeometricOpImage {
         int w = sourceRect.width;
         int h = sourceRect.height;
 
-        BigInteger x0Big = BigInteger.valueOf(x0);
-        BigInteger y0Big = BigInteger.valueOf(y0);
-        BigInteger wBig = BigInteger.valueOf(w);
-        BigInteger hBig = BigInteger.valueOf(h);
+        BigInt x0Big = new BigInt(x0);
+        BigInt y0Big = new BigInt(y0);
+        BigInt wBig = new BigInt(w);
+        BigInt hBig = new BigInt(h);
 
         // Variables to represent the first pixel inside the destination.
-        BigInteger dx0Num, dx0Denom, dy0Num, dy0Denom;
+        BigInt dx0Num, dx0Denom, dy0Num, dy0Denom;
 
         // Variables to represent the last destination pixel.
-        BigInteger dx1Num, dx1Denom, dy1Num, dy1Denom;
+        BigInt dx1Num, dx1Denom, dy1Num, dy1Denom;
 
         if (interp instanceof InterpolationNearest) {
 
             // First point inside the source
-            dx0Num = BigInteger.valueOf(x0);
-            dx0Denom = ONE;
+            dx0Num = new BigInt(x0);
+            dx0Denom = new BigInt(1);
 
-            dy0Num = BigInteger.valueOf(y0);
-            dy0Denom = ONE;
+            dy0Num = new BigInt(y0);
+            dy0Denom = new BigInt(1);
             // First point outside source
             // for nearest, x1 = x0 + w, y1 = y0 + h
             // since anything >= a but < (a+1) maps to a for nearest
 
             // Equivalent to float d_x1 = x0 + w
-            dx1Num = x0Big.add(wBig);
-            dx1Denom = ONE;
+            dx1Num = addnew(x0Big, wBig);
+            dx1Denom = new BigInt(1);
 
             // Equivalent to float d_y1 = y0 + h
-            dy1Num = y0Big.add(hBig);
-            dy1Denom = ONE;
+            dy1Num = addnew(y0Big, hBig);
+            dy1Denom = new BigInt(1);
 
         } else {
 
             // First point inside the source
-            dx0Num = x0Big.multiply(TWO).add(ONE); // x0 + 0.5
-            dx0Denom = TWO;
+            dx0Num = mul2Add1new(x0Big); // x0 + 0.5
+            dx0Denom = new BigInt(2);
 
-            dy0Num = y0Big.multiply(TWO).add(ONE); // y0 + 0.5
-            dy0Denom = TWO;
+            dy0Num = mul2Add1new(y0Big); // y0 + 0.5
+            dy0Denom = new BigInt(2);
 
             // for other interpolations, x1 = x0+w+0.5, y1 = y0+h+0.5
             // as derived in the formulae derivation above.
-            dx1Num = x0Big.multiply(TWO).add(wBig.multiply(TWO)).add(ONE);
-            dx1Denom = TWO;
+            dx1Num = addnew(addnew(mulnew(x0Big,  2), mulnew(wBig, 2)), 1);
+            dx1Denom = new BigInt(2);
 
-            dy1Num = y0Big.multiply(TWO).add(hBig.multiply(TWO)).add(ONE);
-            dy1Denom = TWO;
+            dy1Num = addnew(addnew(mulnew(y0Big,  2), mulnew(hBig, 2)), 1);
+            dy1Denom = new BigInt(2);
 
             // Equivalent to x0 += lpad;
-            dx0Num = (dx0Denom.multiply(BigInteger.valueOf(lpad))).add(dx0Num);
+            dx0Num = addnew(mulnew(dx0Denom, lpad), dx0Num);
             // Equivalent to y0 += tpad;
-            dy0Num = (dy0Denom.multiply(BigInteger.valueOf(tpad))).add(dy0Num);
-
+            dy0Num = addnew(mulnew(dy0Denom, tpad), dy0Num);
+            
             // Equivalent to x1 -= rpad;
-            dx1Num = dx1Num.subtract(dx1Denom.multiply(BigInteger.valueOf(rpad)));
+            dx1Num = subnew(dx1Num, mulnew(dx1Denom, rpad));
             // Equivalent to y1 -= bpad;
-            dy1Num = dy1Num.subtract(dy1Denom.multiply(BigInteger.valueOf(bpad)));
+            dy1Num = subnew(dy1Num, mulnew(dy1Denom, bpad));
         }
 
         // Forward map first and last source positions
         // Equivalent to float d_x0 = x0 * scaleX;
-        dx0Num = dx0Num.multiply(scaleXRationalNum);
-        dx0Denom = dx0Denom.multiply(scaleXRationalDenom);
+        dx0Num.mul(scaleXRationalNum);
+        dx0Denom.mul(scaleXRationalDenom);
 
         // Add the X translation factor d_x0 += transX
-        dx0Num = dx0Num.multiply(transXRationalDenom).add(transXRationalNum.multiply(dx0Denom));
-        dx0Denom = dx0Denom.multiply(transXRationalDenom);
+        dx0Num.mul(transXRationalDenom); dx0Num.add(mulnew(transXRationalNum, dx0Denom));
+        dx0Denom.mul(transXRationalDenom);
 
         // Equivalent to float d_y0 = y0 * scaleY;
-        dy0Num = dy0Num.multiply(scaleYRationalNum);
-        dy0Denom = dy0Denom.multiply(scaleYRationalDenom);
+        dy0Num.mul(scaleYRationalNum);
+        dy0Denom.mul(scaleYRationalDenom);
 
         // Add the Y translation factor, float d_y0 += transY
-        dy0Num = dy0Num.multiply(transYRationalDenom).add(transYRationalNum.multiply(dy0Denom));
-        dy0Denom = dy0Denom.multiply(transYRationalDenom);
+        dy0Num.mul(transYRationalDenom); dy0Num.add(mulnew(transYRationalNum, dy0Denom));
+        dy0Denom.mul(transYRationalDenom);
 
         // Equivalent to float d_x1 = x1 * scaleX;
-        dx1Num = dx1Num.multiply(scaleXRationalNum);
-        dx1Denom = dx1Denom.multiply(scaleXRationalDenom);
+        dx1Num.mul(scaleXRationalNum);
+        dx1Denom.mul(scaleXRationalDenom);
 
         // Add the X translation factor d_x1 += transX
-        dx1Num = dx1Num.multiply(transXRationalDenom).add(transXRationalNum.multiply(dx1Denom));
-        dx1Denom = dx1Denom.multiply(transXRationalDenom);
+        dx1Num.mul(transXRationalDenom); dx1Num.add(mulnew(transXRationalNum, dx1Denom));
+        dx1Denom.mul(transXRationalDenom);
 
         // Equivalent to float d_y1 = y1 * scaleY;
-        dy1Num = dy1Num.multiply(scaleYRationalNum);
-        dy1Denom = dy1Denom.multiply(scaleYRationalDenom);
+        dy1Num.mul(scaleYRationalNum);
+        dy1Denom.mul(scaleYRationalDenom);
 
         // Add the Y translation factor, float d_y1 += transY
-        dy1Num = dy1Num.multiply(transYRationalDenom).add(transYRationalNum.multiply(dy1Denom));
-        dy1Denom = dy1Denom.multiply(transYRationalDenom);
+        dy1Num.mul(transYRationalDenom); dy1Num.add(mulnew(transYRationalNum, dy1Denom));
+        dy1Denom.mul(transYRationalDenom);
 
         // Get the integral coordinates
         int l_x0, l_y0, l_x1, l_y1;
 
         // Subtract 0.5 from dx0, dy0
-        dx0Num = dx0Num.multiply(TWO).subtract(dx0Denom);
-        dx0Denom = dx0Denom.multiply(TWO);
+        dx0Num.mul(2); dx0Num.sub(dx0Denom);
+        dx0Denom.mul(2);
 
-        dy0Num = dy0Num.multiply(TWO).subtract(dy0Denom);
-        dy0Denom = dy0Denom.multiply(TWO);
+        dy0Num.mul(2); dy0Num.sub(dy0Denom);
+        dy0Denom.mul(2);
 
         l_x0 = Rational.ceil(dx0Num.longValue(), dx0Denom.longValue());
         l_y0 = Rational.ceil(dy0Num.longValue(), dy0Denom.longValue());
 
         // Subtract 0.5 from dx1, dy1
-        dx1Num = dx1Num.multiply(TWO).subtract(dx1Denom);
-        dx1Denom = dx1Denom.multiply(TWO);
+        dx1Num.mul(2); dx1Num.sub(dx1Denom);
+        dx1Denom.mul(2);
 
-        dy1Num = dy1Num.multiply(TWO).subtract(dy1Denom);
-        dy1Denom = dy1Denom.multiply(TWO);
+        dy1Num.mul(2); dy1Num.sub(dy1Denom);
+        dy1Denom.mul(2);
 
         l_x1 = (int) Rational.floor(dx1Num.longValue(), dx1Denom.longValue());
         // l_x1 must be less than but not equal to (dx1Num/dx1Denom)
-        if (dx1Num.equals(dx1Denom.multiply(BigInteger.valueOf(l_x1)))) {
+        if (dx1Num.equals(mulnew(dx1Denom, l_x1))) {
             l_x1 -= 1;
         }
 
         l_y1 = (int) Rational.floor(dy1Num.longValue(), dy1Denom.longValue());
-        if (dy1Num.equals(dy1Denom.multiply(BigInteger.valueOf(l_y1)))) {
+        if (dy1Num.equals(mulnew(dy1Denom, l_y1))) {
             l_y1 -= 1;
         }
 
@@ -1355,67 +1352,63 @@ public abstract class Scale2OpImage extends GeometricOpImage {
         int y0 = destRect.y;
         int w = destRect.width;
         int h = destRect.height;
-        BigInteger x0Big = BigInteger.valueOf(x0);
-        BigInteger y0Big = BigInteger.valueOf(y0);
-        BigInteger wBig = BigInteger.valueOf(w);
-        BigInteger hBig = BigInteger.valueOf(h);
+        BigInt x0Big = new BigInt(x0);
+        BigInt y0Big = new BigInt(y0);
+        BigInt wBig = new BigInt(w);
+        BigInt hBig = new BigInt(h);
 
         // Variables that will eventually hold the source pixel
         // positions which are the result of the backward map
-        BigInteger sx0Num, sx0Denom, sy0Num, sy0Denom;
+        BigInt sx0Num, sx0Denom, sy0Num, sy0Denom;
 
         // First destination point that will be backward mapped
         // will be dx0 + 0.5, dy0 + 0.5
-        sx0Num = x0Big.multiply(TWO).add(ONE);
-        sx0Denom = TWO;
+        sx0Num = mul2Add1new(x0Big);
+        sx0Denom = new BigInt(2);
 
-        sy0Num = y0Big.multiply(TWO).add(ONE);
-        sy0Denom = TWO;
+        sy0Num = mul2Add1new(y0Big);
+        sy0Denom = new BigInt(2);
 
         // The last destination pixel to be backward mapped will be
         // dx0 + w - 1 + 0.5, dy0 + h - 1 + 0.5 i.e.
         // dx0 + w - 0.5, dy0 + h - 0.5
-        BigInteger sx1Num, sx1Denom, sy1Num, sy1Denom;
+        BigInt sx1Num, sx1Denom, sy1Num, sy1Denom;
 
         // Equivalent to float sx1 = dx0 + dw - 0.5;
-        sx1Num = x0Big.multiply(TWO).add(wBig.multiply(TWO)).subtract(ONE);
-        sx1Denom = TWO;
+        sx1Num = addnew(mulnew(x0Big, 2), mulnew(wBig, 2)); sx1Num.sub(1);
+        sx1Denom = new BigInt(2);
 
         // Equivalent to float sy1 = dy0 + dh - 0.5;
-        sy1Num = y0Big.multiply(TWO).add(hBig.multiply(TWO)).subtract(ONE);
-        sy1Denom = TWO;
+        sy1Num = addnew(mulnew(y0Big, 2), mulnew(hBig, 2)); sy1Num.sub(1);
+        sy1Denom = new BigInt(2);
 
         // Subtract the translation factors.
-        sx0Num = sx0Num.multiply(transXRationalDenom)
-                .subtract(transXRationalNum.multiply(sx0Denom));
-        sx0Denom = sx0Denom.multiply(transXRationalDenom);
+        sx0Num.mul(transXRationalDenom);sx0Num.sub(mulnew(transXRationalNum, sx0Denom));
+        sx0Denom.mul(transXRationalDenom);
 
-        sy0Num = sy0Num.multiply(transYRationalDenom)
-                .subtract(transYRationalNum.multiply(sy0Denom));
-        sy0Denom = sy0Denom.multiply(transYRationalDenom);
+        sy0Num.mul(transYRationalDenom); sy0Num.sub(mulnew(transYRationalNum, sy0Denom));
+        sy0Denom.mul(transYRationalDenom);
 
-        sx1Num = sx1Num.multiply(transXRationalDenom)
-                .subtract(transXRationalNum.multiply(sx1Denom));
-        sx1Denom = sx1Denom.multiply(transXRationalDenom);
+        sx1Num.mul(transXRationalDenom); sx1Num.sub(mulnew(transXRationalNum, sx1Denom));
+        sx1Denom.mul(transXRationalDenom);
 
-        sy1Num = sy1Num.multiply(transYRationalDenom)
-                .subtract(transYRationalNum.multiply(sy1Denom));
-        sy1Denom = sy1Denom.multiply(transYRationalDenom);
+        sy1Num.mul(transYRationalDenom); sy1Num.sub(mulnew(transYRationalNum, sy1Denom));
+        sy1Denom.mul(transYRationalDenom);
 
         // Backward map both the destination positions
 
         // Equivalent to float sx0 = x0 / scaleX;
-        sx0Num = sx0Num.multiply(invScaleXRationalNum);
-        sx0Denom = sx0Denom.multiply(invScaleXRationalDenom);
+        sx0Num.mul(invScaleXRationalNum);
+        sx0Denom.mul(invScaleXRationalDenom);
 
-        sy0Num = sy0Num.multiply(invScaleYRationalNum);
-        sy0Denom = sy0Denom.multiply(invScaleYRationalDenom);
+        sy0Num.mul(invScaleYRationalNum);
+        sy0Denom.mul(invScaleYRationalDenom);
 
-        sx1Num = sx1Num.multiply(invScaleXRationalNum);
-        sx1Denom = sx1Denom.multiply(invScaleXRationalDenom);
+        sx1Num.mul(invScaleXRationalNum);
+        sx1Denom.mul(invScaleXRationalDenom);
 
-        sy1Num = sy1Num.multiply(invScaleYRationalNum);
-        sy1Denom = sy1Denom.multiply(invScaleYRationalDenom);
+        sy1Num.mul(invScaleYRationalNum);
+        sy1Denom.mul(invScaleYRationalDenom);
 
         int s_x0 = 0, s_y0 = 0, s_x1 = 0, s_y1 = 0;
         if (interp instanceof InterpolationNearest) {
@@ -1434,20 +1427,20 @@ public abstract class Scale2OpImage extends GeometricOpImage {
             // For all other interpolations
 
             // Equivalent to (int) Math.floor(sx0 - 0.5)
-            s_x0 = Rational.floor(sx0Num.multiply(TWO).subtract(sx0Denom).longValue(),
-                    sx0Denom.multiply(TWO).longValue());
+            s_x0 = Rational.floor(subnew(mulnew(sx0Num, 2), sx0Denom).longValue(),
+                    mulnew(sx0Denom, 2).longValue());
 
             // Equivalent to (int) Math.floor(sy0 - 0.5)
-            s_y0 = Rational.floor(sy0Num.multiply(TWO).subtract(sy0Denom).longValue(),
-                    sy0Denom.multiply(TWO).longValue());
+            s_y0 = Rational.floor(subnew(mulnew(sy0Num, 2), sy0Denom).longValue(),
+                    mulnew(sy0Denom, 2).longValue());
 
             // Calculate the last source point
-            long sx1Num05 = sx1Num.multiply(TWO).subtract(sx1Denom).longValue();
-            long sx1Denom2 = sx1Denom.multiply(TWO).longValue();
+            long sx1Num05 = subnew(mulnew(sx1Num, 2), sx1Denom).longValue();
+            long sx1Denom2 = mulnew(sx1Denom, 2).longValue();
 
             // Equivalent to (int)Math.ceil(sy1 - 0.5)
-            long sy1Num05 = sy1Num.multiply(TWO).subtract(sy1Denom).longValue();
-            long sy1Denom2 = sy1Denom.multiply(TWO).longValue();
+            long sy1Num05 = subnew(mulnew(sy1Num, 2), sy1Denom).longValue();
+            long sy1Denom2 = mulnew(sy1Denom, 2).longValue();
 
             if (extender != null) {
                 // we found that some cases miss the last row in the source rect,
@@ -1516,6 +1509,7 @@ public abstract class Scale2OpImage extends GeometricOpImage {
 
         // Get the source rectangle required to compute the destRect
         Rectangle srcRect = mapDestRect(destRect, 0);
+
         Raster[] sources = new Raster[1];
 
         // Split the source on tile boundaries.
@@ -1617,7 +1611,7 @@ public abstract class Scale2OpImage extends GeometricOpImage {
                                     sources[0] = source0.getData(wSrcRect);
                                 } else {
                                     if(source0.getBounds().contains(srcRect)){
-                                        sources[0] = source0.getData(srcRect);
+                                        sources[0] = source0.getData(wSrcRect);
                                     } else {
                                         sources[0] = extendedIMG.getData(srcRect);
                                     }
@@ -1756,10 +1750,10 @@ public abstract class Scale2OpImage extends GeometricOpImage {
                                 if (extender == null) {
                                     sources[0] = source0.getData(RTSrcRect);
                                 } else {
-                                    if(source0.getBounds().contains(srcRect)){
-                                        sources[0] = source0.getData(srcRect);
+                                    if(source0.getBounds().contains(RTSrcRect)){
+                                        sources[0] = source0.getData(RTSrcRect);
                                     }else{
-                                        sources[0] = extendedIMG.getData(srcRect);
+                                        sources[0] = extendedIMG.getData(RTSrcRect);
                                     }
 
                                 }
@@ -1807,10 +1801,10 @@ public abstract class Scale2OpImage extends GeometricOpImage {
                                 if (extender == null) {
                                     sources[0] = source0.getData(BTSrcRect);
                                 } else {
-                                    if(source0.getBounds().contains(srcRect)){
-                                        sources[0] = source0.getData(srcRect);
+                                    if(source0.getBounds().contains(BTSrcRect)){
+                                        sources[0] = source0.getData(BTSrcRect);
                                     }else{
-                                        sources[0] = extendedIMG.getData(srcRect);
+                                        sources[0] = extendedIMG.getData(BTSrcRect);
                                     }
                                 }
 
@@ -1842,10 +1836,10 @@ public abstract class Scale2OpImage extends GeometricOpImage {
                                 if (extender == null) {
                                     sources[0] = source0.getData(LRTSrcRect);
                                 } else {
-                                    if(source0.getBounds().contains(srcRect)){
-                                        sources[0] = source0.getData(srcRect);
+                                    if(source0.getBounds().contains(LRTSrcRect)){
+                                        sources[0] = source0.getData(LRTSrcRect);
                                     }else{
-                                        sources[0] = extendedIMG.getData(srcRect);
+                                        sources[0] = extendedIMG.getData(LRTSrcRect);
                                     }
                                 }
 
@@ -1872,4 +1866,48 @@ public abstract class Scale2OpImage extends GeometricOpImage {
         }
         super.dispose();
     }
+
+    protected static BigInt modnew(BigInt num, BigInt den) {
+        BigInt result = num.copy();
+        result.mod(den);
+        return result;
+    }
+
+    protected static BigInt addnew(BigInt a, int b) {
+        BigInt result = a.copy();
+        result.add(b);
+        return result;
+    }
+
+    protected static BigInt addnew(BigInt a, BigInt b) {
+        BigInt result = a.copy();
+        result.add(b);
+        return result;
+    }
+
+    protected static BigInt subnew(BigInt a, BigInt b) {
+        BigInt result = a.copy();
+        result.sub(b);
+        return result;
+    }
+
+    protected static BigInt mulnew(BigInt a, BigInt b) {
+        BigInt result = a.copy();
+        result.mul(b);
+        return result;
+    }
+
+    protected static BigInt mulnew(BigInt a, int b) {
+        BigInt result = a.copy();
+        result.mul(b);
+        return result;
+    }
+
+    private static BigInt mul2Add1new(BigInt n) {
+        BigInt result = n.copy();
+        result.mul(2);
+        result.add(1);
+        return result;
+    }
+
 }

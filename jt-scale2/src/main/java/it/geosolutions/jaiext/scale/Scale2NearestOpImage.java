@@ -17,6 +17,8 @@
 */
 package it.geosolutions.jaiext.scale;
 
+import org.huldra.math.BigInt;
+
 import java.awt.Rectangle;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -25,7 +27,6 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -78,18 +79,18 @@ public class Scale2NearestOpImage extends Scale2OpImage {
         // selection of the inverse scale parameters both for the x and y axis
         if (invScaleXRational.num > invScaleXRational.denom) {
             invScaleXInt = invScaleXRational.num / invScaleXRational.denom;
-            invScaleXFrac = BigInteger.valueOf(invScaleXRational.num % invScaleXRational.denom);
+            invScaleXFrac = new BigInt(invScaleXRational.num % invScaleXRational.denom);
         } else {
             invScaleXInt = 0;
-            invScaleXFrac = BigInteger.valueOf(invScaleXRational.num);
+            invScaleXFrac = new BigInt(invScaleXRational.num);
         }
 
         if (invScaleYRational.num > invScaleYRational.denom) {
             invScaleYInt = invScaleYRational.num / invScaleYRational.denom;
-            invScaleYFrac = BigInteger.valueOf(invScaleYRational.num % invScaleYRational.denom);
+            invScaleYFrac = new BigInt(invScaleYRational.num % invScaleYRational.denom);
         } else {
             invScaleYInt = 0;
-            invScaleYFrac = BigInteger.valueOf(invScaleYRational.num);
+            invScaleYFrac = new BigInt(invScaleYRational.num);
         }
 
         // Interpolator settings

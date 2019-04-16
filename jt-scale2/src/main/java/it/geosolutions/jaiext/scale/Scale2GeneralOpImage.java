@@ -29,7 +29,6 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
-import java.math.BigInteger;
 import java.util.Map;
 
 import javax.media.jai.BorderExtender;
@@ -43,6 +42,8 @@ import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.Rational;
+
+import org.huldra.math.BigInt;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
@@ -101,18 +102,18 @@ public class Scale2GeneralOpImage extends Scale2OpImage {
         // selection of the inverse scale parameters both for the x and y axis
         if (invScaleXRational.num > invScaleXRational.denom) {
             invScaleXInt = invScaleXRational.num / invScaleXRational.denom;
-            invScaleXFrac = BigInteger.valueOf(invScaleXRational.num % invScaleXRational.denom);
+            invScaleXFrac = new BigInt(invScaleXRational.num % invScaleXRational.denom);
         } else {
             invScaleXInt = 0;
-            invScaleXFrac = BigInteger.valueOf(invScaleXRational.num);
+            invScaleXFrac = new BigInt(invScaleXRational.num);
         }
 
         if (invScaleYRational.num > invScaleYRational.denom) {
             invScaleYInt = invScaleYRational.num / invScaleYRational.denom;
-            invScaleYFrac = BigInteger.valueOf(invScaleYRational.num % invScaleYRational.denom);
+            invScaleYFrac = new BigInt(invScaleYRational.num % invScaleYRational.denom);
         } else {
             invScaleYInt = 0;
-            invScaleYFrac = BigInteger.valueOf(invScaleYRational.num);
+            invScaleYFrac = new BigInt(invScaleYRational.num);
         }
 
         // Interpolator settings
@@ -344,77 +345,77 @@ public class Scale2GeneralOpImage extends Scale2OpImage {
         // Initially the y source value is calculated by the destination value and then performing the inverse
         // scale operation on it.
         // scale operation on it.
-        BigInteger syNum = BigInteger.valueOf(dy);
-        BigInteger syDenom = ONE;
+        BigInt syNum = new BigInt(dy);
+        BigInt syDenom = new BigInt(1);
 
         // Subtract the X translation factor sy -= transY
-        syNum = syNum.multiply(transYRationalDenom).subtract(transYRationalNum.multiply(syDenom));
-        syDenom = syDenom.multiply(transYRationalDenom);
+        syNum = subnew(mulnew(syNum, transYRationalDenom), (mulnew(transYRationalNum, syDenom)));
+        syDenom.mul(transYRationalDenom);
 
         // Add 0.5
-        syNum = syNum.multiply(TWO).add(syDenom);
-        syDenom = syDenom.multiply(TWO);
+        syNum.mul(2); syNum.add(syDenom);
+        syDenom.mul(2);
 
         // Multply by invScaleX
-        syNum = syNum.multiply(invScaleYRationalNum);
-        syDenom = syDenom.multiply(invScaleYRationalDenom);
+        syNum.mul(invScaleYRationalNum);
+        syDenom.mul(invScaleYRationalDenom);
 
         if (interpBN != null || interpB != null || interpolator instanceof InterpolationBilinear
                 || interpolator instanceof InterpolationBicubic
                 || interpolator instanceof InterpolationBicubic2) {
             /// Subtract 0.5
-            syNum = syNum.multiply(TWO).subtract(syDenom);
-            syDenom = syDenom.multiply(TWO);
+            syNum.mul(2); syNum.sub(syDenom);
+            syDenom.mul(2);
         }
 
         // Separate the y source coordinate into integer and fractional part
         int srcYInt = Rational.floor(syNum.longValue(), syDenom.longValue());
-        BigInteger srcYFrac = syNum.mod(syDenom);
+        BigInt srcYFrac = modnew(syNum, syDenom);
         if (srcYInt < 0) {
-            srcYFrac = syDenom.add(srcYFrac);
+            srcYFrac = addnew(syDenom, srcYFrac);
         }
 
         // Normalize - Get a common denominator for the fracs of src and invScaleY
-        final BigInteger commonYDenom = syDenom.multiply(invScaleYRationalDenom);
-        srcYFrac = srcYFrac.multiply(invScaleYRationalDenom);
-        final BigInteger newInvScaleYFrac = invScaleYFrac.multiply(syDenom);
+        final BigInt commonYDenom = mulnew(syDenom, invScaleYRationalDenom);
+        srcYFrac.mul(invScaleYRationalDenom);
+        final BigInt newInvScaleYFrac = mulnew(invScaleYFrac, syDenom);
 
         // Initially the x source value is calculated by the destination value and then performing the inverse
         // scale operation on it.
-        BigInteger sxNum = BigInteger.valueOf(dx);
-        BigInteger sxDenom = ONE;
+        BigInt sxNum = new BigInt(dx);
+        BigInt sxDenom = new BigInt(1);
 
         // Subtract the X translation factor sx -= transX
-        sxNum = sxNum.multiply(transXRationalDenom).subtract(transXRationalNum.multiply(sxDenom));
-        sxDenom = sxDenom.multiply(transXRationalDenom);
+        sxNum.mul(transXRationalDenom); sxNum.sub(mulnew(transXRationalNum, sxDenom));
+        sxDenom.mul(transXRationalDenom);
 
         // Add 0.5
-        sxNum = sxNum.multiply(TWO).add(sxDenom);
-        sxDenom = sxDenom.multiply(TWO);
+        sxNum.mul(2); sxNum.add(sxDenom);
+        sxDenom.mul(2);
 
         // Multply by invScaleX
-        sxNum = sxNum.multiply(invScaleXRationalNum);
-        sxDenom = sxDenom.multiply(invScaleXRationalDenom);
+        sxNum.mul(invScaleXRationalNum);
+        sxDenom.mul(invScaleXRationalDenom);
 
         if (interpBN != null || interpB != null || interpolator instanceof InterpolationBilinear
                 || interpolator instanceof InterpolationBicubic
                 || interpolator instanceof InterpolationBicubic2) {
             // Subtract 0.5
-            sxNum = sxNum.multiply(TWO).subtract(sxDenom);
-            sxDenom = sxDenom.multiply(TWO);
+            sxNum.mul(2); sxNum.sub(sxDenom);
+            sxDenom.mul(2);
         }
 
         // Separate the x source coordinate into integer and fractional part
         int srcXInt = Rational.floor(sxNum.longValue(), sxDenom.longValue());
-        BigInteger srcXFrac = sxNum.mod(sxDenom);
+        BigInt srcXFrac = modnew(sxNum, sxDenom);
         if (srcXInt < 0) {
-            srcXFrac = sxDenom.add(srcXFrac);
+            srcXFrac = addnew(sxDenom, srcXFrac);
         }
 
         // Normalize - Get a common denominator for the fracs of src and invScaleX
-        final BigInteger commonXDenom = sxDenom.multiply(invScaleXRationalDenom);
-        srcXFrac = srcXFrac.multiply(invScaleXRationalDenom);
-        final BigInteger newInvScaleXFrac = invScaleXFrac.multiply(sxDenom);
+        final BigInt commonXDenom = mulnew(sxDenom, invScaleXRationalDenom);
+        srcXFrac.mul(invScaleXRationalDenom);
+        final BigInt newInvScaleXFrac = mulnew(invScaleXFrac, sxDenom);
 
         // Store of the x positions
         for (int i = 0; i < dwidth; i++) {
@@ -437,14 +438,14 @@ public class Scale2GeneralOpImage extends Scale2OpImage {
             srcXInt += invScaleXInt;
 
             // Add the fractional part of invScaleX to the fractional part of srcX
-            srcXFrac = srcXFrac.add(newInvScaleXFrac);
+            srcXFrac.add(newInvScaleXFrac);
 
             // If the fractional part is now greater than equal to the
             // denominator, divide so as to reduce the numerator to be less
             // than the denominator and add the overflow to the integral part.
             if (srcXFrac.compareTo(commonXDenom) >= 0) {
                 srcXInt += 1;
-                srcXFrac = srcXFrac.subtract(commonXDenom);
+                srcXFrac.sub(commonXDenom);
             }
         }
         // Store of the y positions
@@ -479,14 +480,14 @@ public class Scale2GeneralOpImage extends Scale2OpImage {
             srcYInt += invScaleYInt;
 
             // Add the fractional part of invScaleY to the fractional part of srcY
-            srcYFrac = srcYFrac.add(newInvScaleYFrac);
+            srcYFrac.add(newInvScaleYFrac);
 
             // If the fractional part is now greater than equal to the
             // denominator, divide so as to reduce the numerator to be less
             // than the denominator and add the overflow to the integral part.
             if (srcYFrac.compareTo(commonYDenom) >= 0) {
                 srcYInt += 1;
-                srcYFrac = srcYFrac.subtract(commonYDenom);
+                srcYFrac.sub(commonYDenom);
             }
         }
     }
