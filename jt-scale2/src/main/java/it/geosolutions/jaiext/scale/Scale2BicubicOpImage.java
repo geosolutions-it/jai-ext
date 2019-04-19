@@ -97,7 +97,7 @@ public class Scale2BicubicOpImage extends Scale2OpImage {
         // selection of the inverse scale parameters both for the x and y axis
         if (invScaleXRationalNum.compareTo(invScaleXRationalDenom) > 0) {
             invScaleXInt = invScaleXRational.num / invScaleXRational.denom;
-            invScaleXFrac = invScaleXRationalNum.mod(invScaleXRationalDenom);
+            invScaleXFrac = modnew(invScaleXRationalNum, invScaleXRationalDenom);
         } else {
             invScaleXInt = 0;
             invScaleXFrac = invScaleXRationalNum;
@@ -105,7 +105,7 @@ public class Scale2BicubicOpImage extends Scale2OpImage {
 
         if (invScaleYRationalNum.compareTo(invScaleYRationalDenom) > 0) {
             invScaleYInt = invScaleYRational.num / invScaleYRational.denom;
-            invScaleYFrac = invScaleYRationalNum.mod(invScaleYRationalDenom);
+            invScaleYFrac = modnew(invScaleYRationalNum, invScaleYRationalDenom);
         } else {
             invScaleYInt = 0;
             invScaleYFrac = invScaleYRationalNum;

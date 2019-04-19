@@ -24,7 +24,6 @@ import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -36,6 +35,8 @@ import javax.media.jai.RasterFormatTag;
 import javax.media.jai.iterator.RandomIter;
 
 import com.sun.media.jai.util.ImageUtil;
+
+import org.huldra.math.BigInt;
 
 import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
@@ -84,18 +85,18 @@ public class Scale2BilinearOpImage extends Scale2OpImage {
         // selection of the inverse scale parameters both for the x and y axis
         if (invScaleXRational.num > invScaleXRational.denom) {
             invScaleXInt = invScaleXRational.num / invScaleXRational.denom;
-            invScaleXFrac = BigInteger.valueOf(invScaleXRational.num % invScaleXRational.denom);
+            invScaleXFrac = new BigInt(invScaleXRational.num % invScaleXRational.denom);
         } else {
             invScaleXInt = 0;
-            invScaleXFrac = BigInteger.valueOf(invScaleXRational.num);
+            invScaleXFrac = new BigInt(invScaleXRational.num);
         }
 
         if (invScaleYRational.num > invScaleYRational.denom) {
             invScaleYInt = invScaleYRational.num / invScaleYRational.denom;
-            invScaleYFrac = BigInteger.valueOf(invScaleYRational.num % invScaleYRational.denom);
+            invScaleYFrac = new BigInt(invScaleYRational.num % invScaleYRational.denom);
         } else {
             invScaleYInt = 0;
-            invScaleYFrac = BigInteger.valueOf(invScaleYRational.num);
+            invScaleYFrac = new BigInt(invScaleYRational.num);
         }
 
         // Interpolator settings
@@ -223,13 +224,12 @@ public class Scale2BilinearOpImage extends Scale2OpImage {
 
     @Override
     protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
+        computeRect(sources[0], sources[0].getBounds(), dest, destRect);
+    }
+
+    protected void computeRect(Raster source, Rectangle srcRect, WritableRaster dest, Rectangle destRect) {
         // Retrieve format tags.
         RasterFormatTag[] formatTags = getFormatTags();
-        // Only one source raster is used
-        Raster source = sources[0];
-
-        // Get the source rectangle
-        Rectangle srcRect = source.getBounds();
 
         // SRC and destination accessors are used for simplifying calculations
         RasterAccessor srcAccessor = new RasterAccessor(source, srcRect, formatTags[0],
@@ -488,18 +488,21 @@ public class Scale2BilinearOpImage extends Scale2OpImage {
                             int dstPixelOffset = dstlineOffset;
                             // y position selection
                             final int posy = ypos[j] + bandOffset;
+                            final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
                             // cycle on the x values
+                            int firstX = src.getX() + xpos[0] / srcPixelStride;
+                            int w01 = roiBounds.contains(firstX, y0) ? roiIter.getSample(firstX, y0, 0) : 0;
+                            int w11 = roiBounds.contains(firstX, y0 + 1) ? roiIter.getSample(firstX, y0 + 1, 0) : 0;
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 final int posx = xpos[i];
                                 // PixelPositions
                                 final int x0 = src.getX() + posx / srcPixelStride;
-                                final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
 
-                                final int w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
-                                final int w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
-                                final int w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
-                                final int w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
+                                final int w00 = w01;
+                                w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
+                                final int w10 = w11;
+                                w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array

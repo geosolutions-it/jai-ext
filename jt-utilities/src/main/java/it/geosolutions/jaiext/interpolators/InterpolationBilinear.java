@@ -52,20 +52,20 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
     }
 
     /** The value of 0.5 scaled by 2^subsampleBits */
-    private int round;
+    private final int round;
 
     /**
      * The number of bits to shift integer pixels to account for subsampleBits
      */
-    private int subsampleBits;
+    private final int subsampleBits;
 
     /**
      * Twice the value of 'shift'. Accounts for accumulated scaling shifts in two-axis interpolation
      */
-    private int shift2;
+    private final int shift2;
 
     /** The value of 0.5 scaled by 2^shift2 */
-    private int round2;
+    private final int round2;
 
     /** Range of NO DATA values to be checked */
     private Range noDataRange;
@@ -82,10 +82,10 @@ public class InterpolationBilinear extends Interpolation implements Interpolatio
     private double destinationNoData;
 
     /** This value is the destination NO DATA values for binary images */
-    private int black;
+    private final int black;
 
     /** Image data Type */
-    private int dataType;
+    private final int dataType;
     
     /** Boolean used for indicating that the No Data Range is not degenarated(useful only for NaN check inside Float or Double Range) */
     private boolean isNotPointRange;
