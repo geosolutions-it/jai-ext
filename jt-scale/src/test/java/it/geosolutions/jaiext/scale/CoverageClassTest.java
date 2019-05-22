@@ -70,15 +70,14 @@ public class CoverageClassTest extends TestScale {
         // Bicubic
         Interpolation interpBic = new javax.media.jai.InterpolationBicubic(DEFAULT_SUBSAMPLE_BITS);
 
-        // ROI creation
-        ROIShape roi = roiCreation();
-
         byte imageValue = 127;
 
         // Test image creation
-
         RenderedImage testImg = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH,
                 DEFAULT_HEIGHT, imageValue, false);
+
+        // ROI creation
+        ROIShape roi = new ROIShape(new Rectangle(testImg.getMinX(), testImg.getMinY(), testImg.getWidth(), testImg.getHeight()));
 
         RenderedOp testIMG = NullDescriptor.create(testImg, null);
 
@@ -98,46 +97,14 @@ public class CoverageClassTest extends TestScale {
 
         // Scale operation on ROI
         ROI roiNear = (ROI) propertyGenerator.getProperty("roi", scaleImgNear);
+        checkROIConsistentWithImage(roiNear, scaleImgNear);
+        
         ROI roiBil = (ROI) propertyGenerator.getProperty("roi", scaleImgBil);
+        checkROIConsistentWithImage(roiBil, scaleImgBil);
+        
         ROI roiBic = (ROI) propertyGenerator.getProperty("roi", scaleImgBic);
-
-        // ROI starting bounds
-        int roiWidth = roi.getBounds().width;
-        int roiHeight = roi.getBounds().height;
-        // ROI end bounds
-        int roiNearWidth = roiNear.getBounds().width;
-        int roiNearHeight = roiNear.getBounds().height;
-
-        Rectangle scaleImgBilBounds = new Rectangle(testIMG.getMinX() + interpBil.getLeftPadding(),
-                testIMG.getMinY() + interpBil.getTopPadding(), testIMG.getWidth()
-                        - interpBil.getWidth() + 1, testIMG.getHeight() - interpBil.getHeight() + 1);
-
-        int roiBoundWidth = (int) scaleImgBilBounds.getWidth();
-        int roiBoundHeight = (int) scaleImgBilBounds.getHeight();
-
-        int roiBilWidth = roiBil.getBounds().width;
-        int roiBilHeighth = roiBil.getBounds().height;
-
-        Rectangle scaleImgBicBounds = new Rectangle(testIMG.getMinX() + interpBic.getLeftPadding(),
-                testIMG.getMinY() + interpBic.getTopPadding(), testIMG.getWidth()
-                        - interpBic.getWidth() + 2, testIMG.getHeight() - interpBic.getHeight() + 2);
-
-        int roiBoundBicWidth = (int) scaleImgBicBounds.getWidth();
-        int roiBoundBicHeight = (int) scaleImgBicBounds.getHeight();
-
-        int roiBicWidth = roiBic.getBounds().width ;
-        int roiBicHeight = roiBic.getBounds().height;
-
-        // Nearest
-        assertEquals((int) (roiWidth * scaleX), roiNearWidth);
-        assertEquals((int) (roiHeight * scaleY), roiNearHeight);
-        // Bilinear
-        assertEquals((int) (roiBoundWidth * scaleX), roiBilWidth);
-        assertEquals((int) (roiBoundHeight * scaleY), roiBilHeighth);
-        // Bicubic
-        assertEquals((int) (roiBoundBicWidth * scaleX), roiBicWidth);
-        assertEquals((int) (roiBoundBicHeight * scaleY), roiBicHeight);
-
+        checkROIConsistentWithImage(roiBic, scaleImgBic);
+        
         //Final Images disposal
         if(scaleImgNear instanceof RenderedOp){
             ((RenderedOp)scaleImgNear).dispose();
@@ -148,6 +115,13 @@ public class CoverageClassTest extends TestScale {
         if(scaleImgBic instanceof RenderedOp){
             ((RenderedOp)scaleImgBic).dispose();
         }
+    }
+
+    private void checkROIConsistentWithImage(ROI roi, RenderedImage image) {
+        assertEquals(roi.getBounds(), new Rectangle(image.getMinX(), image.getMinY(), image.getWidth(), image.getHeight()));
+        PlanarImage roiImage = roi.getAsImage();
+        assertEquals(image.getTileWidth(), roiImage.getTileWidth());
+        assertEquals(image.getTileHeight(), roiImage.getTileHeight());
     }
 
     @Test

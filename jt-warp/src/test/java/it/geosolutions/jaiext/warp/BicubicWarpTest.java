@@ -22,6 +22,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.media.jai.Interpolation;
 import javax.media.jai.WarpAffine;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
@@ -110,5 +111,10 @@ public class BicubicWarpTest extends TestWarp{
     @AfterClass
     public static void finalStuff() {
         TestWarp.finalStuff();
+    }
+
+    @Test
+    public void testROILayout() {
+        testROILayout(Interpolation.INTERP_BICUBIC);
     }
 }

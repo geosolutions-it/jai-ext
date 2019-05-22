@@ -19,6 +19,8 @@ package it.geosolutions.jaiext.scale;
 
 import org.junit.Test;
 
+import javax.media.jai.Interpolation;
+
 /**
  * This test-class extends the TestScale class and is used for testing the nearest interpolation inside the Scale operation. The registration method
  * is not written and is ignored. The 2nd method tests the scale operation without the presence of a ROI or a No Data Range. The 3rd method introduces
@@ -111,5 +113,10 @@ public class NearestScaleTest extends TestScale2 {
         testGlobal(useROIAccessor, isBinary, bicubic2DIsabled, noDataRangeUsed, roiPresent,
                 InterpolationType.NEAREST_INTERP, TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,
                 ScaleType.REDUCTION);
+    }
+
+    @Test
+    public void testROILayout() {
+        testROILayout(Interpolation.INTERP_NEAREST);
     }
 }

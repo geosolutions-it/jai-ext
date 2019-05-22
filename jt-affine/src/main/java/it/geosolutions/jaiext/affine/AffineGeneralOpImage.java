@@ -219,7 +219,7 @@ public class AffineGeneralOpImage extends AffineOpImage {
             interpBN = (InterpolationBicubic) interpolator;
             interpBN.setROIBounds(roiBounds);
             if (destNod == null) {
-                destNod = new double[]{interpN.getDestinationNoData()};
+                destNod = new double[]{interpBN.getDestinationNoData()};
             }
         } else if (backgroundValues != null) {
             destNod = backgroundValues;

@@ -39,6 +39,7 @@ import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
+import javax.media.jai.operator.ScaleDescriptor;
 
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
@@ -488,5 +489,39 @@ public class TestScale2 extends TestBase {
         RenderingHints hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,BorderExtender.createInstance(BorderExtender.BORDER_COPY));
         hints.put(JAI.KEY_IMAGE_LAYOUT, new ImageLayout(0, 0, width * 2, height * 2, 0, 0, width * 2, height * 2, null, null));
         return Scale2Descriptor.create(source, 2d, 2d, 0d, 0d, interpolation, roi, useROIAccessor, noData, new double[] {0}, hints);
+    }
+
+    protected void testROILayout(int interpolation) {
+        testROILayout(DataBuffer.TYPE_BYTE, interpolation);
+        testROILayout(DataBuffer.TYPE_USHORT, interpolation);
+        testROILayout(DataBuffer.TYPE_SHORT, interpolation);
+        testROILayout(DataBuffer.TYPE_INT, interpolation);
+        testROILayout(DataBuffer.TYPE_FLOAT, interpolation);
+        testROILayout(DataBuffer.TYPE_DOUBLE, interpolation);
+    }
+
+    protected void testROILayout(int dataType, int interpolationType) {
+        RenderedImage testIMG = createTestImage(dataType, 1, 1, null,
+                false);
+        PlanarImage testImgWithROI = PlanarImage.wrapRenderedImage(testIMG);
+        ROIShape roi = new ROIShape(new Rectangle(0, 0, 1, 1));
+        testImgWithROI.setProperty("roi", roi);
+
+        ImageLayout targetLayout = new ImageLayout();
+        targetLayout.setTileWidth(512);
+        targetLayout.setTileHeight(512);
+        RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, targetLayout);
+        RenderedOp scaled = Scale2Descriptor.create(testIMG, 1000d, 1000d, 0d, 0d,
+                Interpolation.getInstance(interpolationType), roi, false, null, null,
+                hints);
+        ROI scaledRoi = (ROI) scaled.getProperty("roi");
+
+        // ROI is aligned withe the image and has the expected tile size
+        assertEquals(scaled.getBounds(), scaledRoi.getBounds());
+        PlanarImage scaleRoiImage = scaledRoi.getAsImage();
+        assertEquals(scaled.getTileHeight(), scaleRoiImage.getTileHeight());
+        assertEquals(scaled.getTileWidth(), scaleRoiImage.getTileWidth());
+        assertEquals(512, scaleRoiImage.getTileWidth());
+        assertEquals(512, scaleRoiImage.getTileHeight());
     }
 }

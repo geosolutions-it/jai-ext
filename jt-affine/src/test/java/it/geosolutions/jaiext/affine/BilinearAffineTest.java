@@ -22,6 +22,7 @@ package it.geosolutions.jaiext.affine;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import javax.media.jai.Interpolation;
 
 
 /**
@@ -114,5 +115,10 @@ public class BilinearAffineTest extends TestAffine{
         testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
                 ,roiPresent,setDestinationNoData, InterpolationType.BILINEAR_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
         
+    }
+
+    @Test
+    public void testROILayout() {
+        testROILayout(Interpolation.INTERP_BILINEAR);
     }
 }

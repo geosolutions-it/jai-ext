@@ -21,6 +21,8 @@ import org.junit.Ignore;
 //import org.junit.Ignore;
 import org.junit.Test;
 
+import javax.media.jai.Interpolation;
+
 /**
  * This test-class extends the TestAffine class and is used for testing the bicubic interpolation inside the Affine operation.
  * The first method tests the affine operation without the presence of a ROI or a No Data Range. The 2nd method introduces a ROI 
@@ -107,6 +109,11 @@ public class BicubicAffineTest extends TestAffine{
                 ,roiPresent,setDestinationNoData, InterpolationType.BICUBIC_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.MAGNIFY);
         testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
                 ,roiPresent,setDestinationNoData, InterpolationType.BICUBIC_INTERP, TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
+    }
+
+    @Test
+    public void testROILayout() {
+        testROILayout(Interpolation.INTERP_BICUBIC);
     }
  
 }

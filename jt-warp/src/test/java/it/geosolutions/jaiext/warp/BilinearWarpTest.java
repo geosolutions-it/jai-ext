@@ -21,6 +21,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 
+import javax.media.jai.Interpolation;
 import javax.media.jai.WarpAffine;
 
 import org.junit.AfterClass;
@@ -119,5 +120,10 @@ public class BilinearWarpTest extends TestWarp{
     @AfterClass
     public static void finalStuff() {
         TestWarp.finalStuff();
+    }
+
+    @Test
+    public void testROILayout() {
+        testROILayout(Interpolation.INTERP_BILINEAR);
     }
 }

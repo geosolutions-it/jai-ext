@@ -27,6 +27,7 @@ import java.awt.geom.Point2D;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderedImageFactory;
+import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -99,17 +100,8 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
             Interpolation interp = (Interpolation) pb.getObjectParameter(1);
 
             // Determine the effective source bounds.
-            Rectangle srcBounds = null;
-            PlanarImage dst = op.getRendering();
-            if (dst instanceof GeometricOpImage
-                    && ((GeometricOpImage) dst).getBorderExtender() == null) {
-                srcBounds = new Rectangle(src.getMinX() + interp.getLeftPadding(), src.getMinY()
-                        + interp.getTopPadding(), src.getWidth() - interp.getWidth() + 1,
-                        src.getHeight() - interp.getHeight() + 1);
-            } else {
-                srcBounds = new Rectangle(src.getMinX(), src.getMinY(), src.getWidth(),
+            Rectangle srcBounds = new Rectangle(src.getMinX(), src.getMinY(), src.getWidth(),
                         src.getHeight());
-            }
 
             // If necessary, clip the ROI to the effective source bounds.
             if (!srcBounds.contains(srcROI.getBounds())) {
@@ -123,7 +115,7 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
             Rectangle dstBounds = op.getBounds();
 
             // Setting layout of the constant image
-            ImageLayout2 layout = new ImageLayout2();
+            ImageLayout2 layout = new ImageLayout2(op);
             int minx = (int) srcBounds.getMinX();
             int miny = (int) srcBounds.getMinY();
             int w = (int) srcBounds.getWidth();
@@ -143,24 +135,26 @@ class WarpPropertyGenerator extends PropertyGeneratorImpl {
             // Warping constant Image to get warped roi.
             final BorderExtender extender = BorderExtender
                     .createInstance(BorderExtender.BORDER_COPY);
-            PlanarImage roiImage = null;
 
             // Make sure to specify tileCache, tileScheduler, tileRecyclier, by cloning hints.
-            RenderingHints warpingHints = op.getRenderingHints();
-            warpingHints.remove(JAI.KEY_IMAGE_LAYOUT);
+            RenderingHints warpingHints = new RenderingHints(Collections.emptyMap());
+            warpingHints.putAll(op.getRenderingHints());
+            ImageLayout2 targetLayout = new ImageLayout2(op);
+            targetLayout.setColorModel(srcROI.getAsImage().getColorModel());
+            targetLayout.setSampleModel(srcROI.getAsImage().getSampleModel());
+            warpingHints.put(JAI.KEY_IMAGE_LAYOUT, targetLayout);
+            warpingHints.put(JAI.KEY_BORDER_EXTENDER, extender);
 
             // Creating warped roi by the same way (Warp, Interpolation, source ROI) we warped the
             // input image.
-            if (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear) {
-                roiImage = new WarpBilinearOpImage(constantImage, extender, warpingHints,
-                        null, warp, interp, srcROI,null, null);
-            } else if(interp instanceof InterpolationBicubic || interp instanceof javax.media.jai.InterpolationBicubic) {
-                roiImage = new WarpBicubicOpImage(constantImage, extender, warpingHints,
-                        null, warp, interp, srcROI,null, null);
-            } else {
-                roiImage = new WarpNearestOpImage(constantImage, warpingHints, null, warp,
-                        interp, srcROI,null, null);
-            }
+            
+            ParameterBlock paramBlock = new ParameterBlock();
+            paramBlock.setSource(constantImage, 0);
+            paramBlock.add(warp);
+            paramBlock.add(interp);
+            paramBlock.add(null);
+            paramBlock.add(srcROI);
+            PlanarImage roiImage = JAI.create("Warp", paramBlock, warpingHints);
 
             ROI dstROI = new ROI(roiImage, 1);
 
