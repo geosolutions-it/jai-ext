@@ -21,20 +21,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.locationtech.jts.awt.ShapeReader;
 
 import java.awt.*;
+import java.awt.geom.Area;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
+import java.awt.image.PixelInterleavedSampleModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 
 import javax.media.jai.BorderExtender;
+import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
+import javax.media.jai.ROI;
+import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
+import javax.media.jai.operator.BandSelectDescriptor;
 import javax.xml.crypto.Data;
 
 import it.geosolutions.jaiext.range.Range;
@@ -228,6 +235,61 @@ public class BilinearScaleTest extends TestScale2 {
         }
     }
 
+    @Test
+    public void testRecyclingROIWeights() {
+        int width = 6;
+        int height = 6;
+        int bands = 4;
+        SampleModel sm = new PixelInterleavedSampleModel(0, width, height, bands, width * bands, new int[] {3,2,1,0});
+        TiledImage image =
+                new TiledImage(0, 0, width, height, 0, 0, sm, PlanarImage.createColorModel(sm));
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                for (int i = 0; i < bands; i++) {
+                    image.setSample(x, y, i, x + y);
+                }
+            }
+        }
+        printValues(image, image.getData());
+
+        RenderedImage source = BandSelectDescriptor.create(image, new int[] {1,3}, null);
+        Polygon shape = new Polygon();
+        shape.addPoint(1, 1);
+        shape.addPoint(2, 1);
+        shape.addPoint(2, 2);
+        shape.addPoint(4, 2);
+        shape.addPoint(4, 4);
+        shape.addPoint(1, 3);
+        shape.addPoint(1, 1);
+
+        ROI roi = new ROIShape(shape);
+        RenderingHints hints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,BorderExtender.createInstance(BorderExtender.BORDER_COPY));
+        double scaleFactor = 1.5d;
+        int scaledW = (int) (scaleFactor * width);
+        int scaledH = (int) (scaleFactor * height);
+        hints.put(JAI.KEY_IMAGE_LAYOUT, new ImageLayout(0, 0, scaledW, scaledH, 0, 0, scaledW, scaledH, null, null));
+        RenderedImage scaledImage = Scale2Descriptor.create(source, scaleFactor, scaleFactor, 0d, 0d, Interpolation.getInstance(Interpolation.INTERP_BILINEAR),
+                roi, false, null, new double[] {0}, hints);
+        byte [][] expected = new byte[][]{
+            {0, 0, 0, 0, 0, 0, 0, 0, 0},
+            {0, 0, 2, 0, 0, 0, 0, 0, 0},
+            {0, 0, 2, 0, 0, 0, 0, 0, 0},
+            {0, 0, 3, 4, 5, 5, 0, 0, 0},
+            {0, 0, 3, 4, 5, 6, 0, 0, 0},
+            {0, 0, 0, 5, 6, 6, 0, 0, 0},
+            {0, 0, 0, 0, 0, 0, 0, 0, 0},
+            {0, 0, 0, 0, 0, 0, 0, 0, 0},
+            {0, 0, 0, 0, 0, 0, 0, 0, 0}
+        };
+        Raster data = scaledImage.getData();
+        for (int j = 0; j < scaledH; j++) {
+            for (int i = 0; i < scaledW; i++) {
+                assertEquals("Unexpected value at " + i + " " + j,
+                        expected[j][i], data.getSample(i, j, 0));
+            }
+        }
+    }
+
     public void assertBilinearInterpolationROI(RenderedImage image) {
         // Expected layout is
         // 0 0 0 0 0 0 0 0
@@ -265,8 +327,8 @@ public class BilinearScaleTest extends TestScale2 {
 
     public void printValues(RenderedImage image, Raster data) {
         if (VERBOSE) {
-            for (int r = 0; r < 8; r++) {
-                for (int c = 0; c < 8; c++) {
+            for (int r = 0; r < image.getHeight(); r++) {
+                for (int c = 0; c < image.getWidth(); c++) {
                     if (image.getSampleModel().getDataType() < DataBuffer.TYPE_FLOAT) {
                         int sample = data.getSample(c, r, 0);
                         System.out.print(sample + " ");

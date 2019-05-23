@@ -489,20 +489,31 @@ public class Scale2BilinearOpImage extends Scale2OpImage {
                             // y position selection
                             final int posy = ypos[j] + bandOffset;
                             final int y0 = src.getY() + (posy - bandOffset) / srcScanlineStride;
-                            // cycle on the x values
+
                             int firstX = src.getX() + xpos[0] / srcPixelStride;
                             int w01 = roiBounds.contains(firstX, y0) ? roiIter.getSample(firstX, y0, 0) : 0;
                             int w11 = roiBounds.contains(firstX, y0 + 1) ? roiIter.getSample(firstX, y0 + 1, 0) : 0;
+                            int previousX = firstX;
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
+
                                 final int posx = xpos[i];
                                 // PixelPositions
                                 final int x0 = src.getX() + posx / srcPixelStride;
 
-                                final int w00 = w01;
+                                // Re-use weight from previous iteration, assuming that
+                                // x0 of the current step is equal to (x0 + 1) of the previous step
+                                int w00 = w01;
+                                int w10 = w11;
                                 w01 = roiBounds.contains(x0 + 1, y0) ? roiIter.getSample(x0 + 1, y0, 0) : 0;
-                                final int w10 = w11;
                                 w11 = roiBounds.contains(x0 + 1, y0 + 1) ? roiIter.getSample(x0 + 1, y0 + 1, 0) : 0;
+                                if (previousX != x0) {
+                                    // recompute the weights in case we can't reuse previous ROI due to peculiar
+                                    // pixelStride or posx array, so that previous assumption won't work
+                                    w00 = roiBounds.contains(x0, y0) ? roiIter.getSample(x0, y0, 0) : 0;
+                                    w10 = roiBounds.contains(x0, y0 + 1) ? roiIter.getSample(x0, y0 + 1, 0) : 0;
+                                }
+                                previousX = x0 + 1;
 
                                 if (w00 == 0 && w01 == 0 && w10 == 0 && w11 == 0) {
                                     // The destination no data value is saved in the destination array

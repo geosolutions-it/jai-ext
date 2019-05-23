@@ -380,12 +380,16 @@
       <url>http://download.osgeo.org/webdav/geotools/</url>
     </repository>
     <repository>
+      <!-- Contains snapshot and release (including third-party-dependencies)              -->
       <snapshots>
         <enabled>true</enabled>
       </snapshots>
-      <id>opengeo</id>
-      <name>OpenGeo Maven Repository</name>
-      <url>http://repo.opengeo.org</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <id>boundless</id>
+      <name>Boundless Maven Repository</name>
+      <url>https://repo.boundlessgeo.com/main/</url>
     </repository>
   </repositories>
 
