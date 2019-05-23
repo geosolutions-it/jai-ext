@@ -200,5 +200,10 @@ public class NearestWarpTest extends TestWarp {
     public static void finalStuff() {
         TestWarp.finalStuff();
     }
+    
+    @Test
+    public void testROILayout() {
+        testROILayout(Interpolation.INTERP_NEAREST);
+    }
 
 }

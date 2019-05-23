@@ -24,8 +24,10 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderableImage;
+import java.util.Collections;
 import java.util.logging.Logger;
 import javax.media.jai.GeometricOpImage;
+import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
@@ -89,19 +91,8 @@ class AffinePropertyGenerator extends PropertyGeneratorImpl {
             Interpolation interp = (Interpolation)pb.getObjectParameter(1);
 
             // Determine the effective source bounds.
-            Rectangle srcBounds = null;
-            PlanarImage dst = op.getRendering();
-            if (dst instanceof GeometricOpImage &&
-                ((GeometricOpImage)dst).getBorderExtender() == null) {
-                srcBounds =
-                    new Rectangle(src.getMinX() + interp.getLeftPadding(),
-                                  src.getMinY() + interp.getTopPadding(),
-                                  src.getWidth() - interp.getWidth() + 1,
-                                  src.getHeight() - interp.getHeight() + 1);
-            } else {
-                srcBounds = new Rectangle(src.getMinX(), src.getMinY(), src.getWidth(),
+            Rectangle srcBounds = new Rectangle(src.getMinX(), src.getMinY(), src.getWidth(),
                         src.getHeight());
-            }
 
             // If necessary, clip the ROI to the effective source bounds.
             if (!srcBounds.contains(srcROI.getBounds())) {
@@ -113,7 +104,32 @@ class AffinePropertyGenerator extends PropertyGeneratorImpl {
                 (AffineTransform)pb.getObjectParameter(0);
 
             // Create the transformed ROI.
-            ROI dstROI = srcROI.transform((AffineTransform)transform);
+            ROI dstROI;
+            if (srcROI.getClass().equals(ROI.class)) {
+                // we need to build an image with the same layout of the op, or we
+                // risk of building a very large ROI with super-tiny tiles when
+                // doing up-sampling of a single pixel image (high oversample case)
+                ParameterBlock paramBlock = new ParameterBlock();
+                paramBlock.add(transform);
+                paramBlock.add(interp);
+                RenderingHints localHints = new RenderingHints(Collections.emptyMap());
+                localHints.putAll(op.getRenderingHints());
+                localHints.remove(JAI.KEY_IMAGE_LAYOUT);
+                ImageLayout il = new ImageLayout();
+                Rectangle dstBounds = op.getBounds();
+                il.setMinX(dstBounds.x);
+                il.setMinY(dstBounds.y);
+                il.setWidth(dstBounds.width);
+                il.setHeight(dstBounds.height);
+                il.setTileWidth(op.getTileWidth());
+                il.setTileHeight(op.getTileHeight());
+                localHints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, il));
+
+                dstROI = srcROI.performImageOp("Affine", paramBlock, 0, localHints);
+            } else {
+                // let the geometry based ROIs do their work at the vector level
+                dstROI = srcROI.transform((AffineTransform) transform);
+            }
 
             // Retrieve the destination bounds.
             Rectangle dstBounds = op.getBounds();

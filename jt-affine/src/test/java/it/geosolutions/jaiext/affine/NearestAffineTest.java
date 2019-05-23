@@ -21,6 +21,8 @@ package it.geosolutions.jaiext.affine;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import javax.media.jai.Interpolation;
+
 
 /**
  * This test-class extends the TestAffine class and is used for testing the nearest interpolation inside the Affine operation.
@@ -115,5 +117,10 @@ public class NearestAffineTest extends TestAffine {
         
         testGlobalAffine(useROIAccessor,isBinary,bicubic2DIsabled,noDataRangeUsed
                 ,roiPresent,setDestinationNoData, InterpolationType.NEAREST_INTERP,TestSelection.BINARY_ROI_ACCESSOR_NO_DATA,ScaleType.REDUCTION);
+    }
+    
+    @Test
+    public void testROILayout() {
+        testROILayout(Interpolation.INTERP_NEAREST);
     }
 }

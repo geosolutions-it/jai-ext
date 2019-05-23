@@ -209,8 +209,8 @@ public abstract class TestBase {
 
         // Create the constant operation.
         // parameter block initialization
-        int tileW = width / 8;
-        int tileH = height / 8;
+        int tileW = (int) Math.ceil(width / 8d);
+        int tileH = (int) Math.ceil(height / 8d);
         TiledImage used;
         if (sm instanceof MultiPixelPackedSampleModel) {
             MultiPixelPackedSampleModel mpsm = (MultiPixelPackedSampleModel) sm;

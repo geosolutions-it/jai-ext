@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
@@ -31,12 +32,17 @@ import java.io.IOException;
 import java.nio.Buffer;
 
 import javax.media.jai.BorderExtender;
+import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
+import javax.media.jai.ROIShape;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
 import javax.media.jai.Warp;
+import javax.media.jai.WarpAffine;
+import javax.media.jai.operator.AffineDescriptor;
 
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
@@ -324,6 +330,39 @@ public class TestWarp extends TestBase {
                 }
             }
         }
+    }
+
+    protected void testROILayout(int interpolation) {
+        testROILayout(DataBuffer.TYPE_BYTE, interpolation);
+        testROILayout(DataBuffer.TYPE_USHORT, interpolation);
+        testROILayout(DataBuffer.TYPE_SHORT, interpolation);
+        testROILayout(DataBuffer.TYPE_INT, interpolation);
+        testROILayout(DataBuffer.TYPE_FLOAT, interpolation);
+        testROILayout(DataBuffer.TYPE_DOUBLE, interpolation);
+    }
+
+    protected void testROILayout(int dataType, int interpolationType) {
+        RenderedImage testIMG = createTestImage(dataType, 1, 1, null,
+                false);
+        PlanarImage testImgWithROI = PlanarImage.wrapRenderedImage(testIMG);
+        ROI roi = new ROIShape(new Rectangle(0, 0, 1, 1));
+        testImgWithROI.setProperty("roi", roi);
+
+        ImageLayout targetLayout = new ImageLayout();
+        targetLayout.setTileWidth(512);
+        targetLayout.setTileHeight(512);
+        RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, targetLayout);
+        RenderedOp warped = WarpDescriptor.create(testIMG, new WarpAffine(new AffineTransform(1, -1, 1, 1, 0, 0)),
+                Interpolation.getInstance(interpolationType), null, roi, hints);
+        ROI warpedROI = (ROI) warped.getProperty("roi");
+
+        // ROI is aligned withe the image and has the expected tile size
+        assertEquals(warped.getBounds(), warpedROI.getBounds());
+        PlanarImage scaleRoiImage = warpedROI.getAsImage();
+        assertEquals(warped.getTileHeight(), scaleRoiImage.getTileHeight());
+        assertEquals(warped.getTileWidth(), scaleRoiImage.getTileWidth());
+        assertEquals(512, scaleRoiImage.getTileWidth());
+        assertEquals(512, scaleRoiImage.getTileHeight());
     }
 
 }

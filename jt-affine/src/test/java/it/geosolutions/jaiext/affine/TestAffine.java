@@ -24,10 +24,11 @@ import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
 import it.geosolutions.jaiext.interpolators.InterpolationNearest;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.scale.ScaleDescriptor;
 import it.geosolutions.jaiext.testclasses.TestBase;
 import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
@@ -35,6 +36,7 @@ import java.awt.image.RenderedImage;
 import java.io.IOException;
 
 import javax.media.jai.BorderExtender;
+import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
@@ -570,6 +572,39 @@ public class TestAffine extends TestBase {
         testImageAffine(sourceImage, dataType, sourceNoData, useROIAccessor, isBinary,
                 bicubic2Disabled, noDataRangeUsed, roiPresent, setDestinationNoData,
                 TransformationType.ALL, interpType, testSelect, scaleValue);
+    }
 
+    protected void testROILayout(int interpolation) {
+        testROILayout(DataBuffer.TYPE_BYTE, interpolation);
+        testROILayout(DataBuffer.TYPE_USHORT, interpolation);
+        testROILayout(DataBuffer.TYPE_SHORT, interpolation);
+        testROILayout(DataBuffer.TYPE_INT, interpolation);
+        testROILayout(DataBuffer.TYPE_FLOAT, interpolation);
+        testROILayout(DataBuffer.TYPE_DOUBLE, interpolation);
+    }
+
+    protected void testROILayout(int dataType, int interpolationType) {
+        RenderedImage testIMG = createTestImage(dataType, 1, 1, null,
+                false);
+        PlanarImage testImgWithROI = PlanarImage.wrapRenderedImage(testIMG);
+        ROI roi = new ROI(new ROIShape(new Rectangle(0, 0, 1, 1)).getAsImage());
+        testImgWithROI.setProperty("roi", roi);
+
+        ImageLayout targetLayout = new ImageLayout();
+        targetLayout.setTileWidth(512);
+        targetLayout.setTileHeight(512);
+        RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, targetLayout);
+        RenderedOp rotated = AffineDescriptor.create(testIMG, new AffineTransform(1, -1, 1, 1, 0, 0),
+                Interpolation.getInstance(interpolationType), null, roi, false, false, null,
+                hints);
+        ROI rotatedRoi = (ROI) rotated.getProperty("roi");
+
+        // ROI is aligned withe the image and has the expected tile size
+        assertEquals(rotated.getBounds(), rotatedRoi.getBounds());
+        PlanarImage scaleRoiImage = rotatedRoi.getAsImage();
+        assertEquals(rotated.getTileHeight(), scaleRoiImage.getTileHeight());
+        assertEquals(rotated.getTileWidth(), scaleRoiImage.getTileWidth());
+        assertEquals(512, scaleRoiImage.getTileWidth());
+        assertEquals(512, scaleRoiImage.getTileHeight());
     }
 }

@@ -22,18 +22,19 @@ package it.geosolutions.jaiext.scale;
 
 import static org.junit.Assert.*;
 
+import java.awt.*;
 import java.awt.image.DataBuffer;
-import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
-import java.awt.image.renderable.ParameterBlock;
-import java.lang.reflect.Array;
 
+import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
+import javax.media.jai.PlanarImage;
+import javax.media.jai.ROI;
+import javax.media.jai.ROIShape;
+import javax.media.jai.RenderedOp;
 
 import org.junit.Test;
-
-import it.geosolutions.jaiext.range.RangeFactory;
 
 /**
  * This test-class extends the TestScale class and is used for testing the bicubic interpolation inside the Scale operation.
@@ -162,4 +163,9 @@ public class BicubicScaleTest extends TestScale{
         super.testNoDataOutput(InterpolationType.BICUBIC_INTERP);
     }
 
+    @Test
+    public void testROILayout() {
+        testROILayout(Interpolation.INTERP_BICUBIC);
+    }
+    
 }

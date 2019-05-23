@@ -25,10 +25,12 @@ import java.awt.*;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderableImage;
+import java.util.Collections;
 import java.util.logging.Logger;
 
 import javax.media.jai.BorderExtender;
 import javax.media.jai.GeometricOpImage;
+import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.OperationDescriptorImpl;
@@ -95,18 +97,8 @@ class Scale2PropertyGenerator extends PropertyGeneratorImpl {
             Interpolation interp = (Interpolation) pb.getObjectParameter(4);
 
             // Determine the effective source bounds.
-            Rectangle srcBounds = null;
-            PlanarImage dst = op.getRendering();
-            if (dst instanceof GeometricOpImage
-                    && ((GeometricOpImage) dst).getBorderExtender() == null) {
-                srcBounds = new Rectangle(src.getMinX() + interp.getLeftPadding(),
-                        src.getMinY() + interp.getTopPadding(),
-                        src.getWidth() - interp.getWidth() + 1,
-                        src.getHeight() - interp.getHeight() + 1);
-            } else {
-                srcBounds = new Rectangle(src.getMinX(), src.getMinY(), src.getWidth(),
+            Rectangle srcBounds = new Rectangle(src.getMinX(), src.getMinY(), src.getWidth(),
                         src.getHeight());
-            }
 
             // If necessary, clip the ROI to the effective source bounds.
             if (!srcBounds.contains(srcROI.getBounds())) {
@@ -118,6 +110,11 @@ class Scale2PropertyGenerator extends PropertyGeneratorImpl {
             double sy = pb.getDoubleParameter(1);
             double tx = pb.getDoubleParameter(2);
             double ty = pb.getDoubleParameter(3);
+
+            // prepare a layout that's the same as the output image, minus color and sample model
+            ImageLayout targetLayout = new ImageLayout(op);
+            targetLayout.unsetValid(ImageLayout.COLOR_MODEL_MASK);
+            targetLayout.unsetValid(ImageLayout.SAMPLE_MODEL_MASK);
 
             Rectangle dstBounds = op.getBounds();
             PlanarImage roiImage = null;
@@ -140,7 +137,8 @@ class Scale2PropertyGenerator extends PropertyGeneratorImpl {
                 layout.setMinY(miny);
                 layout.setWidth(w);
                 layout.setHeight(h);
-                RenderingHints hints = op.getRenderingHints();
+                RenderingHints hints = new RenderingHints(Collections.emptyMap());
+                hints.putAll(op.getRenderingHints());
                 hints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout));
 
                 final PlanarImage constantImage = ConstantDescriptor.create(new Float(w),
@@ -150,8 +148,9 @@ class Scale2PropertyGenerator extends PropertyGeneratorImpl {
                         .createInstance(BorderExtender.BORDER_COPY);
 
                 // Make sure to specify tileCache, tileScheduler, tileRecyclier, by cloning hints.
-                RenderingHints scalingHints = op.getRenderingHints();
-                scalingHints.remove(JAI.KEY_IMAGE_LAYOUT);
+                RenderingHints scalingHints = new RenderingHints(Collections.emptyMap());
+                scalingHints.putAll(op.getRenderingHints());
+                scalingHints.put(JAI.KEY_IMAGE_LAYOUT, targetLayout);
                 scalingHints.put(JAI.KEY_BORDER_EXTENDER, extender);
 
                 boolean isBilinear = (interp instanceof InterpolationBilinear || interp instanceof javax.media.jai.InterpolationBilinear);
@@ -179,6 +178,10 @@ class Scale2PropertyGenerator extends PropertyGeneratorImpl {
                 }
                 roiImage = JAI.create("Scale2", paramBlock, scalingHints);
             } else {
+                RenderingHints scalingHints = new RenderingHints(Collections.emptyMap());
+                scalingHints.putAll(op.getRenderingHints());
+                scalingHints.put(JAI.KEY_IMAGE_LAYOUT, targetLayout);
+
                 PlanarImage roiMod = srcROI.getAsImage();
                 ParameterBlock paramBlock = new ParameterBlock();
                 paramBlock.setSource(roiMod, 0);
@@ -198,7 +201,7 @@ class Scale2PropertyGenerator extends PropertyGeneratorImpl {
                         paramBlock.add(interp);
                     }
                 }
-                roiImage = JAI.create("Scale2", paramBlock);
+                roiImage = JAI.create("Scale2", paramBlock, scalingHints);
             }
             ROI dstROI = new ROI(roiImage, 1);
 

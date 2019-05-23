@@ -407,4 +407,8 @@ public class BilinearScaleTest extends TestScale2 {
     }
 
 
+    @Test
+    public void testROILayout() {
+        testROILayout(Interpolation.INTERP_BILINEAR);
+    }
 }
