@@ -152,6 +152,7 @@ public abstract class Scale2OpImage extends GeometricOpImage {
 
     protected static float rationalTolerance = 0.00000001F;
 
+    protected static BigInt ZERO = new BigInt(0);
  // Padding
     private int lpad, rpad, tpad, bpad;
 
@@ -1245,15 +1246,6 @@ public abstract class Scale2OpImage extends GeometricOpImage {
             dy1Num = addnew(addnew(mulnew(y0Big,  2), mulnew(hBig, 2)), 1);
             dy1Denom = new BigInt(2);
 
-            // Equivalent to x0 += lpad;
-            dx0Num = addnew(mulnew(dx0Denom, lpad), dx0Num);
-            // Equivalent to y0 += tpad;
-            dy0Num = addnew(mulnew(dy0Denom, tpad), dy0Num);
-            
-            // Equivalent to x1 -= rpad;
-            dx1Num = subnew(dx1Num, mulnew(dx1Denom, rpad));
-            // Equivalent to y1 -= bpad;
-            dy1Num = subnew(dy1Num, mulnew(dy1Denom, bpad));
         }
 
         // Forward map first and last source positions
@@ -1870,6 +1862,9 @@ public abstract class Scale2OpImage extends GeometricOpImage {
     protected static BigInt modnew(BigInt num, BigInt den) {
         BigInt result = num.copy();
         result.mod(den);
+        if (result.compareTo(ZERO) > 0 && num.compareTo(ZERO) < 0) {
+            result.sub(den);
+        }
         return result;
     }
 
