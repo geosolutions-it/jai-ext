@@ -117,9 +117,6 @@ public class Scale2BicubicOpImage extends Scale2OpImage {
         // If both roiBounds and roiIter are not null, they are used in calculation
         Range nod = nodata;
         double[] destNod = null;
-        if (backgroundValues != null && backgroundValues.length > 0){
-            destNod = backgroundValues;
-        }
         if (interpolator instanceof InterpolationBicubic) {
 
             isBicubicNew = true;
