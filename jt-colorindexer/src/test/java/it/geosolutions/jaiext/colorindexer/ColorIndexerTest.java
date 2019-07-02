@@ -265,6 +265,45 @@ public class ColorIndexerTest extends TestBase {
         assertFalse(Math.abs(maximum - minimum) < TOLERANCE);
     }
 
+    @Test
+    public void testNoDataChecksAllBands() {
+        // Testing color indexing with Nodata
+        BufferedImage image_ = new BufferedImage(256, 256, BufferedImage.TYPE_INT_RGB);
+        Graphics g = image_.createGraphics();
+        g.setColor(Color.WHITE);
+        g.fillRect(236, 236, 20, 20);
+        g.setColor(new Color(80, 0, 0)); // Red
+        g.fillRect(216, 216, 20, 20);
+        g.setColor(new Color(0, 0, 200)); // Blue
+        g.fillRect(216, 236, 20, 20);
+        g.dispose();
+
+        TiledImage image = new TiledImage(0, 0, 256, 256, 128, 128, image_.getColorModel()
+                .createCompatibleSampleModel(256, 256), image_.getColorModel());
+        image.set(image_);
+
+        Range range = RangeFactory.create((byte) 0, (byte) 0);
+        RenderedImage indexed = quantize(image, null, range, 1);
+        assertTrue(indexed.getColorModel() instanceof IndexColorModel);
+        IndexColorModel icm = (IndexColorModel) indexed.getColorModel();
+        assertEquals(4, icm.getMapSize()); // Black background, white fill,
+                                           // red fill, blue fill =
+                                           // 4 colors
+
+        // check image not black
+        RenderedImage component = forceComponentColorModel(indexed);
+        int[] rgb = new int[4];
+        rgb = component.getData().getPixel(218, 218, rgb);
+        assertEquals(80, rgb[0]);
+        assertEquals(0, rgb[1]);
+        assertEquals(0, rgb[2]);
+
+        rgb = component.getData().getPixel(218, 238, rgb);
+        assertEquals(0, rgb[0]);
+        assertEquals(0, rgb[1]);
+        assertEquals(200, rgb[2]);
+    }
+
     private RenderedImage forceComponentColorModel(RenderedImage image) {
         final IndexColorModel icm = (IndexColorModel) image.getColorModel();
         final SampleModel sm = image.getSampleModel();
