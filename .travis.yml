@@ -7,7 +7,7 @@ jdk:
   - oraclejdk8
   - openjdk8
 script:
-  - mvn -B -T2 -fae clean install
+  - mvn -B -T2 -U -fae clean install
 notifications:
   email: false
   on_failure: never
