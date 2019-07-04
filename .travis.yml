@@ -6,6 +6,8 @@ language: java
 jdk:
   - oraclejdk8
   - openjdk8
+before_install:
+  - rm ~/.m2/settings.xml
 script:
   - mvn -B -T2 -fae clean install
 notifications:
