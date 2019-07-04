@@ -298,10 +298,10 @@ public class ColorIndexerOpImage extends PointOpImage {
                 for (int x = srcMinX, x_ = dstMinX; x < srcMaxX; x++, x_++) {
                     src.getPixel(x, y, pixel);
                     // NoData check
-                    boolean valid = true;
+                    boolean valid = false;
                     for (int i = 0; i < srcBands; i++) {
                         int b = pixel[i] & 0xFF;
-                        valid &= lut[b];
+                        valid |= lut[b];
                         bytes[i] = (byte) (b);
                     }
 
@@ -332,10 +332,10 @@ public class ColorIndexerOpImage extends PointOpImage {
                     if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
                         src.getPixel(x, y, pixel);
                         // NoData Check
-                        boolean valid = true;
+                        boolean valid = false;
                         for (int i = 0; i < srcBands; i++) {
                             int b = pixel[i] & 0xFF;
-                            valid &= lut[b];
+                            valid |= lut[b];
                             bytes[i] = (byte) (b);
                         }
 
