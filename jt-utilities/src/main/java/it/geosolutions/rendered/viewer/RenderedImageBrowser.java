@@ -19,6 +19,8 @@ package it.geosolutions.rendered.viewer;
 
 import java.awt.BorderLayout;
 import java.awt.Transparency;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
@@ -46,11 +48,6 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.TreePath;
 
-//import com.digitalglobe.util.Log4jUtil;
-
-//import org.apache.log4j.Logger;
-
-
 /**
  * Full rendered image browser, made up of tree for rendered image source
  * hierarchy navigation and a info panel with various information on the
@@ -64,6 +61,8 @@ import javax.swing.tree.TreePath;
 public class RenderedImageBrowser extends JPanel
 {
     private static final Map<Integer, String> TYPE_MAP = new HashMap<Integer, String>();
+
+    private final static Logger LOGGER = Logger.getLogger(RenderedImageBrowser.class.toString());
 
     static
     {
@@ -264,15 +263,59 @@ public class RenderedImageBrowser extends JPanel
     }
 
     public static void showChain(RenderedImage image, final boolean showHistogram, final boolean showRoi,
-        final String title)
-    {
-        String localTitle = (title != null) ? (": " + title) : "";
-        JFrame frame = new JFrame("Rendered image information tool" + localTitle);
+            final String title) {
+            showChain(image, showHistogram, showRoi, title, false);
+        }
+    
+    public static void showChain(RenderedImage image, final boolean showHistogram, final boolean showRoi,
+        final String title, final boolean waitOnClose) {
+        String frameTitle = "Rendered image information tool";
+        frameTitle += (title != null) ? (": " + title) : "";
+        frameTitle += waitOnClose ? "(Code is paused, close to continue)" : "";
+        JFrame frame = new JFrame(frameTitle);
         RenderedImageBrowser info = new RenderedImageBrowser(showHistogram, showRoi);
         info.setImage(image);
         frame.setContentPane(info);
         frame.setSize(1024, 768);
         frame.setVisible(true);
+        doWait(frame, waitOnClose);
+    }
+
+    private static void doWait(JFrame frame, boolean waitOnClose) {
+        if (waitOnClose) {
+            Object lock = new Object();
+            Thread t = new Thread() {
+                public void run() {
+                    synchronized(lock) {
+                        while (frame.isVisible())
+                            try {
+                                lock.wait();
+                            } catch (InterruptedException e) {
+                                LOGGER.fine(e.getLocalizedMessage());
+                            }
+                    }
+                }
+            };
+            t.start();
+
+            frame.addWindowListener(new WindowAdapter() {
+
+                @Override
+                public void windowClosing(WindowEvent arg0) {
+                    synchronized (lock) {
+                        frame.setVisible(false);
+                        lock.notify();
+                    }
+                }
+
+            });
+
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                LOGGER.fine(e.getLocalizedMessage());
+            }
+        }
     }
 
     ImageTreeModel model;
