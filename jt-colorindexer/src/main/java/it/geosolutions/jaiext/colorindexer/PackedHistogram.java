@@ -20,10 +20,14 @@ package it.geosolutions.jaiext.colorindexer;
 import static it.geosolutions.jaiext.colorindexer.ColorUtils.*;
 import it.geosolutions.jaiext.colorindexer.ColorMap.ColorEntry;
 
+import java.awt.*;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.util.Arrays;
 import java.util.Comparator;
+
+import javax.media.jai.iterator.RectIter;
+import javax.media.jai.iterator.RectIterFactory;
 
 /**
  * Builds a histogram of a certain image making sure that we don't end up with too many entries. If the unique colors in the image go above
@@ -156,10 +160,11 @@ public class PackedHistogram {
                 image.getMinY() + image.getHeight());
         int bands = tile.getNumBands();
         int[] pixel = new int[bands];
-        for (int x = minX; x < maxX; x += stepX) {
-            for (int y = minY; y < maxY; y += stepY) {
+        RectIter iter = RectIterFactory.create(tile, new Rectangle(minX, minY, maxX - minX, maxY - minY));
+        for (int y = minY; y < maxY; y += stepY) {
+            for (int x = minX; x < maxX; x += stepX) {
                 // grab the pixel and the color
-                tile.getPixel(x, y, pixel);
+                iter.getPixel(pixel);
                 int red, green, blue, alpha;
 
                 if (bands == 1 || bands == 2) {
@@ -195,6 +200,14 @@ public class PackedHistogram {
                 if (alpha == 0) {
                     transparentPixels = true;
                 }
+
+                if (x + stepX < maxX) {
+                    iter.jumpPixels(stepX);
+                }
+            }
+            if (y + stepY < maxY) {
+                iter.jumpLines(stepY);
+                iter.startPixels();
             }
         }
 

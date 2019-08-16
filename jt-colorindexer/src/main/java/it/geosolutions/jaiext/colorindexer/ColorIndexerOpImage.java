@@ -36,6 +36,9 @@ import javax.media.jai.PointOpImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.iterator.RandomIter;
+import javax.media.jai.iterator.RectIter;
+import javax.media.jai.iterator.RectIterFactory;
+import javax.media.jai.iterator.WritableRectIter;
 
 /**
  * {@link PointOpImage} to perform a color inversion given a certain {@link ColorIndexer}. Derived and improved from GeoTools one
@@ -200,9 +203,7 @@ public class ColorIndexerOpImage extends PointOpImage {
 
         // ROI check
         ROI roiTile = null;
-
-        RandomIter roiIter = null;
-
+        RandomIter roiIter = null; // random, as ROI might be misaligned vs the src image
         boolean roiContainsTile = false;
 
         Rectangle srcRect = src.getBounds();
@@ -238,15 +239,16 @@ public class ColorIndexerOpImage extends PointOpImage {
         final int dstMinY = Math.max(src.getMinY(), sourceImage.getMinY());
         int srcBands = src.getNumBands();
         final int[] pixel = new int[srcBands];
-        final byte[] bytes = new byte[srcBands];
+
+        int rw = srcMaxX - srcMinX;
+        int rh = srcMaxY - srcMinY;
+        RectIter srcIter = RectIterFactory.create(src, new Rectangle(srcMinX, srcMinY, rw, rh));
+        WritableRectIter dstIter = RectIterFactory.createWritable(dest,new Rectangle(dstMinX, dstMinY, rw, rh));
 
         if (caseA || (caseB && roiContainsTile)) {
-            for (int y = srcMinY, y_ = dstMinY; y < srcMaxY; y++, y_++) {
-                for (int x = srcMinX, x_ = dstMinX; x < srcMaxX; x++, x_++) {
-                    src.getPixel(x, y, pixel);
-                    for (int i = 0; i < srcBands; i++) {
-                        bytes[i] = (byte) (pixel[i] & 0xFF);
-                    }
+            for (int y = srcMinY; y < srcMaxY; y++) {
+                for (int x = srcMinX; x < srcMaxX; x++) {
+                    srcIter.getPixel(pixel);
 
                     int r, g, b, a;
 
@@ -261,18 +263,26 @@ public class ColorIndexerOpImage extends PointOpImage {
                     }
 
                     int idx = palette.getClosestIndex(r, g, b, a);
-                    dest.setSample(x_, y_, 0, (byte) (idx & 0xff));
+                    dstIter.setSample(0, (byte) (idx & 0xff));
+
+                    if (x < srcMaxX - 1) {
+                        srcIter.nextPixel();
+                        dstIter.nextPixel();
+                    }
+                }
+                if (y < srcMaxY - 1) {
+                    srcIter.nextLine();
+                    srcIter.startPixels();
+                    dstIter.nextLine();
+                    dstIter.startPixels();
                 }
             }
         } else if (caseB) {
-            for (int y = srcMinY, y_ = dstMinY; y < srcMaxY; y++, y_++) {
-                for (int x = srcMinX, x_ = dstMinX; x < srcMaxX; x++, x_++) {
+            for (int y = srcMinY; y < srcMaxY; y++) {
+                for (int x = srcMinX; x < srcMaxX; x++) {
                     // ROI check
                     if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
-                        src.getPixel(x, y, pixel);
-                        for (int i = 0; i < srcBands; i++) {
-                            bytes[i] = (byte) (pixel[i] & 0xFF);
-                        }
+                        srcIter.getPixel(pixel);
 
                         int r, g, b, a;
 
@@ -287,22 +297,32 @@ public class ColorIndexerOpImage extends PointOpImage {
                         }
 
                         int idx = palette.getClosestIndex(r, g, b, a);
-                        dest.setSample(x_, y_, 0, (byte) (idx & 0xff));
+                        dstIter.setSample(0, (byte) (idx & 0xff));
                     } else {
-                        dest.setSample(x_, y_, 0, destNoData);
+                        dstIter.setSample(0, destNoData);
                     }
+                    
+                    if (x < srcMaxX - 1) {
+                        srcIter.nextPixel();
+                        dstIter.nextPixel();
+                    }
+                }
+                if (y < srcMaxY - 1) {
+                    srcIter.nextLine();
+                    srcIter.startPixels();
+                    dstIter.nextLine();
+                    dstIter.startPixels();
                 }
             }
         } else if (caseC || (hasROI && hasNoData && roiContainsTile)) {
-            for (int y = srcMinY, y_ = dstMinY; y < srcMaxY; y++, y_++) {
-                for (int x = srcMinX, x_ = dstMinX; x < srcMaxX; x++, x_++) {
-                    src.getPixel(x, y, pixel);
+            for (int y = srcMinY; y < srcMaxY; y++) {
+                for (int x = srcMinX; x < srcMaxX; x++) {
+                    srcIter.getPixel(pixel);
                     // NoData check
                     boolean valid = false;
                     for (int i = 0; i < srcBands; i++) {
                         int b = pixel[i] & 0xFF;
                         valid |= lut[b];
-                        bytes[i] = (byte) (b);
                     }
 
                     if (valid) {
@@ -319,24 +339,34 @@ public class ColorIndexerOpImage extends PointOpImage {
                         }
 
                         int idx = palette.getClosestIndex(r, g, b, a);
-                        dest.setSample(x_, y_, 0, (byte) (idx & 0xff));
+                        dstIter.setSample(0, (byte) (idx & 0xff));
                     } else {
-                        dest.setSample(x_, y_, 0, destNoData);
+                        dstIter.setSample(0, destNoData);
                     }
+                    
+                    if (x < srcMaxX - 1) {
+                        srcIter.nextPixel();
+                        dstIter.nextPixel();
+                    }
+                }
+                if (y < srcMaxY - 1) {
+                    srcIter.nextLine();
+                    srcIter.startPixels();
+                    dstIter.nextLine();
+                    dstIter.startPixels();
                 }
             }
         } else {
-            for (int y = srcMinY, y_ = dstMinY; y < srcMaxY; y++, y_++) {
-                for (int x = srcMinX, x_ = dstMinX; x < srcMaxX; x++, x_++) {
+            for (int y = srcMinY; y < srcMaxY; y++) {
+                for (int x = srcMinX; x < srcMaxX; x++) {
                     // ROI Check
                     if (roiBounds.contains(x, y) && roiIter.getSample(x, y, 0) > 0) {
-                        src.getPixel(x, y, pixel);
+                        srcIter.getPixel(pixel);
                         // NoData Check
                         boolean valid = false;
                         for (int i = 0; i < srcBands; i++) {
                             int b = pixel[i] & 0xFF;
                             valid |= lut[b];
-                            bytes[i] = (byte) (b);
                         }
 
                         if (valid) {
@@ -353,13 +383,24 @@ public class ColorIndexerOpImage extends PointOpImage {
                             }
 
                             int idx = palette.getClosestIndex(r, g, b, a);
-                            dest.setSample(x_, y_, 0, (byte) (idx & 0xff));
+                            dstIter.setSample(0, (byte) (idx & 0xff));
                         } else {
-                            dest.setSample(x_, y_, 0, destNoData);
+                            dstIter.setSample(0, destNoData);
                         }
                     } else {
-                        dest.setSample(x_, y_, 0, destNoData);
+                        dstIter.setSample(0, destNoData);
                     }
+
+                    if (x < srcMaxX - 1) {
+                        srcIter.nextPixel();
+                        dstIter.nextPixel();
+                    }
+                }
+                if (y < srcMaxY - 1) {
+                    srcIter.nextLine();
+                    srcIter.startPixels();
+                    dstIter.nextLine();
+                    dstIter.startPixels();
                 }
             }
         }
