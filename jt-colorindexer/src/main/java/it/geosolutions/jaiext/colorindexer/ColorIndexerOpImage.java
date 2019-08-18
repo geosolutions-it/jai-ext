@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.colorindexer;
 
 import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.iterators.RectIterFactory;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 
@@ -37,7 +38,6 @@ import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RectIter;
-import javax.media.jai.iterator.RectIterFactory;
 import javax.media.jai.iterator.WritableRectIter;
 
 /**
@@ -263,7 +263,7 @@ public class ColorIndexerOpImage extends PointOpImage {
                     }
 
                     int idx = palette.getClosestIndex(r, g, b, a);
-                    dstIter.setSample(0, (byte) (idx & 0xff));
+                    dstIter.setSample((idx & 0xff));
 
                     if (x < srcMaxX - 1) {
                         srcIter.nextPixel();
