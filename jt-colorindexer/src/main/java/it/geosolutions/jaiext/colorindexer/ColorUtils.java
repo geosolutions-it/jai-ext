@@ -102,19 +102,19 @@ public final class ColorUtils {
 
     /**
      * Compares two longs, to be used in comparators
-     * 
+     *
      * @param l1
      * @param l2
      * @return
      */
     public static int compareLong(long l1, long l2) {
         long diff = l1 - l2;
-        if (diff == 0) {
-            return 0;
-        } else if (diff > 0) {
+        if (diff > 0) {
             return 1;
-        } else {
+        } else if (diff < 0) {
             return -1;
+        } else {
+            return 0;
         }
     }
 }

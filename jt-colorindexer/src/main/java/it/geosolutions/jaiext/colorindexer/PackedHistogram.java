@@ -19,11 +19,15 @@ package it.geosolutions.jaiext.colorindexer;
 
 import static it.geosolutions.jaiext.colorindexer.ColorUtils.*;
 import it.geosolutions.jaiext.colorindexer.ColorMap.ColorEntry;
+import it.geosolutions.jaiext.iterators.RectIterFactory;
 
+import java.awt.*;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.util.Arrays;
 import java.util.Comparator;
+
+import javax.media.jai.iterator.RectIter;
 
 /**
  * Builds a histogram of a certain image making sure that we don't end up with too many entries. If the unique colors in the image go above
@@ -129,8 +133,8 @@ public class PackedHistogram {
         final int minY = image.getMinTileY();
         final int maxY = minY + image.getNumYTiles();
         this.shift = 0;
-        for (int x = minX; x < maxX; x++) {
-            for (int y = minY; y < maxY; y++) {
+        for (int y = minY; y < maxY; y++) {
+            for (int x = minX; x < maxX; x++) {
                 Raster tile = image.getTile(x, y);
                 shift = updateColorMap(image, tile, colorMap, shift, stepX, stepY);
             }
@@ -154,12 +158,13 @@ public class PackedHistogram {
         final int minY = Math.max(tile.getMinY(), image.getMinY());
         final int maxY = Math.min(tile.getHeight() + tile.getMinY(),
                 image.getMinY() + image.getHeight());
-        int bands = tile.getNumBands();
-        int[] pixel = new int[bands];
-        for (int x = minX; x < maxX; x += stepX) {
-            for (int y = minY; y < maxY; y += stepY) {
+        final int bands = tile.getNumBands();
+        final int[] pixel = new int[bands];
+        final RectIter iter = RectIterFactory.create(tile, new Rectangle(minX, minY, maxX - minX, maxY - minY));
+        for (int y = minY; y < maxY; y += stepY) {
+            for (int x = minX; x < maxX; x += stepX) {
                 // grab the pixel and the color
-                tile.getPixel(x, y, pixel);
+                iter.getPixel(pixel);
                 int red, green, blue, alpha;
 
                 if (bands == 1 || bands == 2) {
@@ -186,7 +191,7 @@ public class PackedHistogram {
                     blue = shift(blue, shift);
                     alpha = shift(alpha, shift);
                 }
-                colorMap.increment(red, green, blue, alpha);
+                colorMap.increment(red, green, blue, alpha, 1);
 
                 if (colorMap.size() > Short.MAX_VALUE) {
                     shift++;
@@ -195,6 +200,14 @@ public class PackedHistogram {
                 if (alpha == 0) {
                     transparentPixels = true;
                 }
+
+                if (x + stepX < maxX) {
+                    iter.jumpPixels(stepX);
+                }
+            }
+            if (y + stepY < maxY) {
+                iter.jumpLines(stepY);
+                iter.startPixels();
             }
         }
 
