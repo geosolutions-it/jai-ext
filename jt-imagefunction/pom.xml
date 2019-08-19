@@ -6,11 +6,11 @@
 	<parent>
 		<groupId>it.geosolutions.jaiext</groupId>
 		<artifactId>jaiext</artifactId>
-		<version>1.1.12</version>
+		<version>1.1-SNAPSHOT</version>
 	</parent>
 	<groupId>it.geosolutions.jaiext.imagefunction</groupId>
 	<artifactId>jt-imagefunction</artifactId>
-	<version>1.1.12</version>
+	<version>1.1-SNAPSHOT</version>
 	<name>jt-imagefunction</name>
 	<url>http://maven.apache.org</url>
 	<properties>
