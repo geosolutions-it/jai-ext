@@ -19,11 +19,13 @@ package it.geosolutions.rendered.viewer;
 
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.geom.AffineTransform;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageReadParam;
+import javax.media.jai.WarpAffine;
 
 
 /**
@@ -40,6 +42,7 @@ public final class HTMLRenderers
     {
         renderers.add(new ArrayRenderer());
         renderers.add(new ImageReadParamRenderer());
+        renderers.add(new WarpAffineRenderer());
         //renderers.add(new ROIGeometryRenderer());
     }
 
@@ -122,7 +125,36 @@ public final class HTMLRenderers
             sb.append("]");
             return sb.toString();
         }
+    }
 
+    /**
+     * Renderer for WarpAffine parameters
+     */
+    private static class WarpAffineRenderer implements HTMLRenderer {
+
+        public boolean canRender(Object o) {
+            return (o != null) && WarpAffine.class.isAssignableFrom(o.getClass());
+        }
+
+        public String render(Object o) {
+            WarpAffine warpAffine = (WarpAffine) o;
+            StringBuilder sb = new StringBuilder();
+            sb.append('[').append(o.getClass().toString()).append("\n");
+            AffineTransform transform = warpAffine.getTransform();
+            if (transform != null) {
+                double [] matrix = new double[6];
+                transform.getMatrix(matrix);
+                sb.append(String.format("\t m00 (scaleX):%f" +
+                                "\n\t m11 (scaleY):%f" +
+                                "\n\t m01 (shearX):%f" +
+                                "\n\t m10 (shearY):%f" +
+                                "\n\t m02 (translateX):%f" +
+                                "\n\t m12 (translateY):%f]",
+                        matrix[0], matrix[3], matrix[2], matrix[1], matrix[4], matrix[5]));
+            }
+            sb.append("]");
+            return sb.toString();
+        }
     }
 //
 //    private static class ROIGeometryRenderer implements HTMLRenderer
