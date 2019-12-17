@@ -17,8 +17,7 @@
 */
 package it.geosolutions.rendered.viewer;
 
-import static java.awt.image.DataBuffer.TYPE_DOUBLE;
-import static java.awt.image.DataBuffer.TYPE_FLOAT;
+import it.geosolutions.jaiext.range.NoDataContainer;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -34,18 +33,21 @@ import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
+import javax.media.jai.Histogram;
+import javax.media.jai.ROI;
+import javax.media.jai.RenderedOp;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-import javax.swing.JToggleButton;
+import javax.media.jai.operator.ExtremaDescriptor;
+import javax.media.jai.operator.FormatDescriptor;
+import javax.media.jai.operator.HistogramDescriptor;
+import javax.media.jai.operator.RescaleDescriptor;
+import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileFilter;
+
+import static java.awt.image.DataBuffer.*;
 
 
 /**
@@ -59,14 +61,15 @@ import javax.swing.filechooser.FileFilter;
  */
 public class ImageViewer extends JPanel
 {
-    private ZoomableImageDisplay display;
-    private ImageViewer relatedViewer;
+    ZoomableImageDisplay display;
+    ImageViewer relatedViewer;
     private JLabel status;
     private RandomIter pixelIter;
     private int[] ipixel;
     private double[] dpixel;
-    JToggleButton tileGrid;
-    JToggleButton roiSync;
+    JCheckBox tileGrid;
+    JCheckBox roiSync;
+    JCheckBox rescaleValues;
     private StringBuffer sb = new StringBuffer();
     private RenderedImage image;
     protected File lastDirectory;
@@ -86,16 +89,26 @@ public class ImageViewer extends JPanel
         // build the button bar
         JButton zoomIn = new JButton("Zoom in");
         JButton zoomOut = new JButton("Zoom out");
-        tileGrid = new JToggleButton("Tile grid");
-        roiSync = new JToggleButton("ROI sync");
+        tileGrid = new JCheckBox("Tile grid");
+        tileGrid.setToolTipText("Toggle Tile Grid");
+        tileGrid.setRolloverEnabled(false);
+        roiSync = new JCheckBox("ROI sync");
+        roiSync.setToolTipText("Keep the ROIViewer viewport aligned with the main Viewer");
+        rescaleValues = new JCheckBox("Rescale to byte");
+        rescaleValues.setToolTipText("When needed, rescale image to byte values for viewing. " +
+                "(Pixel value at mouse position will still show raw value)");
+        rescaleValues.setRolloverEnabled(false);
         JButton save = new JButton("Save...");
+        save.setToolTipText("Save whole image to png/tif");
         final JButton showChain = new JButton("Show chain in separate window");
+        showChain.setToolTipText("Open a new viewer with the current image as root of the processing chain");
         JPanel buttonBar = new JPanel();
         buttonBar.setLayout(new FlowLayout(FlowLayout.LEFT));
         buttonBar.add(zoomIn);
         buttonBar.add(zoomOut);
         buttonBar.add(tileGrid);
         buttonBar.add(roiSync);
+        buttonBar.add(rescaleValues);
         buttonBar.add(save);
         buttonBar.add(showChain);
 
@@ -155,36 +168,43 @@ public class ImageViewer extends JPanel
                 }
 
             });
-        roiSync.addChangeListener(new ChangeListener()
-        {
+        roiSync.addActionListener(new ActionListener() {
 
             @Override
-            public void stateChanged(ChangeEvent e)
-            {
-                if (relatedViewer != null)
-                {
+            public void actionPerformed(ActionEvent e) {
+                if (relatedViewer != null) {
                     relatedViewer.roiSync.setSelected(roiSync.isSelected());
                 }
             }
+        });
+        rescaleValues.addActionListener(new ActionListener() {
 
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setImage(image);
+            }
         });
         vScrollBar.addAdjustmentListener(new AdjustmentListener() {
 
             @Override
-            public void adjustmentValueChanged(AdjustmentEvent e)
-            {
+            public void adjustmentValueChanged(AdjustmentEvent e) {
                 if (roiSync.isSelected() && relatedViewer != null) {
                     relatedViewer.vScrollBar.setValue(vScrollBar.getValue());
+                }
+                if (rescaleValues.isSelected()) {
+                    display.repaint();
                 }
             }
         });
         hScrollBar.addAdjustmentListener(new AdjustmentListener() {
 
             @Override
-            public void adjustmentValueChanged(AdjustmentEvent e)
-            {
+            public void adjustmentValueChanged(AdjustmentEvent e) {
                 if (roiSync.isSelected() && relatedViewer != null) {
                     relatedViewer.hScrollBar.setValue(hScrollBar.getValue());
+                }
+                if (rescaleValues.isSelected()) {
+                    display.repaint();
                 }
             }
         });
@@ -202,7 +222,7 @@ public class ImageViewer extends JPanel
                             @Override
                             public String getDescription()
                             {
-                                return "images";
+                                return ".png and .tif/.tiff images";
                             }
 
                             @Override
@@ -247,7 +267,31 @@ public class ImageViewer extends JPanel
 
                 public void actionPerformed(ActionEvent e)
                 {
-                    RenderedImageBrowser.showChain(image);
+                    String title = "";
+                    if (image instanceof RenderedOp) {
+                        title = ((RenderedOp) image).getOperationName();
+                    }
+                    JFrame frame = new JFrame(title);
+                    RenderedImageBrowser info = new RenderedImageBrowser(true, true);
+                    info.setImage(image);
+                    ImageViewer viewer = info.imageInfo.viewer;
+                    frame.setContentPane(info);
+                    frame.setSize(1024, 768);
+                    frame.setVisible(true);
+                    // Re-init viewer with current properties
+                    double latestScale = display.getScale();
+                    viewer.roiSync.setSelected(roiSync.isSelected());
+                    viewer.tileGrid.setSelected(tileGrid.isSelected());
+                    viewer.rescaleValues.setSelected(rescaleValues.isSelected());
+                    viewer.display.setScale(latestScale);
+                    if (relatedViewer != null) {
+                        ImageViewer openingRelatedViewer = viewer.relatedViewer;
+                        openingRelatedViewer.display.setScale(latestScale);
+                        openingRelatedViewer.roiSync.setSelected(roiSync.isSelected());
+                        openingRelatedViewer.tileGrid.setSelected(tileGrid.isSelected());
+                    }
+                    // Trigger the painting
+                    viewer.setImage(image);
                 }
 
             });
@@ -259,8 +303,8 @@ public class ImageViewer extends JPanel
                 {
                     if (pixelIter != null)
                     {
-                        int x = (int) Math.round(e.getX() / display.getScale());
-                        int y = (int) Math.round(e.getY() / display.getScale());
+                        int x = (int) Math.floor(e.getX() / display.getScale());
+                        int y = (int) Math.floor(e.getY() / display.getScale());
                         sb.setLength(0);
 
                         if ((x < image.getMinX()) || (x >= (image.getMinX() + image.getWidth())) ||
@@ -309,11 +353,16 @@ public class ImageViewer extends JPanel
     public void setImage(RenderedImage image)
     {
         this.image = image;
+        display.setUseRescaled(rescaleValues.isSelected());
         if(image == null) {
             display.setVisible(false);
             pixelIter = null;
         } else {
-            display.setImage(image);
+            if (rescaleValues.isSelected()) {
+                rescaleImage(image);
+            } else {
+                display.setImage(image);
+            }
             display.setVisible(true);
             pixelIter = RandomIterFactory.create(image, null);
             ipixel = new int[image.getSampleModel().getNumBands()];
@@ -321,19 +370,65 @@ public class ImageViewer extends JPanel
         }
     }
 
-    public ImageViewer getRelatedViewer()
-    {
+    private void rescaleImage(RenderedImage image) {
+        int dataType = image.getSampleModel().getDataType();
+        switch (dataType) {
+            case TYPE_DOUBLE:
+            case TYPE_FLOAT:
+            case TYPE_INT:
+            case TYPE_SHORT:
+                // Store the unscaled image
+                this.display.image = image;
+
+                // look for nodata if any, to setup a ROI for better statistical computations
+                Object noData = image.getProperty("GC_NODATA");
+                ROI roi = null;
+                if (noData != null && noData instanceof NoDataContainer) {
+                    double nd = ((NoDataContainer) noData).getAsSingleValue();
+                    roi = new ROI(image, (int) (nd + 1));
+                }
+
+                // Compute min and max to identify the histogram's minValue, maxValue
+                RenderedImage extremaImage = ExtremaDescriptor.create(image, roi, 1, 1, false,
+                        1, null);
+                double[][] extrema = (double[][]) extremaImage.getProperty("Extrema");
+
+                // Compute histogram on previous min/max range
+                RenderedImage histogramImage = HistogramDescriptor.create(
+                        image, roi, 1, 1, new int[]{256}, extrema[0], extrema[1], null);
+                Histogram hist = (Histogram) histogramImage.getProperty("Histogram");
+
+                // get 5th and 95th ptiles for contrast stretch
+                double min = hist.getPTileThreshold(0.05)[0];
+                double max = hist.getPTileThreshold(0.95)[0];
+                final double delta = max - min;
+                double[] scale = new double[]{255 / delta};
+                double[] offset = new double[]{(-scale[0] * min)};
+                // rescale values
+                image = RescaleDescriptor.create(image, scale, offset, null);
+                // force to byte to truncate any values out of the byte range
+                image = FormatDescriptor.create(image, TYPE_BYTE, null);
+                // Set rescaled image and trigger repaint
+                this.display.setRescaledImage(image);
+                break;
+            default:
+                // Set image and trigger repaint
+                this.display.setRescaledImage(null);
+                this.display.setImage(image);
+        }
+
+    }
+
+    public ImageViewer getRelatedViewer() {
         return relatedViewer;
     }
 
-    public void setRelatedViewer(ImageViewer relatedViewer)
-    {
+    public void setRelatedViewer(ImageViewer relatedViewer) {
         this.relatedViewer = relatedViewer;
     }
 
     public void setStatusMessage(String message) {
         status.setText(message);
-        
     }
 
 }
