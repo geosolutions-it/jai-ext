@@ -41,9 +41,13 @@ class ZoomableImageDisplay extends JPanel
     /** The image to display. */
     protected RenderedImage image;
 
+    protected RenderedImage rescaledImage;
+
     protected double scale = 1.0;
 
     protected boolean tileGridVisible = true;
+
+    protected boolean useRescaled = false;
 
     /**
      * Constructs a <code>DisplayJAI</code> and sets its the layout to
@@ -82,7 +86,7 @@ class ZoomableImageDisplay extends JPanel
             throw new IllegalArgumentException("Scale must be a positive number");
         }
         this.scale = scale;
-        refreshComponent();
+        refreshComponent(useRescaled && rescaledImage != null ? rescaledImage: image);
     }
 
     public double getScale()
@@ -105,8 +109,19 @@ class ZoomableImageDisplay extends JPanel
             throw new IllegalArgumentException("Image displayed cannot be null");
         }
 
+        this.useRescaled = false;
         this.image = image;
-        refreshComponent();
+        refreshComponent(image);
+    }
+
+    public void setRescaledImage(RenderedImage image)
+    {
+        this.useRescaled = image != null;
+        this.rescaledImage = image;
+        if (image != null) {
+            refreshComponent(image);
+        }
+
     }
 
     public RenderedImage getImage()
@@ -114,7 +129,7 @@ class ZoomableImageDisplay extends JPanel
         return image;
     }
 
-    private void refreshComponent()
+    private void refreshComponent(RenderedImage image)
     {
         int w = (int) Math.ceil(image.getWidth() * scale);
         int h = (int) Math.ceil(image.getHeight() * scale);
@@ -132,6 +147,10 @@ class ZoomableImageDisplay extends JPanel
     @Override
     public synchronized void paintComponent(Graphics g)
     {
+        RenderedImage image = this.image;
+        if (useRescaled && rescaledImage != null) {
+            image = this.rescaledImage;
+        }
         if (g instanceof Graphics2D)
         {
             Graphics2D g2d = (Graphics2D) g;
@@ -181,14 +200,20 @@ class ZoomableImageDisplay extends JPanel
         }
     }
 
-    public boolean isTileGridVisible()
-    {
+    public boolean isTileGridVisible() {
         return tileGridVisible;
     }
 
-    public void setTileGridVisible(boolean visible)
-    {
+    public void setTileGridVisible(boolean visible) {
         this.tileGridVisible = visible;
         repaint();
+    }
+
+    public boolean isUseRescaled() {
+        return useRescaled;
+    }
+
+    public void setUseRescaled(boolean useRescaled) {
+        this.useRescaled = useRescaled;
     }
 }

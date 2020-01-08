@@ -109,7 +109,7 @@ public class RenderedImageInfoPanel extends JPanel
     JEditorPane generalPanel;
     JEditorPane propertiesPanel;
     private JEditorPane operationPanel;
-    private ImageViewer viewer;
+    ImageViewer viewer;
     private ImageViewer roiViewer;
     private boolean showHistogram = true;
     private DisplayHistogram histogramPanel = new DisplayHistogram("");
