@@ -309,6 +309,7 @@ public class RenderedImageInfoPanel extends JPanel
         hb.dataLine("Image class", image.getClass());
         hb.dataLine("Image origin", image.getMinX() + " , " + image.getMinY());
         hb.dataLine("Image size", image.getWidth() + " x " + image.getHeight());
+        hb.dataLine("[Debug_IDHash]:", Integer.toHexString(System.identityHashCode(image)));
 
         hb.title("Tiles organisation");
 

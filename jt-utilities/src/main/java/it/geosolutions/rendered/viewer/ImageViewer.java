@@ -385,7 +385,13 @@ public class ImageViewer extends JPanel
                 ROI roi = null;
                 if (noData != null && noData instanceof NoDataContainer) {
                     double nd = ((NoDataContainer) noData).getAsSingleValue();
-                    roi = new ROI(image, (int) (nd + 1));
+                    RenderedImage roiSourceImage = image;
+                    if (image.getSampleModel().getNumBands() > 1) {
+                        //ROIImage is single band image
+                        roiSourceImage = BandSelectDescriptor.create(image, new int[]{0}, null);
+                    }
+                    // Create a ROI Image with the threshould value right above the noData value.
+                    roi = new ROI(roiSourceImage, (int) (nd + 1));
                 }
 
                 // Compute min and max to identify the histogram's minValue, maxValue
