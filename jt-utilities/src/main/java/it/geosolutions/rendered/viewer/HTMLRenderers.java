@@ -103,27 +103,7 @@ public final class HTMLRenderers
 
         public String render(Object o) {
             ImageReadParam param = (ImageReadParam) o;
-            StringBuilder sb = new StringBuilder();
-            sb.append('[').append(o.getClass().toString()).append("\n");
-            int ssx = param.getSourceXSubsampling();
-            int ssy = param.getSourceYSubsampling();
-            Rectangle rect = param.getSourceRegion();
-            Point p = param.getDestinationOffset();
-            int[] bands = param.getSourceBands();
-            if (rect != null) {
-                sb.append(String.format(
-                        "    SourceRegion(Rectangle)[x:%d, y:%d, width:%d, height:%d]\n", rect.x,
-                        rect.y, rect.width, rect.height));
-            }
-            sb.append(String.format("    SourceSubsampling[ssx:%d, ssy:%d]\n", ssx, ssy));
-            if (bands != null) {
-                sb.append("    SourceBands[").append(HTMLBuilder.render(bands)).append("]\n");
-            }
-            if (p != null) {
-                sb.append(String.format("    DestinationOffset(Point)[x:%d, y:%d]", p.x, p.y));
-            }
-            sb.append("]");
-            return sb.toString();
+            return StringifyUtilities.printImageReadParam(param, false);
         }
     }
 
@@ -138,22 +118,7 @@ public final class HTMLRenderers
 
         public String render(Object o) {
             WarpAffine warpAffine = (WarpAffine) o;
-            StringBuilder sb = new StringBuilder();
-            sb.append('[').append(o.getClass().toString()).append("\n");
-            AffineTransform transform = warpAffine.getTransform();
-            if (transform != null) {
-                double [] matrix = new double[6];
-                transform.getMatrix(matrix);
-                sb.append(String.format("\t m00 (scaleX):%f" +
-                                "\n\t m11 (scaleY):%f" +
-                                "\n\t m01 (shearX):%f" +
-                                "\n\t m10 (shearY):%f" +
-                                "\n\t m02 (translateX):%f" +
-                                "\n\t m12 (translateY):%f]",
-                        matrix[0], matrix[3], matrix[2], matrix[1], matrix[4], matrix[5]));
-            }
-            sb.append("]");
-            return sb.toString();
+            return StringifyUtilities.printWarpAffine(warpAffine, false);
         }
     }
 //
