@@ -11,7 +11,7 @@
 	<groupId>it.geosolutions.jaiext.algebra</groupId>
 	<artifactId>jt-algebra</artifactId>
 	<name>jt-algebra</name>
-	<url>http://maven.apache.org</url>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>

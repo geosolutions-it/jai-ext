@@ -11,7 +11,7 @@
 	<groupId>it.geosolutions.jaiext.lookup</groupId>
 	<artifactId>jt-lookup</artifactId>
 	<name>jt-lookup</name>
-	<url>http://maven.apache.org</url>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>

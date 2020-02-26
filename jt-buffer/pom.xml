@@ -11,7 +11,7 @@
 	<groupId>it.geosolutions.jaiext.buffer</groupId>
 	<artifactId>jt-buffer</artifactId>
 	<name>jt-buffer</name>
-	<url>http://maven.apache.org</url>
+
 	<dependencies>
 		<dependency>
 			<groupId>it.geosolutions.jaiext.utilities</groupId>

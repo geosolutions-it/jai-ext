@@ -12,7 +12,7 @@
 	<artifactId>jt-classifier</artifactId>
 	<version>1.1-SNAPSHOT</version>
 	<name>jt-classifier</name>
-	<url>http://maven.apache.org</url>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>

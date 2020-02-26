@@ -11,7 +11,7 @@
 	<groupId>it.geosolutions.jaiext.scale2</groupId>
 	<artifactId>jt-scale2</artifactId>
 	<name>jt-scale2</name>
-	<url>http://maven.apache.org</url>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>

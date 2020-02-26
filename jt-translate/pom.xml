@@ -11,7 +11,7 @@
 	<groupId>it.geosolutions.jaiext.translate</groupId>
 	<artifactId>jt-translate</artifactId>
 	<name>jt-translate</name>
-	<url>http://maven.apache.org</url>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>

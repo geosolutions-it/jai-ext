@@ -11,7 +11,7 @@
 	<groupId>it.geosolutions.jaiext.clamp</groupId>
 	<artifactId>jt-clamp</artifactId>
 	<name>jt-clamp</name>
-	<url>http://maven.apache.org</url>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>

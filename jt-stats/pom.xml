@@ -11,7 +11,7 @@
 	<groupId>it.geosolutions.jaiext.stats</groupId>
 	<artifactId>jt-stats</artifactId>
 	<name>jt-stats</name>
-	<url>http://maven.apache.org</url>
+
 	<dependencies>
 		<dependency>
 			<groupId>it.geosolutions.jaiext.iterators</groupId>

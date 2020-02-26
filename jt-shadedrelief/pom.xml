@@ -14,7 +14,7 @@
     <artifactId>jt-shadedrelief</artifactId>
     <name>jt-shadedrelief</name>
 
-    <url>http://maven.apache.org</url>
+  
     <build>
         <plugins>
             <plugin>

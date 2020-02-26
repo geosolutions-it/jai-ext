@@ -11,7 +11,7 @@
   <artifactId>release</artifactId>
   <packaging>jar</packaging>
   <name>Jai-Ext Release Module</name>
-  <url>http://maven.apache.org</url>
+
 
   <dependencies>
 	<dependency>
