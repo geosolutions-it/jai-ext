@@ -20,11 +20,7 @@ package it.geosolutions.rendered.viewer;
 import java.awt.BorderLayout;
 import java.awt.RenderingHints;
 import java.awt.Transparency;
-import java.awt.image.ColorModel;
-import java.awt.image.DataBuffer;
-import java.awt.image.IndexColorModel;
-import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
+import java.awt.image.*;
 import java.awt.image.renderable.ParameterBlock;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -331,7 +327,33 @@ public class RenderedImageInfoPanel extends JPanel
         hb.dataLine("Sample model", sm.getClass());
         hb.dataLine("Size", sm.getWidth() + " x " + sm.getHeight());
         hb.dataLine("Bands", sm.getNumBands());
-        hb.dataLine("Bands", TYPE_MAP.get(sm.getDataType()));
+        hb.dataLine("Bands datatype", TYPE_MAP.get(sm.getDataType()));
+        if (sm instanceof ComponentSampleModel) {
+            ComponentSampleModel csm = (ComponentSampleModel) sm;
+            StringBuilder sb = new StringBuilder();
+            int[] bOffsets = csm.getBandOffsets();
+            for (int bOffset : bOffsets) {
+                sb.append(bOffset + ",");
+            }
+            sb.setLength(sb.length() -1 );
+            hb.dataLine("BandOffsets", sb.toString());
+            sb.setLength(0);
+            int[] bIndices = csm.getBankIndices();
+            for (int bIndex : bIndices) {
+                sb.append(bIndex + ",");
+            }
+            sb.setLength(sb.length() -1 );
+            hb.dataLine("BandIndices",sb.toString());
+            hb.dataLine("PixelStride", csm.getPixelStride());
+            hb.dataLine("ScanlineStride", csm.getScanlineStride());
+            sb.setLength(0);
+            int[] sampleSizes = csm.getSampleSize();
+            for (int sampleSize : sampleSizes) {
+                sb.append(sampleSize + ",");
+            }
+            sb.setLength(sb.length() -1 );
+            hb.dataLine("SampleSize",sb.toString());
+        }
 
         hb.title("Color model");
         final ColorModel colorModel = image.getColorModel();

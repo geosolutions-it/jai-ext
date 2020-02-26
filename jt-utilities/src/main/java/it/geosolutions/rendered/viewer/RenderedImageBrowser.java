@@ -21,24 +21,19 @@ import java.awt.BorderLayout;
 import java.awt.Transparency;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.renderable.ParameterBlock;
+import java.io.IOException;
 import java.lang.reflect.Array;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Vector;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.media.jai.EnumeratedParameter;
-import javax.media.jai.Interpolation;
-import javax.media.jai.JAI;
-import javax.media.jai.ParameterBlockJAI;
-import javax.media.jai.RenderedOp;
-import javax.media.jai.TileCache;
-import javax.media.jai.TileScheduler;
+import javax.imageio.ImageReadParam;
+import javax.media.jai.*;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -103,13 +98,17 @@ public class RenderedImageBrowser extends JPanel
      */
     public static String dumpChain(RenderedImage image)
     {
+        return dumpChain(image, false);
+    }
+
+    public static String dumpChain(RenderedImage image, boolean minimal)
+    {
         TextTreeBuilder builder = new TextTreeBuilder();
-        dumpChain(image, builder);
+        dumpChain(image, builder, minimal, new int[]{0});
 
         return builder.toString();
     }
-
-    private static void dumpChain(RenderedImage image, TextTreeBuilder builder)
+    private static void dumpChain(RenderedImage image, TextTreeBuilder builder, boolean minimal, int [] level)
     {
         String name;
         TileCache tcache = null;
@@ -150,7 +149,7 @@ public class RenderedImageBrowser extends JPanel
         {
             name = "Non op: " + image.getClass();
         }
-        builder.append(name);
+        builder.append(name + " at Level: " + level[0]);
         builder.append(", offset:");
         builder.append(image.getMinX() + ", " + image.getMinY());
         builder.append(", size:");
@@ -183,45 +182,49 @@ public class RenderedImageBrowser extends JPanel
         }
 
         SampleModel sm = image.getSampleModel();
-        builder.append("Bands: " + sm.getNumBands() + ", type: " + TYPE_MAP.get(sm.getDataType()));
-        builder.append("; Color model:" + image.getColorModel().getClass());
-        builder.append(", transparency: ");
-        switch (image.getColorModel().getTransparency())
-        {
-        case Transparency.OPAQUE:
-            builder.append("Opaque");
-            break;
-        case Transparency.TRANSLUCENT:
-            builder.append("Translucent");
-            break;
-        case Transparency.BITMASK:
-            builder.append("Bitmas  k");
-            break;
+        if (sm != null) {
+            builder.append("Bands: " + sm.getNumBands() + ", type: " + TYPE_MAP.get(sm.getDataType()));
+        }
+        ColorModel cm = image.getColorModel();
+        if (cm != null) {
+            builder.append("; Color model:" + cm.getClass());
+            builder.append(", transparency: ");
+            switch (cm.getTransparency()) {
+                case Transparency.OPAQUE:
+                    builder.append("Opaque");
+                    break;
+                case Transparency.TRANSLUCENT:
+                    builder.append("Translucent");
+                    break;
+                case Transparency.BITMASK:
+                    builder.append("Bitmask");
+                    break;
+            }
         }
 
-        builder.newLine();
-        builder.append("Tile cache: " + tcache);
-        builder.newLine();
-        builder.append("Tile scheduler: ");
-        if (tscheduler == null)
-        {
-            builder.append("null");
+        if (!minimal) {
+            builder.newLine();
+            builder.append("Tile cache: " + tcache);
+            builder.newLine();
+            builder.append("Tile scheduler: ");
+            if (tscheduler == null) {
+                builder.append("null");
+            } else {
+                builder.append(tscheduler +
+                        ((tscheduler == JAI.getDefaultInstance().getTileScheduler()) ? "<global>" : "<local>") + ", parallelism " + tscheduler.getParallelism() +
+                        ", priority " + tscheduler.getPriority());
+            }
         }
-        else
-        {
-            builder.append(tscheduler +
-                ((tscheduler == JAI.getDefaultInstance().getTileScheduler()) ? "<global>" : "<local>") + ", parallelism " + tscheduler.getParallelism() +
-                ", priority " + tscheduler.getPriority());
-        }
-
         if (image.getSources() != null)
         {
             builder.newLine();
-            builder.append("Number of children: " + image.getSources().size());
+            builder.append("Number of sources: " + image.getSources().size());
             for (RenderedImage child : image.getSources())
             {
                 builder.newChild();
-                dumpChain(child, builder);
+                level[0] = level[0] + 1;
+                dumpChain(child, builder, minimal, level);
+                level[0] = level[0] - 1;
                 builder.endChild();
             }
         }
@@ -255,6 +258,16 @@ public class RenderedImageBrowser extends JPanel
         {
             String interpName = value.getClass().getSimpleName();
             builder.append(interpName);
+        }
+        else if (value instanceof WarpAffine)
+        {
+            String warpAffineValue = StringifyUtilities.printWarpAffine((WarpAffine) value, true);
+            builder.append(warpAffineValue);
+        }
+        else if (value instanceof ImageReadParam)
+        {
+            String param = StringifyUtilities.printImageReadParam((ImageReadParam) value, true);
+            builder.append(param);
         }
         else
         {
@@ -368,6 +381,10 @@ public class RenderedImageBrowser extends JPanel
                 }
 
             });
+    }
+
+    public static void showChainAndWaitOnClose(RenderedImage renderedImage) {
+        showChain(renderedImage, true, true, renderedImage.toString(), true);
     }
 
     public void setImage(RenderedImage image)

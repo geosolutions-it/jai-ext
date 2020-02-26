@@ -181,10 +181,13 @@ public abstract class TestBase {
         } else {
             int imageDim = width * height;
 
-            if(numBands == 3){
-                sm = new ComponentSampleModel(dataType, width, height, 3, width, new int[] { 0,
-                        imageDim, imageDim * 2 }); 
-            }else{
+            if (numBands == 3 || numBands == 4) {
+                int [] bandOffsets = new int [numBands];
+                for (int i = 0; i < numBands; i++) {
+                    bandOffsets[i] = imageDim * i;
+                }
+                sm = new ComponentSampleModel(dataType, width, height, numBands, width, bandOffsets);
+            } else {
                 sm = new ComponentSampleModel(dataType, width, height, 1, width, new int[] {0}); 
             }
         }

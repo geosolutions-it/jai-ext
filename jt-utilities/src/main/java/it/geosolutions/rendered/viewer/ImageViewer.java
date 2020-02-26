@@ -18,24 +18,21 @@
 package it.geosolutions.rendered.viewer;
 
 import it.geosolutions.jaiext.range.NoDataContainer;
+import it.geosolutions.jaiext.utilities.ImageLayout2;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.awt.image.DataBuffer;
-import java.awt.image.RenderedImage;
+import java.awt.image.*;
 import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
-import javax.media.jai.Histogram;
-import javax.media.jai.ROI;
-import javax.media.jai.RenderedOp;
+import javax.media.jai.*;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
 import javax.media.jai.operator.ExtremaDescriptor;
@@ -61,6 +58,7 @@ import static java.awt.image.DataBuffer.*;
  */
 public class ImageViewer extends JPanel
 {
+    private static final int THRESHOLD_2K_X_2K = 2048 * 2048;
     ZoomableImageDisplay display;
     ImageViewer relatedViewer;
     private JLabel status;
@@ -94,7 +92,7 @@ public class ImageViewer extends JPanel
         tileGrid.setRolloverEnabled(false);
         roiSync = new JCheckBox("ROI sync");
         roiSync.setToolTipText("Keep the ROIViewer viewport aligned with the main Viewer");
-        rescaleValues = new JCheckBox("Rescale to byte");
+        rescaleValues = new JCheckBox("Rescale");
         rescaleValues.setToolTipText("When needed, rescale image to byte values for viewing. " +
                 "(Pixel value at mouse position will still show raw value)");
         rescaleValues.setRolloverEnabled(false);
@@ -102,6 +100,8 @@ public class ImageViewer extends JPanel
         save.setToolTipText("Save whole image to png/tif");
         final JButton showChain = new JButton("Show chain in separate window");
         showChain.setToolTipText("Open a new viewer with the current image as root of the processing chain");
+        final JButton showDump = new JButton("Chain As Text");
+        showDump.setToolTipText("Show the processing chain dumped as textual info");
         JPanel buttonBar = new JPanel();
         buttonBar.setLayout(new FlowLayout(FlowLayout.LEFT));
         buttonBar.add(zoomIn);
@@ -111,10 +111,10 @@ public class ImageViewer extends JPanel
         buttonBar.add(rescaleValues);
         buttonBar.add(save);
         buttonBar.add(showChain);
+        buttonBar.add(showDump);
 
         // actual image viewer
         display = new ZoomableImageDisplay();
-//              display.setBackground(Color.BLACK);
         tileGrid.setSelected(display.isTileGridVisible());
 
         // the "status bar"
@@ -295,6 +295,39 @@ public class ImageViewer extends JPanel
                 }
 
             });
+        showDump.addActionListener(new ActionListener() {
+
+            public void actionPerformed(ActionEvent e) {
+                String title = "";
+                if (image instanceof RenderedOp) {
+                    title = ((RenderedOp) image).getOperationName();
+                }
+
+                JFrame frame = new JFrame(title + " dump");
+                frame.setLayout(new BorderLayout());
+                JCheckBox checkBox = new JCheckBox("Minimal");
+                String chainDump = RenderedImageBrowser.dumpChain(image);
+                JTextArea textArea = new JTextArea();
+                textArea.setText(chainDump);
+                checkBox.addActionListener(new ActionListener()
+                {
+                    public void actionPerformed(ActionEvent e)
+                    {
+                        boolean minimal = checkBox.isSelected();
+                        String chainDump = RenderedImageBrowser.dumpChain(image, minimal);
+                        textArea.setText(chainDump);
+                    }
+                });
+                checkBox.setSelected(false);
+                textArea.setEditable(false);
+                JScrollPane textScrollPane = new JScrollPane(textArea);
+                frame.add(checkBox, BorderLayout.PAGE_START);
+                frame.add(textScrollPane, BorderLayout.CENTER);
+                frame.setSize(1024, 768);
+                frame.setVisible(true);
+            }
+
+        });
         display.addMouseMotionListener(new MouseMotionAdapter()
             {
 
@@ -379,6 +412,12 @@ public class ImageViewer extends JPanel
             case TYPE_SHORT:
                 // Store the unscaled image
                 this.display.image = image;
+                ImageLayout layout = new ImageLayout2();
+                layout.setTileWidth(image.getTileWidth());
+                layout.setTileHeight(image.getTileHeight());
+                layout.setTileGridYOffset(image.getTileGridYOffset());
+                layout.setTileGridXOffset(image.getTileGridXOffset());
+                RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
 
                 // look for nodata if any, to setup a ROI for better statistical computations
                 Object noData = image.getProperty("GC_NODATA");
@@ -388,20 +427,28 @@ public class ImageViewer extends JPanel
                     RenderedImage roiSourceImage = image;
                     if (image.getSampleModel().getNumBands() > 1) {
                         //ROIImage is single band image
-                        roiSourceImage = BandSelectDescriptor.create(image, new int[]{0}, null);
+                        roiSourceImage = BandSelectDescriptor.create(image, new int[]{0}, hints);
                     }
-                    // Create a ROI Image with the threshould value right above the noData value.
+                    // Create a ROI Image with the threshold value right above the noData value.
                     roi = new ROI(roiSourceImage, (int) (nd + 1));
+                } else {
+                    // Note that the JAI's ROI does a getData internally, which loads the whole databuffer in memory
+                    // Don't do that if the image is bigger than a threshold
+                    if (image.getWidth() * image.getHeight() < THRESHOLD_2K_X_2K) {
+                        // Use an alternative ROI to exclude any NaN.
+                        RenderedImage binarize = BinarizeDescriptor.create(image, Double.NEGATIVE_INFINITY, hints);
+                        roi = new ROI(binarize, 1);
+                    }
                 }
 
                 // Compute min and max to identify the histogram's minValue, maxValue
                 RenderedImage extremaImage = ExtremaDescriptor.create(image, roi, 1, 1, false,
-                        1, null);
+                        1, hints);
                 double[][] extrema = (double[][]) extremaImage.getProperty("Extrema");
 
                 // Compute histogram on previous min/max range
                 RenderedImage histogramImage = HistogramDescriptor.create(
-                        image, roi, 1, 1, new int[]{256}, extrema[0], extrema[1], null);
+                        image, roi, 1, 1, new int[]{256}, extrema[0], extrema[1], hints);
                 Histogram hist = (Histogram) histogramImage.getProperty("Histogram");
 
                 // get 5th and 95th ptiles for contrast stretch
@@ -411,9 +458,9 @@ public class ImageViewer extends JPanel
                 double[] scale = new double[]{255 / delta};
                 double[] offset = new double[]{(-scale[0] * min)};
                 // rescale values
-                image = RescaleDescriptor.create(image, scale, offset, null);
+                image = RescaleDescriptor.create(image, scale, offset, hints);
                 // force to byte to truncate any values out of the byte range
-                image = FormatDescriptor.create(image, TYPE_BYTE, null);
+                image = FormatDescriptor.create(image, TYPE_BYTE, hints);
                 // Set rescaled image and trigger repaint
                 this.display.setRescaledImage(image);
                 break;
