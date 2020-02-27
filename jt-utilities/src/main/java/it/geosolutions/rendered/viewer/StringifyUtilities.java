@@ -55,7 +55,7 @@ class StringifyUtilities {
 
     public static String printImageReadParam(ImageReadParam param, boolean minimal) {
         StringBuilder sb = new StringBuilder();
-        sb.append('[').append(param.getClass().toString())  ;
+        sb.append('[').append(param.getClass().toString());
         int ssx = param.getSourceXSubsampling();
         int ssy = param.getSourceYSubsampling();
         Rectangle rect = param.getSourceRegion();

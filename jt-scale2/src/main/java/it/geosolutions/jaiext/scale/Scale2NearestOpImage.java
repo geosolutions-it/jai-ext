@@ -44,6 +44,9 @@ import it.geosolutions.jaiext.range.Range;
 
 public class Scale2NearestOpImage extends Scale2OpImage {
 
+    private final static boolean DATABUFFER_WORKAROUND =
+            Boolean.valueOf(System.getProperty("it.geosolutions.jaiext.databuffer.workaround", "true"));
+
     /** Nearest-Neighbor interpolator */
     protected InterpolationNearest interpN = null;
 
@@ -333,6 +336,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                 final byte[] srcData = srcDataArrays[k];
                 final byte[] dstData = dstDataArrays[k];
+                final int overflowPos = srcData.length;
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
                 int bandOffset = bandOffsets[k];
@@ -349,7 +353,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                         int posx = xpos[i];
                         int pos = posx + posy;
                         // The interpolated value is saved in the destination array
-                        dstData[dstPixelOffset] = srcData[pos];
+                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
 
                         // destination pixel offset update
                         dstPixelOffset += dstPixelStride;
@@ -365,6 +369,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                     for (int k = 0; k < dnumBands; k++) {
                         final byte[] srcData = srcDataArrays[k];
                         final byte[] dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -392,7 +397,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                     dstData[dstPixelOffset] = destinationNoDataByte[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
-                                    dstData[dstPixelOffset] = srcData[pos];
+                                    dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
+
                                 }
 
                                 // destination pixel offset update
@@ -407,6 +413,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                     for (int k = 0; k < dnumBands; k++) {
                         final byte[] srcData = srcDataArrays[k];
                         final byte[] dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -432,7 +439,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                         dstData[dstPixelOffset] = destinationNoDataByte[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = srcData[pos];
+                                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
@@ -454,7 +461,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         final byte[] srcData = srcDataArrays[k];
                         final byte[] dstData = dstDataArrays[k];
-
+                        final int overflowPos = srcData.length;
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -469,8 +476,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                 // x position selection
                                 int posx = xpos[i];
                                 int pos = posx + posy;
-
-                                int value = srcData[pos];
+                                int value = srcData[checkPos(pos, overflowPos)];
 
                                 dstData[dstPixelOffset] = byteLookupTable[k][value&0xFF];
 
@@ -488,6 +494,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                             final byte[] srcData = srcDataArrays[k];
                             final byte[] dstData = dstDataArrays[k];
+                            final int overflowPos = srcData.length;
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
                             int bandOffset = bandOffsets[k];
@@ -503,10 +510,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                 for (int i = 0; i < dwidth; i++) {
                                     // x position selection
                                     int posx = xpos[i];
-
                                     int pos = posx + posy;
-
-                                    int value = srcData[pos];
+                                    int value = srcData[checkPos(pos, overflowPos)];
 
                                     if (byteLookupTable[k][value&0xFF] == destinationNoDataByte[k]) {
                                         // The destination no data value is saved in the destination array
@@ -537,6 +542,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                             final byte[] srcData = srcDataArrays[k];
                             final byte[] dstData = dstDataArrays[k];
+                            final int overflowPos = srcData.length;
                             // Line and band Offset initialization
                             int dstlineOffset = dstBandOffsets[k];
                             int bandOffset = bandOffsets[k];
@@ -551,7 +557,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                     // x position selection
                                     int posx = xpos[i];
                                     int pos = posx + posy;
-                                    int value = srcData[pos];
+                                    int value = srcData[checkPos(pos, overflowPos)];
 
                                     if (byteLookupTable[k][value&0xFF] == destinationNoDataByte[k]) {
                                         // The destination no data value is saved in the destination array
@@ -631,6 +637,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                 srcData = srcDataArrays[k];
                 dstData = dstDataArrays[k];
+                final int overflowPos = srcData.length;
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
                 int bandOffset = bandOffsets[k];
@@ -647,7 +654,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         pos = posx + posy;
                         // The interpolated value is saved in the destination array
-                        dstData[dstPixelOffset] = srcData[pos];
+                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
 
                         // destination pixel offset update
                         dstPixelOffset += dstPixelStride;
@@ -663,6 +670,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                     for (int k = 0; k < dnumBands; k++) {
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -689,7 +697,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                     dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
-                                    dstData[dstPixelOffset] = srcData[pos];
+                                    dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                 }
 
                                 // destination pixel offset update
@@ -705,6 +713,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -731,7 +740,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                         dstData[dstPixelOffset] = destinationNoDataUShort[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = srcData[pos];
+                                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
@@ -751,6 +760,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                     srcData = srcDataArrays[k];
                     dstData = dstDataArrays[k];
+                    final int overflowPos = srcData.length;
 
                     // Line and band Offset initialization
                     int dstlineOffset = dstBandOffsets[k];
@@ -765,10 +775,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                         for (int i = 0; i < dwidth; i++) {
                             // x position selection
                             posx = xpos[i];
-
                             pos = posx + posy;
-
-                            short value = srcData[pos];
+                            short value = srcData[checkPos(pos, overflowPos)];
 
                             if (noData.contains(value)) {
                                 // The destination no data value is saved in the destination array
@@ -792,6 +800,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -808,10 +817,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 posx = xpos[i];
-
                                 pos = posx + posy;
-
-                                short value = srcData[pos];
+                                short value = srcData[checkPos(pos, overflowPos)];
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -841,6 +848,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -855,10 +863,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 posx = xpos[i];
-
                                 pos = posx + posy;
-
-                                short value = srcData[pos];
+                                short value = srcData[checkPos(pos, overflowPos)];
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -936,6 +942,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                 srcData = srcDataArrays[k];
                 dstData = dstDataArrays[k];
+                final int overflowPos = srcData.length;
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
                 int bandOffset = bandOffsets[k];
@@ -952,7 +959,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         pos = posx + posy;
                         // The interpolated value is saved in the destination array
-                        dstData[dstPixelOffset] = srcData[pos];
+                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
 
                         // destination pixel offset update
                         dstPixelOffset += dstPixelStride;
@@ -968,6 +975,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                     for (int k = 0; k < dnumBands; k++) {
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -994,7 +1002,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                     dstData[dstPixelOffset] = destinationNoDataShort[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
-                                    dstData[dstPixelOffset] = srcData[pos];
+                                    dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                 }
 
                                 // destination pixel offset update
@@ -1010,6 +1018,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -1036,7 +1045,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                         dstData[dstPixelOffset] = destinationNoDataShort[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = srcData[pos];
+                                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
@@ -1056,6 +1065,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                     srcData = srcDataArrays[k];
                     dstData = dstDataArrays[k];
+                    final int overflowPos = srcData.length;
 
                     // Line and band Offset initialization
                     int dstlineOffset = dstBandOffsets[k];
@@ -1070,10 +1080,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                         for (int i = 0; i < dwidth; i++) {
                             // x position selection
                             posx = xpos[i];
-
                             pos = posx + posy;
-
-                            short value = srcData[pos];
+                            short value = srcData[checkPos(pos, overflowPos)];
 
                             if (noData.contains(value)) {
                                 // The destination no data value is saved in the destination array
@@ -1097,6 +1105,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -1113,10 +1122,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 posx = xpos[i];
-
                                 pos = posx + posy;
-
-                                short value = srcData[pos];
+                                short value = srcData[checkPos(pos, overflowPos)];
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -1146,6 +1153,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -1160,10 +1168,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 posx = xpos[i];
-
                                 pos = posx + posy;
-
-                                short value = srcData[pos];
+                                short value = srcData[checkPos(pos, overflowPos)];
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -1240,6 +1246,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                 srcData = srcDataArrays[k];
                 dstData = dstDataArrays[k];
+                final int overflowPos = srcData.length;
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
                 int bandOffset = bandOffsets[k];
@@ -1256,7 +1263,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         pos = posx + posy;
                         // The interpolated value is saved in the destination array
-                        dstData[dstPixelOffset] = srcData[pos];
+                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
 
                         // destination pixel offset update
                         dstPixelOffset += dstPixelStride;
@@ -1272,6 +1279,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                     for (int k = 0; k < dnumBands; k++) {
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -1298,7 +1306,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                     dstData[dstPixelOffset] = destinationNoDataInt[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
-                                    dstData[dstPixelOffset] = srcData[pos];
+                                    dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                 }
 
                                 // destination pixel offset update
@@ -1314,6 +1322,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -1340,7 +1349,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                         dstData[dstPixelOffset] = destinationNoDataInt[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = srcData[pos];
+                                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
@@ -1360,6 +1369,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                     srcData = srcDataArrays[k];
                     dstData = dstDataArrays[k];
+                    final int overflowPos = srcData.length;
 
                     // Line and band Offset initialization
                     int dstlineOffset = dstBandOffsets[k];
@@ -1374,10 +1384,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                         for (int i = 0; i < dwidth; i++) {
                             // x position selection
                             posx = xpos[i];
-
                             pos = posx + posy;
-
-                            int value = srcData[pos];
+                            int value = srcData[checkPos(pos, overflowPos)];
 
                             if (noData.contains(value)) {
                                 // The destination no data value is saved in the destination array
@@ -1401,6 +1409,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -1417,10 +1426,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 posx = xpos[i];
-
                                 pos = posx + posy;
-
-                                int value = srcData[pos];
+                                int value = srcData[checkPos(pos, overflowPos)];
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -1450,6 +1457,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -1464,10 +1472,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 posx = xpos[i];
-
                                 pos = posx + posy;
-
-                                int value = srcData[pos];
+                                int value = srcData[checkPos(pos, overflowPos)];
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -1545,6 +1551,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                 srcData = srcDataArrays[k];
                 dstData = dstDataArrays[k];
+                final int overflowPos = srcData.length;
+
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
                 int bandOffset = bandOffsets[k];
@@ -1561,7 +1569,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         pos = posx + posy;
                         // The interpolated value is saved in the destination array
-                        dstData[dstPixelOffset] = srcData[pos];
+                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
 
                         // destination pixel offset update
                         dstPixelOffset += dstPixelStride;
@@ -1577,6 +1585,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                     for (int k = 0; k < dnumBands; k++) {
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
+
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -1603,7 +1613,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                     dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
-                                    dstData[dstPixelOffset] = srcData[pos];
+                                    dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                 }
 
                                 // destination pixel offset update
@@ -1619,6 +1629,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -1645,7 +1656,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                         dstData[dstPixelOffset] = destinationNoDataFloat[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = srcData[pos];
+                                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
@@ -1665,6 +1676,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                     srcData = srcDataArrays[k];
                     dstData = dstDataArrays[k];
+                    final int overflowPos = srcData.length;
 
                     // Line and band Offset initialization
                     int dstlineOffset = dstBandOffsets[k];
@@ -1679,10 +1691,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                         for (int i = 0; i < dwidth; i++) {
                             // x position selection
                             posx = xpos[i];
-
                             pos = posx + posy;
-
-                            float value = srcData[pos];
+                            float value = srcData[checkPos(pos, overflowPos)];
 
                             if (noData.contains(value)) {
                                 // The destination no data value is saved in the destination array
@@ -1706,6 +1716,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -1722,10 +1733,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 posx = xpos[i];
-
                                 pos = posx + posy;
-
-                                float value = srcData[pos];
+                                float value = srcData[checkPos(pos, overflowPos)];
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -1755,6 +1764,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -1769,10 +1779,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 posx = xpos[i];
-
                                 pos = posx + posy;
-
-                                float value = srcData[pos];
+                                float value = srcData[checkPos(pos, overflowPos)];
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -1850,6 +1858,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                 srcData = srcDataArrays[k];
                 dstData = dstDataArrays[k];
+                final int overflowPos = srcData.length;
+
                 // Line and band Offset initialization
                 int dstlineOffset = dstBandOffsets[k];
                 int bandOffset = bandOffsets[k];
@@ -1866,7 +1876,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         pos = posx + posy;
                         // The interpolated value is saved in the destination array
-                        dstData[dstPixelOffset] = srcData[pos];
+                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
 
                         // destination pixel offset update
                         dstPixelOffset += dstPixelStride;
@@ -1882,6 +1892,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                     for (int k = 0; k < dnumBands; k++) {
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
+
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
                         int bandOffset = bandOffsets[k];
@@ -1908,7 +1920,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                     dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                 } else {
                                     // The interpolated value is saved in the destination array
-                                    dstData[dstPixelOffset] = srcData[pos];
+                                    dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                 }
 
                                 // destination pixel offset update
@@ -1924,6 +1936,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -1950,7 +1963,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                                         dstData[dstPixelOffset] = destinationNoDataDouble[k];
                                     } else {
                                         // The interpolated value is saved in the destination array
-                                        dstData[dstPixelOffset] = srcData[pos];
+                                        dstData[dstPixelOffset] = srcData[checkPos(pos, overflowPos)];
                                     }
                                 } else {
                                     // The destination no data value is saved in the destination array
@@ -1970,6 +1983,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                     srcData = srcDataArrays[k];
                     dstData = dstDataArrays[k];
+                    final int overflowPos = srcData.length;
 
                     // Line and band Offset initialization
                     int dstlineOffset = dstBandOffsets[k];
@@ -1984,10 +1998,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                         for (int i = 0; i < dwidth; i++) {
                             // x position selection
                             posx = xpos[i];
-
                             pos = posx + posy;
-
-                            double value = srcData[pos];
+                            double value = srcData[checkPos(pos, overflowPos)];
 
                             if (noData.contains(value)) {
                                 // The destination no data value is saved in the destination array
@@ -2011,6 +2023,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -2027,10 +2040,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 posx = xpos[i];
-
                                 pos = posx + posy;
-
-                                double value = srcData[pos];
+                                double value = srcData[checkPos(pos, overflowPos)];
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -2060,6 +2071,7 @@ public class Scale2NearestOpImage extends Scale2OpImage {
 
                         srcData = srcDataArrays[k];
                         dstData = dstDataArrays[k];
+                        final int overflowPos = srcData.length;
 
                         // Line and band Offset initialization
                         int dstlineOffset = dstBandOffsets[k];
@@ -2074,10 +2086,8 @@ public class Scale2NearestOpImage extends Scale2OpImage {
                             for (int i = 0; i < dwidth; i++) {
                                 // x position selection
                                 posx = xpos[i];
-
                                 pos = posx + posy;
-
-                                double value = srcData[pos];
+                                double value = srcData[checkPos(pos, overflowPos)];
 
                                 if (noData.contains(value)) {
                                     // The destination no data value is saved in the destination array
@@ -2112,4 +2122,12 @@ public class Scale2NearestOpImage extends Scale2OpImage {
             }
         }
     }
+
+    private final static int checkPos(int pos, int overflowPos) {
+        // In some rare corner-cases the scaling computation  approximations
+        // can result into having posX + posY equal to the databuffer length.
+        // Let's round it back to the last valid pixel
+        return  (!DATABUFFER_WORKAROUND || pos != overflowPos) ? pos : pos - 1;
+    }
+
 }
