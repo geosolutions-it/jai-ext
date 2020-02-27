@@ -30,6 +30,7 @@ import java.awt.event.MouseMotionAdapter;
 import java.awt.image.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 import javax.imageio.ImageIO;
 import javax.media.jai.*;
@@ -80,10 +81,29 @@ public class ImageViewer extends JPanel
     public ImageViewer()
     {
         setLayout(new BorderLayout());
-
+        JPanel buttonBar = new JPanel();
+        buttonBar.setLayout(new FlowLayout(FlowLayout.LEFT));
         // build the button bar
-        JButton zoomIn = new JButton("Zoom in");
-        JButton zoomOut = new JButton("Zoom out");
+        String [] zooms = new String[]{"in", "out"};
+        for (String zoom: zooms) {
+            String alternativeText = "Zoom " + zoom;
+            String zoomIconName = "zoom-" + zoom + ".png";
+            JButton zoomButton = createDecoratedButton(alternativeText, alternativeText, zoomIconName);
+            double scale = zoom.equalsIgnoreCase("in") ? 2.0 : 0.5;
+            zoomButton.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e)
+                {
+                    display.setScale(display.getScale() * scale);
+                    if (relatedViewer != null)
+                    {
+                        relatedViewer.display.setScale(relatedViewer.display.getScale() * scale);
+                    }
+                }
+
+            });
+            buttonBar.add(zoomButton);
+        }
         tileGrid = new JCheckBox("Tile grid");
         tileGrid.setToolTipText("Toggle Tile Grid");
         tileGrid.setRolloverEnabled(false);
@@ -93,16 +113,21 @@ public class ImageViewer extends JPanel
         rescaleValues.setToolTipText("When needed, rescale image to byte values for viewing. " +
                 "(Pixel value at mouse position will still show raw value)");
         rescaleValues.setRolloverEnabled(false);
-        JButton save = new JButton("Save...");
-        save.setToolTipText("Save whole image to png/tif");
-        final JButton showChain = new JButton("Show chain in separate window");
-        showChain.setToolTipText("Open a new viewer with the current image as root of the processing chain");
-        final JButton showDump = new JButton("Chain As Text");
-        showDump.setToolTipText("Show the processing chain dumped as textual info");
-        JPanel buttonBar = new JPanel();
-        buttonBar.setLayout(new FlowLayout(FlowLayout.LEFT));
-        buttonBar.add(zoomIn);
-        buttonBar.add(zoomOut);
+        JButton save = createDecoratedButton(
+                "Save",
+                "Save whole image to png/tif",
+                "save.png"
+        );
+        JButton showChain = createDecoratedButton(
+                "Show chain in separate window",
+                "Open a new viewer with the current image as root of the processing chain",
+                "other-window.png"
+        );
+        JButton showDump = createDecoratedButton(
+                "Chain As Text",
+                "Show the processing chain dumped as textual info",
+                "chain-text.png"
+        );
         buttonBar.add(tileGrid);
         buttonBar.add(roiSync);
         buttonBar.add(rescaleValues);
@@ -127,30 +152,6 @@ public class ImageViewer extends JPanel
         add(status, BorderLayout.SOUTH);
 
         // events
-        zoomIn.addActionListener(new ActionListener()
-            {
-                public void actionPerformed(ActionEvent e)
-                {
-                    display.setScale(display.getScale() * 2.0);
-                    if (relatedViewer != null)
-                    {
-                        relatedViewer.display.setScale(relatedViewer.display.getScale() * 2.0);
-                    }
-                }
-
-            });
-        zoomOut.addActionListener(new ActionListener()
-            {
-                public void actionPerformed(ActionEvent e)
-                {
-                    display.setScale(display.getScale() / 2.0);
-                    if (relatedViewer != null)
-                    {
-                        relatedViewer.display.setScale(relatedViewer.display.getScale() / 2.0);
-                    }
-                }
-
-            });
         tileGrid.addChangeListener(new ChangeListener()
             {
 
@@ -378,6 +379,24 @@ public class ImageViewer extends JPanel
                 }
 
             });
+    }
+
+    private JButton createDecoratedButton(String alternativeText, String toolTipText, String iconResourceName) {
+        JButton button = new JButton();
+        Image icon = null;
+        try {
+            InputStream inputStream = getClass()
+                    .getClassLoader().getResourceAsStream(iconResourceName);
+            icon = ImageIO.read(inputStream);
+            button.setIcon(new ImageIcon(icon));
+            inputStream.close();
+
+        } catch (IOException e) {
+            // Set text
+            button.setText(alternativeText);
+        }
+        button.setToolTipText(toolTipText);
+        return button;
     }
 
     public void setImage(RenderedImage image)

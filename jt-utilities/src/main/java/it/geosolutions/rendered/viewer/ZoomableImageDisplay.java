@@ -131,15 +131,17 @@ class ZoomableImageDisplay extends JPanel
 
     private void refreshComponent(RenderedImage image)
     {
-        int w = (int) Math.ceil(image.getWidth() * scale);
-        int h = (int) Math.ceil(image.getHeight() * scale);
-        int minX = (int) Math.ceil(image.getMinX() * scale);
-        int minY = (int) Math.ceil(image.getMinY() * scale);
-        Insets insets = getInsets();
-        Dimension dim = new Dimension(w + insets.left + insets.right + minX, h +
-                insets.top + insets.bottom + minY);
+        if (image != null) {
+            int w = (int) Math.ceil(image.getWidth() * scale);
+            int h = (int) Math.ceil(image.getHeight() * scale);
+            int minX = (int) Math.ceil(image.getMinX() * scale);
+            int minY = (int) Math.ceil(image.getMinY() * scale);
+            Insets insets = getInsets();
+            Dimension dim = new Dimension(w + insets.left + insets.right + minX, h +
+                    insets.top + insets.bottom + minY);
 
-        setPreferredSize(dim);
+            setPreferredSize(dim);
+        }
         revalidate();
         repaint();
     }
