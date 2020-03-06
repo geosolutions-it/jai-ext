@@ -39,6 +39,7 @@ import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.util.LinkedList;
 import java.util.ListIterator;
+import java.util.function.Predicate;
 
 import javax.media.jai.PixelAccessor;
 import javax.media.jai.ROI;
@@ -60,6 +61,9 @@ public abstract class ClassBreaksOpImage extends StatisticsOpImage {
     /* no data value */
     protected Double noData;
 
+    /* compute percentages */
+    protected Boolean percentages;
+
     public ClassBreaksOpImage(
             RenderedImage image,
             Integer numClasses,
@@ -70,7 +74,8 @@ public abstract class ClassBreaksOpImage extends StatisticsOpImage {
             Integer yStart,
             Integer xPeriod,
             Integer yPeriod,
-            Double noData) {
+            Double noData,
+            Boolean percentages) {
 
         super(image, roi, xStart, yStart, xPeriod, yPeriod);
 
@@ -78,6 +83,7 @@ public abstract class ClassBreaksOpImage extends StatisticsOpImage {
         this.extrema = extrema;
         this.bands = bands;
         this.noData = noData;
+        this.percentages=percentages;
     }
 
     @Override
@@ -238,4 +244,6 @@ public abstract class ClassBreaksOpImage extends StatisticsOpImage {
         int t = (pos - start) % Period;
         return t == 0 ? pos : pos + (Period - t);
     }
+
+
 }

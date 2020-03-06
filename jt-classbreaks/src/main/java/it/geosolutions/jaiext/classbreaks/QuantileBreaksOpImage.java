@@ -32,12 +32,9 @@
  */
 package it.geosolutions.jaiext.classbreaks;
 
-import java.awt.image.RenderedImage;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.TreeSet;
-
 import javax.media.jai.ROI;
+import java.awt.image.RenderedImage;
+import java.util.*;
 
 /** Classification op for the quantile method. */
 public class QuantileBreaksOpImage extends ClassBreaksOpImage {
@@ -52,8 +49,9 @@ public class QuantileBreaksOpImage extends ClassBreaksOpImage {
             Integer yStart,
             Integer xPeriod,
             Integer yPeriod,
-            Double noData) {
-        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData);
+            Double noData,
+            Boolean percentages) {
+        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData, percentages);
     }
 
     @Override
@@ -82,16 +80,18 @@ public class QuantileBreaksOpImage extends ClassBreaksOpImage {
 
         // get the total number of values
         int nvalues = qc.getCount(band);
-
+        Double dSize = Double.valueOf(nvalues);
         // calculate the number of values per class
         int size = (int) Math.ceil(nvalues / (double) numClasses);
-
+        Map<Double, Integer> valuesMap=  qc.getTable(band);
+        Map<Double, Integer> valuesMapWork = percentages?
+                new TreeMap<> (valuesMap) : null;
         // grab the key iterator
-        Iterator<Map.Entry<Double, Integer>> it = qc.getTable(band).entrySet().iterator();
+        Iterator<Map.Entry<Double, Integer>> it = percentages? valuesMapWork.entrySet().iterator():
+                valuesMap.entrySet().iterator();
 
         TreeSet<Double> set = new TreeSet<Double>();
         Map.Entry<Double, Integer> e = it.next();
-
         while (nvalues > 0) {
             // add the next break
             set.add(e.getKey());
@@ -117,5 +117,16 @@ public class QuantileBreaksOpImage extends ClassBreaksOpImage {
             }
         }
         qc.setBreaks(band, set.toArray(new Double[set.size()]));
+
+        if (this.percentages.booleanValue()) {
+
+            ClassPercentagesManager percentagesManager = new ClassPercentagesManager();
+            int nBreak = set.size();
+            int actualNumClasses = numClasses >= nBreak ? nBreak - 1 : numClasses;
+            double[] percentages = percentagesManager
+                    .getPercentages(valuesMap, new ArrayList<>(set), dSize, actualNumClasses);
+            qc.setPercentages(percentages);
+        }
     }
+
 }

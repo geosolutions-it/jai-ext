@@ -32,23 +32,18 @@
  */
 package it.geosolutions.jaiext.classbreaks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
+import it.geosolutions.jaiext.testclasses.TestBase;
+import it.geosolutions.jaiext.utilities.ImageUtilities;
 import org.junit.Test;
-
-import java.awt.*;
-import java.awt.image.RenderedImage;
-import java.util.Arrays;
 
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.ExtremaDescriptor;
+import java.awt.*;
+import java.awt.image.RenderedImage;
 
-import it.geosolutions.jaiext.JAIExt;
-import it.geosolutions.jaiext.testclasses.TestBase;
-import it.geosolutions.jaiext.utilities.ImageUtilities;
+import static org.junit.Assert.*;
 
 public class ClassBreaksOpImageTest extends TestBase {
 
@@ -202,6 +197,159 @@ public class ClassBreaksOpImageTest extends TestBase {
         assertEquals(16, breaks[2].doubleValue(), EPS);
         assertEquals(26, breaks[3].doubleValue(), EPS);
         assertEquals(53, breaks[4].doubleValue(), EPS);
+    }
+
+
+    @Test
+    public void testNaturalBreaksWithPercentages() throws Exception {
+        RenderedImage image = createImage();
+
+        ParameterBlockJAI pb = new ParameterBlockJAI(new ClassBreaksDescriptor());
+        pb.addSource(image);
+        pb.setParameter("method", ClassificationMethod.NATURAL_BREAKS);
+        pb.setParameter("numClasses", 4);
+        pb.setParameter("percentages",true);
+        RenderedImage op  = JAI.create("ClassBreaks", pb, null);
+        Classification classification =
+                (Classification) op.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
+        assertNotNull(classification);
+        double[] percentages = classification.getPercentages();
+        assertEquals(4, percentages.length);
+        assertTrue(percentages[0]==18.75);
+        assertTrue(percentages[1]==43.75);
+        assertTrue(percentages[2]==12.5);
+        assertTrue(percentages[3]==25.0);
+    }
+
+    @Test
+    public void testNaturalBreaksHistogramWithPercentages() throws Exception {
+        RenderedImage image = createImage();
+
+        ParameterBlockJAI pb = new ParameterBlockJAI(new ClassBreaksDescriptor());
+        pb.addSource(image);
+        pb.setParameter("method", ClassificationMethod.NATURAL_BREAKS);
+        pb.setParameter("numClasses", 4);
+        pb.setParameter("extrema", getExtrema(image));
+        pb.setParameter("histogram", true);
+        pb.setParameter("histogramBins", 100);
+        pb.setParameter("percentages",true);
+        RenderedImage op  = JAI.create("ClassBreaks", pb, null);
+        Classification classification =
+                (Classification) op.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
+        assertNotNull(classification);
+        double[] percentages = classification.getPercentages();
+        assertEquals(4, percentages.length);
+        assertTrue(percentages[0]==18.75);
+        assertTrue(percentages[1]==43.75);
+        assertTrue(percentages[2]==12.5);
+        assertTrue(percentages[3]==25.0);
+    }
+
+    @Test
+    public void testQuantileBreaksWithPercentages() throws Exception {
+        RenderedImage image = createImage();
+
+        ParameterBlockJAI pb = new ParameterBlockJAI(new ClassBreaksDescriptor());
+        pb.addSource(image);
+        pb.setParameter("method", ClassificationMethod.QUANTILE);
+        pb.setParameter("numClasses", 4);
+        pb.setParameter("percentages",true);
+        RenderedImage op  = JAI.create("ClassBreaks", pb, null);
+        Classification classification =
+                (Classification) op.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
+        assertNotNull(classification);
+        double[] percentages = classification.getPercentages();
+        assertEquals(percentages.length, 4);
+        assertTrue(percentages[0]== 18.75);
+        assertTrue(percentages[1]== 31.25);
+        assertTrue(percentages[2]== 25.0);
+        assertTrue(percentages[3]== 25.0);
+    }
+
+    @Test
+    public void testQuantileBreaksPercentagesMoreClassesThaIntervals(){
+        RenderedImage image = ImageUtilities.createImageFromArray(
+                new Number[] {1,1,1,1,1,1,1,1,8,8,8,8,3,3,3,3}, 4, 4);
+        ParameterBlockJAI pb = new ParameterBlockJAI(new ClassBreaksDescriptor());
+        pb.addSource(image);
+        pb.setParameter("method", ClassificationMethod.QUANTILE);
+        pb.setParameter("numClasses", 5);
+        pb.setParameter("percentages",true);
+        RenderedImage op  = JAI.create("ClassBreaks", pb, null);
+        Classification classification =
+                (Classification) op.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
+        assertNotNull(classification);
+        double[] percentages = classification.getPercentages();
+        assertEquals(percentages.length, 2);
+        assertTrue(percentages[0]==50.0);
+        assertTrue(percentages[1]==50.0);
+    }
+
+    @Test
+    public void testQuantileBreaksHistogramWithPercentages() throws Exception {
+        RenderedImage image = createImage();
+        ParameterBlockJAI pb = new ParameterBlockJAI(new ClassBreaksDescriptor());
+        pb.addSource(image);
+        pb.setParameter("method", ClassificationMethod.QUANTILE);
+        pb.setParameter("numClasses", 4);
+        pb.setParameter("extrema", getExtrema(image));
+        pb.setParameter("histogram", true);
+        pb.setParameter("histogramBins", 100);
+        pb.setParameter("percentages",true);
+        RenderedImage op  = JAI.create("ClassBreaks", pb, null);
+        Classification classification =
+                (Classification) op.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
+        assertNotNull(classification);
+        double[] percentages = classification.getPercentages();
+        assertEquals(percentages.length, 4);
+        assertTrue(percentages[0]== 31.25);
+        assertTrue(percentages[1]== 18.75);
+        assertTrue(percentages[2]== 25.0);
+        assertTrue(percentages[3]== 25.0);
+    }
+
+    @Test
+    public void testQuantileBreaksHistogramsPercentagesMoreClassesThaIntervals(){
+        RenderedImage image2 = ImageUtilities.createImageFromArray(
+                new Number[] {1,1,1,1,1,1,1,1,8,8,8,8,11,11,11,16}, 4, 4);
+        ParameterBlockJAI pb2 = new ParameterBlockJAI(new ClassBreaksDescriptor());
+        pb2.addSource(image2);
+        pb2.setParameter("method", ClassificationMethod.QUANTILE);
+        pb2.setParameter("numClasses", 5);
+        pb2.setParameter("extrema", getExtrema(image2));
+        pb2.setParameter("histogram", true);
+        pb2.setParameter("histogramBins", 100);
+        pb2.setParameter("percentages",true);
+        RenderedImage op2  = JAI.create("ClassBreaks", pb2, null);
+        Classification classification2 =
+                (Classification) op2.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
+        assertNotNull(classification2);
+        double[] percentages2 = classification2.getPercentages();
+        assertEquals(percentages2.length, 3);
+        assertTrue(percentages2[0]==50.0);
+        assertTrue(percentages2[1]==25.0);
+        assertTrue(percentages2[2]==25.0);
+    }
+
+    @Test
+    public void testEqualIntervalBreaksWithPercentages() throws Exception {
+        RenderedImage image = createImage();
+
+        ParameterBlockJAI pb = new ParameterBlockJAI(new ClassBreaksDescriptor());
+        pb.addSource(image);
+        pb.setParameter("method", ClassificationMethod.EQUAL_INTERVAL);
+        pb.setParameter("numClasses", 4);
+        pb.setParameter("percentages",true);
+        RenderedImage op  = JAI.create("ClassBreaks", pb, null);
+        Classification classification =
+                (Classification) op.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
+        assertNotNull(classification);
+        double[] percentages = classification.getPercentages();
+        assertEquals(percentages.length, 4);
+        assertTrue(percentages[0]== 56.25);
+        assertTrue(percentages[1]== 31.25);
+        assertTrue(percentages[2]== 0.0);
+        assertTrue(percentages[3]== 12.5);
     }
 
     private Double[][] getExtrema(RenderedImage image) {

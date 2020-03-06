@@ -32,12 +32,11 @@
  */
 package it.geosolutions.jaiext.classbreaks;
 
-import java.awt.image.RenderedImage;
-import java.util.List;
+import it.geosolutions.jaiext.classbreaks.HistogramClassification.Bucket;
 
 import javax.media.jai.ROI;
-
-import it.geosolutions.jaiext.classbreaks.HistogramClassification.Bucket;
+import java.awt.image.RenderedImage;
+import java.util.List;
 
 /** Classification op for the natural breaks method. */
 public class NaturalBreaksHistogramOpImage extends ClassBreaksOpImage {
@@ -55,8 +54,9 @@ public class NaturalBreaksHistogramOpImage extends ClassBreaksOpImage {
             Integer xPeriod,
             Integer yPeriod,
             Double noData,
-            int numBins) {
-        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData);
+            int numBins,
+            Boolean percentages) {
+        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData, percentages);
         this.numBins = numBins;
     }
 
@@ -166,5 +166,13 @@ public class NaturalBreaksHistogramOpImage extends ClassBreaksOpImage {
         }
         breaks[0] = buckets.get(0).getMin();
         hc.setBreaks(band, breaks);
+        if (percentages.booleanValue()) {
+            int actualClassNumber =  k>breaks.length?breaks.length-1:k;
+            ClassPercentagesManager percentagesManager = new ClassPercentagesManager();
+            double [] percentages = percentagesManager.getPercentages(buckets, breaks, actualClassNumber);
+            hc.setPercentages(percentages);
+        }
     }
+
+
 }

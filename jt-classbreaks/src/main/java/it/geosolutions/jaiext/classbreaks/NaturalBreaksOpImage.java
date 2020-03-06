@@ -32,11 +32,10 @@
  */
 package it.geosolutions.jaiext.classbreaks;
 
+import javax.media.jai.ROI;
 import java.awt.image.RenderedImage;
 import java.util.Collections;
 import java.util.List;
-
-import javax.media.jai.ROI;
 
 /** Classification op for the natural breaks method. */
 public class NaturalBreaksOpImage extends ClassBreaksOpImage {
@@ -51,8 +50,9 @@ public class NaturalBreaksOpImage extends ClassBreaksOpImage {
             Integer yStart,
             Integer xPeriod,
             Integer yPeriod,
-            Double noData) {
-        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData);
+            Double noData,
+            Boolean percentages) {
+        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData, percentages);
     }
 
     @Override
@@ -159,5 +159,10 @@ public class NaturalBreaksOpImage extends ClassBreaksOpImage {
         }
         breaks[0] = data.get(0);
         nc.setBreaks(band, breaks);
+        if (percentages.booleanValue()) {
+            ClassPercentagesManager percentagesManager = new ClassPercentagesManager();
+            double [] percentages = percentagesManager.getPercentages(data, breaks, m, k);
+            nc.setPercentages(percentages);
+        }
     }
 }
