@@ -16,16 +16,11 @@
 * limitations under the License.
 */
 package it.geosolutions.jaiext.bandselect;
-import java.awt.image.ColorModel;
-import java.awt.image.DataBuffer;
-import java.awt.image.PixelInterleavedSampleModel;
-import java.awt.image.Raster;
-import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
-import java.awt.image.SinglePixelPackedSampleModel;
-import java.awt.image.WritableRaster;
+import java.awt.*;
+import java.awt.image.*;
 import java.util.Map;
 
+import javax.media.jai.ComponentSampleModelJAI;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.PointOpImage;
 
@@ -46,6 +41,9 @@ import com.sun.media.jai.util.JDKWorkarounds;
  */
 @SuppressWarnings("unchecked")
 public class BandSelectOpImage extends PointOpImage {
+
+    private final static boolean DATABUFFER_WORKAROUND =
+            Boolean.valueOf(System.getProperty("it.geosolutions.jaiext.databuffer.workaround", "true"));
 
     // Set if the source has a SinglePixelPackedSampleModel and
     // bands.length < 3.
@@ -68,12 +66,17 @@ public class BandSelectOpImage extends PointOpImage {
         // ColorSpace.TYPE_RGB. Therefore if there are fewer than 3 bands
         // a data copy is obligatory if a ColorModel will be possible.
         SampleModel sm = null;
-        if(sourceSM instanceof SinglePixelPackedSampleModel && numBands < 3) {
+        if (sourceSM instanceof SinglePixelPackedSampleModel && numBands < 3) {
             sm = new PixelInterleavedSampleModel(
                      DataBuffer.TYPE_BYTE,
                      sourceSM.getWidth(), sourceSM.getHeight(),
                      numBands, sourceSM.getWidth()*numBands,
                      numBands == 1 ? new int[] {0} : new int[] {0, 1});
+        } else if (DATABUFFER_WORKAROUND && sourceSM instanceof ComponentSampleModelJAI) {
+            // Do not use standard method. Let's create a subSampleModel
+            // using an internal method to keep into account
+            // pixelStride/lineStride adjustments
+            sm = createSubSampleComponentSampleModel(sourceSM, bandIndices);
         } else {
             sm = sourceSM.createSubsetSampleModel(bandIndices);
         }
@@ -96,12 +99,52 @@ public class BandSelectOpImage extends PointOpImage {
         return il;
     }
 
+    private static SampleModel createSubSampleComponentSampleModel(SampleModel sourceSM, int[] bandIndices) {
+        ComponentSampleModelJAI csm = (ComponentSampleModelJAI) sourceSM;
+        // These same checks are made in PlanarImage's getData code
+        int[] bankIndices = csm.getBankIndices();
+        int[] bandOffsets = csm.getBandOffsets();
+        int numBands = bandIndices.length;
+        int pixelStride = csm.getPixelStride();
+        int scanlineStride = csm.getScanlineStride();
+        boolean isBandInt = pixelStride == 1 && numBands > 1;
+        boolean isBandChild = pixelStride > 1 && numBands != pixelStride;
+        boolean fastCobbleIsPossible = false;
+        if (!isBandChild && !isBandInt) {
+            int i;
+            for(i = 0; i < numBands && bandOffsets[i] < numBands; ++i) { }
+            if (i == numBands) {
+                fastCobbleIsPossible = true;
+            }
+        }
+
+        if (pixelStride > bandIndices.length && !fastCobbleIsPossible) {
+            // Future PlanarImage getData and getTile calls
+            // will internally create a destination raster
+            // with a number of bands equal to the number of selected bands
+            // which may result into ArrayIndexOutOfBounds exception if
+            // not updating pixelStride and scanlineStride accordingly
+            scanlineStride/= pixelStride;
+            pixelStride = bandIndices.length;
+            scanlineStride*= pixelStride;
+        }
+        int newBankIndices[] = new int[bandIndices.length];
+        int newBandOffsets[] = new int[bandIndices.length];
+        for (int  i = 0; i<bandIndices.length; i++) {
+            int b = bandIndices[i];
+            newBankIndices[i] = bankIndices[b];
+            newBandOffsets[i] = bandOffsets[b];
+        }
+        return new ComponentSampleModelJAI(csm.getDataType(), csm.getWidth(), csm.getHeight(),
+            pixelStride, scanlineStride, newBankIndices, newBandOffsets);
+    }
+
     /**
      * Constructor.
      *
      * @param source       The source image.
      * @param layout       The destination image layout.
-     * @param bands  The selected band indices of the source.
+     * @param bandIndices  The selected band indices of the source.
      *                     The number of bands of the destination is
      *                     determined by <code>bands.length</code>.
      */
@@ -138,11 +181,28 @@ public class BandSelectOpImage extends PointOpImage {
 
             return raster;
         } else {
-            // Simply return a child of the corresponding source tile.
-            return tile.createChild(tile.getMinX(), tile.getMinY(),
-                                    tile.getWidth(), tile.getHeight(),
-                                    tile.getMinX(), tile.getMinY(),
-                                    bands);
+
+            Raster raster =  tile.createChild(tile.getMinX(), tile.getMinY(),
+                            tile.getWidth(), tile.getHeight(),
+                            tile.getMinX(), tile.getMinY(),
+                            bands);
+
+            SampleModel sm = getSampleModel();
+            SampleModel dataSampleModel = raster.getSampleModel();
+            if (DATABUFFER_WORKAROUND && dataSampleModel instanceof ComponentSampleModelJAI && sm instanceof ComponentSampleModelJAI) {
+                int opPixelStride = ((ComponentSampleModel) dataSampleModel).getPixelStride();
+                int tilePixelStride = ((ComponentSampleModel) sm).getPixelStride();
+                if (opPixelStride != tilePixelStride) {
+                    // Adopt same code internally used by PlanarImage's getData to make sure to
+                    // respect actual pixelStrides to avoid ArrayIndexOutOfBounds exception
+                    // or some weirdness in accessing bad bands
+                    sm = dataSampleModel.createCompatibleSampleModel(raster.getWidth(), raster.getHeight());
+                    WritableRaster destinationRaster = this.createWritableRaster(sm, new Point(raster.getMinX(), raster.getMinY()));
+                    JDKWorkarounds.setRect(destinationRaster, raster);
+                    raster = destinationRaster;
+                }
+            }
+            return raster;
         }
     }
 
