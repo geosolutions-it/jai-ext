@@ -37,7 +37,10 @@ import it.geosolutions.jaiext.classbreaks.HistogramClassification.Bucket;
 
 import javax.media.jai.ROI;
 import java.awt.image.RenderedImage;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Classification op for the quantile method, using histograms instead of a fully developed list of
@@ -111,12 +114,8 @@ public class QuantileBreaksHistogramOpImage extends ClassBreaksOpImage {
     }
 
     private double[] getPercentages(List<Double> tBreaks, List<Bucket> buckets, int nvalues, int numClasses) {
-        Map<Double, Integer> values = new HashMap<>();
-        for (Bucket b : buckets) {
-            values.put(b.getMin(), b.getCount());
-        }
         ClassPercentagesManager percentagesManager = new ClassPercentagesManager();
-        return percentagesManager.getPercentages(values, tBreaks, nvalues, numClasses);
+        return percentagesManager.getPercentages(buckets, tBreaks, numClasses);
     }
 
 }

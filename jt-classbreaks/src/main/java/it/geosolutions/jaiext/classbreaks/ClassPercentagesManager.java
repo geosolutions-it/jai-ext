@@ -5,15 +5,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static java.lang.Double.NaN;
+
 /**
  * This class gathers method for percentages' computation for natural breaks,
  * quantile and equal interval classifications
  */
-public class ClassPercentagesManager {
+class ClassPercentagesManager {
 
 
-    //Quantile
-    public double[] getPercentages(Map<Double, Integer> data, List<Double> breaks, double nValues, int numClasses) {
+    // Quantile
+    double[] getPercentages(Map<Double, Integer> data, List<Double> breaks, double nValues, int numClasses) {
         double[] percentages = new double[numClasses];
         Set<Double> keys = data.keySet();
         for (int i = 0; i < numClasses; i++) {
@@ -44,51 +46,9 @@ public class ClassPercentagesManager {
         return classMembersCount;
     }
 
-
-    // histogram natural breaks
-    public double[] getPercentages(List<HistogramClassification.Bucket> buckets,
-                                   Double[] breaks, int numClasses) {
-        double[] percentages = new double[numClasses];
-        int totalSize = 0;
-        for (int i = 0; i < buckets.size(); i++) {
-            totalSize += buckets.get(i).getCount();
-        }
-        int bucketSize = buckets.size();
-        for (int i = 0; i < numClasses; i++) {
-            double current = breaks[i];
-            double next = breaks[i + 1];
-            boolean last = numClasses == i + 1;
-            double classMembers;
-            if (last) {
-                classMembers = getClassMembersCount(bucketSize, b -> b.getMax() >= current
-                        && b.getMax() <= next, buckets);
-            } else if (i == 0) {
-                classMembers = getClassMembersCount(bucketSize, b -> b.getMin() >= current
-                        && b.getMin() < next, buckets);
-            } else {
-                classMembers = getClassMembersCount(bucketSize, b -> b.getAverage() >= current
-                        && b.getAverage() < next, buckets);
-            }
-            percentages[i] = (classMembers / totalSize) * 100;
-        }
-        return percentages;
-    }
-
-    private double getClassMembersCount(int bucketSize, Predicate<HistogramClassification.Bucket> predicate, List<HistogramClassification.Bucket> buckets) {
-        int classMembers = 0;
-        for (int i = 0; i < bucketSize; i++) {
-            HistogramClassification.Bucket b = buckets.get(i);
-            if (predicate.test(b)) {
-                classMembers += b.getCount();
-            }
-        }
-        return classMembers;
-    }
-
-
     // Natural Breaks and Equal Interval
-    public double[] getPercentages(List<Double> data, Double[] breaks,
-                                   double totalSize, int numClasses) {
+    double[] getPercentages(List<Double> data, Double[] breaks,
+                            double totalSize, int numClasses) {
         double[] percentages = new double[numClasses];
         for (int i = 0; i < numClasses; i++) {
             double current = breaks[i];
@@ -117,5 +77,68 @@ public class ClassPercentagesManager {
         }
         return classMembers;
     }
+
+    // histogram natural breaks and quantile
+    double[] getPercentages(List<HistogramClassification.Bucket> buckets,
+                            List<Double> breaks, int numClasses) {
+        double[] percentages = new double[numClasses];
+        double[] arClassMembers = new double[numClasses];
+        int totalSize = 0;
+        for (int i = 0; i < buckets.size(); i++) {
+            HistogramClassification.Bucket b = buckets.get(i);
+            totalSize += b.getCount();
+            getClassMembersCount(numClasses, breaks, arClassMembers, b);
+        }
+        for (int i = 0; i < numClasses; i++) {
+            percentages[i] = (arClassMembers[i] / totalSize) * 100;
+        }
+        return percentages;
+    }
+
+    private void getClassMembersCount(int numClasses,
+                                      List<Double> breaks,
+                                      double[] arClassMembers,
+                                      HistogramClassification.Bucket b) {
+        int bucketCount = b.getCount();
+        for (int i = 0; i < numClasses; i++) {
+            double current = breaks.get(i);
+            double next = breaks.get(i + 1);
+            boolean last = i + 1 == numClasses;
+            Double overlapping;
+            if (last) {
+                overlapping = getOverlappingPercentages(current, next, b.getMin(), b.getMax());
+            } else {
+                overlapping = getOverlappingPercentages(current, Math.nextDown(next), b.getMin(), b.getMax());
+            }
+            if (overlapping.doubleValue() == 1.0) {
+                arClassMembers[i] += bucketCount;
+            } else if (overlapping.doubleValue() == 0.0) {
+                arClassMembers[i] += 0.0;
+            } else {
+                double classMembers = overlapping * bucketCount;
+                arClassMembers[i] += classMembers;
+            }
+        }
+    }
+
+
+    private Double getOverlappingPercentages(double cMin, double cMax,
+                                             double bMin, double bMax) {
+        if (cMin > bMax || cMax < bMin) {
+            return 0.0;
+        }
+        double regionMin = Math.max(cMin, bMin);
+        double regionMax = Math.min(cMax, bMax);
+        double dividend = regionMax - regionMin;
+        double divider = bMax - bMin;
+        if (divider == 0.0) {
+            // bucket min and max are equal, handling 0 divider case
+            if (dividend == 0.0) {
+                return 1.0;
+            } else return 0.0;
+        } else
+            return dividend / divider;
+    }
+
 
 }

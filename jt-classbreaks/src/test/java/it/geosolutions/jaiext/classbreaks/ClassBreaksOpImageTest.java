@@ -42,6 +42,7 @@ import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.ExtremaDescriptor;
 import java.awt.*;
 import java.awt.image.RenderedImage;
+import java.util.stream.DoubleStream;
 
 import static org.junit.Assert.*;
 
@@ -231,6 +232,29 @@ public class ClassBreaksOpImageTest extends TestBase {
         pb.setParameter("numClasses", 4);
         pb.setParameter("extrema", getExtrema(image));
         pb.setParameter("histogram", true);
+        pb.setParameter("histogramBins", 4);
+        pb.setParameter("percentages",true);
+        RenderedImage op  = JAI.create("ClassBreaks", pb, null);
+        Classification classification =
+                (Classification) op.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
+        assertNotNull(classification);
+        double[] percentages = classification.getPercentages();
+        assertEquals(3, percentages.length);
+        assertTrue(Math.floor(percentages[0])==56.0);
+        assertTrue(percentages[1]==31.25);
+        assertTrue(percentages[2]==12.5);
+    }
+
+    @Test
+    public void testNaturalBreaksWithPercentagesMoreClassesThanIntervals() throws Exception {
+        RenderedImage image = createImage();
+
+        ParameterBlockJAI pb = new ParameterBlockJAI(new ClassBreaksDescriptor());
+        pb.addSource(image);
+        pb.setParameter("method", ClassificationMethod.NATURAL_BREAKS);
+        pb.setParameter("numClasses", 11);
+        pb.setParameter("extrema", getExtrema(image));
+        pb.setParameter("histogram", true);
         pb.setParameter("histogramBins", 100);
         pb.setParameter("percentages",true);
         RenderedImage op  = JAI.create("ClassBreaks", pb, null);
@@ -238,11 +262,40 @@ public class ClassBreaksOpImageTest extends TestBase {
                 (Classification) op.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
         assertNotNull(classification);
         double[] percentages = classification.getPercentages();
-        assertEquals(4, percentages.length);
-        assertTrue(percentages[0]==18.75);
-        assertTrue(percentages[1]==43.75);
-        assertTrue(percentages[2]==12.5);
-        assertTrue(percentages[3]==25.0);
+        assertEquals(6, percentages.length);
+        assertTrue(percentages[0]==12.5);
+        assertTrue(percentages[1]==18.75);
+        assertTrue(percentages[2]==18.75);
+        assertTrue(percentages[3]==12.5);
+        assertTrue(percentages[4]==12.5);
+        assertTrue(percentages[5]==25.0);
+    }
+
+
+    @Test
+    public void testNaturalBreaksHistogramWithPercentagesMoreClassesThanIntervals() throws Exception {
+        RenderedImage image = createImage();
+
+        ParameterBlockJAI pb = new ParameterBlockJAI(new ClassBreaksDescriptor());
+        pb.addSource(image);
+        pb.setParameter("method", ClassificationMethod.NATURAL_BREAKS);
+        pb.setParameter("numClasses", 11);
+        pb.setParameter("extrema", getExtrema(image));
+        pb.setParameter("histogram", true);
+        pb.setParameter("histogramBins", 100);
+        pb.setParameter("percentages",true);
+        RenderedImage op  = JAI.create("ClassBreaks", pb, null);
+        Classification classification =
+                (Classification) op.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
+        assertNotNull(classification);
+        double[] percentages = classification.getPercentages();
+        assertEquals(6, percentages.length);
+        assertTrue(percentages[0]==12.5);
+        assertTrue(percentages[1]==18.75);
+        assertTrue(percentages[2]==18.75);
+        assertTrue(percentages[3]==12.5);
+        assertTrue(percentages[4]==12.5);
+        assertTrue(percentages[5]==25.0);
     }
 
     @Test

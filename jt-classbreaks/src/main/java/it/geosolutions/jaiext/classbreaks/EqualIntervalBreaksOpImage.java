@@ -32,10 +32,9 @@
  */
 package it.geosolutions.jaiext.classbreaks;
 
+import javax.media.jai.ROI;
 import java.awt.image.RenderedImage;
 import java.util.List;
-
-import javax.media.jai.ROI;
 
 /** Classification op for the equal interval method. */
 public class EqualIntervalBreaksOpImage extends ClassBreaksOpImage {
