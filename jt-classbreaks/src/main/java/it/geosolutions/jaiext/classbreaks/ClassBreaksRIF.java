@@ -32,23 +32,14 @@
  */
 package it.geosolutions.jaiext.classbreaks;
 
-import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.BAND_ARG;
-import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.EXTREMA_ARG;
-import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.HISTOGRAM_ARG;
-import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.HISTOGRAM_BINS;
-import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.METHOD_ARG;
-import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.NODATA_ARG;
-import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.NUM_CLASSES_ARG;
-import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.ROI_ARG;
-import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.X_PERIOD_ARG;
-import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.Y_PERIOD_ARG;
-
 import java.awt.*;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 
 import javax.media.jai.CRIFImpl;
 import javax.media.jai.ROI;
+
+import static it.geosolutions.jaiext.classbreaks.ClassBreaksDescriptor.*;
 
 /**
  * RIF for the ClassBreaks operation.
@@ -81,6 +72,7 @@ public class ClassBreaksRIF extends CRIFImpl {
         Integer xPeriod = pb.getIntParameter(X_PERIOD_ARG);
         Integer yPeriod = pb.getIntParameter(Y_PERIOD_ARG);
         Double noData = (Double) pb.getObjectParameter(NODATA_ARG);
+        Boolean percentages = (Boolean) pb.getObjectParameter(PERCENTAGES_ARG);
         Boolean histogram = false;
         if (pb.getNumParameters() >= 9) {
             histogram = (Boolean) pb.getObjectParameter(HISTOGRAM_ARG);
@@ -93,7 +85,7 @@ public class ClassBreaksRIF extends CRIFImpl {
             case EQUAL_INTERVAL:
                 return new EqualIntervalBreaksOpImage(
                         src, numBins, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod,
-                        noData);
+                        noData, percentages);
             case QUANTILE:
                 if (histogram) {
                     return new QuantileBreaksHistogramOpImage(
@@ -107,11 +99,12 @@ public class ClassBreaksRIF extends CRIFImpl {
                             xPeriod,
                             yPeriod,
                             noData,
-                            histogramBins);
+                            histogramBins,
+                            percentages);
                 } else {
                     return new QuantileBreaksOpImage(
                             src, numBins, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod,
-                            noData);
+                            noData, percentages);
                 }
             case NATURAL_BREAKS:
                 if (histogram) {
@@ -126,11 +119,12 @@ public class ClassBreaksRIF extends CRIFImpl {
                             xPeriod,
                             yPeriod,
                             noData,
-                            histogramBins);
+                            histogramBins,
+                            percentages);
                 } else {
                     return new NaturalBreaksOpImage(
                             src, numBins, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod,
-                            noData);
+                            noData, percentages);
                 }
             default:
                 throw new IllegalArgumentException(method.name());

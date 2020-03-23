@@ -32,9 +32,9 @@
  */
 package it.geosolutions.jaiext.classbreaks;
 
-import java.awt.image.RenderedImage;
-
 import javax.media.jai.ROI;
+import java.awt.image.RenderedImage;
+import java.util.List;
 
 /** Classification op for the equal interval method. */
 public class EqualIntervalBreaksOpImage extends ClassBreaksOpImage {
@@ -49,14 +49,18 @@ public class EqualIntervalBreaksOpImage extends ClassBreaksOpImage {
             Integer yStart,
             Integer xPeriod,
             Integer yPeriod,
-            Double noData) {
+            Double noData,
+            Boolean percentages) {
 
-        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData);
+        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData, percentages);
     }
 
     @Override
     protected Classification createClassification() {
-        return new Classification(ClassificationMethod.EQUAL_INTERVAL, bands.length);
+        if (!percentages)
+            return new Classification(ClassificationMethod.EQUAL_INTERVAL, bands.length);
+        else
+            return new NaturalClassification(ClassificationMethod.EQUAL_INTERVAL, bands.length);
     }
 
     @Override
@@ -84,6 +88,9 @@ public class EqualIntervalBreaksOpImage extends ClassBreaksOpImage {
     protected void handleValue(double d, Classification c, int band) {
         c.setMin(band, c.getMin(band) == null ? d : Math.min(c.getMin(band), d));
         c.setMax(band, c.getMax(band) == null ? d : Math.max(c.getMax(band), d));
+        // NaturalClassification allows to add values in order to reach them
+        // later when computing percentages
+        if (percentages) ((NaturalClassification) c).count(d, band);
     }
 
     @Override
@@ -108,5 +115,15 @@ public class EqualIntervalBreaksOpImage extends ClassBreaksOpImage {
         // last value
         breaks[numClasses] = max;
         c.setBreaks(band, breaks);
+        if (percentages) {
+            c.setPercentages(getPercentages(c, band, breaks));
+        }
+    }
+
+    private double[] getPercentages(Classification c, int band, Double[] breaks) {
+        ClassPercentagesManager percentagesManager = new ClassPercentagesManager();
+        List<Double> data = ((NaturalClassification) c).getValues(band);
+        return percentagesManager
+                .getPercentages(data, breaks, data.size(), numClasses);
     }
 }

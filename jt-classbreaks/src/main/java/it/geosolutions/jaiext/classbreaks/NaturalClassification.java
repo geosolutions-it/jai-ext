@@ -48,6 +48,14 @@ public class NaturalClassification extends Classification {
         }
     }
 
+    public NaturalClassification(ClassificationMethod method, int numBands) {
+        super(method, numBands);
+        values = new List[numBands];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = new ArrayList<>();
+        }
+    }
+
     public void count(double value, int band) {
         values[band].add(value);
     }

@@ -32,14 +32,18 @@
  */
 package it.geosolutions.jaiext.classbreaks;
 
-import java.awt.image.RenderedImage;
-import java.util.List;
-
-import javax.media.jai.ROI;
-
 import it.geosolutions.jaiext.classbreaks.HistogramClassification.Bucket;
 
-/** Classification op for the natural breaks method. */
+import javax.media.jai.ROI;
+import java.awt.image.RenderedImage;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.TreeSet;
+
+/**
+ * Classification op for the natural breaks method.
+ */
 public class NaturalBreaksHistogramOpImage extends ClassBreaksOpImage {
 
     int numBins;
@@ -55,8 +59,9 @@ public class NaturalBreaksHistogramOpImage extends ClassBreaksOpImage {
             Integer xPeriod,
             Integer yPeriod,
             Double noData,
-            int numBins) {
-        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData);
+            int numBins,
+            Boolean percentages) {
+        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData, percentages);
         this.numBins = numBins;
     }
 
@@ -77,15 +82,16 @@ public class NaturalBreaksHistogramOpImage extends ClassBreaksOpImage {
 
         final int k = numClasses;
         final int m = buckets.size();
-
+        TreeSet<Double> breaks = new TreeSet<Double>();
         if (k >= m) {
+            Double[] arrBreaks = new Double[m + 1];
             // just return all the values
-            Double[] breaks = new Double[m + 1];
             for (int i = 0; i < m; i++) {
-                breaks[i] = buckets.get(i).getMin();
+                arrBreaks[i] = buckets.get(i).getMin();
             }
-            breaks[m] = buckets.get(m - 1).getMax();
-            c.setBreaks(band, breaks);
+            arrBreaks[m] = buckets.get(m - 1).getMax();
+            c.setBreaks(band, arrBreaks);
+            setPercentages(k, arrBreaks.length, buckets, Arrays.asList(arrBreaks), c);
             return;
         }
 
@@ -153,18 +159,29 @@ public class NaturalBreaksHistogramOpImage extends ClassBreaksOpImage {
             work[i][1] = var;
         }
 
-        Double[] breaks = new Double[k + 1];
-
         // go through matrix and extract class breaks
         int ik = m - 1;
-        breaks[k] = buckets.get(ik).getMax();
+        breaks.add(buckets.get(ik).getMax());
         for (int j = k; j >= 2; j--) {
             int id =
                     (int) iwork[ik][j] - 1; // subtract one as we want inclusive breaks on the left?
-            breaks[j - 1] = buckets.get(id).getAverage();
+            breaks.add(buckets.get(id).getAverage());
             ik = (int) iwork[ik][j] - 1;
         }
-        breaks[0] = buckets.get(0).getMin();
-        hc.setBreaks(band, breaks);
+        breaks.add(buckets.get(0).getMin());
+        int breaksSize = breaks.size();
+        hc.setBreaks(band, breaks.toArray(new Double[breaksSize]));
+        setPercentages(k, breaksSize, buckets, new ArrayList<>(breaks), hc);
     }
+
+    private void setPercentages(int k, int breaksSize, List<Bucket> buckets, List<Double> breaks, Classification hc) {
+        if (percentages.booleanValue()) {
+            int actualClassNumber = k >= breaksSize ? breaksSize - 1 : k;
+            ClassPercentagesManager percentagesManager = new ClassPercentagesManager();
+            double[] percentages = percentagesManager.getPercentages(buckets, new ArrayList<>(breaks), actualClassNumber);
+            hc.setPercentages(percentages);
+        }
+    }
+
+
 }

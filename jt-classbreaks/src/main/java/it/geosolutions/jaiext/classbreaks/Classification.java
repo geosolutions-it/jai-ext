@@ -49,6 +49,8 @@ public class Classification {
     /** min/max */
     Double[] min, max;
 
+    double [] percentages;
+
     public Classification(ClassificationMethod method, int numBands) {
         this.method = method;
         this.breaks = new Double[numBands][];
@@ -82,6 +84,14 @@ public class Classification {
 
     public void setMax(int b, Double max) {
         this.max[b] = max;
+    }
+
+    public double[] getPercentages() {
+        return percentages;
+    }
+
+    public void setPercentages(double[] percentages) {
+        this.percentages = percentages;
     }
 
     public void print() {

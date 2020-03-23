@@ -56,6 +56,7 @@ public class ClassBreaksDescriptor extends OperationDescriptorImpl {
     static final int NODATA_ARG = 7;
     static final int HISTOGRAM_ARG = 8;
     static final int HISTOGRAM_BINS = 9;
+    static final int PERCENTAGES_ARG = 10;
 
     static String[] paramNames =
             new String[] {
@@ -68,7 +69,8 @@ public class ClassBreaksDescriptor extends OperationDescriptorImpl {
                 "yPeriod",
                 "noData",
                 "histogram",
-                "histogramBins"
+                "histogramBins",
+                "percentages"
             };
 
     static final Class<?>[] paramClasses = {
@@ -81,7 +83,8 @@ public class ClassBreaksDescriptor extends OperationDescriptorImpl {
         Integer.class,
         Double.class,
         Boolean.class,
-        Integer.class
+        Integer.class,
+        Boolean.class
     };
 
     static final Object[] paramDefaults = {
@@ -94,7 +97,8 @@ public class ClassBreaksDescriptor extends OperationDescriptorImpl {
         1,
         null,
         false,
-        256
+        256,
+        false
     };
 
     public ClassBreaksDescriptor() {

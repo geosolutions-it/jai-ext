@@ -32,13 +32,15 @@
  */
 package it.geosolutions.jaiext.classbreaks;
 
+import javax.media.jai.ROI;
 import java.awt.image.RenderedImage;
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeSet;
 
-import javax.media.jai.ROI;
-
-/** Classification op for the natural breaks method. */
+/**
+ * Classification op for the natural breaks method.
+ */
 public class NaturalBreaksOpImage extends ClassBreaksOpImage {
 
     public NaturalBreaksOpImage(
@@ -51,8 +53,9 @@ public class NaturalBreaksOpImage extends ClassBreaksOpImage {
             Integer yStart,
             Integer xPeriod,
             Integer yPeriod,
-            Double noData) {
-        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData);
+            Double noData,
+            Boolean percentages) {
+        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData, percentages);
     }
 
     @Override
@@ -84,8 +87,10 @@ public class NaturalBreaksOpImage extends ClassBreaksOpImage {
         final int m = data.size();
 
         if (k >= m) {
+            Double[] breaks = data.toArray(new Double[data.size()]);
             // just return all the values
-            c.setBreaks(band, data.toArray(new Double[data.size()]));
+            c.setBreaks(band, breaks);
+            setPercentages(data, breaks, m, k, c);
             return;
         }
 
@@ -146,18 +151,29 @@ public class NaturalBreaksOpImage extends ClassBreaksOpImage {
             work[i][1] = var;
         }
 
-        Double[] breaks = new Double[k + 1];
+        TreeSet<Double> breaks = new TreeSet<>();
 
         // go through matrix and extract class breaks
         int ik = m - 1;
-        breaks[k] = data.get(ik);
+        breaks.add(data.get(ik));
         for (int j = k; j >= 2; j--) {
             int id = (int) iwork[ik][j] - 1; // subtract one as we want inclusive breaks on the
             // left?
-            breaks[j - 1] = data.get(id);
+            breaks.add(data.get(id));
             ik = (int) iwork[ik][j] - 1;
         }
-        breaks[0] = data.get(0);
-        nc.setBreaks(band, breaks);
+        breaks.add(data.get(0));
+        Double[] arrBreaks = breaks.toArray(new Double[breaks.size()]);
+        nc.setBreaks(band, arrBreaks);
+        setPercentages(data, arrBreaks, m, k, nc);
+    }
+
+    private void setPercentages(List<Double> data, Double[] breaks, int m, int k, Classification nc) {
+        if (percentages.booleanValue()) {
+            ClassPercentagesManager percentagesManager = new ClassPercentagesManager();
+            int actualClassNumber = k > breaks.length ? breaks.length - 1 : k;
+            double[] percentages = percentagesManager.getPercentages(data, breaks, m, actualClassNumber);
+            nc.setPercentages(percentages);
+        }
     }
 }

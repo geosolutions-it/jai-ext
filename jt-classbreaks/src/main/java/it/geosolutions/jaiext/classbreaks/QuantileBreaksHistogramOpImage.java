@@ -33,14 +33,14 @@
 package it.geosolutions.jaiext.classbreaks;
 
 
+import it.geosolutions.jaiext.classbreaks.HistogramClassification.Bucket;
+
+import javax.media.jai.ROI;
 import java.awt.image.RenderedImage;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TreeSet;
-
-import javax.media.jai.ROI;
-
-import it.geosolutions.jaiext.classbreaks.HistogramClassification.Bucket;
 
 /**
  * Classification op for the quantile method, using histograms instead of a fully developed list of
@@ -61,8 +61,9 @@ public class QuantileBreaksHistogramOpImage extends ClassBreaksOpImage {
             Integer xPeriod,
             Integer yPeriod,
             Double noData,
-            int numBins) {
-        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData);
+            int numBins,
+            Boolean percentages) {
+        super(image, numClasses, extrema, roi, bands, xStart, yStart, xPeriod, yPeriod, noData, percentages);
         this.numBins = numBins;
     }
 
@@ -84,7 +85,6 @@ public class QuantileBreaksHistogramOpImage extends ClassBreaksOpImage {
         // calculate the number of values per class
         int nvalues = buckets.stream().mapToInt(b -> b.getCount()).sum();
         int size = (int) Math.ceil(nvalues / (double) numClasses);
-
         // grab the key iterator
         Iterator<Bucket> it = buckets.iterator();
 
@@ -102,8 +102,20 @@ public class QuantileBreaksHistogramOpImage extends ClassBreaksOpImage {
                 classIdx++;
                 set.add(e.getMin());
             }
+
         }
         set.add(buckets.get(buckets.size() - 1).getMax());
         hc.setBreaks(band, set.toArray(new Double[set.size()]));
+        if (this.percentages.booleanValue()) {
+            int nBreaks = set.size();
+            int actualClassNum = numClasses >= nBreaks ? nBreaks - 1 : numClasses;
+            hc.setPercentages(getPercentages(new ArrayList<>(set), buckets, nvalues, actualClassNum));
+        }
     }
+
+    private double[] getPercentages(List<Double> tBreaks, List<Bucket> buckets, int nvalues, int numClasses) {
+        ClassPercentagesManager percentagesManager = new ClassPercentagesManager();
+        return percentagesManager.getPercentages(buckets, tBreaks, numClasses);
+    }
+
 }
