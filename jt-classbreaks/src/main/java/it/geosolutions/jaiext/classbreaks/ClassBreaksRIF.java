@@ -72,7 +72,6 @@ public class ClassBreaksRIF extends CRIFImpl {
         Integer xPeriod = pb.getIntParameter(X_PERIOD_ARG);
         Integer yPeriod = pb.getIntParameter(Y_PERIOD_ARG);
         Double noData = (Double) pb.getObjectParameter(NODATA_ARG);
-        Boolean percentages = (Boolean) pb.getObjectParameter(PERCENTAGES_ARG);
         Boolean histogram = false;
         if (pb.getNumParameters() >= 9) {
             histogram = (Boolean) pb.getObjectParameter(HISTOGRAM_ARG);
@@ -80,7 +79,10 @@ public class ClassBreaksRIF extends CRIFImpl {
         Integer histogramBins = 256;
         if (pb.getNumParameters() >= 10)
             histogramBins = (Integer) pb.getObjectParameter(HISTOGRAM_BINS);
-
+        Boolean percentages = false;
+        if (pb.getNumParameters()>=11){
+            percentages = (Boolean) pb.getObjectParameter(PERCENTAGES_ARG);
+        }
         switch (method) {
             case EQUAL_INTERVAL:
                 return new EqualIntervalBreaksOpImage(

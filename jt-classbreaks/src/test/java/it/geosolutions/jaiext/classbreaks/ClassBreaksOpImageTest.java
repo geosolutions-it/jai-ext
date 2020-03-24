@@ -35,14 +35,13 @@ package it.geosolutions.jaiext.classbreaks;
 import it.geosolutions.jaiext.testclasses.TestBase;
 import it.geosolutions.jaiext.utilities.ImageUtilities;
 import org.junit.Test;
-
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.ExtremaDescriptor;
 import java.awt.*;
 import java.awt.image.RenderedImage;
-import java.util.stream.DoubleStream;
+import java.awt.image.renderable.ParameterBlock;
 
 import static org.junit.Assert.*;
 
@@ -412,5 +411,34 @@ public class ClassBreaksOpImageTest extends TestBase {
         result[0] = new Double[] {extrema[0][0]};
         result[1] = new Double[] {extrema[1][0]};
         return result;
+    }
+
+    @Test
+    public void testCreatesOperationDirectlyFromClassBreaksRIF() throws Exception {
+        RenderedImage image = createImage();
+
+        ParameterBlock pb = new ParameterBlock();
+        pb.addSource(image);
+        pb.set(4, 0);
+        pb.set(ClassificationMethod.NATURAL_BREAKS, 1);
+        pb.set(null, 2);
+        pb.set(null, 3);
+        pb.set(new Integer[] {0}, 4);
+        pb.set(1, 5);
+        pb.set(1, 6);
+        pb.set(0.0, 7);
+        RenderedImage op  = new ClassBreaksRIF().create(pb, null);
+        Classification classification =
+                (Classification) op.getProperty(ClassBreaksDescriptor.CLASSIFICATION_PROPERTY);
+        assertNotNull(classification);
+        Number[] breaks = classification.getBreaks()[0];
+
+        // 4 classes, 5 breaks
+        assertEquals(5, breaks.length);
+        assertEquals(1, breaks[0].doubleValue(), EPS);
+        assertEquals(3, breaks[1].doubleValue(), EPS);
+        assertEquals(16, breaks[2].doubleValue(), EPS);
+        assertEquals(26, breaks[3].doubleValue(), EPS);
+        assertEquals(53, breaks[4].doubleValue(), EPS);
     }
 }
