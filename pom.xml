@@ -19,7 +19,7 @@
     <javac.maxHeapSize>256M</javac.maxHeapSize>
     <guava.version>27.0-jre</guava.version>
     <jts.version>1.15.1</jts.version>
-    <project.version>1.1.14</project.version>
+    <project.version>1.1-SNAPSHOT</project.version>
   </properties>
 
   <!-- ======================================================== -->
@@ -28,7 +28,7 @@
   <groupId>it.geosolutions.jaiext</groupId>
   <artifactId>jaiext</artifactId>
   <packaging>pom</packaging>
-  <version>1.1.14</version>
+  <version>1.1-SNAPSHOT</version>
   <name>GeoSolutions JAI Extensions Library Root Project</name>
 
   <description>Container for tools and extensions to JAI project</description>
@@ -598,7 +598,7 @@
             <descriptor>release/src.xml</descriptor>
             <descriptor>release/javadoc.xml</descriptor>
            </descriptors>
-           <finalName>jai-ext-1.1.14</finalName>
+           <finalName>jai-ext-1.1-SNAPSHOT</finalName>
            <outputDirectory>${project.build.directory}/release</outputDirectory>
           </configuration>
        </plugin>
