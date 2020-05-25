@@ -145,9 +145,6 @@ public class MosaicOpImage extends OpImage {
      */
     private final boolean[][][] byteLookupTable;
 
-    /** Boolean array indicating which source images has No Data and not */
-    private final boolean[] hasNoData;
-
     /** The format tag for the destination image */
     private final RasterFormatTag rasterFormatTag;
 
@@ -612,8 +609,6 @@ public class MosaicOpImage extends OpImage {
                 ? BorderExtender.createInstance(BorderExtender.BORDER_ZERO)
                 : new BorderExtenderConstant(new double[] { sourceExtensionBorder });
 
-        hasNoData = new boolean[numSources];
-
         // This list contains the alpha channel for every source image (if present)
         List<PlanarImage> alphaList = new ArrayList<PlanarImage>();
 
@@ -680,7 +675,6 @@ public class MosaicOpImage extends OpImage {
                         formatDataType);
 
                 if (convertedNoDataRange != null) {
-                    hasNoData[i] = true;
                     imageBeans[i].setSourceNoData(convertedNoDataRange);
                     
                     if (RasterAccessorExt.isPaletteExpansionRequired(image,
@@ -724,7 +718,6 @@ public class MosaicOpImage extends OpImage {
                         }
                         // we transformed the nodata into the ROI
                         imageBeans[i].setSourceNoData(null);
-                        hasNoData[i] = false;
                     } else if (dataType == DataBuffer.TYPE_BYTE) {
                         // selection of the no data range for byte values
                         Range noDataByte = expandedNoDataRage;
@@ -1163,7 +1156,7 @@ public class MosaicOpImage extends OpImage {
                         }
 
                         // The source values are initialized only for the switch method
-                        setDestinationFlag = !hasNoData[s];
+                        setDestinationFlag = srcBean.getSourceNoDataRange() == null;
                         
                         for (int b = 0; b < dstBands; b++) {
                             byte value = sBandDataByteS[s][b][sPixelOffsets[b]];
@@ -1260,7 +1253,7 @@ public class MosaicOpImage extends OpImage {
 
                         // If no alpha channel or Roi is present, the weight
                         // is set to 1 or 0 if the pixel has or not a No Data value
-                        if (hasNoData[s]) {
+                        if (srcBeans[s].getSourceNoDataRange()!=null) {
                             for (int b = 0; b < dstBands; b++) {
                                 if (!byteLookupTable[s][b][sourceValueByteS[b] & 0xFF]) {
                                     dataCount--;
@@ -1537,8 +1530,8 @@ public class MosaicOpImage extends OpImage {
                         }
 
                         // The source values are initialized only for the switch method
-                        setDestinationFlag = !hasNoData[s];
                         Range noDataRangeUShort = srcBean.getSourceNoDataRange();
+                        setDestinationFlag = noDataRangeUShort == null;
                         for (int b = 0; b < dstBands; b++) {
                             short value = sBandDataUshortS[s][b][sPixelOffsets[b]];
                             valueS[b] = value;
@@ -1636,11 +1629,10 @@ public class MosaicOpImage extends OpImage {
 
                         // If no alpha channel or Roi is present, the weight
                         // is set to 1 or 0 if the pixel has or not a No Data value
-                        if (hasNoData[s]) {
+                        Range noDataRangeUShort = srcBeans[s].getSourceNoDataRange();
+                        if (noDataRangeUShort != null) {
                             for (int b = 0; b < dstBands; b++) {
-                                Range noDataRangeUShort = (srcBeans[s]
-                                        .getSourceNoDataRange());
-                                if (noDataRangeUShort != null && noDataRangeUShort.contains(sourceValueUshortS[b])) {
+                                if (noDataRangeUShort.contains(sourceValueUshortS[b])) {
                                     dataCount--;
                                 }
                             }
@@ -1915,8 +1907,8 @@ public class MosaicOpImage extends OpImage {
                         }
 
                         // Load source values and check nodata if needed
-                        setDestinationFlag = !hasNoData[s];
                         Range noDataRangeShort = srcBean.getSourceNoDataRange();
+                        setDestinationFlag = noDataRangeShort == null;
                         for (int b = 0; b < dstBands; b++) {
                             short value = sBandDataShortS[s][b][sPixelOffsets[b]];
                             if (!setDestinationFlag && !noDataRangeShort.contains(value)) {
@@ -2011,11 +2003,10 @@ public class MosaicOpImage extends OpImage {
 
                         // If no alpha channel or Roi is present, the weight
                         // is set to 1 or 0 if the pixel has or not a No Data value
-                        if (hasNoData[s]) {
+                        Range noDataRangeShort = srcBeans[s].getSourceNoDataRange();
+                        if (noDataRangeShort != null) {
                             for (int b = 0; b < dstBands; b++) {
-                                Range noDataRangeShort = (srcBeans[s]
-                                        .getSourceNoDataRange());
-                                if (noDataRangeShort != null && noDataRangeShort.contains(sourceValueShortS[b])) {
+                                if (noDataRangeShort.contains(sourceValueShortS[b])) {
                                     dataCount--;
                                 }
                             }
@@ -2291,8 +2282,8 @@ public class MosaicOpImage extends OpImage {
                         }
 
                         // Load source values and check nodata if needed
-                        setDestinationFlag = !hasNoData[s];
                         Range noDataRangeInt = srcBean.getSourceNoDataRange();
+                        setDestinationFlag = noDataRangeInt == null;
                         for (int b = 0; b < dstBands; b++) {
                             int value = sBandDataIntS[s][b][sPixelOffsets[b]];
                             if (!setDestinationFlag && !noDataRangeInt.contains(value)) {
@@ -2387,11 +2378,10 @@ public class MosaicOpImage extends OpImage {
 
                         // If no alpha channel or Roi is present, the weight
                         // is set to 1 or 0 if the pixel has or not a No Data value
-                        if (hasNoData[s]) {
+                        Range noDataRangeInt = srcBeans[s].getSourceNoDataRange();
+                        if (noDataRangeInt != null) {
                             for (int b = 0; b < dstBands; b++) {
-                                Range noDataRangeInt = (srcBeans[s]
-                                        .getSourceNoDataRange());
-                                if (noDataRangeInt != null && noDataRangeInt.contains(sourceValueIntS[b])) {
+                                if (noDataRangeInt.contains(sourceValueIntS[b])) {
                                     dataCount--;
                                 }
                             }
@@ -2666,8 +2656,8 @@ public class MosaicOpImage extends OpImage {
                         }
 
                         // Load source values and check nodata if needed
-                        setDestinationFlag = !hasNoData[s];
                         Range noDataRangeFloat = srcBean.getSourceNoDataRange();
+                        setDestinationFlag = noDataRangeFloat == null;
                         for (int b = 0; b < dstBands; b++) {
                             float value = sBandDataFloatS[s][b][sPixelOffsets[b]];
                             if (!setDestinationFlag && !noDataRangeFloat.contains(value)) {
@@ -2762,11 +2752,10 @@ public class MosaicOpImage extends OpImage {
 
                         // If no alpha channel or Roi is present, the weight
                         // is set to 1 or 0 if the pixel has or not a No Data value
-                        if (hasNoData[s]) {
+                        Range noDataRangeFloat = srcBeans[s].getSourceNoDataRange();
+                        if (noDataRangeFloat != null) {
                             for (int b = 0; b < dstBands; b++) {
-                                Range noDataRangeFloat = (srcBeans[s]
-                                        .getSourceNoDataRange());
-                                if (noDataRangeFloat != null && noDataRangeFloat.contains(sourceValueFloatS[b])) {
+                                if (noDataRangeFloat.contains(sourceValueFloatS[b])) {
                                     dataCount--;
                                 }
                             }
@@ -3041,8 +3030,8 @@ public class MosaicOpImage extends OpImage {
                         }
 
                         // Load source values and check nodata if needed
-                        setDestinationFlag = !hasNoData[s];
                         Range noDataRangeInt = srcBean.getSourceNoDataRange();
+                        setDestinationFlag = noDataRangeInt == null;
                         for (int b = 0; b < dstBands; b++) {
                             double value = sBandDataDoubleS[s][b][sPixelOffsets[b]];
                             if (!setDestinationFlag && !noDataRangeInt.contains(value)) {
@@ -3137,11 +3126,10 @@ public class MosaicOpImage extends OpImage {
 
                         // If no alpha channel or Roi is present, the weight
                         // is set to 1 or 0 if the pixel has or not a No Data value
-                        if (hasNoData[s]) {
+                        Range noDataRangeDouble = srcBeans[s].getSourceNoDataRange();
+                        if (noDataRangeDouble != null) {
                             for (int b = 0; b < dstBands; b++) {
-                                Range noDataRangeDouble = (srcBeans[s]
-                                        .getSourceNoDataRange());
-                                if (noDataRangeDouble != null && noDataRangeDouble.contains(sourceValueDoubleS[b])) {
+                                if (noDataRangeDouble.contains(sourceValueDoubleS[b])) {
                                     dataCount--;
                                 }
                             }

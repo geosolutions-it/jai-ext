@@ -17,19 +17,14 @@
  */
 package it.geosolutions.jaiext.mosaic;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import static javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_BLEND;
 import static javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 
 import java.awt.*;
-import java.awt.image.DataBuffer;
-import java.awt.image.Raster;
-import java.awt.image.RenderedImage;
+import java.awt.image.*;
 import java.awt.image.renderable.ParameterBlock;
 import java.io.Serializable;
 import java.util.List;
@@ -37,12 +32,7 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.media.jai.ImageLayout;
-import javax.media.jai.JAI;
-import javax.media.jai.PlanarImage;
-import javax.media.jai.ROI;
-import javax.media.jai.ROIShape;
-import javax.media.jai.RenderedOp;
+import javax.media.jai.*;
 import javax.media.jai.operator.BandMergeDescriptor;
 import javax.media.jai.operator.BandSelectDescriptor;
 import javax.media.jai.operator.FormatDescriptor;
@@ -2527,4 +2517,54 @@ public class MosaicTest extends TestBase {
         // the diagonal at nodata in the input, filled by background
         assertArrayEquals(new int[] {100}, data.getPixel(128, 128, pixel));
     }
+
+	@Test
+	public void testMixedNoDataFloat() {
+		final int validData = 100;
+		final byte noDataValue = (byte) 50;
+		SampleModel sm = RasterFactory.createPixelInterleavedSampleModel(DataBuffer.TYPE_FLOAT, 512,512, 1);
+		ColorModel cm = PlanarImage.createColorModel(sm);
+
+		// Mosaicking 3 images with different displacement
+		final PlanarImage source0 = new TiledImage(254, 60, 524, 525, 0, 0, sm, cm);
+		final PlanarImage source1 = new TiledImage(254, 585, 524, 243, 0, 0, sm, cm);
+		final PlanarImage source2 = new TiledImage(0, 60, 254, 255, 0, 0, sm, cm);
+
+		final ImageLayout layout = new ImageLayout();
+		layout.setMinX(10);
+		layout.setMinY(60);
+		layout.setWidth(768);
+		layout.setHeight(758);
+		layout.setTileGridXOffset(0);
+		layout.setTileGridYOffset(0);
+		layout.setTileHeight(512);
+		layout.setTileWidth(512);
+		layout.setColorModel(cm);
+		layout.setSampleModel(sm);
+
+		RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+
+		// The third image has no nodata defined.
+		final RenderedOp mosaic =
+				MosaicDescriptor.create(
+						new RenderedImage[] {
+								source0,
+								source1,
+								source2},
+						MOSAIC_TYPE_OVERLAY,
+						null,
+						null,
+						null,
+						new double[] {validData},
+						new Range[] {
+								RangeFactory.create(noDataValue, noDataValue),
+								RangeFactory.create(noDataValue, noDataValue),
+								null},
+						hints);
+
+		// Before the fix, this call was throwing a NullPointerException.
+		final Raster data = mosaic.getTile(0,0);
+		assertNotNull(data);
+
+	}
 }
