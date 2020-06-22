@@ -5,11 +5,11 @@
   <parent>
     <groupId>it.geosolutions.jaiext</groupId>
     <artifactId>jaiext</artifactId>
-    <version>1.1.15</version>
+    <version>1.1-SNAPSHOT</version>
   </parent>
   <groupId>it.geosolutions.jaiext.artifact</groupId>
   <artifactId>jt-artifact</artifactId>
-  <version>1.1.15</version>
+  <version>1.1-SNAPSHOT</version>
   <name>jt-artifact</name>
 
   <properties>
