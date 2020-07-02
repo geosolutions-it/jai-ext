@@ -15,7 +15,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.11</junit.version>
     <apache.version>2.1</apache.version>
-     <fork.javac>true</fork.javac>
+    <fork.javac>true</fork.javac>
     <javac.maxHeapSize>256M</javac.maxHeapSize>
     <guava.version>27.0-jre</guava.version>
     <jts.version>1.17.0</jts.version>
