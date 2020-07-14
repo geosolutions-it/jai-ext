@@ -163,5 +163,12 @@ public class VarWorkerTest extends AbstractWorkerTest<VarWorker> {
         ImagesBlockWorker ib = new ImagesBlockWorker(tree);
         return new Pair(tree, new VarWorker(tree, ib.imageVars));
     }
+    
+    @Test
+    public void arrayIndexAssignment() throws Exception {
+        assertFileHasError(
+                "listArrayAssignment.jfl",
+                "var[x] assignment can only be performed on the output image variable: list");
+    }
 
 }

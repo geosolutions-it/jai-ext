@@ -168,6 +168,7 @@ public abstract class RuntimeTestBase {
     protected void testIndirectRuntime(RenderedImage srcImg, JiffleIndirectRuntime runtime, Evaluator evaluator) {
         runtime.setSourceImage("src", srcImg);
 
+        double[] actual = new double[1];
         if (srcImg != null) {
             RectIter srcIter = RectIterFactory.create(srcImg, null);
 
@@ -175,18 +176,18 @@ public abstract class RuntimeTestBase {
             do {
                 do {
                     double expected = evaluator.eval(srcIter.getSampleDouble());
-                    double actual = runtime.evaluate(x, y);
+                    runtime.evaluate(x, y, actual);
                     assertEquals(
                             "Got "
                                     + expected
                                     + " instead of "
-                                    + actual
+                                    + actual[0]
                                     + " at row "
                                     + y
                                     + " and col "
                                     + x,
                             expected,
-                            actual,
+                            actual[0],
                             TOL);
                     x++;
                     if (x >= (srcImg.getMinX() + srcImg.getWidth())) {
@@ -206,18 +207,18 @@ public abstract class RuntimeTestBase {
             for (int y = minY; y < maxY; y ++) {
                 for (double x = minX; x < maxX; x ++) {
                     double expected = evaluator.eval(0);
-                    double actual = runtime.evaluate(x, y);
+                    runtime.evaluate(x, y, actual);
                     assertEquals(
                             "Got "
                                     + expected
                                     + " instead of "
-                                    + actual
+                                    + actual[0]
                                     + " at row "
                                     + y
                                     + " and col "
                                     + x,
                             expected,
-                            actual,
+                            actual[0],
                             TOL);
                 }
             }

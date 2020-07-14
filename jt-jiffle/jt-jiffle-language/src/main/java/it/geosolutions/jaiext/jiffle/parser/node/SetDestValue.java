@@ -57,6 +57,7 @@ import it.geosolutions.jaiext.jiffle.parser.*;
 public class SetDestValue extends Expression {
     private final String destVar;
     private final Expression expr;
+    private final Band band;
     
     private static JiffleType ensureScalar(Expression e) throws NodeException {
         JiffleType type = e.getType();
@@ -66,13 +67,19 @@ public class SetDestValue extends Expression {
         throw new NodeException(Errors.EXPECTED_SCALAR);
     }
 
-    public SetDestValue(String varName, Expression expr) 
+    public SetDestValue(String varName, Expression expr)
+            throws NodeException {
+        this(varName, new Band(new IntLiteral("0")), expr);
+    }
+
+    public SetDestValue(String varName, Band band, Expression expr) 
             throws NodeException {
         
         super(ensureScalar(expr));
         
         this.destVar = varName;
         this.expr = expr;
+        this.band = band;
     }
     
     @Override
@@ -85,15 +92,33 @@ public class SetDestValue extends Expression {
         switch (runtimeModel) {
             case DIRECT:
                 if (w.isInternalBaseClass()) {
-                    w.append("d_").append(destVar).append(".write(_x, _y, 0, ").append(expr).append(")");                    
+                    w.append("d_").append(destVar).append(".write(_x, _y, ");
+                    if (band != null) {
+                      w.append(band);
+                    } else {
+                      w.append("0");  
+                    }
+                    w.append(", ").append(expr).append(")");                    
                 } else {
-                    w.append("writeToImage(\"").append(destVar).append("\", _x, _y, 0, ").append(expr).append(")");
+                    w.append("writeToImage(\"").append(destVar).append("\", _x, _y, ");
+                    if (band != null) {
+                        w.append(band);
+                    } else {
+                        w.append("0");
+                    }
+                    w.append(", ").append(expr).append(")");
                 }
                 
                 break;
                 
             case INDIRECT:
-                w.append("result = ").append(expr);
+                w.append("result[");
+                if (band != null) {
+                    w.append(band);
+                } else {
+                    w.append("0");
+                }
+                w.append("] = ").append(expr);
                 break;
 
             default:

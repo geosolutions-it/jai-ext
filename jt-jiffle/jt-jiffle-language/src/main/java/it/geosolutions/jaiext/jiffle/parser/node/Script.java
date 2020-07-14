@@ -194,7 +194,7 @@ public class Script implements Node {
         if (model == Jiffle.RuntimeModel.DIRECT) {
             w.line("public void evaluate(double _x, double _y) {");
         } else {
-            w.line("public double evaluate(double _x, double _y) {");
+            w.line("public void evaluate(double _x, double _y, double[] result) {");
         }
         w.inc();
 
@@ -210,18 +210,10 @@ public class Script implements Node {
         w.dec();
         w.line("}");
         w.line("_stk.clear();");
-        if (model == Jiffle.RuntimeModel.INDIRECT) {
-            w.line("double result = Double.NaN;");
-        }
 
         // the actual script
         w.newLine();
         stmts.write(w);
-
-        // in case of indirect runtime, return the result at the end
-        if (model == Jiffle.RuntimeModel.INDIRECT) {
-            w.line("return result;");
-        }
 
         w.dec();
         w.line("}");

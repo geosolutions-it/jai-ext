@@ -94,63 +94,19 @@ public class JiffleOpImage extends OpImage {
             Map<String, ImageSpecification> sourceImages,
             ImageLayout layout,
             Map configuration,
-            String script,
+            JiffleIndirectRuntime runtime,
             String destVarName) {
 
-        super(
-                specsToImages(sourceImages),
-                layout,
-                configuration,
-                false);
-
-        try {
-            Jiffle jiffle = new Jiffle();
-            jiffle.setScript(script);
-
-            Map<String, Jiffle.ImageRole> imageParams = new HashMap<>();
-            for (String varName : sourceImages.keySet()) {
-                imageParams.put(varName, Jiffle.ImageRole.SOURCE);
-            }
-            imageParams.put(destVarName, Jiffle.ImageRole.DEST);
-
-            jiffle.setImageParams(imageParams);
-            jiffle.compile();
-            runtime =
-                    (JiffleIndirectRuntime) jiffle.getRuntimeInstance(Jiffle.RuntimeModel.INDIRECT);
-
-            for (Map.Entry<String, ImageSpecification> entry : sourceImages.entrySet()) {
-                String name = entry.getKey();
-                ImageSpecification spec = entry.getValue();
-                runtime.setSourceImage(name, spec.image, spec.coordinateTransform);
-                if (spec.bandTransform != null) {
-                    runtime.setSourceImageBandTransform(name, spec.bandTransform);
-                }
-            }
-
-            Rectangle bounds =
-                    new Rectangle(
-                            layout.getMinX(null),
-                            layout.getMinY(null),
-                            layout.getWidth(null),
-                            layout.getHeight(null));
-            runtime.setWorldByResolution(bounds, 1, 1);
-
-        } catch (JiffleException ex) {
-            throw new RuntimeException(ex);
-        }
+        super(specsToImages(sourceImages), layout, configuration, false);
+        this.runtime = runtime;
 
         // by default Jiffle does nodata with NaN
         setProperty(NoDataContainer.GC_NODATA, new NoDataContainer(Double.NaN));
     }
 
-    private static Vector specsToImages(
-            Map<String, ImageSpecification> sourceImages) {
+    private static Vector specsToImages(Map<String, ImageSpecification> sourceImages) {
         return new Vector(
-                sourceImages
-                        .values()
-                        .stream()
-                        .map(is -> is.image)
-                        .collect(Collectors.toList()));
+                sourceImages.values().stream().map(is -> is.image).collect(Collectors.toList()));
     }
 
     /**
@@ -179,10 +135,12 @@ public class JiffleOpImage extends OpImage {
 
     @Override
     protected void computeRect(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
+        final int destBands = dest.getNumBands();
+        double[] pixel = new double[destBands];
         for (int y = destRect.y, iy = 0; iy < destRect.height; y++, iy++) {
             for (int x = destRect.x, ix = 0; ix < destRect.width; x++, ix++) {
-                final double value = runtime.evaluate(x, y);
-                dest.setSample(x, y, band, value);
+                runtime.evaluate(x, y, pixel);
+                dest.setPixel(x, y, pixel);
             }
         }
     }

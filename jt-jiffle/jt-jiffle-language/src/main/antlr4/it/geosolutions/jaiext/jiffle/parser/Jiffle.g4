@@ -138,7 +138,11 @@ expression      : atom                                              # atomExpr
                 | assignment                                        # assignExpr
                 ;
 
-assignment      : ID
+assignmentTarget  : ID
+                    | ID bandSpecifier
+                  ;
+
+assignment      : assignmentTarget
                   op=( ASSIGN
                   | TIMESEQ
                   | DIVEQ
