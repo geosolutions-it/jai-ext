@@ -360,7 +360,6 @@ public class RuntimeModelWorker extends AbstractModelWorker {
         if (statements.size() > 1) {
             elseBlock = getAsType(statements.get(1), Statement.class);
         }
-        ;
         set(ctx, new IfElse(condition, ifBlock, elseBlock));
     }
 

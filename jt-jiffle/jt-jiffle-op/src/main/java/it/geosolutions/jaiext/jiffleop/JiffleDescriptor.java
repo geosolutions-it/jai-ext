@@ -189,7 +189,9 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
      *     {@link javax.media.jai.ImageLayout} is provided in the hints, otherwise can be null.
      * @param destType The destination type. Not required, will default to {@link
      *     DataBuffer#TYPE_DOUBLE}
-     * @param destBands The number of destination bands. Not required, will be automatically computed from the script source unless the  
+     * @param destBands The number of destination bands. Not required, will be automatically
+     *     computed from the script source unless the destination bands specs are using 
+     *     expressions.
      * @param sourceCoordinateTransforms The world to image coordinate transforms for the sources
      * @param sourceBandTransforms The band transforms for the source images
      * @param renderingHints This value sets the rendering hints for the operation.
@@ -230,7 +232,9 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
      * RenderedOp creation method that takes all the parameters. Kept for backwards compatibility
      * and deprecated, please use {@link #create(RenderedImage[], String[], String, String,
      * Rectangle, Integer, Integer, CoordinateTransform[], BandTransform[], RenderingHints)}
+     * @deprecated 
      */
+    @Deprecated
     public static RenderedOp create(
             RenderedImage[] sources,
             String[] sourceImageNames,
