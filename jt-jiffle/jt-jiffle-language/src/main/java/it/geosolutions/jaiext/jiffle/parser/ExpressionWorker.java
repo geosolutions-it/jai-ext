@@ -219,7 +219,7 @@ public class ExpressionWorker extends PropertyWorker<JiffleType> {
         set(ctx, rhsType);
         
         // Ensure valid type for LHS variable
-        String name = ctx.ID().getText();
+        String name = ctx.assignmentTarget().ID().getText();
         SymbolScope scope = getScope(ctx);
         Symbol symbol = scope.get(name);
         
@@ -239,15 +239,15 @@ public class ExpressionWorker extends PropertyWorker<JiffleType> {
                 case SCALAR:
                 case DEST_IMAGE:
                     if (rhsType == JiffleType.LIST) {
-                        messages.error(ctx.ID().getSymbol(), Errors.ASSIGNMENT_LIST_TO_SCALAR);
+                        messages.error(ctx.assignmentTarget().ID().getSymbol(), Errors.ASSIGNMENT_LIST_TO_SCALAR);
                     }
                     break;
                     
                 case LIST:
                     if (JiffleParser.ASSIGN != ctx.op.getType()) {
-                        messages.error(ctx.ID().getSymbol(), Errors.INVALID_OPERATION_FOR_LIST);
+                        messages.error(ctx.assignmentTarget().ID().getSymbol(), Errors.INVALID_OPERATION_FOR_LIST);
                     } else if (rhsType == JiffleType.D) {
-                        messages.error(ctx.ID().getSymbol(), Errors.ASSIGNMENT_SCALAR_TO_LIST);
+                        messages.error(ctx.assignmentTarget().ID().getSymbol(), Errors.ASSIGNMENT_SCALAR_TO_LIST);
                     }
                     break;
             }

@@ -16,7 +16,7 @@ public class JiffleIndirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.run
         _imageScopeVarsInitialized = true;
     }
 
-    public double evaluate(double _x, double _y) {
+    public void evaluate(double _x, double _y, double[] result) {
         if (!isWorldSet()) {
             setDefaultBounds();
         }
@@ -24,7 +24,6 @@ public class JiffleIndirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.run
             initImageScopeVars();
         }
         _stk.clear();
-        double result = Double.NaN;
 
         double v_aData = 0.0;
         double v_bData = 0.0;
@@ -36,7 +35,7 @@ public class JiffleIndirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.run
         double v_nv = -9999.0;
         double v_aspect = v_nv;
         double v_PI = 3.141592653589793;
-        result = v_nValue;
+        result[0] = v_nValue;
         if (_FN.isTrue(_FN.NE(v_centralValue, v_nv))) {
             double v_sIsNovalue = _FN.EQ(v_sValue, v_nv);
             double v_nIsNovalue = _FN.EQ(v_nValue, v_nv);
@@ -115,10 +114,9 @@ public class JiffleIndirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.run
                     }
                 }
             }
-            result = Math.round(v_aspect);
+            result[0] = Math.round(v_aspect);
         } else {
-            result = v_nv;
+            result[0] = v_nv;
         }
-        return result;
     }
 }

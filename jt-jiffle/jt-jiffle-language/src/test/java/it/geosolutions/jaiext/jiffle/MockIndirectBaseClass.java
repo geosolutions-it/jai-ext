@@ -43,9 +43,12 @@
 
 package it.geosolutions.jaiext.jiffle;
 
+import java.util.Map;
+
 import it.geosolutions.jaiext.jiffle.runtime.AbstractJiffleRuntime;
 import it.geosolutions.jaiext.jiffle.runtime.CoordinateTransform;
 import it.geosolutions.jaiext.jiffle.runtime.JiffleIndirectRuntime;
+import it.geosolutions.jaiext.jiffle.runtime.JiffleRuntime;
 
 
 /**
@@ -83,4 +86,13 @@ public abstract class MockIndirectBaseClass
         
     }
 
+    @Override
+    public void setDestinationBands(Map<String, Integer> destinationBands) {
+        
+    }
+
+    @Override
+    public int getOutputBands() {
+        return JiffleRuntime.DYNAMIC_BANDS;
+    }
 }

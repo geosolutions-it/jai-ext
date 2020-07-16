@@ -56,8 +56,13 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.RasterFactory;
 
+import it.geosolutions.jaiext.jiffle.Jiffle;
+import it.geosolutions.jaiext.jiffle.JiffleException;
 import it.geosolutions.jaiext.jiffle.runtime.BandTransform;
 import it.geosolutions.jaiext.jiffle.runtime.CoordinateTransform;
+import it.geosolutions.jaiext.jiffle.runtime.JiffleIndirectRuntime;
+import it.geosolutions.jaiext.jiffle.runtime.JiffleRuntime;
+import it.geosolutions.jaiext.jiffleop.JiffleOpImage.ImageSpecification;
 
 /**
  * The image factory for the "Jiffle" operation.
@@ -83,21 +88,66 @@ public class JiffleRIF implements RenderedImageFactory {
         Rectangle destBounds =
                 (Rectangle) paramBlock.getObjectParameter(JiffleDescriptor.DEST_BOUNDS_ARG);
         int dataType = paramBlock.getIntParameter(JiffleDescriptor.DEST_TYPE_ARG);
+        Integer numBands = (Integer) paramBlock.getObjectParameter(JiffleDescriptor.DEST_BANDS_ARG);
+
+        Map<String, ImageSpecification> sourceImages =  buildSourceImageMap(paramBlock);
+        if (destBounds == null) {
+            destBounds = getSourceBounds(paramBlock);
+        }
+
+        JiffleIndirectRuntime runtime = getRuntime(script, sourceImages, destVarName, destBounds);
+        if (numBands == null) {
+            numBands = runtime.getOutputBands();
+            if (numBands == JiffleRuntime.DYNAMIC_BANDS) {
+                throw new IllegalStateException("The destination bands parameter was not provided, but it was not possible to determine the number of output bands from the sources (band indexes are not static values)");
+            }
+        }
 
         // Build an image layout based on the destination bounds, if provided, or the union of the
         // source bounds
-        ImageLayout layout = (ImageLayout) renderHints.get(JAI.KEY_IMAGE_LAYOUT);
-        if (destBounds != null) {
-            layout = buildLayout(destBounds, getPreferredTileSize(paramBlock), dataType);
-        } else if (layout == null) {
-            destBounds = getSourceBounds(paramBlock);
-            layout = buildLayout(destBounds, getPreferredTileSize(paramBlock), dataType);
+        ImageLayout layout = buildLayout(destBounds, getPreferredTileSize(paramBlock), dataType, numBands);
+
+        return new JiffleOpImage(sourceImages, layout, renderHints, runtime, destVarName);
+    }
+
+    private JiffleIndirectRuntime getRuntime(String script,
+            Map<String, ImageSpecification> sourceImages,
+            String destVarName, Rectangle destBounds) {
+        try {
+            Jiffle jiffle = new Jiffle();
+            jiffle.setScript(script);
+
+            Map<String, Jiffle.ImageRole> imageParams = new HashMap<>();
+            for (String varName : sourceImages.keySet()) {
+                imageParams.put(varName, Jiffle.ImageRole.SOURCE);
+            }
+            imageParams.put(destVarName, Jiffle.ImageRole.DEST);
+
+            jiffle.setImageParams(imageParams);
+            jiffle.compile();
+            JiffleIndirectRuntime runtime =
+                    (JiffleIndirectRuntime) jiffle.getRuntimeInstance(Jiffle.RuntimeModel.INDIRECT);
+
+            for (Map.Entry<String, ImageSpecification> entry : sourceImages.entrySet()) {
+                String name = entry.getKey();
+                ImageSpecification spec = entry.getValue();
+                runtime.setSourceImage(name, spec.image, spec.coordinateTransform);
+                if (spec.bandTransform != null) {
+                    runtime.setSourceImageBandTransform(name, spec.bandTransform);
+                }
+            }
+
+            Rectangle bounds =
+                    new Rectangle(
+                            destBounds.x,
+                            destBounds.y,
+                            destBounds.width,
+                            destBounds.height);
+            runtime.setWorldByResolution(bounds, 1, 1);
+            return runtime;
+        } catch (JiffleException ex) {
+            throw new RuntimeException(ex);
         }
-
-        Map<String, JiffleOpImage.ImageSpecification> sourceImages =
-                buildSourceImageMap(paramBlock);
-
-        return new JiffleOpImage(sourceImages, layout, renderHints, script, destVarName);
     }
 
     private Dimension getPreferredTileSize(ParameterBlock pb) {
@@ -111,8 +161,8 @@ public class JiffleRIF implements RenderedImageFactory {
         }
     }
 
-    private Map<String, JiffleOpImage.ImageSpecification> buildSourceImageMap(ParameterBlock pb) {
-        Map<String, JiffleOpImage.ImageSpecification> result = new HashMap<>();
+    private Map<String, ImageSpecification> buildSourceImageMap(ParameterBlock pb) {
+        Map<String, ImageSpecification> result = new HashMap<>();
         Vector<Object> sources = pb.getSources();
         String[] names = (String[]) pb.getObjectParameter(JiffleDescriptor.SOURCE_IMAGE_NAMES_ARG);
         CoordinateTransform[] cts =
@@ -154,7 +204,7 @@ public class JiffleRIF implements RenderedImageFactory {
         return result;
     }
 
-    private JiffleOpImage.ImageSpecification getImageSpecification(
+    private ImageSpecification getImageSpecification(
             Vector<Object> sources, CoordinateTransform[] cts, BandTransform[] bts, int i) {
         RenderedImage image = (RenderedImage) sources.get(i);
         CoordinateTransform ct = null;
@@ -180,10 +230,10 @@ public class JiffleRIF implements RenderedImageFactory {
             bt = bts[i];
         }
         
-        return new JiffleOpImage.ImageSpecification(image, ct, bt);
+        return new ImageSpecification(image, ct, bt);
     }
 
-    private ImageLayout buildLayout(Rectangle bounds, Dimension tileSize, int dataType) {
+    private ImageLayout buildLayout(Rectangle bounds, Dimension tileSize, int dataType, int numBands) {
         if (bounds == null) {
             throw new IllegalStateException(
                     "Cannot determine output image layout, dest bounds have not been provided");
@@ -192,7 +242,7 @@ public class JiffleRIF implements RenderedImageFactory {
         ImageLayout layout = new ImageLayout(bounds.x, bounds.y, bounds.width, bounds.height);
         SampleModel sm =
                 RasterFactory.createPixelInterleavedSampleModel(
-                        dataType, tileSize.width, tileSize.height, 1);
+                        dataType, tileSize.width, tileSize.height, numBands);
         layout.setSampleModel(sm);
         layout.setColorModel(PlanarImage.createColorModel(sm));
 

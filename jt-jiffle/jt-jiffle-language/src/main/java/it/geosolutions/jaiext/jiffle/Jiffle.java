@@ -214,6 +214,7 @@ public class Jiffle {
     private String theScript;
     private Script scriptModel;
     private Map<String, Jiffle.ImageRole> imageParams;
+    private Map<String, Integer> destinationBands;
     
     /**
      * Creates a new instance.
@@ -433,6 +434,7 @@ public class Jiffle {
         // 
         RuntimeModelWorker worker = new RuntimeModelWorker(tree, optionsWorker.options, expressionWorker.getProperties(), expressionWorker.getScopes());
         this.scriptModel = worker.getScriptNode();
+        this.destinationBands = worker.getDestinationBands();
     }
     
     /**
@@ -550,6 +552,9 @@ public class Jiffle {
             Class<?> clazz = compiler.getClassLoader().loadClass(sb.toString());
             JiffleRuntime runtime = (JiffleRuntime) clazz.newInstance();
             runtime.setImageParams(imageParams);
+            if (runtime instanceof JiffleIndirectRuntime) {
+                ((JiffleIndirectRuntime) runtime).setDestinationBands(destinationBands);
+            }
             return runtime;
 
         } catch (Exception ex) {

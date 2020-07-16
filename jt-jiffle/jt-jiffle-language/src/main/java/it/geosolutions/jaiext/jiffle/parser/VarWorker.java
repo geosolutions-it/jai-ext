@@ -158,7 +158,7 @@ public class VarWorker extends PropertyWorker<SymbolScope> {
     
     @Override
     public void exitAssignment(AssignmentContext ctx) {
-        Token tok = ctx.ID().getSymbol();
+        Token tok = ctx.assignmentTarget().ID().getSymbol();
 
         if (isValidAssignment(ctx)) {
             String name = tok.getText();
@@ -192,7 +192,8 @@ public class VarWorker extends PropertyWorker<SymbolScope> {
 
     
     private boolean isValidAssignment(AssignmentContext ctx) {
-        Token tok = ctx.ID().getSymbol();
+        Token tok = ctx.assignmentTarget().ID().getSymbol();
+        BandSpecifierContext bandSpecifier = ctx.assignmentTarget().bandSpecifier();
         String name = tok.getText();
         
         // Short-cut: scalar that is already defined is OK
@@ -216,6 +217,10 @@ public class VarWorker extends PropertyWorker<SymbolScope> {
         } else if (ConstantLookup.isDefined(name)) {
             // Trying to write to a built-in constant
             error(tok, Errors.ASSIGNMENT_TO_CONSTANT, name);
+            return false;
+        } else if (!isDestImage(name) && bandSpecifier != null) {
+            // Trying to write to a built-in constant
+            error(tok, Errors.INVALID_ASSIGNMENT_NOT_DEST_IMAGE, name);
             return false;
         }
         

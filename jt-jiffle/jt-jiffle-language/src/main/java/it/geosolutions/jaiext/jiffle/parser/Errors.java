@@ -98,7 +98,9 @@ public enum Errors {
 
     UNINIT_VAR("Variable used before being assigned a value"),
 
-    IMAGE_POS_ON_NON_IMAGE("Image position specifier(s) used with a non-image variable");
+    IMAGE_POS_ON_NON_IMAGE("Image position specifier(s) used with a non-image variable"),
+
+    INVALID_ASSIGNMENT_NOT_DEST_IMAGE("var[x] assignment can only be performed on the output image variable");
 
     
     private final String msg;

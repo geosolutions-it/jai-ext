@@ -63,8 +63,11 @@ public class ListParsingTest extends ParserTestBase {
 
         int[] expected = {
             JiffleParser.RULE_assignment,
+            DOWN, 
+            JiffleParser.RULE_assignmentTarget,
             DOWN,
             JiffleParser.ID,
+            UP,
             JiffleParser.ASSIGN,
             JiffleParser.RULE_expression,
             DOWN,
@@ -89,7 +92,10 @@ public class ListParsingTest extends ParserTestBase {
         int[] expected = {
             JiffleParser.RULE_assignment,
             DOWN,
+            JiffleParser.RULE_assignmentTarget,
+            DOWN,
             JiffleParser.ID,
+            UP,
             JiffleParser.ASSIGN,
             JiffleParser.RULE_expression,
             DOWN,
@@ -142,7 +148,10 @@ public class ListParsingTest extends ParserTestBase {
             DOWN,
             JiffleParser.RULE_assignment,
             DOWN,
+            JiffleParser.RULE_assignmentTarget,
+            DOWN,
             JiffleParser.ID,
+            UP,
             JiffleParser.ASSIGN,
             JiffleParser.RULE_expression,
             DOWN,
