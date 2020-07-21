@@ -48,9 +48,11 @@ import static java.lang.String.format;
 import it.geosolutions.jaiext.jiffle.Jiffle;
 import it.geosolutions.jaiext.jiffle.parser.JiffleParserException;
 import it.geosolutions.jaiext.jiffle.parser.OptionLookup;
+import it.geosolutions.jaiext.jiffle.parser.RepeatedReadOptimizer;
 import it.geosolutions.jaiext.jiffle.parser.UndefinedOptionException;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -58,6 +60,7 @@ import java.util.Set;
 /** @author michael */
 public class Script implements Node {
     private final StatementList stmts;
+    private final RepeatedReadOptimizer readOptimizer;
     private Map<String, String> options;
     private Set<String> sourceImages;
     private Set<String> destImages;
@@ -68,12 +71,14 @@ public class Script implements Node {
             Set<String> sourceImages,
             Set<String> destImages,
             GlobalVars globals,
-            StatementList stmts) {
+            StatementList stmts,
+            RepeatedReadOptimizer readOptimizer) {
         this.options = options;
         this.sourceImages = sourceImages;
         this.destImages = destImages;
         this.globals = globals;
         this.stmts = stmts;
+        this.readOptimizer = readOptimizer;
     }
 
     public void write(SourceWriter w) {
@@ -210,6 +215,9 @@ public class Script implements Node {
         w.dec();
         w.line("}");
         w.line("_stk.clear();");
+
+        // centralize the source reads to avoid repeated reads
+        readOptimizer.declareRepeatedReads(w);
 
         // the actual script
         w.newLine();

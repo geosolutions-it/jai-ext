@@ -26,6 +26,7 @@ public class JiffleDirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.runti
             initImageScopeVars();
         }
         _stk.clear();
+        double sv_world__x__y_0 = s_world.read(_x, _y, 0);
 
         double v_n = 0.0;
         final int _loiy = (int) (-1);
@@ -43,7 +44,7 @@ public class JiffleDirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.runti
                 v_n += s_world.read(v_xx, v_yy, 0);
             }
         }
-        v_n -= s_world.read(_x, _y, 0);
-        d_nextworld.write(_x, _y, 0, _FN.OR((_FN.EQ(v_n, 3)), (_FN.AND(s_world.read(_x, _y, 0), _FN.EQ(v_n, 2)))));
+        v_n -= sv_world__x__y_0;
+        d_nextworld.write(_x, _y, 0, _FN.OR((_FN.EQ(v_n, 3)), (_FN.AND(sv_world__x__y_0, _FN.EQ(v_n, 2)))));
     }
 }

@@ -56,6 +56,7 @@ public class GetSourceValue extends Expression {
     
     private final String varName;
     private final ImagePos pos;
+    private String variableName;
 
     public GetSourceValue(String varName, ImagePos pos) {
         super(JiffleType.D);
@@ -74,7 +75,9 @@ public class GetSourceValue extends Expression {
     }
 
     public void write(SourceWriter w) {
-        if (w.isInternalBaseClass()) {
+        if (variableName != null) {
+            w.append(variableName);
+        } else if (w.isInternalBaseClass()) {
             w.append("s_").append(varName).append(".read(").append(pos).append(")");
         } else {
             w.append("readFromImage(\"").append(varName).append("\", ").append(pos).append(")");                
@@ -111,5 +114,9 @@ public class GetSourceValue extends Expression {
      */
     public ImagePos getPos() {
         return pos;
+    }
+
+    public void setVariableName(String variableName) {
+        this.variableName = variableName;
     }
 }

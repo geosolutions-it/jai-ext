@@ -161,7 +161,8 @@ public class RuntimeModelWorker extends AbstractModelWorker {
         Set<String> sourceImages = globalScope.getByType(Symbol.Type.SOURCE_IMAGE);
         Set<String> destImages = globalScope.getByType(Symbol.Type.DEST_IMAGE);
 
-        this.script = new Script(options, sourceImages, destImages, globals, stmts);
+        this.script = new Script(options, sourceImages, destImages, globals, stmts,
+                readsOptimizer);
         set(ctx, this.script);
     }
 
