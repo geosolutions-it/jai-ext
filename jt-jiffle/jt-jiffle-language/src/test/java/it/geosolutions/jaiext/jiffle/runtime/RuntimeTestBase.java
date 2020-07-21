@@ -148,6 +148,7 @@ public abstract class RuntimeTestBase {
         testDirectRuntime(srcImg, directRuntimeInstance, evaluator);
         
         // and now the indirect one
+        jiffle = new Jiffle(script, imageParams);
         indirectRuntimeInstance =
                 (JiffleIndirectRuntime) jiffle.getRuntimeInstance(Jiffle.RuntimeModel.INDIRECT);
         evaluator.reset();

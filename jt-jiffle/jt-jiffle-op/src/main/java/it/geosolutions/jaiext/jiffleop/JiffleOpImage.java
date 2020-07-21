@@ -46,6 +46,7 @@ import java.awt.*;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -139,6 +140,9 @@ public class JiffleOpImage extends OpImage {
         double[] pixel = new double[destBands];
         for (int y = destRect.y, iy = 0; iy < destRect.height; y++, iy++) {
             for (int x = destRect.x, ix = 0; ix < destRect.width; x++, ix++) {
+                // the script might not be always setting the output value, it may be conditional,
+                // the default value should be Double.NaN
+                Arrays.fill(pixel, Double.NaN);
                 runtime.evaluate(x, y, pixel);
                 dest.setPixel(x, y, pixel);
             }
