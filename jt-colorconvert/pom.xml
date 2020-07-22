@@ -6,11 +6,11 @@
 	<parent>
 		<groupId>it.geosolutions.jaiext</groupId>
 		<artifactId>jaiext</artifactId>
-		<version>1.1-SNAPSHOT</version>
+		<version>1.1.17</version>
 	</parent>
 	<groupId>it.geosolutions.jaiext.colorconvert</groupId>
 	<artifactId>jt-colorconvert</artifactId>
-	<version>1.1-SNAPSHOT</version>
+	<version>1.1.17</version>
 	<name>jt-colorconvert</name>
 
 	<properties>
