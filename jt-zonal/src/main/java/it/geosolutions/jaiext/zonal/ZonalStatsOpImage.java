@@ -26,6 +26,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
@@ -327,7 +328,7 @@ public class ZonalStatsOpImage extends OpImage {
         // Creation of a ZoneGeometry list, for storing the results
         // Check if the rois are present. Otherwise the entire image statistics
         // are calculated
-        if (rois == null) {
+        if (rois == null || rois.isEmpty()) {
 
             this.zoneList = new ArrayList<ZoneGeometry>(1);
 
@@ -370,14 +371,18 @@ public class ZonalStatsOpImage extends OpImage {
             // Insertion of the zones to the spatial index and union of the bounds for every ROI/Zone object
             for (ROI roi : rois) {
                 // Spatial index creation
-                Rectangle rect = roi.getBounds();
-                double minX = rect.getMinX();
-                double maxX = rect.getMaxX();
-                double minY = rect.getMinY();
-                double maxY = rect.getMaxY();
+
+                Rectangle2D rect = roi.getBounds2D();
+                double minX = Math.floor(rect.getMinX());
+                double maxX = Math.ceil(rect.getMaxX());
+                double minY = Math.floor(rect.getMinY());
+                double maxY = Math.ceil(rect.getMaxY());
                 Envelope env = new Envelope(minX, maxX, minY, maxY);
+
                 // Union
-                union = union.union(rect);
+                Rectangle intRect = new Rectangle((int)minX, (int)minY, (int)(maxX - minX), (int)(maxY - minY));
+                union = union.union(intRect);
+
                 // Creation of a new ZoneGeometry
                 ZoneGeometry geom;
                 if (ranges && localStats) {

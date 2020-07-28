@@ -11,7 +11,6 @@
 	<groupId>it.geosolutions.jaiext.zonal</groupId>
 	<artifactId>jt-zonal</artifactId>
 	<name>jt-zonal</name>
-	<url>http://maven.apache.org</url>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
@@ -25,6 +24,12 @@
 			<groupId>it.geosolutions.jaiext.utilities</groupId>
 			<artifactId>jt-utilities</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>it.geosolutions.jaiext.vectorbin</groupId>
+			<artifactId>jt-vectorbin</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>it.geosolutions.jaiext.utilities</groupId>
