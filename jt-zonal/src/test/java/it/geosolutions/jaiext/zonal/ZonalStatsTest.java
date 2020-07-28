@@ -19,13 +19,8 @@ package it.geosolutions.jaiext.zonal;
 
 import static org.junit.Assert.assertEquals;
 import java.awt.Rectangle;
-import java.awt.image.DataBuffer;
-import java.awt.image.Raster;
-import java.awt.image.RenderedImage;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.awt.image.*;
+import java.util.*;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.iterator.RandomIter;
@@ -35,11 +30,15 @@ import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.stats.Statistics;
 import it.geosolutions.jaiext.stats.Statistics.StatsType;
 import it.geosolutions.jaiext.testclasses.TestBase;
+import it.geosolutions.jaiext.vectorbin.ROIGeometry;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.index.strtree.STRtree;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
 
 /**
  * This test class is used for evaluating the functionalities of the ZonalStats operation. This operation consists of calculating different statistics
@@ -68,6 +67,7 @@ public class ZonalStatsTest extends TestBase {
 
     /** Boolean indicating if a classifier image must be used */
     private static final boolean CLASSIFIER = Boolean.getBoolean("JAI.Ext.Classifier");
+    private static final int TINY_IMAGE_SAMPLE_VALUE = 10;
 
     /** Statistics operation to execute */
     private static StatsType[] stats;
@@ -547,6 +547,78 @@ public class ZonalStatsTest extends TestBase {
         Map<Range, Statistics[]> stats = result.get(0).getStatsPerBandPerClass(0, 0);
         assertEquals(4, stats.size());
     }
+
+    @Test
+    public void testTinyGeometry() throws ParseException {
+        final int w = 4;
+        final int h = 4;
+        BufferedImage bi = createTestTinyImage(w, h);
+
+        // Create a tiny geometry
+        Geometry geom = new WKTReader().read("POLYGON((0.8 0.8, 2.1 0.8, 2.1 2.9, 0.8 2.1, 0.8 0.8))");
+        ROI roi  = new ROIGeometry(geom, null);
+        List<ROI> rois = Collections.singletonList(roi);
+        // calculate stats on the entire image
+        RenderedImage destination = ZonalStatsDescriptor.create(bi,
+                null,
+                null,
+                rois,
+                noDataByte,
+                null,
+                false,
+                bands,
+                new StatsType[]{StatsType.SUM},
+                null,
+                true,
+                null);
+
+        List<ZoneGeometry> result = (List<ZoneGeometry>) destination.getProperty(ZonalStatsDescriptor.ZS_PROPERTY);
+        Statistics[] stat = result.get(0).getStatsPerBandNoClassifierNoRange(0);
+        assertEquals(1, stat.length);
+        Double value = (Double) stat[0].getResult();
+        assertEquals(TINY_IMAGE_SAMPLE_VALUE * (w/2 * h/2), value.doubleValue(), 1E-6);
+    }
+
+    @Test
+    /** Check that an Empty Array will not result into a NPE */
+    public void testEmptyRoiArray() throws ParseException {
+        final int w = 4;
+        final int h = 4;
+        BufferedImage bi = createTestTinyImage(w, h);
+        List<ROI> rois = Collections.emptyList();
+        // calculate stats on the entire image.
+        // Empty ROI will compute the result on the overall image
+        RenderedImage destination = ZonalStatsDescriptor.create(bi,
+                null,
+                null,
+                rois,
+                noDataByte,
+                null,
+                false,
+                bands,
+                new StatsType[]{StatsType.SUM},
+                null,
+                true,
+                null);
+
+        List<ZoneGeometry> result = (List<ZoneGeometry>) destination.getProperty(ZonalStatsDescriptor.ZS_PROPERTY);
+        Statistics[] stat = result.get(0).getStatsPerBandNoClassifierNoRange(0);
+        assertEquals(1, stat.length);
+        Double value = (Double) stat[0].getResult();
+        assertEquals(TINY_IMAGE_SAMPLE_VALUE * w * h, value.doubleValue(), 1E-6);
+    }
+
+    private BufferedImage createTestTinyImage(int w, int h) {
+        BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY);
+        WritableRaster raster = bi.getRaster();
+        for (int i = 0; i < w; i++) {
+            for (int j = 0; j < h; j++) {
+                raster.setSample(i, j, 0, TINY_IMAGE_SAMPLE_VALUE);
+            }
+        }
+        return bi;
+    }
+
 
     public void testZonalStats(RenderedImage source, boolean classifierUsed,
             boolean noDataRangeUsed, boolean roiUsed, boolean useROIAccessor, List<Range> rangeList) {
