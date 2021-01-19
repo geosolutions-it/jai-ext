@@ -25,7 +25,6 @@ import static it.geosolutions.jaiext.colorindexer.ColorUtils.red;
 import static it.geosolutions.jaiext.colorindexer.ColorUtils.shift;
 import static it.geosolutions.jaiext.colorindexer.ColorUtils.unshift;
 
-import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,8 +45,6 @@ public class Quantizer {
 
     static final Logger LOGGER = Logger.getLogger("Quantizer");
     
-    static final PackedHistogram TRANSPARENT_HISTO;
-
     boolean MEDIAN_SPLIT = true;
 
     boolean MEDIAN_BOX = true;
@@ -58,13 +55,7 @@ public class Quantizer {
 
     /** Parameter indicating the maximum number of COlors */
     int maxColors;
-
-    static {
-        BufferedImage transparentImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
-        transparentImage.getRaster().setPixel(0, 0, new int[] {0, 0, 0, 0});
-        TRANSPARENT_HISTO = new PackedHistogram(transparentImage, 1, 1);
-    }
-    
+  
     public Quantizer(int maxColors) {
         this.maxColors = maxColors;
     }
@@ -107,7 +98,15 @@ public class Quantizer {
         
         boxes.add(new Box(0, histogram.size(), totalPixelCount, histogram, null));
         if (histogram.hasTransparentPixels() && histogram.colorMap.size != 1) {
-            boxes.add(new Box(0, 1, 1, TRANSPARENT_HISTO, null));
+            int pos = -1;
+            for (int i = 0; i < histogram.size(); i++) {
+                if (ColorUtils.alpha(histogram.getColor(i)) == 0) {
+                    pos = i;
+                }
+            }
+            if (pos != -1) {
+                boxes.add(new Box(pos, 1, 1, histogram, null));
+            }
         }
         // perform the box subdivision, first based on box pixel count, then on the box color volume
         // following up Leptonica's paper suggestions
