@@ -20,17 +20,6 @@ package it.geosolutions.jaiext.colorindexer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import it.geosolutions.jaiext.bandcombine.BandCombineDescriptor;
-import it.geosolutions.jaiext.bandmerge.BandMergeDescriptor;
-import it.geosolutions.jaiext.iterators.RandomIterFactory;
-import it.geosolutions.jaiext.lookup.LookupDescriptor;
-import it.geosolutions.jaiext.lookup.LookupTableWrapper;
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-import it.geosolutions.jaiext.stats.Statistics;
-import it.geosolutions.jaiext.stats.Statistics.StatsType;
-import it.geosolutions.jaiext.stats.StatisticsDescriptor;
-import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -43,8 +32,11 @@ import java.awt.image.ComponentColorModel;
 import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 
+import javax.imageio.ImageIO;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.LookupTableJAI;
@@ -56,6 +48,18 @@ import javax.media.jai.TiledImage;
 import javax.media.jai.iterator.RandomIter;
 
 import org.junit.Test;
+
+import it.geosolutions.jaiext.bandcombine.BandCombineDescriptor;
+import it.geosolutions.jaiext.bandmerge.BandMergeDescriptor;
+import it.geosolutions.jaiext.iterators.RandomIterFactory;
+import it.geosolutions.jaiext.lookup.LookupDescriptor;
+import it.geosolutions.jaiext.lookup.LookupTableWrapper;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.stats.Statistics;
+import it.geosolutions.jaiext.stats.Statistics.StatsType;
+import it.geosolutions.jaiext.stats.StatisticsDescriptor;
+import it.geosolutions.jaiext.testclasses.TestBase;
 
 /**
  * Testing color indexer operation.
@@ -155,6 +159,15 @@ public class ColorIndexerTest extends TestBase {
         g.fillRect(20, 0, 20, 20);
         g.dispose();
         Quantizer q = new Quantizer(2);
+        ColorIndexer indexer = q.buildColorIndexer(image);
+        assertTrue(indexer.toIndexColorModel().getTransparentPixel() != -1);
+    }
+
+    @Test
+    public void testAlphaZeroNoRemovalFromImage() throws IOException {
+        BufferedImage image =
+                ImageIO.read(ColorIndexerTest.class.getResourceAsStream("/transparent_sample.png"));
+        Quantizer q = new Quantizer(256);
         ColorIndexer indexer = q.buildColorIndexer(image);
         assertTrue(indexer.toIndexColorModel().getTransparentPixel() != -1);
     }
