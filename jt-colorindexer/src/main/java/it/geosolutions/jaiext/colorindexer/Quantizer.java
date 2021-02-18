@@ -96,7 +96,7 @@ public class Quantizer {
         // setup the first box, that median cut will split in parts
         List<Box> boxes = new ArrayList<Box>();
         
-        boxes.add(new Box(0, histogram.size(), totalPixelCount, histogram, null));
+        Box allBox = new Box(0, histogram.size(), totalPixelCount, histogram, null);
         if (histogram.hasTransparentPixels() && histogram.colorMap.size != 1) {
             int pos = -1;
             for (int i = 0; i < histogram.size(); i++) {
@@ -105,9 +105,15 @@ public class Quantizer {
                 }
             }
             if (pos != -1) {
-                boxes.add(new Box(pos, 1, 1, histogram, null));
+                Box[] splitted = allBox.extractAt(pos);
+                for (Box box : splitted) {
+                    boxes.add(box);
+                }
             }
+        } else {
+            boxes.add(allBox);
         }
+
         // perform the box subdivision, first based on box pixel count, then on the box color volume
         // following up Leptonica's paper suggestions
         int sortSwitch = Math.round(colors * THRESHOLD);
@@ -320,6 +326,34 @@ public class Quantizer {
                 final int start = idx + 1;
                 final int end = idx + colors;
                 histogram.sort(start, end, sort);
+            }
+        }
+
+        private Box range(int from, int size) {
+            int pixels = 0;
+            for (int c = from; c < from + size; c++) {
+                pixels += histogram.getCount(c);
+            }
+            return new Box(from, size, pixels, histogram, sort);
+        }
+
+        public Box[] extractAt(int pos) {
+            if (pos == 0) {
+                return new Box[] {
+                        range(idx, 1),
+                        range(idx + 1, colors - 1)
+                };
+            } else if (pos == colors - 1) {
+                return new Box[] {
+                        range(idx, colors -1),
+                        range(idx + pos, 1)
+                };
+            } else {
+                return new Box[] {
+                        range(idx, pos -1),
+                        range(idx + pos, 1),
+                        range(idx + pos + 1, colors - pos -1)
+                };
             }
         }
 
