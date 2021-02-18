@@ -164,6 +164,31 @@ public class ColorIndexerTest extends TestBase {
     }
 
     @Test
+    public void testAlphaZeroPreserveColors() {
+        BufferedImage image = new BufferedImage(41, 41, BufferedImage.TYPE_INT_ARGB);
+        Graphics g = image.getGraphics();
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, 20, 20);
+        g.setColor(new Color(20, 20, 20, 20)); // A dark gray
+        g.fillRect(20, 20, 20, 20);
+        g.setColor(new Color(200, 200, 200, 20)); // A light gray
+        g.fillRect(0, 20, 20, 20);
+        g.setColor(new Color(254, 254, 254, 20)); // A light gray
+        g.fillRect(20, 0, 20, 20);
+        g.setColor(new Color(1, 1, 1, 0)); // transparent
+        g.fillRect(20, 0, 20, 20);
+        g.dispose();
+        Quantizer q = new Quantizer(5);
+        ColorIndexer indexer = q.buildColorIndexer(image);
+        assertTrue(indexer.toIndexColorModel().getTransparentPixel() != -1);
+        int transparentIndex = indexer.getClosestIndex(1, 1, 1, 0);
+        assertTrue(indexer.getClosestIndex(20, 20, 20, 20) != transparentIndex);
+        assertTrue(indexer.getClosestIndex(200, 200, 200, 20) != transparentIndex);
+        assertTrue(indexer.getClosestIndex(254, 254, 254, 20) != transparentIndex);
+        assertTrue(indexer.getClosestIndex(255,255,255,255) != transparentIndex);
+    }
+
+    @Test
     public void testAlphaZeroNoRemovalFromImage() throws IOException {
         BufferedImage image =
                 ImageIO.read(ColorIndexerTest.class.getResourceAsStream("/transparent_sample.png"));
