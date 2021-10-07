@@ -158,6 +158,7 @@ atom            : parenExpression
                 | listLiteral
                 | conCall
                 | identifiedAtom
+                | imageProperty
                 ;
 
 
@@ -173,7 +174,9 @@ identifiedAtom  : ID argumentList       # functionCall
                 | ID imagePos           # imageCall
                 | ID                    # varID
                 ;
-
+                
+imageProperty   : ID ARROW ID                           
+                ;
 
 argumentList    : LPAR expressionList RPAR
                 | LPAR RPAR
@@ -293,6 +296,7 @@ LSQUARE : '[' ;
 RSQUARE : ']' ;
 LCURLY  : '{' ;
 RCURLY  : '}' ;
+ARROW   : '->';
 
 ID      : (Letter) (Letter | UNDERSCORE | Digit | Dot)*
         ;

@@ -70,7 +70,7 @@ public abstract class RuntimeTestBase {
     protected static final int NUM_PIXELS = IMG_WIDTH * IMG_WIDTH;
     protected static final double TOL = 1.0e-8;
     
-    private final JiffleProgressListener nullListener = new NullProgressListener();
+    protected final JiffleProgressListener nullListener = new NullProgressListener();
     
     protected Map<String, Jiffle.ImageRole> imageParams;
     protected JiffleDirectRuntime directRuntimeInstance;

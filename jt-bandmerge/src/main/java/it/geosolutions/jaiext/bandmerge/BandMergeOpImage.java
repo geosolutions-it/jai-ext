@@ -19,6 +19,7 @@ package it.geosolutions.jaiext.bandmerge;
 
 import com.sun.media.imageioimpl.common.BogusColorSpace;
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.utilities.ImageUtilities;
 
 import java.awt.Rectangle;
 import java.awt.Transparency;
@@ -313,105 +314,14 @@ public class BandMergeOpImage extends PointOpImage {
             layout.unsetValid(ImageLayout.COLOR_MODEL_MASK);
         }
         if ((cm == null || !cm.hasAlpha()) && sm instanceof ComponentSampleModel) {
-            cm = getDefaultColorModel(sm, setAlpha);
+            cm = ImageUtilities.getColorModel(sm, setAlpha);
             layout.setColorModel(cm);
         }
 
         return layout;
     }
 
-    /**
-     * Create a colormodel without an alpha band in the case that no alpha band is present. 
-     * Otherwise JAI set an alpha band by default for an image with 2 or 4 bands.
-     * 
-     * @param sm
-     * @param setAlpha 
-     * @return
-     */
-    static ColorModel getDefaultColorModel(SampleModel sm, boolean setAlpha) {
-
-        // Check on the data type
-        int dataType = sm.getDataType();
-        int numBands = sm.getNumBands();
-        if (dataType < DataBuffer.TYPE_BYTE || dataType > DataBuffer.TYPE_DOUBLE || numBands < 1) {
-            return null;
-        }
-
-        // Creation of the colorspace
-        ColorSpace cs = null;
-
-        switch (numBands) {
-        case 0:
-            throw new IllegalArgumentException("No input bands defined");
-        case 1:
-            cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
-            break;
-        case 2:
-        case 4:
-            if (setAlpha) {
-
-                cs = numBands == 2 ? ColorSpace.getInstance(ColorSpaceJAI.CS_GRAY) : ColorSpace
-                        .getInstance(ColorSpaceJAI.CS_sRGB);
-            } else {
-                // For 2 and 4 bands a custom colorspace is created
-                cs = new ColorSpace(dataType, numBands) {
-
-                    @Override
-                    public float[] toRGB(float[] colorvalue) {
-                        // TODO Auto-generated method stub
-                        return null;
-                    }
-
-                    @Override
-                    public float[] toCIEXYZ(float[] colorvalue) {
-                        // TODO Auto-generated method stub
-                        return null;
-                    }
-
-                    @Override
-                    public float[] fromRGB(float[] rgbvalue) {
-                        // TODO Auto-generated method stub
-                        return null;
-                    }
-
-                    @Override
-                    public float[] fromCIEXYZ(float[] colorvalue) {
-                        // TODO Auto-generated method stub
-                        return null;
-                    }
-                };
-            }
-            break;
-        case 3:
-            cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);
-            break;
-        default:
-            cs = new BogusColorSpace(numBands);
-        }
-
-        // Definition of the colormodel
-        int dataTypeSize = DataBuffer.getDataTypeSize(dataType);
-        int[] bits = new int[numBands];
-        for (int i = 0; i < numBands; i++) {
-            bits[i] = dataTypeSize;
-        }
-
-        boolean useAlpha = false, premultiplied = false;
-        int transparency = Transparency.OPAQUE;
-        switch (dataType) {
-            case DataBuffer.TYPE_BYTE:
-            case DataBuffer.TYPE_USHORT:
-            case DataBuffer.TYPE_SHORT:
-            case DataBuffer.TYPE_INT:
-                return new ComponentColorModel(cs, bits, useAlpha, premultiplied, transparency,
-                        dataType);
-            case DataBuffer.TYPE_FLOAT:
-            case DataBuffer.TYPE_DOUBLE:
-                return new FloatDoubleColorModel(cs, useAlpha, premultiplied, transparency, dataType);
-        default:
-            throw new IllegalArgumentException("Wrong data type used");
-        }
-    }
+    
 
     /**
      * BandMerges the pixel values of multiple source images within a specified rectangle.

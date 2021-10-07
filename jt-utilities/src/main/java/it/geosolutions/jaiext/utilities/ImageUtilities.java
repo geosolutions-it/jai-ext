@@ -17,6 +17,8 @@
  */
 package it.geosolutions.jaiext.utilities;
 
+import java.awt.color.ColorSpace;
+import java.awt.image.ComponentColorModel;
 import java.util.List;
 
 import java.awt.*;
@@ -41,6 +43,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import javax.media.jai.ColorSpaceJAI;
 import javax.media.jai.JAI;
 import javax.media.jai.LookupTableJAI;
 import javax.media.jai.ParameterBlockJAI;
@@ -53,7 +56,9 @@ import javax.media.jai.UnpackedImageData;
 import javax.media.jai.iterator.RectIterFactory;
 import javax.media.jai.iterator.WritableRectIter;
 
+import com.sun.media.imageioimpl.common.BogusColorSpace;
 import com.sun.media.imageioimpl.common.PackageUtil;
+import com.sun.media.jai.codecimpl.util.FloatDoubleColorModel;
 
 public class ImageUtilities {
 
@@ -963,6 +968,94 @@ public class ImageUtilities {
         }
 
         return images;
+    }
+
+    /**
+     * Creates and returns a ColorModel compatible with the given SampleModel
+     */
+    public static ColorModel getColorModel(SampleModel sm, boolean setAlpha) {
+
+        // Check on the data type
+        int dataType = sm.getDataType();
+        int numBands = sm.getNumBands();
+        if (dataType < DataBuffer.TYPE_BYTE || dataType > DataBuffer.TYPE_DOUBLE || numBands < 1) {
+            return null;
+        }
+
+        // Creation of the colorspace
+        ColorSpace cs = null;
+
+        switch (numBands) {
+            case 0:
+                throw new IllegalArgumentException("No input bands defined");
+            case 1:
+                cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
+                break;
+            case 2:
+            case 4:
+                if (setAlpha) {
+
+                    cs = numBands == 2 ? ColorSpace.getInstance(ColorSpaceJAI.CS_GRAY) : ColorSpace
+                            .getInstance(ColorSpaceJAI.CS_sRGB);
+                } else {
+                    // For 2 and 4 bands a custom colorspace is created
+                    cs = new ColorSpace(dataType, numBands) {
+
+                        @Override
+                        public float[] toRGB(float[] colorvalue) {
+                            // TODO Auto-generated method stub
+                            return null;
+                        }
+
+                        @Override
+                        public float[] toCIEXYZ(float[] colorvalue) {
+                            // TODO Auto-generated method stub
+                            return null;
+                        }
+
+                        @Override
+                        public float[] fromRGB(float[] rgbvalue) {
+                            // TODO Auto-generated method stub
+                            return null;
+                        }
+
+                        @Override
+                        public float[] fromCIEXYZ(float[] colorvalue) {
+                            // TODO Auto-generated method stub
+                            return null;
+                        }
+                    };
+                }
+                break;
+            case 3:
+                cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);
+                break;
+            default:
+                cs = new BogusColorSpace(numBands);
+        }
+
+        // Definition of the colormodel
+        int dataTypeSize = DataBuffer.getDataTypeSize(dataType);
+        int[] bits = new int[numBands];
+        for (int i = 0; i < numBands; i++) {
+            bits[i] = dataTypeSize;
+        }
+
+        boolean useAlpha = false, premultiplied = false;
+        int transparency = Transparency.OPAQUE;
+        switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+            case DataBuffer.TYPE_USHORT:
+            case DataBuffer.TYPE_SHORT:
+            case DataBuffer.TYPE_INT:
+                return new ComponentColorModel(cs, bits, useAlpha, premultiplied, transparency,
+                        dataType);
+            case DataBuffer.TYPE_FLOAT:
+            case DataBuffer.TYPE_DOUBLE:
+                return new FloatDoubleColorModel(cs, useAlpha, premultiplied, transparency, dataType);
+            default:
+                throw new IllegalArgumentException("Wrong data type used");
+        }
     }
 
     private static void fillRaster(WritableRaster wr, int w, int h, int dataType, Object typedValues) {

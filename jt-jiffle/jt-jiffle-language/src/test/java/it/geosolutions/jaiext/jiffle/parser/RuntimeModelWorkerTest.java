@@ -113,6 +113,16 @@ public class RuntimeModelWorkerTest {
     public void ndvi() throws Exception {
         assertGeneratedSource("ndvi.jfl", RuntimeModel.DIRECT, "res", "nir", "red");
     }
+    
+    @Test
+    public void bandsProperty() throws Exception {
+        assertGeneratedSource("copyBands.jfl", RuntimeModel.DIRECT, "dst", "src");
+    }
+    
+    @Test
+    public void sumBands() throws Exception {
+        assertGeneratedSource("sumBands.jfl", RuntimeModel.DIRECT, "dst", "src");
+    }
 
     private void assertGeneratedSource(String scriptFileName, RuntimeModel model) throws Exception {
         assertGeneratedSource(scriptFileName, model, null);
