@@ -18,6 +18,7 @@
 package it.geosolutions.jaiext.bandmerge;
 
 import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.utilities.ImageUtilities;
 
 import java.awt.Rectangle;
 import java.awt.Transparency;
@@ -442,7 +443,7 @@ public class ExtendedBandMergeOpImage extends GeometricOpImage {
             layout.unsetValid(ImageLayout.COLOR_MODEL_MASK);
         }
         if ((cm == null || !cm.hasAlpha()) && sm instanceof ComponentSampleModel) {
-            cm = BandMergeOpImage.getDefaultColorModel(sm, setAlpha);
+            cm = ImageUtilities.getColorModel(sm, setAlpha);
             layout.setColorModel(cm);
         }
 

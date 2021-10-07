@@ -48,6 +48,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import it.geosolutions.jaiext.jiffle.Jiffle;
 import it.geosolutions.jaiext.jiffle.parser.JiffleParser.*;
+import it.geosolutions.jaiext.jiffle.parser.node.ImageProperty;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -171,7 +172,14 @@ public class ExpressionWorker extends PropertyWorker<JiffleType> {
     public void exitAssignExpr(AssignExprContext ctx) {
         set(ctx, get(ctx.assignment()));
     }
-    
+
+    @Override
+    public void exitImageProperty(ImagePropertyContext ctx) {
+        String property = ctx.ID(1).getText();
+        ImageProperty.Property p = ImageProperty.lookupProperty(property);
+        set(ctx, p.getType());
+    }
+
     private void setBinaryExprType(ParseTree ctx, 
             ExpressionContext left, ExpressionContext right) {
         
@@ -209,6 +217,7 @@ public class ExpressionWorker extends PropertyWorker<JiffleType> {
                     return JiffleType.D; // variable or source image                    
                 }
             }
+           
         }
         return super.get(ctx);
     }

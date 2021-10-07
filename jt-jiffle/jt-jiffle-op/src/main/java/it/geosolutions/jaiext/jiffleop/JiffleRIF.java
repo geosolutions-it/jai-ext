@@ -63,6 +63,7 @@ import it.geosolutions.jaiext.jiffle.runtime.CoordinateTransform;
 import it.geosolutions.jaiext.jiffle.runtime.JiffleIndirectRuntime;
 import it.geosolutions.jaiext.jiffle.runtime.JiffleRuntime;
 import it.geosolutions.jaiext.jiffleop.JiffleOpImage.ImageSpecification;
+import it.geosolutions.jaiext.utilities.ImageUtilities;
 
 /**
  * The image factory for the "Jiffle" operation.
@@ -244,7 +245,7 @@ public class JiffleRIF implements RenderedImageFactory {
                 RasterFactory.createPixelInterleavedSampleModel(
                         dataType, tileSize.width, tileSize.height, numBands);
         layout.setSampleModel(sm);
-        layout.setColorModel(PlanarImage.createColorModel(sm));
+        layout.setColorModel(ImageUtilities.getColorModel(sm, false));
 
         return layout;
     }

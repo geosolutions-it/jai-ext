@@ -1,0 +1,19 @@
+sum = 0;
+goodBands = 0;
+maxBand = src->bands - 1;
+foreach (b in 0:maxBand) {
+  value = src[b];
+  if (value != -9999.0) {
+     sum += value;
+     goodBands += 1;
+  }
+  dst[b] = value;
+}
+if (goodBands == 0) {
+  // calculated values at the end of the output
+  dst[maxBand + 1] = -9999.0;
+  dst[maxBand + 2] = -9999.0;
+} else {
+  dst[maxBand + 1] = sum;
+  dst[maxBand + 2] = sum / goodBands;
+}

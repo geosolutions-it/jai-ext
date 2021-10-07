@@ -626,5 +626,12 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
         image.setTransform(tr, tr == null);
     }
 
+    /**
+     * Returns the number of bands for the given image. Backs the "bands" image property
+     */
+    protected int getBands(String imageName) {
+        return _images.get(imageName).image.getSampleModel().getNumBands();
+    }
+
     public abstract void setDefaultBounds();
 }

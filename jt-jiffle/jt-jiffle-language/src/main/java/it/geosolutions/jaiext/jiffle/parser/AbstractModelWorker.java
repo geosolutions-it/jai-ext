@@ -36,6 +36,7 @@ import static it.geosolutions.jaiext.jiffle.parser.JiffleParser.XorExprContext;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,6 +51,7 @@ import it.geosolutions.jaiext.jiffle.parser.node.Expression;
 import it.geosolutions.jaiext.jiffle.parser.node.FunctionCall;
 import it.geosolutions.jaiext.jiffle.parser.node.GetSourceValue;
 import it.geosolutions.jaiext.jiffle.parser.node.ImagePos;
+import it.geosolutions.jaiext.jiffle.parser.node.ImageProperty;
 import it.geosolutions.jaiext.jiffle.parser.node.IntLiteral;
 import it.geosolutions.jaiext.jiffle.parser.node.ListLiteral;
 import it.geosolutions.jaiext.jiffle.parser.node.Node;
@@ -241,6 +243,14 @@ abstract class AbstractModelWorker extends PropertyWorker<Node> {
         ImagePos pos = getAsType(ctx.imagePos(), ImagePos.class);
         GetSourceValue node = new GetSourceValue(name, pos);
         readsOptimizer.add(node);
+        set(ctx, node);
+    }
+
+    @Override
+    public void exitImageProperty(JiffleParser.ImagePropertyContext ctx) {
+        String varName = ctx.ID(0).getText();
+        String property = ctx.ID(1).getText();
+        ImageProperty node = new ImageProperty(varName, property);
         set(ctx, node);
     }
 
