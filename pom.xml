@@ -20,6 +20,7 @@
     <guava.version>27.0-jre</guava.version>
     <jts.version>1.17.0</jts.version>
     <project.version>1.1-SNAPSHOT</project.version>
+  	<closeTestReports>true</closeTestReports>
   </properties>
 
   <!-- ======================================================== -->
@@ -566,6 +567,11 @@
           </includes>
           <forkMode>once</forkMode>
           <argLine>-Xmx${test.maxHeapSize} -XX:MaxPermSize=${test.maxPermSize} -enableassertions -Dtest.extensive=${extensive.tests} -Dtest.interactive=${interactive.tests}</argLine>
+        	<parallel>classes</parallel>
+        	<useUnlimitedThreads>true</useUnlimitedThreads>
+        	<disableXmlReport>${closeTestReports}</disableXmlReport>
+
+
          </configuration>
       </plugin>
 	  
