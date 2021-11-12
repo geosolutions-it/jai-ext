@@ -570,8 +570,6 @@
         	<parallel>classes</parallel>
         	<useUnlimitedThreads>true</useUnlimitedThreads>
         	<disableXmlReport>${closeTestReports}</disableXmlReport>
-
-
          </configuration>
       </plugin>
 	  
