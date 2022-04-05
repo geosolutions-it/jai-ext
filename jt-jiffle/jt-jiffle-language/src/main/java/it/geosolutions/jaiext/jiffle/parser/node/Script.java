@@ -52,13 +52,17 @@ import it.geosolutions.jaiext.jiffle.parser.RepeatedReadOptimizer;
 import it.geosolutions.jaiext.jiffle.parser.UndefinedOptionException;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /** @author michael */
 public class Script implements Node {
+
+    /** <pre>ID      : (Letter) (Letter | UNDERSCORE | Digit | Dot)*</pre> */
+    private static final Pattern VALID_IDENTIFIER = Pattern.compile("^[a-zA-Z][_a-zA-Z0-9\\.]*$");
+
     private final StatementList stmts;
     private final RepeatedReadOptimizer readOptimizer;
     private Map<String, String> options;
@@ -79,6 +83,20 @@ public class Script implements Node {
         this.globals = globals;
         this.stmts = stmts;
         this.readOptimizer = readOptimizer;
+        validate();
+    }
+
+    private void validate() {
+        for (String name : sourceImages) {
+            if (!VALID_IDENTIFIER.matcher(name).matches()) {
+                throw new JiffleParserException("Invalid source image name: " + name);
+            }
+        }
+        for (String name : destImages) {
+            if (!VALID_IDENTIFIER.matcher(name).matches()) {
+                throw new JiffleParserException("Invalid dest image name: " + name);
+            }
+        }
     }
 
     public void write(SourceWriter w) {
@@ -97,11 +115,13 @@ public class Script implements Node {
             String[] lines = script.split("\n");
             w.line("/**");
             w.line(" * Java runtime class generated from the following Jiffle script: ");
-            w.line(" *<code>");
+            w.line(" *<pre>");
             for (String line : lines) {
-                w.append(" * ").append(line).newLine();
+                // In case the script itself includes comments, they best to be escaped
+                String escaped = line.replace("*/", "*&#47;").replace("/*", "&#47;*");
+                w.append(" * ").append(escaped).newLine();
             }
-            w.line(" *</code>");
+            w.line(" *</pre>");
             w.line(" */");
         }
 
