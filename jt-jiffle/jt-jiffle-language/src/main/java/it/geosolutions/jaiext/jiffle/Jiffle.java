@@ -128,7 +128,7 @@ public class Jiffle {
     
     public static final Logger LOGGER = Logger.getLogger(Jiffle.class.getName());
     
-    private static Pattern BLOCK_COMMENT_STRIPPER = Pattern.compile("(?:/\\*(?:[^*]|(?:\\*+[^*/]))*\\*+/)");
+    boolean includeScript;
 
     /** 
      * Constants for runtime model. Jiffle supports two runtime models:
@@ -271,7 +271,20 @@ public class Jiffle {
         setImageParams(params);
         compile();
     }
-    
+
+    /**
+     * Returns true if the script is to be included in the output
+     *
+     * @return
+     */
+    public boolean isIncludeScript() {
+        return includeScript;
+    }
+
+    public void setIncludeScript(boolean includeScript) {
+        this.includeScript = includeScript;
+    }
+
     /**
      * Sets the script. Calling this method will clear any previous script
      * and runtime objects.
@@ -479,7 +492,7 @@ public class Jiffle {
      */
     public JiffleRuntime getRuntimeInstance(Jiffle.RuntimeModel model) throws
             it.geosolutions.jaiext.jiffle.JiffleException {
-        return createRuntimeInstance(model, getRuntimeBaseClass(model), false);
+        return createRuntimeInstance(model, getRuntimeBaseClass(model), includeScript);
     }
 
     /**
@@ -510,7 +523,7 @@ public class Jiffle {
                     " does not implement a required Jiffle runtime interface");
         }
 
-        return (T) createRuntimeInstance(model, baseClass, false);
+        return (T) createRuntimeInstance(model, baseClass, includeScript);
     }
 
     private JiffleRuntime createRuntimeInstance(RuntimeModel model, Class<? extends JiffleRuntime> runtimeClass, boolean scriptInDocs) throws
@@ -553,7 +566,14 @@ public class Jiffle {
             return runtime;
 
         } catch (Exception ex) {
-            throw new it.geosolutions.jaiext.jiffle.JiffleException("Runtime source error for source: " + runtimeSource, ex);
+            // do not display the source code in indirect runtime exception messages
+            if (model == RuntimeModel.INDIRECT) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.fine("Runtime source error for source: " + runtimeSource);
+                }
+                throw new JiffleException("Runtime source error", ex);
+            }
+            throw new JiffleException("Runtime source error for source: " + runtimeSource, ex);
         }
     }
 
@@ -608,20 +628,15 @@ public class Jiffle {
         return baseClass;
     }
 
-    private String createRuntimeSource(RuntimeModel model, String baseClassName, boolean scriptInDocs) {
-        if (scriptInDocs) {
-            throw new RuntimeException("Do no know how to clean the block comments yet");
-        }
-
+    private String createRuntimeSource(RuntimeModel model, String baseClassName,
+                                       boolean scriptInDocs) {
         SourceWriter writer = new SourceWriter(model);
-        writer.setScript(stripComments(theScript));
+        if (scriptInDocs) {
+            writer.setScript(theScript);
+        }
         writer.setBaseClassName(baseClassName);
         scriptModel.write(writer);
         return writer.getSource();
-    }
-
-    private String stripComments(String theScript) {
-        return BLOCK_COMMENT_STRIPPER.matcher(theScript).replaceAll("");
     }
 
     /**
@@ -643,6 +658,7 @@ public class Jiffle {
     
     /**
      * Builds the parse tree from the script.
+     *
      * @param script
      */
     private static Jiffle.Result<ParseTree> parseScript(String script) {
