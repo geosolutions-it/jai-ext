@@ -6,11 +6,11 @@
 	<parent>
 		<groupId>it.geosolutions.jaiext</groupId>
 		<artifactId>jaiext</artifactId>
-		<version>1.1-SNAPSHOT</version>
+		<version>1.1.22</version>
 	</parent>
 	<groupId>it.geosolutions.jaiext.classbreaks</groupId>
 	<artifactId>jt-classbreaks</artifactId>
-	<version>1.1-SNAPSHOT</version>
+	<version>1.1.22</version>
 	<name>jt-classbreaks</name>
 
 	<properties>
