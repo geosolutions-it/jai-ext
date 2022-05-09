@@ -5,11 +5,11 @@
   <parent>
     <groupId>it.geosolutions.jaiext</groupId>
     <artifactId>jaiext</artifactId>
-    <version>1.1.12.1-EOWS</version>
+    <version>1.1.12-SNAPSHOT</version>
   </parent>
   <groupId>it.geosolutions.jaiext.binarize</groupId>
   <artifactId>jt-binarize</artifactId>
-  <version>1.1.12.1-EOWS</version>
+  <version>1.1.12-SNAPSHOT</version>
   <name>jt-binarize</name>
   <url>http://maven.apache.org</url>
   <properties>
