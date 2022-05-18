@@ -17,6 +17,7 @@
 */
 package it.geosolutions.jaiext.mosaic;
 
+import static it.geosolutions.jaiext.testclasses.TestBase.createTestImage;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -36,6 +37,7 @@ import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Arrays;
+import java.util.function.BiFunction;
 
 import javax.media.jai.InterpolationNearest;
 import javax.media.jai.PlanarImage;
@@ -444,6 +446,48 @@ public class HererogeneousMosaicTest {
         // verify the blue is still there
         mosaic.getData().getPixel(120, 10, pixel);
         assertArrayEquals(new int[] { 0, 0, 255 }, pixel);
+    }
+
+    @Test
+    public void testGrayFloatDouble() {
+        assertFloatDouble((zeroFloatTranslated, oneDouble) -> MosaicDescriptor.create(
+                new RenderedImage[]{zeroFloatTranslated, oneDouble},
+                javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, null, null,
+                null, null, null));
+    }
+
+    @Test
+    public void testGrayDoubleFloat() {
+        assertFloatDouble((zeroFloatTranslated, oneDouble) -> MosaicDescriptor.create(
+                new RenderedImage[]{oneDouble, zeroFloatTranslated},
+                javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, null, null,
+                null, null, null));
+    }
+
+    private void assertFloatDouble(BiFunction<RenderedOp, RenderedImage, RenderedOp> mosaicImages) {
+        RenderedImage zeroFloat = createTestImage(DataBuffer.TYPE_FLOAT, 100, 100, null,
+                false, 1, 0f);
+        RenderedOp zeroFloatTranslated = TranslateDescriptor.create(zeroFloat, 50f, 0f,
+                new InterpolationNearest(), null);
+        RenderedImage oneDouble = createTestImage(DataBuffer.TYPE_DOUBLE, 100, 100, null,
+                false, 1, 1d);
+
+        RenderedOp mosaic = mosaicImages.apply(zeroFloatTranslated, oneDouble);
+
+        // RenderedImageBrowser.showChain(mosaic);
+
+        assertGray(mosaic, DataBuffer.TYPE_DOUBLE);
+
+        // check the physical extent
+        assertExtent(mosaic, 0, 0, 150, 100);
+
+        // poke first a pixel that should be one
+        double[] pixel = new double[1];
+        mosaic.getData().getPixel(10, 10, pixel);
+        assertArrayEquals(new double[]{1}, pixel, 0d);
+        // and then one that should be zero
+        mosaic.getData().getPixel(120, 10, pixel);
+        assertArrayEquals(new double[]{0}, pixel, 0d);
     }
 
     @Test

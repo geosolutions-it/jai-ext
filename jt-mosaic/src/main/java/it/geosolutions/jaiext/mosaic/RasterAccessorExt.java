@@ -22,6 +22,7 @@ import java.awt.image.BandedSampleModel;
 import java.awt.image.ColorModel;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
 import java.awt.image.PixelInterleavedSampleModel;
 import java.awt.image.Raster;
@@ -184,8 +185,11 @@ public class RasterAccessorExt extends RasterAccessor {
                             pixels[j] = byteToShort(pixels[j]);
                         }
                     }
-                } else {
-                    throw new IllegalArgumentException("Cannot perform gray rescaling from data type "
+                } else if (!(targetDataType == DataBuffer.TYPE_DOUBLE && sourceDataType == DataBuffer.TYPE_FLOAT)) {
+                    // the case cited in the if is alredy covered during data extraction, there is no transformation
+                    // to be done. If that's not the case instead, throw an exception
+                    throw new IllegalArgumentException("Cannot perform gray rescaling from data " +
+                            "type "
                             + sourceDataType + " to data type " + targetDataType);
                 }
             } else if (numBands == 3 && targetBands == 4 && sampleModel.getDataType() == DataBuffer.TYPE_BYTE) {
@@ -338,6 +342,14 @@ public class RasterAccessorExt extends RasterAccessor {
                 int expandedMax = byteToShort(max);
                 return RangeFactory.create(expandedMin, noData.isMinIncluded(), expandedMax,
                         noData.isMaxIncluded());
+            } else if (targetDataType == DataBuffer.TYPE_DOUBLE && sourceDataType == DataBuffer.TYPE_FLOAT) {
+                float min = (float) noData.getMin().doubleValue();
+                float max = (float) noData.getMax().doubleValue();
+                return RangeFactory.create(min, noData.isMinIncluded(), max, noData.isMaxIncluded());
+            } else if (targetDataType == DataBuffer.TYPE_FLOAT && sourceDataType == DataBuffer.TYPE_DOUBLE) {
+                double min = noData.getMin().floatValue();
+                double max = noData.getMax().floatValue();
+                return RangeFactory.create(min, noData.isMinIncluded(), max, noData.isMaxIncluded());
             } else {
                 throw new IllegalArgumentException("Cannot perform gray rescaling from data type "
                         + sourceDataType + " to data type " + targetDataType);
