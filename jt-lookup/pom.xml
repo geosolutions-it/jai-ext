@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>it.geosolutions.jaiext</groupId>
 		<artifactId>jaiext</artifactId>
-		<version>1.1.24</version>
+		<version>1.1-SNAPSHOT</version>
 	</parent>
 	<groupId>it.geosolutions.jaiext.lookup</groupId>
 	<artifactId>jt-lookup</artifactId>
