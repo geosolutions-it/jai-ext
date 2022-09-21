@@ -823,12 +823,6 @@ public class MosaicOpImage extends OpImage {
         // The previous array is filled with the source raster data
         int intersectingSourceCount = 0;
 
-        // remove this!
-        RasterAccessor destinationAccessor = new RasterAccessor(destRaster, destRectangle,
-                rasterFormatTag, null);
-        int destinationDataType = destinationAccessor.getDataType();
-
-
         for (int i = 0; i < numSources; i++) {
             PlanarImage source = getSourceImage(i);
             Rectangle srcRect = mapDestRect(destRectangle, i);
@@ -966,7 +960,7 @@ public class MosaicOpImage extends OpImage {
         final byte[][] dstDataByte = dst.getByteDataArrays();
 
         // Check if the alpha is used in the selected raster.
-        final boolean alphaPresentinRaster = isAlphaPresentinRaster(srcBeans, sourcesNumber);
+        final boolean alphaPresentinRaster = hasAlpha(srcBeans, sourcesNumber);
 
         // Weight type arrays can have different weight types if ROI or alpha
         // channel are present or not
@@ -1231,8 +1225,7 @@ public class MosaicOpImage extends OpImage {
         return srcBeans[i].getBounds() != null ? srcBeans[i].getBounds() : destBounds;
     }
 
-    private boolean isAlphaPresentinRaster(RasterBeanAccessor[] srcBeans,
-                                                  int sourcesNumber) {
+    private boolean hasAlpha(RasterBeanAccessor[] srcBeans, int sourcesNumber) {
         for (int i = 0; i < sourcesNumber; i++) {
             if (srcBeans[i].getAlphaRasterAccessor() != null) {
                 return true;
@@ -1254,7 +1247,7 @@ public class MosaicOpImage extends OpImage {
         final short[][] dstDataUshort = dst.getShortDataArrays();
 
         // Check if the alpha is used in the selected raster.
-        final boolean alphaPresentinRaster = isAlphaPresentinRaster(srcBeans, sourcesNumber);
+        final boolean hasAlpha = hasAlpha(srcBeans, sourcesNumber);
 
         // Weight type arrays can have different weight types if ROI or alpha
         // channel are present or not
@@ -1268,7 +1261,7 @@ public class MosaicOpImage extends OpImage {
             if (dataRA != null) {
                 srcIterators[i] = new PixelIteratorShort(getSourceRect(srcBeans, destBounds, i), destBounds, dataRA);
                 final RasterAccessor alphaRA = srcBeans[i].getAlphaRasterAccessor();
-                if (alphaPresentinRaster & alphaRA != null) {
+                if (hasAlpha & alphaRA != null) {
                     alphaIterators[i] = new PixelIteratorShort(getSourceRect(srcBeans, destBounds, i), destBounds, alphaRA);
                 }
                 if (alphaRA != null) {
@@ -1510,7 +1503,7 @@ public class MosaicOpImage extends OpImage {
         final short[][] dstDataShort = dst.getShortDataArrays();
 
         // Check if the alpha is used in the selected raster.
-        final boolean alphaPresentinRaster = isAlphaPresentinRaster(srcBeans, sourcesNumber);
+        final boolean hasAlpha = hasAlpha(srcBeans, sourcesNumber);
 
         // Weight type arrays can have different weight types if ROI or alpha
         // channel are present or not
@@ -1524,7 +1517,7 @@ public class MosaicOpImage extends OpImage {
             if (dataRA != null) {
                 srcIterators[i] = new PixelIteratorShort(getSourceRect(srcBeans, destBounds, i), destBounds, dataRA);
                 final RasterAccessor alphaRA = srcBeans[i].getAlphaRasterAccessor();
-                if (alphaPresentinRaster & alphaRA != null) {
+                if (hasAlpha & alphaRA != null) {
                     alphaIterators[i] = new PixelIteratorShort(getSourceRect(srcBeans, destBounds, i), destBounds, alphaRA);
                 }
 
@@ -1763,7 +1756,7 @@ public class MosaicOpImage extends OpImage {
         final int[][] dstDataInt = dst.getIntDataArrays();
 
         // Check if the alpha is used in the selected raster.
-        final boolean alphaPresentinRaster = isAlphaPresentinRaster(srcBeans, sourcesNumber);
+        final boolean hasAlpha = hasAlpha(srcBeans, sourcesNumber);
 
         // Weight type arrays can have different weight types if ROI or alpha
         // channel are present or not
@@ -1777,7 +1770,7 @@ public class MosaicOpImage extends OpImage {
             if (dataRA != null) {
                 srcIterators[i] = new PixelIteratorInt(getSourceRect(srcBeans, destBounds, i), destBounds, dataRA);
                 final RasterAccessor alphaRA = srcBeans[i].getAlphaRasterAccessor();
-                if (alphaPresentinRaster & alphaRA != null) {
+                if (hasAlpha & alphaRA != null) {
                     alphaIterators[i] = new PixelIteratorInt(getSourceRect(srcBeans, destBounds, i), destBounds, alphaRA);
                 }
 
@@ -2014,7 +2007,7 @@ public class MosaicOpImage extends OpImage {
         final float[][] dstDataFloat = dst.getFloatDataArrays();
 
         // Check if the alpha is used in the selected raster.
-        final boolean alphaPresentinRaster = isAlphaPresentinRaster(srcBeans, sourcesNumber);
+        final boolean hasAlpha = hasAlpha(srcBeans, sourcesNumber);
 
         // Weight type arrays can have different weight types if ROI or alpha
         // channel are present or not
@@ -2028,7 +2021,7 @@ public class MosaicOpImage extends OpImage {
             if (dataRA != null) {
                 srcIterators[i] = new PixelIteratorFloat(getSourceRect(srcBeans, destBounds, i), destBounds, dataRA);
                 final RasterAccessor alphaRA = srcBeans[i].getAlphaRasterAccessor();
-                if (alphaPresentinRaster & alphaRA != null) {
+                if (hasAlpha & alphaRA != null) {
                     alphaIterators[i] = new PixelIteratorFloat(getSourceRect(srcBeans, destBounds, i), destBounds, alphaRA);
                 }
                 if (alphaRA != null) {
@@ -2262,7 +2255,7 @@ public class MosaicOpImage extends OpImage {
         final double[][] dstDataDouble = dst.getDoubleDataArrays();
         
         // Check if the alpha is used in the selected raster.
-        final boolean alphaPresentinRaster = isAlphaPresentinRaster(srcBeans, sourcesNumber);
+        final boolean hasAlpha = hasAlpha(srcBeans, sourcesNumber);
 
         // Weight type arrays can have different weight types if ROI or alpha
         // channel are present or not
@@ -2276,7 +2269,7 @@ public class MosaicOpImage extends OpImage {
             if (dataRA != null) {
                 srcIterators[i] = new PixelIteratorDouble(getSourceRect(srcBeans, destBounds, i), destBounds, dataRA);
                 final RasterAccessor alphaRA = srcBeans[i].getAlphaRasterAccessor();
-                if (alphaPresentinRaster & alphaRA != null) {
+                if (hasAlpha & alphaRA != null) {
                     alphaIterators[i] = new PixelIteratorDouble(getSourceRect(srcBeans, destBounds, i), destBounds, alphaRA);
                 }
                 if (alphaRA != null) {

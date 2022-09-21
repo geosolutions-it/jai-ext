@@ -1,6 +1,6 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
  *    http://www.geo-solutions.it/
- *    Copyright 2014 - 2015 GeoSolutions
+ *    Copyright 2022 GeoSolutions
 
 
  * Licensed under the Apache License, Version 2.0 (the "License");
