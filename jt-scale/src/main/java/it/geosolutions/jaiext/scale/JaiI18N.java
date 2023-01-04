@@ -19,8 +19,6 @@ package it.geosolutions.jaiext.scale;
 
 import it.geosolutions.jaiext.utilities.PropertyUtil;
 
-
-
 class JaiI18N {
     static String packageName = "it.geosolutions.jaiext.scale";
 

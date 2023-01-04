@@ -24,14 +24,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import it.geosolutions.jaiext.JAIExt;
-import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
-import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
-import it.geosolutions.jaiext.interpolators.InterpolationNearest;
-import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
-import it.geosolutions.jaiext.testclasses.TestData;
-
 import javax.media.jai.BorderExtender;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
@@ -41,6 +33,14 @@ import javax.media.jai.RenderedOp;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import it.geosolutions.jaiext.JAIExt;
+import it.geosolutions.jaiext.interpolators.InterpolationBicubic;
+import it.geosolutions.jaiext.interpolators.InterpolationBilinear;
+import it.geosolutions.jaiext.interpolators.InterpolationNearest;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.testclasses.TestData;
 
 /**
  * This test class is used for compare the timing between the new Nearest,Bilinear and Bicubic interpolators and their JAI version on the scale
@@ -59,7 +59,7 @@ import org.junit.Test;
  * bicubic. The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor. If the user
  * wants to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
-public class ComparisonTest2 extends TestScale2 {
+public class Comparison2Test extends TestScale2 {
 
     /** Number of benchmark iterations (Default 1) */
     private final static Integer BENCHMARK_ITERATION = Integer.getInteger(
@@ -136,7 +136,7 @@ public class ComparisonTest2 extends TestScale2 {
         // Selection of the RGB image
         ParameterBlockJAI pbj = new ParameterBlockJAI("ImageRead");
         // String file = "../jt-utilities/src/test/resources/it/geosolutions/jaiext/images/testImageLittle.tif";
-        File file = TestData.file(ComparisonTest2.class, "testImageLittle.tif");
+        File file = TestData.file(Comparison2Test.class, "testImageLittle.tif");
         pbj.setParameter("Input", file);
         image = JAI.create("ImageRead", pbj);
 

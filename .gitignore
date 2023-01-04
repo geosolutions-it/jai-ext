@@ -14,6 +14,9 @@ target
 .idea/
 *.iml
 
+# VS Code
+.vscode
+
 # Cucumber Testing artifacts
 cucumber-report
 .mvn

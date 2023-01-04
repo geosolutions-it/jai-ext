@@ -29,7 +29,7 @@ import org.junit.Test;
  * similar to the 4th method but executes its operations on binary images.
  */
 @Ignore
-public class BicubicScaleTest extends TestScale2 {
+public class BicubicScale2Test extends TestScale2 {
     @Test
     public void testImageScaling() {
         boolean roiPresent = false;

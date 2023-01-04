@@ -17,7 +17,7 @@
     <apache.version>2.1</apache.version>
     <fork.javac>true</fork.javac>
     <javac.maxHeapSize>256M</javac.maxHeapSize>
-    <guava.version>27.0-jre</guava.version>
+    <guava.version>31.1-jre</guava.version>
     <jts.version>1.17.0</jts.version>
     <project.version>1.1-SNAPSHOT</project.version>
   </properties>
@@ -755,7 +755,6 @@
     <module>jt-vectorbin</module>
     <module>jt-threshold</module>
     <module>jt-clamp</module>
-    <module>jt-scale2</module>
     <module>jt-shadedrelief</module>
     <module>jt-jiffle</module>
     <module>jt-classbreaks</module>
