@@ -755,7 +755,6 @@
     <module>jt-vectorbin</module>
     <module>jt-threshold</module>
     <module>jt-clamp</module>
-    <module>jt-scale2</module>
     <module>jt-shadedrelief</module>
     <module>jt-jiffle</module>
     <module>jt-classbreaks</module>
