@@ -17,9 +17,9 @@
 */
 package it.geosolutions.jaiext.scale;
 
-import org.junit.Test;
-
 import javax.media.jai.Interpolation;
+
+import org.junit.Test;
 
 /**
  * This test-class extends the TestScale class and is used for testing the nearest interpolation inside the Scale operation. The registration method
@@ -27,7 +27,7 @@ import javax.media.jai.Interpolation;
  * a ROI object calculated using a ROI RasterAccessor while the 4th method uses an Iterator on the ROI Object. The 5th method performs the scale
  * operation with all the components. The last method is similar to the 5th method but executes its operations on binary images.
  */
-public class NearestScaleTest extends TestScale2 {
+public class NearestScale2Test extends TestScale2 {
 
     @Test
     public void testImageScaling() {

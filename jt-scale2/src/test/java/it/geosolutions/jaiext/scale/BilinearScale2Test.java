@@ -20,11 +20,8 @@ package it.geosolutions.jaiext.scale;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Test;
-import org.locationtech.jts.awt.ShapeReader;
-
-import java.awt.*;
-import java.awt.geom.Area;
+import java.awt.Polygon;
+import java.awt.RenderingHints;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.PixelInterleavedSampleModel;
@@ -39,10 +36,10 @@ import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
-import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
 import javax.media.jai.operator.BandSelectDescriptor;
-import javax.xml.crypto.Data;
+
+import org.junit.Test;
 
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
@@ -53,7 +50,7 @@ import it.geosolutions.jaiext.range.RangeFactory;
  * while the 3rd method uses an Iterator on the ROI Object. The 4th method performs the scale operation with all the components. The last method is
  * similar to the 4th method but executes its operations on binary images.
  */
-public class BilinearScaleTest extends TestScale2 {
+public class BilinearScale2Test extends TestScale2 {
     public static boolean VERBOSE = Boolean.getBoolean("verbose");
 
     @Test

@@ -24,7 +24,6 @@ import static org.junit.Assert.assertThat;
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
-import java.io.IOException;
 
 import javax.media.jai.Interpolation;
 import javax.media.jai.PlanarImage;
@@ -46,7 +45,7 @@ import it.geosolutions.jaiext.translate.TranslateIntOpImage;
  * getProperty() method of the ScaleDescriptor class and the capability of the ScaleCRIF.create() method to call the TranslateIntOpImage class or the
  * CopyOpImage class when the requested operation is simply a translation or a copy of the source image without ROI object.
  */
-public class CoverageClassTest extends TestScale2 {
+public class CoverageClass2Test extends TestScale2 {
 
     // this test-case is used for testing the getProperty() method of the ScaleDescriptor class
     @Test

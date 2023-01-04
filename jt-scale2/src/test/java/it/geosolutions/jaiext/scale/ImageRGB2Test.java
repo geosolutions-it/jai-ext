@@ -50,7 +50,7 @@ import it.geosolutions.rendered.viewer.RenderedImageBrowser;
  * and width. The 3 tests with the different interpolation types are executed by calling 3 times the testImage() method and changing each time the
  * selected interpolation.
  */
-public class ImageRGBTest extends TestScale2 {
+public class ImageRGB2Test extends TestScale2 {
     /** RGB image width */
     private int imageWidth;
 
