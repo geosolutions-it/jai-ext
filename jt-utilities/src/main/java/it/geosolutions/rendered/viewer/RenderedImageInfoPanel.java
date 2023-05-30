@@ -378,7 +378,8 @@ public class RenderedImageInfoPanel extends JPanel
                 hb.dataLine("Transparent Pixel", Integer.toString(icm.getTransparentPixel()));
 
                 // lut
-                hb.dataLine("ColorMap Size", Integer.toString(icm.getMapSize()));
+                int colorMapSize = icm.getMapSize();
+                hb.dataLine("ColorMap Size", Integer.toString(colorMapSize));
 
                 final int numbands = icm.hasAlpha() ? 4 : 3;
                 final byte[][] cmap = new byte[numbands][icm.getMapSize()];
@@ -391,7 +392,15 @@ public class RenderedImageInfoPanel extends JPanel
                 }
 
                 final StringBuilder b = new StringBuilder();
-                for (int i = 0; i < icm.getMapSize(); i++)
+
+                boolean truncated = false;
+                if (colorMapSize > 255) {
+                    // Truncate it otherwise it will take ages to write the content
+                    // Think about extended color palette with 65536 colors
+                    colorMapSize = 255;
+                    truncated = true;
+                }
+                for (int i = 0; i < colorMapSize; i++)
                 {
                     b.append('(').append(i).append(")-").append('[').append(cmap[0][i]).append(',').append(cmap[1][i]).append(',').append(cmap[2][i]);
                     if (numbands == 4)
@@ -400,7 +409,11 @@ public class RenderedImageInfoPanel extends JPanel
                     }
                     b.append(']').append('\n');
                 }
-                hb.dataLine("ColorMap", b.toString());
+                String colormapHeader = truncated ? "Truncated ColorMap" : "ColorMap";
+                if (truncated) {
+                    b.append(".... ColorMap was too long. Truncated to 255 Colors");
+                }
+                hb.dataLine(colormapHeader, b.toString());
             }
             hb.dataLine("Color space", colorModel.getColorSpace().getClass());            
         }
