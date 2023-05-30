@@ -384,7 +384,7 @@ public class RenderedImageBrowser extends JPanel
     }
 
     public static void showChainAndWaitOnClose(RenderedImage renderedImage) {
-        showChain(renderedImage, true, true, renderedImage.toString(), true);
+        showChain(renderedImage, true, true, "renderedImage", true);
     }
 
     public void setImage(RenderedImage image)

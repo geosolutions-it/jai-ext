@@ -426,6 +426,7 @@ public class ImageViewer extends JPanel
             case TYPE_FLOAT:
             case TYPE_INT:
             case TYPE_SHORT:
+            case TYPE_BYTE:
                 // Store the unscaled image
                 this.display.image = image;
                 ImageLayout layout = new ImageLayout2();
@@ -468,13 +469,22 @@ public class ImageViewer extends JPanel
                 Histogram hist = (Histogram) histogramImage.getProperty("Histogram");
 
                 // get 5th and 95th ptiles for contrast stretch
-                double min = hist.getPTileThreshold(0.05)[0];
-                double max = hist.getPTileThreshold(0.95)[0];
-                final double delta = max - min;
-                double[] scale = new double[]{255 / delta};
-                double[] offset = new double[]{(-scale[0] * min)};
+                double[] mins = hist.getPTileThreshold(0.05);
+                double[] maxs = hist.getPTileThreshold(0.95);
+                int bands = mins.length;
+                double[] scales = new double[bands];
+                double[] offsets = new double[bands];
+                double[] deltas = new double[bands];
+                RenderedImage[] rescaled = new RenderedImage[bands];
+                for (int i=0; i<bands; i++) {
+                    deltas[i] = maxs[i] - mins[i];
+                    scales[i] = 255 / deltas[i];
+                    offsets[i] = (-scales[i] * mins[i]);
+                }
+
+
                 // rescale values
-                image = RescaleDescriptor.create(image, scale, offset, hints);
+                image =  RescaleDescriptor.create(image, scales, offsets, hints);
                 // force to byte to truncate any values out of the byte range
                 image = FormatDescriptor.create(image, TYPE_BYTE, hints);
                 // Set rescaled image and trigger repaint
