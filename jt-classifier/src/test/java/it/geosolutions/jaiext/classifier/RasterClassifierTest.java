@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
 import it.geosolutions.jaiext.piecewise.TransformationException;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
@@ -453,7 +454,7 @@ public class RasterClassifierTest extends TestBase {
 
     /**
      * SWAN test-case. We generate an image similar to the SWAN dataset.
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -497,8 +498,8 @@ public class RasterClassifierTest extends TestBase {
             final LinearColorMapElement nodata = LinearColorMapElement.create("nodata", Color.red,
                     RangeFactory.create(-9.0, -9.0), 4);
 
-            final LinearColorMap list = new LinearColorMap("testSWAN", new LinearColorMapElement[] {
-                    c0, c1, c3, c4 }, new LinearColorMapElement[] { nodata }, new Color(0, 0, 0, 0));
+            final LinearColorMap list = new LinearColorMap("testSWAN", new LinearColorMapElement[]{
+                    c0, c1, c3, c4}, new LinearColorMapElement[]{nodata}, new Color(0, 0, 0, 0));
 
             final ParameterBlockJAI pbj = new ParameterBlockJAI(
                     RasterClassifierOpImage.OPERATION_NAME);
@@ -532,6 +533,29 @@ public class RasterClassifierTest extends TestBase {
                 finalimage.getTiles();
             finalimage.dispose();
         }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidColorMap() throws IOException {
+
+        final LinearColorMapElement c0 = LinearColorMapElement.create("c0", Color.green,
+                RangeFactory.create(Double.NEGATIVE_INFINITY, 0.3), 51);
+
+        final LinearColorMapElement c1 = LinearColorMapElement.create("c2", Color.yellow,
+                RangeFactory.create(0.3, false, 0.6, true), 1);
+
+        final LinearColorMapElement c3 = LinearColorMapElement.create("c3", Color.red,
+                RangeFactory.create(0.70, false, 0.90, true), 2);
+
+        // rouge element
+        final LinearColorMapElement c4 = LinearColorMapElement.create("c4", Color.BLUE,
+                RangeFactory.create(0.2, false, Double.POSITIVE_INFINITY, true), 3);
+
+        final LinearColorMapElement nodata = LinearColorMapElement.create("nodata", Color.red,
+                RangeFactory.create(-9.0, -9.0), 4);
+
+        final LinearColorMap list = new LinearColorMap("testSWAN", new LinearColorMapElement[]{
+                c0, c1, c3, c4}, new LinearColorMapElement[]{nodata}, new Color(0, 0, 0, 0));
     }
 
     /**

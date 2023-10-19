@@ -33,6 +33,7 @@ import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.math.BigInteger;
 import java.util.AbstractList;
+import java.util.Arrays;
 
 import javax.xml.crypto.dsig.TransformException;
 
@@ -207,69 +208,44 @@ public final class LinearColorMap extends AbstractList<LinearColorMapElement> im
         // /////////////////////////////////////////////////////////////////////
         ColorMapUtilities.checkPreservingElements(domainElementsToPreserve);
 
-        // /////////////////////////////////////////////////////////////////////
-        //
-        // Cycle on all the domain elements and compare them to all the others
-        //
-        // /////////////////////////////////////////////////////////////////////
-        final int num = domainElementsToPreserve != null ? domainElements.length
-                + domainElementsToPreserve.length : domainElements.length;
-        for (int i = 0; i < num; i++) {
-            final DefaultLinearPiecewiseTransform1DElement c0 = i >= domainElements.length ? (DefaultLinearPiecewiseTransform1DElement) domainElementsToPreserve[i
-                    - domainElements.length]
-                    : (DefaultLinearPiecewiseTransform1DElement) domainElements[i];
-            final ColorMapTransformElement v0 = (ColorMapTransformElement) c0;
-            final Range outRange0 = c0.getOutputRange();
-            final Color[] colors0 = v0.getColors();
-            final int minimum0 = outRange0.getMin().intValue();
-            final int maximum0 = outRange0.getMax().intValue();
-            // ////////////////////////////////////////////////////////////////
-            //
-            // Check the c0 categories with all the others
-            //
-            // ////////////////////////////////////////////////////////////////
-            for (int j = 0; j < num; j++) {
-                // don't check a category with itself.
-                if (j == i)
-                    continue;
-                // //
-                //
-                // We allow two LinearColorMapElement output ranges to overlap
-                // only if they
-                // map to a single value and they use the same color for it.
-                // Every other case is marked as an error either because it is
-                // an error or because it was too hard to support.
-                //
-                // //
-                final DefaultLinearPiecewiseTransform1DElement c1 = j >= domainElements.length ? (DefaultLinearPiecewiseTransform1DElement) domainElementsToPreserve[j
-                        - domainElements.length]
-                        : (DefaultLinearPiecewiseTransform1DElement) domainElements[j];
-                final ColorMapTransformElement v1 = (ColorMapTransformElement) c1;
-                final Range outRange1 = c1.getOutputRange();
-                if (outRange1.intersects(outRange0)) {
-
-                    // do they intersect?
-                    if (!outRange0.intersects(outRange1))
-                        continue;
-
-                    // they intersect!!!
-
-                    // check the values
-                    final int minimum1 = outRange1.getMin().intValue();
-                    final int maximum1 = outRange1.getMax().intValue();
-                    final Color[] colors1 = v1.getColors();
-                    if (minimum1 == maximum0 && colors0[colors0.length - 1].equals(colors1[0]))
-                        continue;
-
-                    if (minimum0 == maximum1 && colors1[colors1.length - 1].equals(colors0[0]))
-                        continue;
-
+        // Make sure there are no overlapping ranges, optimized comparison by 
+        // ensuring the ranges are sorted
+        Arrays.sort(domainElements, (o1, o2) -> o1.getRange().compare(o2.getRange()));
+        LinearColorMapElement prev = domainElements[0];
+        for (int i = 1; i < domainElements.length; i++) {
+            LinearColorMapElement curr = domainElements[1];
+            if (prev.getRange().intersects(curr.getRange()) && !compatible(prev, curr))
+                throw new IllegalArgumentException("Wrong values defined");
+            for (int j = 0; j < domainElementsToPreserve.length; j++) {
+                if (curr.getRange().intersects(domainElementsToPreserve[j].getRange()))
                     throw new IllegalArgumentException("Wrong values defined");
-                }
             }
-
+            prev = curr;
         }
     }
+
+    private static boolean compatible(LinearColorMapElement prev, LinearColorMapElement curr) {
+        Color[] colors0 = prev.getColors();
+        Range outRange0 = prev.getOutputRange();
+        final int minimum0 = outRange0.getMin().intValue();
+        final int maximum0 = outRange0.getMax().intValue();
+
+        final Range outRange1 = curr.getOutputRange();
+
+
+        // check the values
+        final int minimum1 = outRange1.getMin().intValue();
+        final int maximum1 = outRange1.getMax().intValue();
+        final Color[] colors1 = curr.getColors();
+        if (minimum1 == maximum0 && colors0[colors0.length - 1].equals(colors1[0]))
+            return true;
+
+        if (minimum0 == maximum1 && colors1[colors1.length - 1].equals(colors0[0]))
+            return true;
+
+        return false;
+    }
+
 
     /**
      * Returns a color model for this category list. This method builds up the color model from each category's colors (as returned by
