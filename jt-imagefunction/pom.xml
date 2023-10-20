@@ -6,11 +6,11 @@
 	<parent>
 		<groupId>it.geosolutions.jaiext</groupId>
 		<artifactId>jaiext</artifactId>
-		<version>1.1-SNAPSHOT</version>
+		<version>1.1.25</version>
 	</parent>
 	<groupId>it.geosolutions.jaiext.imagefunction</groupId>
 	<artifactId>jt-imagefunction</artifactId>
-	<version>1.1-SNAPSHOT</version>
+	<version>1.1.25</version>
 	<name>jt-imagefunction</name>
 
 	<properties>
