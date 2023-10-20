@@ -213,7 +213,7 @@ public final class LinearColorMap extends AbstractList<LinearColorMapElement> im
         Arrays.sort(domainElements, (o1, o2) -> o1.getRange().compare(o2.getRange()));
         LinearColorMapElement prev = domainElements[0];
         for (int i = 1; i < domainElements.length; i++) {
-            LinearColorMapElement curr = domainElements[1];
+            LinearColorMapElement curr = domainElements[i];
             if (prev.getRange().intersects(curr.getRange()) && !compatible(prev, curr))
                 throw new IllegalArgumentException("Wrong values defined");
             for (int j = 0; j < domainElementsToPreserve.length; j++) {
