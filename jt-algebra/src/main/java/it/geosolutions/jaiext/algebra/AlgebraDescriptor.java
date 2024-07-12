@@ -22,6 +22,7 @@ import it.geosolutions.jaiext.range.Range;
 import java.awt.RenderingHints;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
+import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderableImage;
 
 import javax.media.jai.JAI;
@@ -1169,7 +1170,162 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
                 }
                 return result;
             }
-        };
+        },MAX(14, Integer.MIN_VALUE, true) {
+            @Override
+            public byte calculate(byte... values) {
+                byte result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    byte value = values[i];
+                    if (value > result) result = value;
+                }
+                return result;
+            }
+
+            @Override
+            public short calculate(short... values) {
+                short result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    short value = values[i];
+                    if (value > result) result = value;
+                }
+                return result;
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                if (isUshort) {
+                    int result = values[0] & ImageUtil.USHORT_MASK;
+                    for (int i = 1; i < values.length; i++) {
+                        int value = values[i] & ImageUtil.USHORT_MASK;
+                        if (value > result) result = value;
+                    }
+                    return (short) result;                    
+                } else {
+                    // call the "short" specific method instead
+                    return calculate(values);
+                }
+            }
+
+            @Override
+            public int calculate(int... values) {
+                int result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    int value = values[i];
+                    if (value > result) result = value;
+                }
+                return result;
+            }
+
+            @Override
+            public float calculate(float... values) {
+                float result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    float value = values[i];
+                    if (value > result) result = value;
+                }
+                return result;
+            }
+
+            @Override
+            public double calculate(double... values) {
+                double result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    double value = values[i];
+                    if (value > result) result = value;
+                }
+                return result;
+            }
+
+            @Override
+            public long calculateL(long... values) {
+                long result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    long value = values[i];
+                    if (value > result) result = value;
+                }
+                return result;
+            }
+        },
+        MIN(15, Integer.MAX_VALUE, true) {
+            @Override
+            public byte calculate(byte... values) {
+                byte result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    byte value = values[i];
+                    if (value < result) result = value;
+                }
+                return result;
+            }
+
+            @Override
+            public short calculate(short... values) {
+                short result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    short value = values[i];
+                    if (value < result) result = value;
+                }
+                return result;
+            }
+
+            @Override
+            public short calculate(boolean isUshort, short... values) {
+                if (isUshort) {
+                    int result = values[0] & ImageUtil.USHORT_MASK;
+                    for (int i = 1; i < values.length; i++) {
+                        int value = values[i] & ImageUtil.USHORT_MASK;
+                        if (value < result) result = value;
+                    }
+                    return (short) result;
+                } else {
+                    // call the "short" specific method instead
+                    return calculate(values);
+                }
+            }
+
+            @Override
+            public int calculate(int... values) {
+                int result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    int value = values[i];
+                    if (value < result) result = value;
+                }
+                return result;
+            }
+
+            @Override
+            public float calculate(float... values) {
+                float result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    float value = values[i];
+                    if (value < result) result = value;
+                }
+                return result;
+            }
+
+            @Override
+            public double calculate(double... values) {
+                double result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    double value = values[i];
+                    if (value < result) result = value;
+                }
+                return result;
+            }
+
+            @Override
+            public long calculateL(long... values) {
+                long result = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    long value = values[i];
+                    if (value < result) result = value;
+                }
+                return result;
+            }
+        }
+
+        ;
+        
+        
 
         private final double nullValue;
 
@@ -1307,7 +1463,7 @@ public class AlgebraDescriptor extends OperationDescriptorImpl {
      * 
      * <p>
      * Creates a <code>ParameterBlockJAI</code> from all supplied arguments except <code>hints</code> and invokes
-     * {@link JAI#create(String,ParameterBlock,RenderingHints)}.
+     * {@link JAI#create(String, ParameterBlock,RenderingHints)}.
      * 
      * @see JAI
      * @see ParameterBlockJAI
