@@ -40,28 +40,32 @@ import com.sun.media.jai.util.ImageUtil;
 import com.sun.media.jai.util.JDKWorkarounds;
 
 /**
- * An <code>OpImage</code> implementing any operation defined by the {@link Operator} enum on an image array.
- * 
+ * An <code>OpImage</code> implementing any operation defined by the {@link Operator} enum on an 
+ * image array.
+ *
  * <p>
- * This <code>OpImage</code> executes the operation on the pixel values of N source images on a per-band basis. In case the N source images have different number of
- * bands, the number of bands for the destination image is the smaller band number of the N source images. That is
- * <code>dstNumBands = Math.min(src1NumBands, src2NumBands,...)</code>. In case the source images have different data types, the data type
+ * This <code>OpImage</code> executes the operation on the pixel values of N source images on a 
+ * per-band basis. In case the N source images have different number of
+ * bands, the number of bands for the destination image is the smaller band number of the N 
+ * source images. That is
+ * <code>dstNumBands = Math.min(src1NumBands, src2NumBands,...)</code>. In case the source images
+ * have different data types, the data type
  * for the destination image is the bigger data type of the two source images.
- * 
+ *
  * <p>
  * The value of the pixel (x, y) in the destination image is defined as:
- * 
+ *
  * <pre>
  * for (b = 0; b &lt; numBands; b++) {
  *     dst[y][x][b] = op.calculate(src1[y][x][b],src2[y][x][b]);
  * }
  * </pre>
- * 
+ *
  * <p>
- * If the result of the operation overflows/underflows the maximum/minimum value supported by the destination image, then it will be clamped to the
- * maximum/minimum value respectively. The data type <code>byte</code> is treated as unsigned, with maximum value as 255 and minimum value as 0.
- * 
- * 
+ * If the result of the operation overflows/underflows the maximum/minimum value supported by the
+ * destination image, then it will be clamped to the
+ * maximum/minimum value respectively. The data type <code>byte</code> is treated as unsigned, 
+ * with maximum value as 255 and minimum value as 0.
  */
 public class AlgebraOpImage extends PointOpImage {
 
@@ -113,25 +117,28 @@ public class AlgebraOpImage extends PointOpImage {
 
     /**
      * Constructs an <code>AlgebraOpImage</code>.
-     * 
+     *
      * <p>
-     * The <code>layout</code> parameter may optionally contains the tile grid layout, sample model, and/or color model. The image dimension is
+     * The <code>layout</code> parameter may optionally contains the tile grid layout, sample 
+     * model, and/or color model. The image dimension is
      * determined by the intersection of the bounding boxes of the two source images.
-     * 
+     *
      * <p>
-     * The image layout of the first source image, <code>source1</code>, is used as the fall-back for the image layout of the destination image. Any
-     * layout parameters not specified in the <code>layout</code> argument are set to the same value as that of <code>source1</code>.
-     * 
-     * @param config the hints
-     * @param layout The destination image layout.
-     * @param op Operation selected
-     * @param srcROI ROI used for reducing computation Area
-     * @param noData NoData Range used for checking noData
+     * The image layout of the first source image, <code>source1</code>, is used as the fall-back
+     * for the image layout of the destination image. Any
+     * layout parameters not specified in the <code>layout</code> argument are set to the same 
+     * value as that of <code>source1</code>.
+     *
+     * @param config            the hints
+     * @param layout            The destination image layout.
+     * @param op                Operation selected
+     * @param srcROI            ROI used for reducing computation Area
+     * @param noData            NoData Range used for checking noData
      * @param destinationNoData value for replacing the source nodata values
-     * @param sources Array of Sources
+     * @param sources           Array of Sources
      */
     public AlgebraOpImage(Map config, ImageLayout layout, Operator op, ROI srcROI, Range noData,
-            double destinationNoData, RenderedImage... sources) {
+                          double destinationNoData, RenderedImage... sources) {
         super(vectorize(sources), layout, config, true);
 
         if (op == null) {
@@ -148,7 +155,7 @@ public class AlgebraOpImage extends PointOpImage {
             LOGGER.warning("Multiple sources found, only the first one will be used");
             numSrc = 1;
         }
-        
+
         this.numSrc = numSrc;
         this.numTotalSrc = sources.length;
 
@@ -162,9 +169,9 @@ public class AlgebraOpImage extends PointOpImage {
 //                throw new IllegalArgumentException("Images must have the same data type");
 //            }
 //        }
-        
+
         // DataType check for the operation
-        if(!op.isDataTypeSupported(srcDataType)){
+        if (!op.isDataTypeSupported(srcDataType)) {
             throw new IllegalArgumentException("This operation does not support DataType: " + srcDataType);
         }
 
@@ -225,32 +232,32 @@ public class AlgebraOpImage extends PointOpImage {
 
         // Destination No Data value is clamped to the image data type
         switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            this.destNoDataByte = ImageUtil.clampRoundByte(destinationNoData);
-            this.nullValueByte = ImageUtil.clampRoundByte(op.getNullValue());
-            break;
-        case DataBuffer.TYPE_USHORT:
-            this.destNoDataShort = ImageUtil.clampRoundUShort(destinationNoData);
-            this.nullValueShort = ImageUtil.clampRoundUShort(op.getNullValue());
-            break;
-        case DataBuffer.TYPE_SHORT:
-            this.destNoDataShort = ImageUtil.clampRoundShort(destinationNoData);
-            this.nullValueShort = ImageUtil.clampRoundShort(op.getNullValue());
-            break;
-        case DataBuffer.TYPE_INT:
-            this.destNoDataInt = ImageUtil.clampRoundInt(destinationNoData);
-            this.nullValueInt = ImageUtil.clampRoundInt(op.getNullValue());
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            this.destNoDataFloat = ImageUtil.clampFloat(destinationNoData);
-            this.nullValueFloat = ImageUtil.clampFloat(op.getNullValue());
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            this.destNoDataDouble = destinationNoData;
-            this.nullValueDouble = op.getNullValue();
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong image data type");
+            case DataBuffer.TYPE_BYTE:
+                this.destNoDataByte = ImageUtil.clampRoundByte(destinationNoData);
+                this.nullValueByte = ImageUtil.clampRoundByte(op.getNullValue());
+                break;
+            case DataBuffer.TYPE_USHORT:
+                this.destNoDataShort = ImageUtil.clampRoundUShort(destinationNoData);
+                this.nullValueShort = ImageUtil.clampRoundUShort(op.getNullValue());
+                break;
+            case DataBuffer.TYPE_SHORT:
+                this.destNoDataShort = ImageUtil.clampRoundShort(destinationNoData);
+                this.nullValueShort = ImageUtil.clampRoundShort(op.getNullValue());
+                break;
+            case DataBuffer.TYPE_INT:
+                this.destNoDataInt = ImageUtil.clampRoundInt(destinationNoData);
+                this.nullValueInt = ImageUtil.clampRoundInt(op.getNullValue());
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                this.destNoDataFloat = ImageUtil.clampFloat(destinationNoData);
+                this.nullValueFloat = ImageUtil.clampFloat(op.getNullValue());
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                this.destNoDataDouble = destinationNoData;
+                this.nullValueDouble = op.getNullValue();
+                break;
+            default:
+                throw new IllegalArgumentException("Wrong image data type");
         }
 
         // Check if No Data control must be done
@@ -264,12 +271,11 @@ public class AlgebraOpImage extends PointOpImage {
                 byteLookupTable = new byte[256];
 
                 for (int i = 0; i < byteLookupTable.length; i++) {
-                    byte value = (byte) i;
 
-                    booleanLookupTable[i] = !noData.contains(value);
+                    booleanLookupTable[i] = !noData.contains(i);
 
                     if (booleanLookupTable[i]) {
-                        byteLookupTable[i] = value;
+                        byteLookupTable[i] = (byte) i;
                     } else {
                         byteLookupTable[i] = nullValueByte;
                     }
@@ -305,9 +311,10 @@ public class AlgebraOpImage extends PointOpImage {
 
     /**
      * Computes the final pixel from N source images within a specified rectangle.
-     * 
-     * @param sources Cobbled sources, guaranteed to provide all the source data necessary for computing the rectangle.
-     * @param dest The tile containing the rectangle to be computed.
+     *
+     * @param sources  Cobbled sources, guaranteed to provide all the source data necessary for 
+     *                 computing the rectangle.
+     * @param dest     The tile containing the rectangle to be computed.
      * @param destRect The rectangle within the tile to be computed.
      */
     protected void computeRect(Raster[] sources, WritableRaster dest, Rectangle destRect) {
@@ -327,24 +334,24 @@ public class AlgebraOpImage extends PointOpImage {
                     getColorModel());
 
             switch (d.getDataType()) {
-            case DataBuffer.TYPE_BYTE:
-                computeRectByte(rasterArray, d);
-                break;
-            case DataBuffer.TYPE_USHORT:
-                computeRectUShort(rasterArray, d);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                computeRectShort(rasterArray, d);
-                break;
-            case DataBuffer.TYPE_INT:
-                computeRectInt(rasterArray, d);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                computeRectFloat(rasterArray, d);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                computeRectDouble(rasterArray, d);
-                break;
+                case DataBuffer.TYPE_BYTE:
+                    computeRectByte(rasterArray, d);
+                    break;
+                case DataBuffer.TYPE_USHORT:
+                    computeRectUShort(rasterArray, d);
+                    break;
+                case DataBuffer.TYPE_SHORT:
+                    computeRectShort(rasterArray, d);
+                    break;
+                case DataBuffer.TYPE_INT:
+                    computeRectInt(rasterArray, d);
+                    break;
+                case DataBuffer.TYPE_FLOAT:
+                    computeRectFloat(rasterArray, d);
+                    break;
+                case DataBuffer.TYPE_DOUBLE:
+                    computeRectDouble(rasterArray, d);
+                    break;
             }
 
             if (d.needsClamping()) {
@@ -357,22 +364,22 @@ public class AlgebraOpImage extends PointOpImage {
             double[] destNoData = new double[numBands];
             for (int i = 0; i < numBands; i++) {
                 switch (destDataType) {
-                case DataBuffer.TYPE_BYTE:
-                    destNoData[i] = destNoDataByte;
-                    break;
-                case DataBuffer.TYPE_USHORT:
-                case DataBuffer.TYPE_SHORT:
-                    destNoData[i] = destNoDataShort;
-                    break;
-                case DataBuffer.TYPE_INT:
-                    destNoData[i] = destNoDataInt;
-                    break;
-                case DataBuffer.TYPE_FLOAT:
-                    destNoData[i] = destNoDataFloat;
-                    break;
-                case DataBuffer.TYPE_DOUBLE:
-                    destNoData[i] = destNoDataDouble;
-                    break;
+                    case DataBuffer.TYPE_BYTE:
+                        destNoData[i] = destNoDataByte;
+                        break;
+                    case DataBuffer.TYPE_USHORT:
+                    case DataBuffer.TYPE_SHORT:
+                        destNoData[i] = destNoDataShort;
+                        break;
+                    case DataBuffer.TYPE_INT:
+                        destNoData[i] = destNoDataInt;
+                        break;
+                    case DataBuffer.TYPE_FLOAT:
+                        destNoData[i] = destNoDataFloat;
+                        break;
+                    case DataBuffer.TYPE_DOUBLE:
+                        destNoData[i] = destNoDataDouble;
+                        break;
                 }
             }
             ImageUtil.fillBackground(dest, destRect, destNoData);
@@ -536,26 +543,22 @@ public class AlgebraOpImage extends PointOpImage {
                     dLineOffset += dLineStride;
 
                     for (int w = 0; w < dwidth; w++) {
-
                         isValidData = false;
 
                         sourceValue = srcData[0][srcPixelOffset[0]] & 0xFF;
-
-                        result = byteLookupTable[sourceValue] & 0xFF;
                         isValidData |= booleanLookupTable[sourceValue];
                         if (isValidData) {
-                            result = op.calculate(srcData[0][srcPixelOffset[0]]) & 0xFF;
+                            result = op.calculate(sourceValue) & 0xFF;
                         }
                         srcPixelOffset[0] += srcPixelStride[0];
 
                         for (int i = 1; i < numSrc; i++) {
                             sourceValue = srcData[i][srcPixelOffset[i]] & 0xFF;
 
-                            isValidData |= booleanLookupTable[sourceValue];
-
+                            boolean validPixel = booleanLookupTable[sourceValue];
                             inputData = byteLookupTable[sourceValue] & 0xFF;
-
-                            result = op.calculate(result, inputData);
+                            result = updateResultInteger(validPixel, inputData, isValidData, result);
+                            isValidData |= validPixel;
 
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
@@ -617,23 +620,20 @@ public class AlgebraOpImage extends PointOpImage {
                         }
 
                         sourceValue = srcData[0][srcPixelOffset[0]] & 0xFF;
-
-                        result = byteLookupTable[sourceValue] & 0xFF;
                         isValidData |= booleanLookupTable[sourceValue];
                         if (isValidData) {
-                            result = op.calculate(srcData[0][srcPixelOffset[0]]) & 0xFF;
+                            result = op.calculate(sourceValue) & 0xFF;
                         }
                         srcPixelOffset[0] += srcPixelStride[0];
 
                         for (int i = 1; i < numSrc; i++) {
                             sourceValue = srcData[i][srcPixelOffset[i]] & 0xFF;
 
-                            isValidData |= booleanLookupTable[sourceValue];
-
+                            boolean validPixel = booleanLookupTable[sourceValue];
                             inputData = byteLookupTable[sourceValue] & 0xFF;
 
-                            result = op.calculate(result, inputData);
-
+                            result = updateResultInteger(validPixel, inputData, isValidData, result);
+                            isValidData |= validPixel;
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -659,6 +659,73 @@ public class AlgebraOpImage extends PointOpImage {
         }
     }
 
+    /**
+     * Applies the operation on the current pixel value and result, considering the following cases:
+     * <ul>
+     *     <li>If the pixel is not valid, skip</li>
+     *     <li>If the pixel is valid and it's the first, initialize result</li>
+     *     <li>Otherwise normal computation</li>
+     * </ul>
+     *
+     * @param validValue Whether or not the pixel is valid
+     * @param value The pixel value
+     * @param validResult Whether the current result is valid
+     * @param result The current result value
+     * @return
+     */
+    private int updateResultInteger(boolean validValue, int value, boolean validResult, int result) {
+        if (validValue) {
+            if (!validResult) {
+                result = op.calculate(value) & 0xFF;
+            } else {
+                result = op.calculate(result, value);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Same as {@link #updateResultInteger(boolean, int, boolean, int)} but for long arguments
+     */
+    private long updateResultLong(boolean validValue, long value, boolean validResult, long result) {
+        if (validValue) {
+            if (!validResult) {
+                result = op.calculateL(value);
+            } else {
+                result = op.calculateL(result, value);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Same as {@link #updateResultInteger(boolean, int, boolean, int)} but for float arguments
+     */
+    private float updateResultFloat(boolean validValue, float value, boolean validResult, float result) {
+        if (validValue) {
+            if (!validResult) {
+                result = op.calculate(value);
+            } else {
+                result = op.calculate(result, value);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Same as {@link #updateResultInteger(boolean, int, boolean, int)} but for double arguments
+     */
+    private double updateResultDouble(boolean validValue, double value, boolean validResult, double result) {
+        if (validValue) {
+            if (!validResult) {
+                result = op.calculate(value);
+            } else {
+                result = op.calculate(result, value);
+            }
+        }
+        return result;
+    }
+
     private void computeRectUShort(RasterAccessor[] rasterArray, RasterAccessor dst) {
 
         int[] srcLineStride = new int[numSrc];
@@ -676,7 +743,6 @@ public class AlgebraOpImage extends PointOpImage {
         }
 
         int result = 0;
-        int inputData = 0;
 
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
@@ -726,11 +792,9 @@ public class AlgebraOpImage extends PointOpImage {
 
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
-                            inputData = srcData[i][srcPixelOffset[i]] & 0xFFFF;
-                            result = op.calculate(result, inputData);
+                            result = op.calculate(result, srcData[i][srcPixelOffset[i]] & 0xFFFF);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampUShort(result);
 
@@ -776,11 +840,9 @@ public class AlgebraOpImage extends PointOpImage {
 
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
-                            inputData = srcData[i][srcPixelOffset[i]] & 0xFFFF;
-                            result = op.calculate(result, inputData);
+                            result = op.calculate(result, srcData[i][srcPixelOffset[i]] & 0xFFFF);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampUShort(result);
 
@@ -817,8 +879,6 @@ public class AlgebraOpImage extends PointOpImage {
                             result = op.calculate(op.isUshortSupported(),
                                     srcData[0][srcPixelOffset[0]]) & 0xFFFF;
                             isValidData = true;
-                        } else {
-                            result = nullValueShort;
                         }
 
                         srcPixelOffset[0] += srcPixelStride[0];
@@ -827,13 +887,10 @@ public class AlgebraOpImage extends PointOpImage {
                             sourceValue = srcData[i][srcPixelOffset[i]];
 
                             if (!noData.contains(sourceValue)) {
-                                inputData = sourceValue & 0xFFFF;
+                                result = updateResultInteger(true, sourceValue & 0xFFFF, isValidData, result);
                                 isValidData = true;
-                            } else {
-                                inputData = nullValueShort;
-                            }
+                            } 
 
-                            result = op.calculate(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -842,7 +899,6 @@ public class AlgebraOpImage extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampUShort(result);
 
@@ -901,13 +957,10 @@ public class AlgebraOpImage extends PointOpImage {
                             sourceValue = srcData[i][srcPixelOffset[i]];
 
                             if (!noData.contains(sourceValue)) {
-                                inputData = sourceValue & 0xFFFF;
+                                result = updateResultInteger(true, sourceValue & 0xFFFF, isValidData, result);
                                 isValidData = true;
-                            } else {
-                                inputData = nullValueShort;
                             }
 
-                            result = op.calculate(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -916,7 +969,6 @@ public class AlgebraOpImage extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampUShort(result);
 
@@ -926,6 +978,8 @@ public class AlgebraOpImage extends PointOpImage {
             }
         }
     }
+
+   
 
     private void computeRectShort(RasterAccessor[] rasterArray, RasterAccessor dst) {
 
@@ -944,7 +998,6 @@ public class AlgebraOpImage extends PointOpImage {
         }
 
         int result = 0;
-        short inputData = 0;
 
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
@@ -993,11 +1046,9 @@ public class AlgebraOpImage extends PointOpImage {
 
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
-                            inputData = srcData[i][srcPixelOffset[i]];
-                            result = op.calculate(result, inputData);
+                            result = op.calculate(result, srcData[i][srcPixelOffset[i]]);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampShort(result);
 
@@ -1042,11 +1093,9 @@ public class AlgebraOpImage extends PointOpImage {
 
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
-                            inputData = srcData[i][srcPixelOffset[i]];
-                            result = op.calculate(result, inputData);
+                            result = op.calculate(result, srcData[i][srcPixelOffset[i]]);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampShort(result);
 
@@ -1092,13 +1141,10 @@ public class AlgebraOpImage extends PointOpImage {
                             sourceValue = srcData[i][srcPixelOffset[i]];
 
                             if (!noData.contains(sourceValue)) {
-                                inputData = sourceValue;
+                                result = updateResultInteger(true, sourceValue, isValidData, result);
                                 isValidData = true;
-                            } else {
-                                inputData = nullValueShort;
                             }
 
-                            result = op.calculate(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -1107,7 +1153,6 @@ public class AlgebraOpImage extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampShort(result);
 
@@ -1165,13 +1210,10 @@ public class AlgebraOpImage extends PointOpImage {
                             sourceValue = srcData[i][srcPixelOffset[i]];
 
                             if (!noData.contains(sourceValue)) {
-                                inputData = sourceValue;
+                                result = updateResultInteger(true, sourceValue, isValidData, result);
                                 isValidData = true;
-                            } else {
-                                inputData = nullValueShort;
-                            }
+                            } 
 
-                            result = op.calculate(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -1180,7 +1222,6 @@ public class AlgebraOpImage extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampShort(result);
 
@@ -1192,7 +1233,6 @@ public class AlgebraOpImage extends PointOpImage {
     }
 
     private void computeRectInt(RasterAccessor[] rasterArray, RasterAccessor dst) {
-
         int[] srcLineStride = new int[numSrc];
         int[] srcPixelStride = new int[numSrc];
         int[][] srcBandOffsets = new int[numSrc][];
@@ -1208,7 +1248,6 @@ public class AlgebraOpImage extends PointOpImage {
         }
 
         long result = 0;
-        int inputData = 0;
 
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
@@ -1257,11 +1296,9 @@ public class AlgebraOpImage extends PointOpImage {
 
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
-                            inputData = srcData[i][srcPixelOffset[i]];
-                            result = op.calculateL(result, inputData);
+                            result = op.calculateL(result, srcData[i][srcPixelOffset[i]]);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampInt(result);
 
@@ -1306,11 +1343,9 @@ public class AlgebraOpImage extends PointOpImage {
 
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
-                            inputData = srcData[i][srcPixelOffset[i]];
-                            result = op.calculateL(result, inputData);
+                            result = op.calculateL(result, srcData[i][srcPixelOffset[i]]);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampInt(result);
 
@@ -1346,23 +1381,17 @@ public class AlgebraOpImage extends PointOpImage {
                         if (!noData.contains(sourceValue)) {
                             result = op.calculate(sourceValue);
                             isValidData = true;
-                        } else {
-                            result = nullValueInt;
                         }
 
                         srcPixelOffset[0] += srcPixelStride[0];
 
                         for (int i = 1; i < numSrc; i++) {
                             sourceValue = srcData[i][srcPixelOffset[i]];
-
                             if (!noData.contains(sourceValue)) {
-                                inputData = sourceValue;
+                                result = updateResultLong(true, sourceValue, isValidData, result);
                                 isValidData = true;
-                            } else {
-                                inputData = nullValueInt;
-                            }
+                            } 
 
-                            result = op.calculateL(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -1371,7 +1400,6 @@ public class AlgebraOpImage extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampInt(result);
 
@@ -1429,13 +1457,10 @@ public class AlgebraOpImage extends PointOpImage {
                             sourceValue = srcData[i][srcPixelOffset[i]];
 
                             if (!noData.contains(sourceValue)) {
-                                inputData = sourceValue;
+                                result = updateResultLong(true, sourceValue, isValidData, result);
                                 isValidData = true;
-                            } else {
-                                inputData = nullValueInt;
-                            }
+                            } 
 
-                            result = op.calculateL(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -1444,7 +1469,6 @@ public class AlgebraOpImage extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = ImageUtil.clampInt(result);
 
@@ -1472,7 +1496,6 @@ public class AlgebraOpImage extends PointOpImage {
         }
 
         float result = 0;
-        float inputData = 0;
 
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
@@ -1521,11 +1544,9 @@ public class AlgebraOpImage extends PointOpImage {
 
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
-                            inputData = srcData[i][srcPixelOffset[i]];
-                            result = op.calculate(result, inputData);
+                            result = op.calculate(result, srcData[i][srcPixelOffset[i]]);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = result;
 
@@ -1570,11 +1591,9 @@ public class AlgebraOpImage extends PointOpImage {
 
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
-                            inputData = srcData[i][srcPixelOffset[i]];
-                            result = op.calculate(result, inputData);
+                            result = op.calculate(result, srcData[i][srcPixelOffset[i]]);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = result;
 
@@ -1610,8 +1629,6 @@ public class AlgebraOpImage extends PointOpImage {
                         if (!noData.contains(sourceValue)) {
                             result = op.calculate(sourceValue);
                             isValidData = true;
-                        } else {
-                            result = nullValueFloat;
                         }
 
                         srcPixelOffset[0] += srcPixelStride[0];
@@ -1620,13 +1637,10 @@ public class AlgebraOpImage extends PointOpImage {
                             sourceValue = srcData[i][srcPixelOffset[i]];
 
                             if (!noData.contains(sourceValue)) {
-                                inputData = sourceValue;
+                                result = updateResultFloat(true, sourceValue, isValidData, result);
                                 isValidData = true;
-                            } else {
-                                inputData = nullValueFloat;
                             }
 
-                            result = op.calculate(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -1635,7 +1649,6 @@ public class AlgebraOpImage extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = result;
 
@@ -1679,12 +1692,9 @@ public class AlgebraOpImage extends PointOpImage {
                         }
 
                         sourceValue = srcData[0][srcPixelOffset[0]];
-
                         if (!noData.contains(sourceValue)) {
                             result = op.calculate(sourceValue);
                             isValidData = true;
-                        } else {
-                            result = nullValueFloat;
                         }
 
                         srcPixelOffset[0] += srcPixelStride[0];
@@ -1693,13 +1703,10 @@ public class AlgebraOpImage extends PointOpImage {
                             sourceValue = srcData[i][srcPixelOffset[i]];
 
                             if (!noData.contains(sourceValue)) {
-                                inputData = sourceValue;
+                                result = updateResultFloat(true, sourceValue, isValidData, result);
                                 isValidData = true;
-                            } else {
-                                inputData = nullValueFloat;
-                            }
+                            } 
 
-                            result = op.calculate(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -1708,7 +1715,6 @@ public class AlgebraOpImage extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = result;
 
@@ -1736,7 +1742,6 @@ public class AlgebraOpImage extends PointOpImage {
         }
 
         double result = 0;
-        double inputData = 0;
 
         int dwidth = dst.getWidth();
         int dheight = dst.getHeight();
@@ -1785,11 +1790,9 @@ public class AlgebraOpImage extends PointOpImage {
 
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
-                            inputData = srcData[i][srcPixelOffset[i]];
-                            result = op.calculate(result, inputData);
+                            result = op.calculate(result, srcData[i][srcPixelOffset[i]]);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = result;
 
@@ -1833,11 +1836,9 @@ public class AlgebraOpImage extends PointOpImage {
 
                         srcPixelOffset[0] += srcPixelStride[0];
                         for (int i = 1; i < numSrc; i++) {
-                            inputData = srcData[i][srcPixelOffset[i]];
-                            result = op.calculate(result, inputData);
+                            result = op.calculate(result, srcData[i][srcPixelOffset[i]]);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = result;
 
@@ -1883,13 +1884,10 @@ public class AlgebraOpImage extends PointOpImage {
                             sourceValue = srcData[i][srcPixelOffset[i]];
 
                             if (!noData.contains(sourceValue)) {
-                                inputData = sourceValue;
+                                result = updateResultDouble(true, sourceValue, isValidData, result);
                                 isValidData = true;
-                            } else {
-                                inputData = nullValueDouble;
-                            }
-
-                            result = op.calculate(result, inputData);
+                            } 
+                            
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -1898,7 +1896,6 @@ public class AlgebraOpImage extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = result;
 
@@ -1956,13 +1953,10 @@ public class AlgebraOpImage extends PointOpImage {
                             sourceValue = srcData[i][srcPixelOffset[i]];
 
                             if (!noData.contains(sourceValue)) {
-                                inputData = sourceValue;
+                                result = updateResultDouble(true, sourceValue, isValidData, result);
                                 isValidData = true;
-                            } else {
-                                inputData = nullValueDouble;
-                            }
+                            } 
 
-                            result = op.calculate(result, inputData);
                             srcPixelOffset[i] += srcPixelStride[i];
                         }
 
@@ -1971,7 +1965,6 @@ public class AlgebraOpImage extends PointOpImage {
                             dPixelOffset += dPixelStride;
                             continue;
                         }
-                        // result = op.calculate(inputData);
 
                         d[dPixelOffset] = result;
 
