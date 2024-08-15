@@ -106,6 +106,6 @@ public class BandMergeCRIF extends CRIFImpl {
      * @return
      */
     private boolean eqTol(double value, double reference, double tolerance) {
-        return (Math.abs(value) - reference) < tolerance;
+        return Math.abs(Math.abs(value) - reference) < tolerance;
     }
 }
