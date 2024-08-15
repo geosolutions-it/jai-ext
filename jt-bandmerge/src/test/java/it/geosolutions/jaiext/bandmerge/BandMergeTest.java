@@ -835,6 +835,7 @@ public class BandMergeTest extends TestBase {
     public void testExtendedWithIdentityTransform() {
         assertBandMergeImplementation(AffineTransform.getScaleInstance(1 + 1e-12, 1 + 1e-12), BandMergeOpImage.class);
         assertBandMergeImplementation(AffineTransform.getScaleInstance(1 + 1e-6, 1 + 1e-6), ExtendedBandMergeOpImage.class);
+        assertBandMergeImplementation(AffineTransform.getScaleInstance(0.5, 0.5), ExtendedBandMergeOpImage.class);
         assertBandMergeImplementation(AffineTransform.getShearInstance(1e-12, 1e-12), BandMergeOpImage.class);
         assertBandMergeImplementation(AffineTransform.getShearInstance(1e-6, 1e-6), ExtendedBandMergeOpImage.class);
         assertBandMergeImplementation(AffineTransform.getTranslateInstance(1e-12, 1e-12), BandMergeOpImage.class);
