@@ -162,6 +162,38 @@ public class FunctionsTest extends RuntimeTestBase {
     }
     
     @Test
+    public void atan2() throws Exception {
+        String script = "dest = atan2(x(), y());";
+        System.out.println("   " + script);
+
+        Evaluator e = new Evaluator() {
+            public double eval(double val) {
+                double z = Math.atan2(x, y);
+                move();
+                return z;
+            }
+        };
+
+        testScript(script, e);
+    }
+
+    @Test
+    public void ceil() throws Exception {
+        String script = "dest = ceil(src / 10);";
+        System.out.println("   " + script);
+
+        Evaluator e = new Evaluator() {
+            public double eval(double val) {
+                double z = Math.ceil(val / 10);
+                move();
+                return z;
+            }
+        };
+
+        testScript(script, e);
+    }
+
+    @Test
     public void degToRad() throws Exception {
         String script = "dest = degToRad(src);" ;
         System.out.println("   " + script);
@@ -201,6 +233,22 @@ public class FunctionsTest extends RuntimeTestBase {
         testScript(script, e);
     }
     
+    @Test
+    public void IEEERemainder() throws Exception {
+        String script = "dest = IEEERemainder(src, 10);";
+        System.out.println("   " + script);
+
+        Evaluator e = new Evaluator() {
+            public double eval(double val) {
+                Double z = Math.IEEEremainder(val, 10);
+                move();
+                return z;
+            }
+        };
+
+        testScript(script, e);
+    }
+
     @Test
     public void isinf() throws Exception {
         String script = "dest = isinf(1 / x());" ;
@@ -370,6 +418,22 @@ public class FunctionsTest extends RuntimeTestBase {
         }
     }
     
+    @Test
+    public void rint() throws Exception {
+        String script = "dest = rint(src / 10);";
+        System.out.println("   " + script);
+
+        Evaluator e = new Evaluator() {
+            public double eval(double val) {
+                double z = Math.rint(val / 10);
+                move();
+                return z;
+            }
+        };
+
+        testScript(script, e);
+    }
+
     @Test
     public void round1Arg() throws Exception {
         String script = "dest = round(src / (width() - 1));" ;
