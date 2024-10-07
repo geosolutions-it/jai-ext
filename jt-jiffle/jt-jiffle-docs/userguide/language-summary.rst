@@ -274,60 +274,74 @@ Functions
 General numeric functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-===============  ====================   =====================  =====================  ===========================
-Name             Description            Arguments              Returns                Notes
-===============  ====================   =====================  =====================  ===========================
-``abs(x)``       Absolute value         double value           absolute value of x
+=======================  ====================   =====================  =======================  ===========================
+Name                     Description            Arguments              Returns                  Notes
+=======================  ====================   =====================  =======================  ===========================
+``abs(x)``               Absolute value         double value           absolute value of x
 
-``acos(x)``      Arc-cosine             value in range [-1,1]  angle in radians
+``acos(x)``              Arc-cosine             value in range [-1,1]  angle in radians
 
-``asin(x)``      Arc-sine               value in range [-1,1]  angle in radians
+``asin(x)``              Arc-sine               value in range [-1,1]  angle in radians
 
-``atan(x)``      Arc-tangent            value in range [-1,1]  angle in radians
+``atan(x)``              Arc-tangent            value in range [-1,1]  angle in radians
 
-``cos(x)``       Cosine                 angle in radians       cosine [-1, 1]
+``atan2(x, y)``          Arc-tangent            x: double value        converts a rectangular
+                                                y: double value        coordinate to polar and
+                                                                       returns theta
 
-``degToRad(x)``  Degrees to radians     angle in radians       angle in degrees
+``ceil(x)``              Ceiling                double value           smallest double >=x and
+                                                                       is equal to an integer
 
-``exp(x)``       Exponential            double value           e to the power x       
+``cos(x)``               Cosine                 angle in radians       cosine [-1, 1]
 
-``floor(x)``     Floor                  double value           integer part of x
-                                                               as a double
+``degToRad(x)``          Degrees to radians     angle in radians       angle in degrees
 
-``isinf(x)``     Is infinite            double value           1 if x is positive
-                                                               or negative infinity;
-                                                               0 otherwise
+``exp(x)``               Exponential            double value           e to the power x
 
-``isnan(x)``     Is NaN                 double value           1 if x is equal to     
-                                                               Java's Double.NaN;
-                                                               0 otherwise
+``floor(x)``             Floor                  double value           integer part of x
+                                                                       as a double
 
-``isnull(x)``    Is null                double value           1 if x is null;        Equivalent to isnan(x)
-                                                               0 otherwise
+``IEEERemainder(x, y)``  Remainder              x: double value        remainder of x/y as
+                                                y: double value        prescribed by IEEE 754
 
-``log(x)``       Natural logarithm      positive value         logarithm to base e
+``isinf(x)``             Is infinite            double value           1 if x is positive
+                                                                       or negative infinity;
+                                                                       0 otherwise
 
-``log(x, b)``    General logarithm      x: positive value;     logarithm to base b
-                                        b: base
+``isnan(x)``             Is NaN                 double value           1 if x is equal to
+                                                                       Java's Double.NaN;
+                                                                       0 otherwise
+
+``isnull(x)``            Is null                double value           1 if x is null;          Equivalent to isnan(x)
+                                                                       0 otherwise
+
+``log(x)``               Natural logarithm      positive value         logarithm to base e
+
+``log(x, b)``            General logarithm      x: positive value;     logarithm to base b
+                                                b: base
                                     
-``radToDeg(x)``  Radians to degrees     angle in radians       angle in degrees
+``radToDeg(x)``          Radians to degrees     angle in radians       angle in degrees
 
-``rand(x)``      Pseudo-random number   double value           value in range [0, x)  Volatile function
+``rand(x)``              Pseudo-random number   double value           value in range [0, x)    Volatile function
 
-``randInt(x)``   Pseudo-random number   double value           integer part of value  Equivalent to ``floor(rand(x))``
-                                                               in range [0, x)
+``randInt(x)``           Pseudo-random number   double value           integer part of value    Equivalent to ``floor(rand(x))``
+                                                                       in range [0, x)
+
+``rint(x)``              Round                  double value           rounded value with half
+                                                                       values rounded to the
+                                                                       nearest even integer
                                                                
-``round(x)``     Round                  double value           rounded value     
+``round(x)``             Round                  double value           rounded value
 
-``round(x, n)``  Round to multiple of   x: double value;       value rounded to       E.g. ``round(44.5, 10)``
-                 n                      n: whole number        nearest multiple of n  returns 40
+``round(x, n)``          Round to multiple of   x: double value;       value rounded to         E.g. ``round(44.5, 10)``
+                         n                      n: whole number        nearest multiple of n    returns 40
                  
-``sin(x)``       Sine                   angle in radians       sine [-1, 1]
+``sin(x)``               Sine                   angle in radians       sine [-1, 1]
 
-``sqrt(x)``      Square-root            non-negative value     square-root of x
+``sqrt(x)``              Square-root            non-negative value     square-root of x
 
-``tan(x)``       Tangent                angle in radians       double value
-===============  ====================   =====================  =====================  ===========================
+``tan(x)``               Tangent                angle in radians       double value
+=======================  ====================   =====================  =====================  ===========================
 
 .. _logical-functions:
 
