@@ -20,10 +20,7 @@ package it.geosolutions.jaiext.bandselect;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.RenderingHints;
-import java.awt.image.DataBuffer;
-import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
-import java.awt.image.SinglePixelPackedSampleModel;
+import java.awt.image.*;
 
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
@@ -31,10 +28,11 @@ import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.ConstantDescriptor;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.sun.media.jai.opimage.CopyOpImage;
+
+import static org.junit.Assert.*;
 
 /**
  * Testing the new BandSelect operation
@@ -59,8 +57,8 @@ public class BandSelectTest extends TestBase {
         
         
         // make sure we got the right band
-        Assert.assertEquals(1,oneBand.getSampleModel().getNumBands());
-        Assert.assertEquals(0,oneBand.getData().getSample(0, 0, 0),1E-11);
+        assertEquals(1,oneBand.getSampleModel().getNumBands());
+        assertEquals(0,oneBand.getData().getSample(0, 0, 0),1E-11);
         
     }
 
@@ -86,8 +84,8 @@ public class BandSelectTest extends TestBase {
         RenderedOp oneBand = BandSelectDescriptor.create(twoBandsPacked, new int[] { 1 }, hints);
 
         // make sure we got the right band
-        Assert.assertEquals(1, oneBand.getSampleModel().getNumBands());
-        Assert.assertEquals(0, oneBand.getData().getSample(0, 0, 0), 1E-11);
+        assertEquals(1, oneBand.getSampleModel().getNumBands());
+        assertEquals(0, oneBand.getData().getSample(0, 0, 0), 1E-11);
     }
     
     @Test(expected=IllegalArgumentException.class)
@@ -128,4 +126,69 @@ public class BandSelectTest extends TestBase {
         pb.setParameter("bandIndices", new int[]{2});
         RenderedOp oneBand = JAI.create("BandSelect", pb);
     }
+
+    @Test
+    public void testColorModelDouble() throws Exception {
+        // create image with 4 double bands
+        RenderedImage source = ConstantDescriptor.create(512f, 512f, new Double[] {1d,2d,3d,4d}, null);
+        assertEquals(DataBuffer.TYPE_DOUBLE, source.getSampleModel().getDataType());
+
+        checkFloatingPointColorModel(source);
+    }
+
+    @Test
+    public void testColorModelFloat() throws Exception {
+        // create image with 4 float bands
+        RenderedImage source = ConstantDescriptor.create(512f, 512f, new Float[] {1f,2f,3f,4f}, null);
+        assertEquals(DataBuffer.TYPE_FLOAT, source.getSampleModel().getDataType());
+
+        checkFloatingPointColorModel(source);
+    }
+
+    private static void checkFloatingPointColorModel(RenderedImage source) {
+        // go through the various options that might trigger
+        for (int bandCount = 1; bandCount <= 4; bandCount++) {
+            int[] bandIndices = new int[bandCount];
+            for (int j = 0; j < bandCount; j++) {
+                bandIndices[j] = j;
+            }
+
+            ParameterBlockJAI pb =  new ParameterBlockJAI("BandSelect");
+            pb.addSource(source);
+            pb.setParameter("bandIndices", bandIndices);
+            RenderedOp op = JAI.create("BandSelect", pb);
+            assertFalse("Has alpha with " + bandCount + " bands", op.getColorModel().hasAlpha());
+            assertEquals(ColorModel.OPAQUE, op.getColorModel().getTransparency());
+        }
+    }
+
+    @Test
+    public void testColorModelByte() throws Exception {
+        // create image with 4 byte bands
+        RenderedImage source = ConstantDescriptor.create(512f, 512f, new Byte[] {1,2,3,4}, null);
+        assertEquals(DataBuffer.TYPE_BYTE, source.getSampleModel().getDataType());
+
+        // go through the various options that might trigger
+        for (int bandCount = 1; bandCount <= 4; bandCount++) {
+            int[] bandIndices = new int[bandCount];
+            for (int j = 0; j < bandCount; j++) {
+                bandIndices[j] = j;
+            }
+
+            ParameterBlockJAI pb =  new ParameterBlockJAI("BandSelect");
+            pb.addSource(source);
+            pb.setParameter("bandIndices", bandIndices);
+            RenderedOp op = JAI.create("BandSelect", pb);
+
+            // for 2 and 4 band it's fair to expect an alpha channel
+            if (bandCount == 2 || bandCount == 4) {
+                assertTrue(op.getColorModel().hasAlpha());
+                assertEquals(ColorModel.TRANSLUCENT, op.getColorModel().getTransparency());
+            } else {
+                assertFalse("Has alpha with " + bandCount + " bands", op.getColorModel().hasAlpha());
+                assertEquals(ColorModel.OPAQUE, op.getColorModel().getTransparency());
+            }
+        }
+    }
+
 }

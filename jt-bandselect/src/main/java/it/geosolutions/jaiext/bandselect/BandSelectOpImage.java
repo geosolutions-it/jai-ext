@@ -17,13 +17,16 @@
 */
 package it.geosolutions.jaiext.bandselect;
 import java.awt.*;
+import java.awt.color.ColorSpace;
 import java.awt.image.*;
 import java.util.Map;
 
 import javax.media.jai.ComponentSampleModelJAI;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.PointOpImage;
+import javax.media.jai.RasterFactory;
 
+import com.sun.media.imageioimpl.common.BogusColorSpace;
 import com.sun.media.jai.util.JDKWorkarounds;
 
 /**
@@ -84,10 +87,14 @@ public class BandSelectOpImage extends PointOpImage {
 
         // Clear the ColorModel mask if needed.
         ColorModel cm = il.getColorModel(null);
-        if(cm != null &&
-           !JDKWorkarounds.areCompatibleDataModels(sm, cm)) {
+        if (cm == null) {
+            // for floating point we cannot rely on planarimage to set a sane color model
+            forceSaneFloatingPointColorModel(sm, numBands, il);
+        } else if(!JDKWorkarounds.areCompatibleDataModels(sm, cm)) {
             // Clear the mask bit if incompatible.
             il.unsetValid(ImageLayout.COLOR_MODEL_MASK);
+            // force a sane color model for floating point
+            forceSaneFloatingPointColorModel(sm, numBands, il);
         }
 
         // Force the tile grid to be identical to that of the source.
@@ -97,6 +104,19 @@ public class BandSelectOpImage extends PointOpImage {
         il.setTileHeight(source.getTileHeight());
 
         return il;
+    }
+
+    /**
+     * PlanarImage will set a ColorModel with alpha if the source has 2 or 4 bands, even if
+     * the data type is float or double... don't go there
+     */
+    private static void forceSaneFloatingPointColorModel(SampleModel sm, int numBands, ImageLayout il) {
+        int dataType = sm.getDataType();
+        if (dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE) {
+            ColorSpace cs = new BogusColorSpace(numBands);
+            ColorModel cm = RasterFactory.createComponentColorModel(dataType, cs, false, false, ComponentColorModel.OPAQUE);
+            il.setColorModel(cm);
+        }
     }
 
     private static SampleModel createSubSampleComponentSampleModel(SampleModel sourceSM, int[] bandIndices) {
