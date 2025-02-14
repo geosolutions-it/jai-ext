@@ -189,12 +189,12 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
                 return Double.NaN;
             }
             
-            final double result = iterator.getSampleDouble(posx, posy, band);
+            double result = iterator.getSampleDouble(posx, posy, band);
 
             if (noDataRange != null && noDataRange.contains(result)) {
-                return Double.NaN;
+                result = Double.NaN;
             }
-            
+
             return result;
         }
 

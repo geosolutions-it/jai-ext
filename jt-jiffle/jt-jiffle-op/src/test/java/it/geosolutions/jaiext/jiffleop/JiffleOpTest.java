@@ -20,6 +20,9 @@ package it.geosolutions.jaiext.jiffleop;
 
 import static org.junit.Assert.assertEquals;
 
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.rendered.viewer.RenderedImageBrowser;
 import org.junit.Test;
 
 import java.awt.image.DataBuffer;
@@ -79,6 +82,33 @@ public class JiffleOpTest extends TestBase {
         for(int y = src1.getMinY(); y < src1.getMinY() + src1.getHeight(); y++) {
             for(int x = src1.getMinX(); x < src1.getMinX() + src1.getWidth(); x++) {
                 double expected = srcIter.getSampleDouble(x, y, 0) * 2;
+                double actual = opIter.getSampleDouble(x, y, 0);
+                assertEquals(expected, actual, 0d);
+            }
+        }
+    }
+
+    @Test
+    public void testSumNoData() {
+        RenderedImage src1 = buildTestImage(10, 10);
+        RenderedImage src2 = buildTestImage(10, 10);
+        Range nodata = RangeFactory.create((byte) 5, (byte) 5);
+        RenderedOp op = JiffleDescriptor.create(new RenderedImage[]{src1, src2}, new String[]{"a", "b"}, "res",
+                "res = a + b;", null, DataBuffer.TYPE_DOUBLE, null, null, null, new Range[] {nodata, nodata}, null);
+
+        // check same size and expected
+        assertEquals(src1.getMinX(), op.getMinX());
+        assertEquals(src1.getWidth(), op.getWidth());
+        assertEquals(src1.getMinY(), op.getMinY());
+        assertEquals(src1.getHeight(), op.getHeight());
+        assertEquals(DataBuffer.TYPE_DOUBLE, op.getSampleModel().getDataType());
+
+        RandomIter srcIter = RandomIterFactory.create(src1, null);
+        RandomIter opIter = RandomIterFactory.create(op, null);
+        for(int y = src1.getMinY(); y < src1.getMinY() + src1.getHeight(); y++) {
+            for(int x = src1.getMinX(); x < src1.getMinX() + src1.getWidth(); x++) {
+                double value = srcIter.getSampleDouble(x, y, 0);
+                double expected = value == 5 ? Double.NaN : value * 2;
                 double actual = opIter.getSampleDouble(x, y, 0);
                 assertEquals(expected, actual, 0d);
             }
