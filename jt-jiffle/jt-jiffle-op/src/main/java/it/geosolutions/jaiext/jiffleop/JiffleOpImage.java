@@ -42,26 +42,23 @@
 
 package it.geosolutions.jaiext.jiffleop;
 
+import it.geosolutions.jaiext.jiffle.runtime.BandTransform;
+import it.geosolutions.jaiext.jiffle.runtime.CoordinateTransform;
+import it.geosolutions.jaiext.jiffle.runtime.JiffleIndirectRuntime;
+import it.geosolutions.jaiext.range.NoDataContainer;
+import it.geosolutions.jaiext.range.Range;
+
+import javax.media.jai.ImageLayout;
+import javax.media.jai.OpImage;
+import javax.media.jai.PlanarImage;
 import java.awt.*;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
-
-import javax.media.jai.ImageLayout;
-import javax.media.jai.OpImage;
-import javax.media.jai.PlanarImage;
-
-import it.geosolutions.jaiext.jiffle.Jiffle;
-import it.geosolutions.jaiext.jiffle.JiffleException;
-import it.geosolutions.jaiext.jiffle.runtime.BandTransform;
-import it.geosolutions.jaiext.jiffle.runtime.CoordinateTransform;
-import it.geosolutions.jaiext.jiffle.runtime.JiffleIndirectRuntime;
-import it.geosolutions.jaiext.range.NoDataContainer;
 
 /**
  * Jiffle operation.
@@ -76,14 +73,24 @@ public class JiffleOpImage extends OpImage {
         RenderedImage image;
         CoordinateTransform coordinateTransform;
         BandTransform bandTransform;
+        Range nodata;
 
         public ImageSpecification(
                 RenderedImage image,
                 CoordinateTransform coordinateTransform,
                 BandTransform bandTransform) {
+            this(image, coordinateTransform, bandTransform, null);
+        }
+
+        public ImageSpecification(
+                RenderedImage image,
+                CoordinateTransform coordinateTransform,
+                BandTransform bandTransform,
+                Range nodata) {
             this.image = image;
             this.coordinateTransform = coordinateTransform;
             this.bandTransform = bandTransform;
+            this.nodata = nodata;
         }
     }
 
