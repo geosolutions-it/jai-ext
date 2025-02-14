@@ -166,9 +166,9 @@ public class JiffleDescriptor extends OperationDescriptorImpl {
                                 + "the number of bands in the output image, must be a positive integer"
                     },
                     {
-                            "ar87Desc",
+                            "arg8Desc",
                             paramNames[8]
-                                    + "  Sources nodata values, if needed "
+                                    + " Sources nodata values, if needed "
                     }
                 },
                 new String[] {RenderedRegistryMode.MODE_NAME}, // supported modes
