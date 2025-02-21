@@ -28,6 +28,7 @@ public class JiffleDirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.runti
             initImageScopeVars();
         }
         _stk.clear();
+        _iterations = 0;
         double sv_nir__x__y_0 = s_nir.read(_x, _y, 0);
         double sv_red__x__y_0 = s_red.read(_x, _y, 0);
 
