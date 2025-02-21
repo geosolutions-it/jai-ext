@@ -36,6 +36,7 @@ public class JiffleDirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.runti
             initImageScopeVars();
         }
         _stk.clear();
+        _iterations = 0;
 
         double v_odd_row = _FN.EQ(Math.floor(_y / v_square) % 2.0, 1);
         double v_odd_col = _FN.EQ(Math.floor(_x / v_square) % 2.0, 1);

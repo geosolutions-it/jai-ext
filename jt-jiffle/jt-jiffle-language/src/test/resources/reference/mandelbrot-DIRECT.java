@@ -52,6 +52,7 @@ public class JiffleDirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.runti
             initImageScopeVars();
         }
         _stk.clear();
+        _iterations = 0;
 
         double v_c_im = v_MaxIm - _y * v_Im_scale;
         double v_c_re = v_MinRe + _x * v_Re_scale;
@@ -60,6 +61,7 @@ public class JiffleDirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.runti
         double v_outside = 0.0;
         double v_n = 0.0;
         while (!_FN.isTrue(_FN.GE(v_n, v_MaxIter))) {
+            checkLoopIterations();
             double v_Z_re2 = v_Z_re * v_Z_re;
             double v_Z_im2 = v_Z_im * v_Z_im;
             v_outside = _FN.GT(v_Z_re2 + v_Z_im2, 4);

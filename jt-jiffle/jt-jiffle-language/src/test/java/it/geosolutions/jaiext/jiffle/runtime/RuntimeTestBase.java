@@ -43,6 +43,7 @@
 package it.geosolutions.jaiext.jiffle.runtime;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import it.geosolutions.jaiext.jiffle.Jiffle;
 
@@ -176,8 +177,8 @@ public abstract class RuntimeTestBase {
             int x = srcImg.getMinX(), y = srcImg.getMinY();
             do {
                 do {
-                    double expected = evaluator.eval(srcIter.getSampleDouble());
                     runtime.evaluate(x, y, actual);
+                    double expected = evaluator.eval(srcIter.getSampleDouble());
                     assertEquals(
                             "Got "
                                     + expected
@@ -257,5 +258,25 @@ public abstract class RuntimeTestBase {
         }
     }
 
+    protected void testScript(String script, Exception expected) throws Exception {
+        RenderedImage srcImg = createSequenceImage();
+        imageParams = new HashMap<>();
+        imageParams.put("dest", Jiffle.ImageRole.DEST);
+        imageParams.put("src", Jiffle.ImageRole.SOURCE);
+
+        // test the direct runtime
+        Jiffle jiffle = new Jiffle(script, imageParams);
+        directRuntimeInstance = jiffle.getRuntimeInstance();
+        Exception actual =
+                assertThrows(expected.getClass(), () -> testDirectRuntime(srcImg, directRuntimeInstance, null));
+        assertEquals(expected.getMessage(), actual.getMessage());
+
+        // and now the indirect one
+        jiffle = new Jiffle(script, imageParams);
+        indirectRuntimeInstance =
+                (JiffleIndirectRuntime) jiffle.getRuntimeInstance(Jiffle.RuntimeModel.INDIRECT);
+        actual = assertThrows(expected.getClass(), () -> testIndirectRuntime(srcImg, indirectRuntimeInstance, null));
+        assertEquals(expected.getMessage(), actual.getMessage());
+    }
 }
 

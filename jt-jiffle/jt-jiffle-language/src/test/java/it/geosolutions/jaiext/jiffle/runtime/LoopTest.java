@@ -56,6 +56,9 @@ import org.junit.Test;
  */
 public class LoopTest extends RuntimeTestBase {
 
+    private static final Exception EXPECTED_EXCEPTION =
+            new JiffleRuntimeException("Exceeded maximum allowed loop iterations per pixel");
+
     @Test
     public void whileLoopWithSimpleStatement() throws Exception {
         System.out.println("   while loop with simple statement");
@@ -377,5 +380,33 @@ public class LoopTest extends RuntimeTestBase {
         };
         
         testScript(script, e);
+    }
+
+    @Test
+    public void whileLoopExceedMaxIterations() throws Exception {
+        System.out.println("   while loop exceeding max iterations");
+        String script = "while (true) dest = 0;";
+        testScript(script, EXPECTED_EXCEPTION);
+    }
+
+    @Test
+    public void untilLoopExceedMaxIterations() throws Exception {
+        System.out.println("   until loop exceeding max iterations");
+        String script = "until (false) dest = 0;";
+        testScript(script, EXPECTED_EXCEPTION);
+    }
+
+    @Test
+    public void foreachLoopExceedMaxIterations() throws Exception {
+        System.out.println("   foreach loop exceeding max iterations");
+        String script =
+                "foreach (i in 0:100) { \n"
+                        + "  foreach (j in 0:100) { \n"
+                        + "    foreach (k in 0:100) { \n"
+                        + "      dest = 0; \n"
+                        + "    } \n"
+                        + "  } \n"
+                        + "}";
+        testScript(script, EXPECTED_EXCEPTION);
     }
 }
