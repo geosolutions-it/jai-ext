@@ -26,18 +26,21 @@ public class JiffleDirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.runti
             initImageScopeVars();
         }
         _stk.clear();
+        _iterations = 0;
         double sv_world__x__y_0 = s_world.read(_x, _y, 0);
 
         double v_n = 0.0;
         final int _loiy = (int) (-1);
         final int _hi_loiy = (int) (1);
         for(int v_iy = _loiy; v_iy <= _hi_loiy; v_iy++) {
+            checkLoopIterations();
             double v_yy = _y + v_iy;
             v_yy = (_stk.push(_FN.sign(_FN.LT(v_yy, 0))) == null ? Double.NaN : (_stk.peek() != 0 ? (getHeight() - 1.0) : (v_yy)));
             v_yy = (_stk.push(_FN.sign(_FN.GE(v_yy, getHeight()))) == null ? Double.NaN : (_stk.peek() != 0 ? (0) : (v_yy)));
             final int _loix = (int) (-1);
             final int _hi_loix = (int) (1);
             for(int v_ix = _loix; v_ix <= _hi_loix; v_ix++) {
+                checkLoopIterations();
                 double v_xx = _x + v_ix;
                 v_xx = (_stk.push(_FN.sign(_FN.LT(v_xx, 0))) == null ? Double.NaN : (_stk.peek() != 0 ? (getWidth() - 1.0) : (v_xx)));
                 v_xx = (_stk.push(_FN.sign(_FN.GE(v_xx, getWidth()))) == null ? Double.NaN : (_stk.peek() != 0 ? (0) : (v_xx)));

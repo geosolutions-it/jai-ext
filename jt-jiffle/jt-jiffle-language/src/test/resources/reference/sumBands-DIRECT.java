@@ -26,6 +26,7 @@ public class JiffleDirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.runti
             initImageScopeVars();
         }
         _stk.clear();
+        _iterations = 0;
 
         double v_sum = 0.0;
         double v_goodBands = 0.0;
@@ -33,6 +34,7 @@ public class JiffleDirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.runti
         final int _lob = (int) (0);
         final int _hi_lob = (int) (v_maxBand);
         for(int v_b = _lob; v_b <= _hi_lob; v_b++) {
+            checkLoopIterations();
             double v_value = s_src.read(_x, _y, (int)(v_b));
             if (_FN.isTrue(_FN.NE(v_value, -9999.0))) {
                 v_sum += v_value;

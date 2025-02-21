@@ -69,6 +69,7 @@ public class LoopInRange implements Statement {
         w.append("; ").append(loopVariable).append(" <= ").append(highVariable);
         w.append("; ").append(loopVariable).append("++) {").newLine();
         w.inc();
+        w.line("checkLoopIterations();");
         statement.write(w);
         w.dec();
         w.line("}");

@@ -32,6 +32,7 @@ public class JiffleDirectRuntimeImpl extends it.geosolutions.jaiext.jiffle.runti
             initImageScopeVars();
         }
         _stk.clear();
+        _iterations = 0;
 
         double v_dx = 4.0 * 3.141592653589793 * (0.5 - _x / v_w);
         double v_dy = 4.0 * 3.141592653589793 * (0.5 - _y / v_h);

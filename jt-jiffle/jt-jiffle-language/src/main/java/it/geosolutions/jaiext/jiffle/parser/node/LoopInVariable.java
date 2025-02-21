@@ -62,6 +62,7 @@ public class LoopInVariable implements Statement {
         w.indent().append("for(Double ").append(loopVariable).append(" : ").append(listVariable);
         w.append(") {").newLine();
         w.inc();
+        w.line("checkLoopIterations();");
         statement.write(w);
         w.dec();
         w.line("}");

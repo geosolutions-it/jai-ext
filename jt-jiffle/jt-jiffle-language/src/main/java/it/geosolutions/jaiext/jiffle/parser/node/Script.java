@@ -99,6 +99,7 @@ public class Script implements Node {
         }
     }
 
+    @Override
     public void write(SourceWriter w) {
         // class header
         String packageName = "it.geosolutions.jaiext.jiffle.runtime";
@@ -235,6 +236,7 @@ public class Script implements Node {
         w.dec();
         w.line("}");
         w.line("_stk.clear();");
+        w.line("_iterations = 0;");
 
         // centralize the source reads to avoid repeated reads
         readOptimizer.declareRepeatedReads(w);
