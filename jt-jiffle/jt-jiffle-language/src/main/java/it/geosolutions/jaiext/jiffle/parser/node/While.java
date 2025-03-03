@@ -62,11 +62,13 @@ public class While implements Statement {
         return sb.toString();
     }
 
+    @Override
     public void write(SourceWriter w) {
         w.indent().append("while (_FN.isTrue(");
         condition.write(w);
         w.append(")) {\n");
         w.inc();
+        w.line("checkLoopIterations();");
         statement.write(w);
         w.dec();
         w.line("}");
