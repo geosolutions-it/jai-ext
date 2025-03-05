@@ -1026,17 +1026,17 @@ public abstract class Scale2OpImage extends GeometricOpImage {
             computableBounds = getBounds();
             // Padding of the input image in order to avoid the call of the getExtendedData() method.
             // Extend the Source image
-            ParameterBlock pb = new ParameterBlock();
-            pb.setSource(source, 0);
             int leftPadding = lpad;
             int topPadding = tpad;
+            // add an extra pixel for left and top padding since the border extender will fill them
+            // with zero otherwise
             if (interp instanceof InterpolationBilinear || interp instanceof InterpolationBicubic) {
-                // add an extrapixel for left and top padding since the border extender will fill them
-                // with zero otherwise
                 leftPadding++;
                 topPadding++;
 
             }
+            ParameterBlock pb = new ParameterBlock();
+            pb.setSource(source, 0);
             pb.set(leftPadding, 0);
             pb.set(rpad, 1);
             pb.set(topPadding, 2);
@@ -1056,6 +1056,7 @@ public abstract class Scale2OpImage extends GeometricOpImage {
             roiRect = new Rectangle(srcROIImage.getMinX() - lpad,
                     srcROIImage.getMinY() - tpad, srcROIImage.getWidth() + lpad + rpad,
                     srcROIImage.getHeight() + tpad + bpad);
+
             // Padding of the input ROI image in order to avoid the call of the getExtendedData() method
             // Calculate the padding between the ROI and the source image padded
             roiBounds = srcROIImage.getBounds();
@@ -1069,6 +1070,13 @@ public abstract class Scale2OpImage extends GeometricOpImage {
             int rightP = deltaX1 > 0 ? deltaX1 : 0;
             int deltaY1 = (srcRect.y + srcRect.height - roiBounds.y - roiBounds.height);
             int bottomP = deltaY1 > 0 ? deltaY1 : 0;
+            // add an extra pixel for left and top padding since the border extender will fill them
+            // with zero otherwise
+            if (interp instanceof InterpolationBilinear || interp instanceof InterpolationBicubic) {
+                leftP++;
+                topP++;
+
+            }
             // Extend the ROI image
             ParameterBlock pb = new ParameterBlock();
             pb.setSource(srcROIImage, 0);
@@ -1523,16 +1531,7 @@ public abstract class Scale2OpImage extends GeometricOpImage {
 
             // If the source is fully contained within
             // a tile there is no need to split it any further.
-            if (extender == null) {
-                sources[0] = source0.getData(srcRect);
-            } else {
-                if(source0.getBounds().contains(srcRect)){
-                    sources[0] = source0.getData(srcRect);
-                }else{
-                    sources[0] = extendedIMG.getData(srcRect);
-                }
-
-            }
+            sources[0] = getImageData(source0, srcRect);
             // Compute the destination tile.
             computeRect(sources, dest, destRect);
         } else {
@@ -1598,17 +1597,8 @@ public abstract class Scale2OpImage extends GeometricOpImage {
                             wDestRect = wDestRect.intersection(destRect);
 
                             if ((wDestRect.width > 0) && (wDestRect.height > 0)) {
-                                // Do the operations with these new rectangles
-                                if (extender == null) {
-                                    sources[0] = source0.getData(wSrcRect);
-                                } else {
-                                    if(source0.getBounds().contains(srcRect)){
-                                        sources[0] = source0.getData(wSrcRect);
-                                    } else {
-                                        sources[0] = extendedIMG.getData(srcRect);
-                                    }
-                                }
-
+                                // extract the data
+                                sources[0] = getImageData(source0, wSrcRect);
                                 // Compute the destination tile.
                                 computeRect(sources, dest, wDestRect);
                             }
@@ -1643,17 +1633,8 @@ public abstract class Scale2OpImage extends GeometricOpImage {
                             hDestRect = hDestRect.intersection(destRect);
 
                             if ((hDestRect.width > 0) && (hDestRect.height > 0)) {
-                                // Do the operations with these new rectangles
-                                if (extender == null) {
-                                    sources[0] = source0.getData(hSrcRect);
-                                } else {
-                                    if(source0.getBounds().contains(srcRect)){
-                                        sources[0] = source0.getData(srcRect);
-                                    }else{
-                                        sources[0] = extendedIMG.getData(srcRect);
-                                    }
-                                }
-
+                                // extract the data
+                                sources[0] = getImageData(source0, hSrcRect);
                                 // Compute the destination tile.
                                 computeRect(sources, dest, hDestRect);
                             }
@@ -1673,18 +1654,8 @@ public abstract class Scale2OpImage extends GeometricOpImage {
                         newDestRect = newDestRect.intersection(destRect);
 
                         if ((newDestRect.width > 0) && (newDestRect.height > 0)) {
-
-                            // Do the operations with these new rectangles
-                            if (extender == null) {
-                                sources[0] = source0.getData(newSrcRect);
-                            } else {
-                                if(source0.getBounds().contains(srcRect)){
-                                    sources[0] = source0.getData(srcRect);
-                                }else{
-                                    sources[0] = extendedIMG.getData(srcRect);
-                                }
-                            }
-
+                            // extract the data
+                            sources[0] = getImageData(source0, newSrcRect);
                             // Compute the destination tile.
                             computeRect(sources, dest, newDestRect);
                         }
@@ -1738,18 +1709,8 @@ public abstract class Scale2OpImage extends GeometricOpImage {
                             RTSrcRect = mapDestRect(RTDestRect, 0);
 
                             if (RTDestRect.width > 0 && RTDestRect.height > 0) {
-                                // Do the operations with these new rectangles
-                                if (extender == null) {
-                                    sources[0] = source0.getData(RTSrcRect);
-                                } else {
-                                    if(source0.getBounds().contains(RTSrcRect)){
-                                        sources[0] = source0.getData(RTSrcRect);
-                                    }else{
-                                        sources[0] = extendedIMG.getData(RTSrcRect);
-                                    }
-
-                                }
-
+                                // extract the data
+                                sources[0] = getImageData(source0, RTSrcRect);
                                 // Compute the destination tile.
                                 computeRect(sources, dest, RTDestRect);
                             }
@@ -1788,18 +1749,8 @@ public abstract class Scale2OpImage extends GeometricOpImage {
                             // end
 
                             if (BTDestRect.width > 0 && BTDestRect.height > 0) {
-
-                                // Do the operations with these new rectangles
-                                if (extender == null) {
-                                    sources[0] = source0.getData(BTSrcRect);
-                                } else {
-                                    if(source0.getBounds().contains(BTSrcRect)){
-                                        sources[0] = source0.getData(BTSrcRect);
-                                    }else{
-                                        sources[0] = extendedIMG.getData(BTSrcRect);
-                                    }
-                                }
-
+                                // extract the data
+                                sources[0] = getImageData(source0, BTSrcRect);
                                 // Compute the destination tile.
                                 computeRect(sources, dest, BTDestRect);
                             }
@@ -1824,17 +1775,8 @@ public abstract class Scale2OpImage extends GeometricOpImage {
                             LRTSrcRect = mapDestRect(LRTDestRect, 0);
 
                             if (LRTDestRect.width > 0 && LRTDestRect.height > 0) {
-                                // Do the operations with these new rectangles
-                                if (extender == null) {
-                                    sources[0] = source0.getData(LRTSrcRect);
-                                } else {
-                                    if(source0.getBounds().contains(LRTSrcRect)){
-                                        sources[0] = source0.getData(LRTSrcRect);
-                                    }else{
-                                        sources[0] = extendedIMG.getData(LRTSrcRect);
-                                    }
-                                }
-
+                                // extract the data
+                                sources[0] = getImageData(source0, LRTSrcRect);
                                 // Compute the destination tile.
                                 computeRect(sources, dest, LRTDestRect);
                             }
@@ -1846,6 +1788,31 @@ public abstract class Scale2OpImage extends GeometricOpImage {
 
         // Return the written destination raster
         return dest;
+    }
+
+    /**
+     * From the given image source extract the data defined by the given rectangle.
+     * If a border extender is in use, the data might be extracted from the
+     * extended image instead.
+     *
+     * @param source the source image
+     * @param srcRect the rectangle
+     * @return the extracted raster
+     */
+    private Raster getImageData(PlanarImage source, Rectangle srcRect) {
+        // no extender defined: simply forward
+        if (extender == null) {
+            return source.getData(srcRect);
+        } else {
+            // extender defined, but source rectangle entirely within image bounds
+            if(source.getBounds().contains(srcRect)){
+                return source.getData(srcRect);
+            }
+            // extended image access required, forward to pre-computed extended image
+            else{
+                return extendedIMG.getData(srcRect);
+            }
+        }
     }
 
     @Override
