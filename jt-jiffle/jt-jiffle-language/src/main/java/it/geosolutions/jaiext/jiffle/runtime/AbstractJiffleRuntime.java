@@ -42,8 +42,6 @@
  */   
 package it.geosolutions.jaiext.jiffle.runtime;
 
-import org.locationtech.jts.geom.Coordinate;
-
 import java.awt.*;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.RenderedImage;
@@ -58,7 +56,6 @@ import it.geosolutions.jaiext.jiffle.Jiffle;
 import it.geosolutions.jaiext.jiffle.JiffleException;
 import it.geosolutions.jaiext.range.NoDataContainer;
 import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeDouble;
 import it.geosolutions.jaiext.range.RangeFactory;
 
 import javax.media.jai.ROI;
@@ -77,6 +74,10 @@ import javax.media.jai.iterator.RandomIter;
  */
 public abstract class AbstractJiffleRuntime implements JiffleRuntime {
     private static final double EPS = 1.0e-8d;
+
+    public static final String MAX_ITERATIONS_KEY = "it.geosolutions.jaiext.jiffle.maxIterations";
+
+    private static final int DEFAULT_MAX_ITERATIONS = 200;
 
     private enum Dim { XDIM, YDIM };
     
@@ -235,6 +236,10 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
     
     protected CoordinateTransform _defaultTransform;
 
+    private final long _maxIterations;
+
+    protected long _iterations = 0;
+
     public AbstractJiffleRuntime() {
         this(new String[0]);
     }
@@ -251,6 +256,7 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
         _yres = Double.NaN;
         
         _variableNames = variableNames;
+        _maxIterations = Integer.getInteger(MAX_ITERATIONS_KEY, DEFAULT_MAX_ITERATIONS);
     }
     
     /**
@@ -631,6 +637,13 @@ public abstract class AbstractJiffleRuntime implements JiffleRuntime {
      */
     protected int getBands(String imageName) {
         return _images.get(imageName).image.getSampleModel().getNumBands();
+    }
+
+    protected void checkLoopIterations() {
+        this._iterations++;
+        if (this._maxIterations >= 0 && this._iterations > this._maxIterations) {
+            throw new JiffleRuntimeException("Exceeded maximum allowed loop iterations per pixel");
+        }
     }
 
     public abstract void setDefaultBounds();

@@ -62,6 +62,7 @@ public class LoopInLiteralList implements Statement {
         w.indent().append("for(Double ").append(loopVariable).append(" : ").append(listLiteral);
         w.append(") {").newLine();
         w.inc();
+        w.line("checkLoopIterations();");
         statement.write(w);
         w.dec();
         w.line("}");

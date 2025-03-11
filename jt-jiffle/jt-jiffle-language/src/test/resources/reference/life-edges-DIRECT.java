@@ -30,15 +30,18 @@ _outsideValue = 0;
             initImageScopeVars();
         }
         _stk.clear();
+        _iterations = 0;
         double sv_world__x__y_0 = s_world.read(_x, _y, 0);
 
         double v_n = 0.0;
         final int _loiy = (int) (-1);
         final int _hi_loiy = (int) (1);
         for(int v_iy = _loiy; v_iy <= _hi_loiy; v_iy++) {
+            checkLoopIterations();
             final int _loix = (int) (-1);
             final int _hi_loix = (int) (1);
             for(int v_ix = _loix; v_ix <= _hi_loix; v_ix++) {
+                checkLoopIterations();
                 v_n += s_world.read(_x + v_ix, _y + v_iy, 0);
             }
         }
