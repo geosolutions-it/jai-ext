@@ -14,7 +14,6 @@
     <test.maxPermSize>512m</test.maxPermSize>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>4.13.2</junit.version>
-    <antlr4.version>4.13.2</antlr4.version>
     <apache.version>2.1</apache.version>
     <fork.javac>true</fork.javac>
     <javac.maxHeapSize>256M</javac.maxHeapSize>
@@ -458,7 +457,7 @@
       <dependency>
         <groupId>org.antlr</groupId>
         <artifactId>antlr4-runtime</artifactId>
-        <version>${antlr4.version}</version>
+        <version>4.7.1</version>
       </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>
@@ -519,18 +518,6 @@
     <!-- ========================================================= -->
     <pluginManagement>
       <plugins>
-        <plugin>
-          <groupId>org.antlr</groupId>
-          <artifactId>antlr4-maven-plugin</artifactId>
-          <version>${antlr4.version}</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>antlr4</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
 	<plugin>
 	 <groupId>org.apache.maven.plugins</groupId>
 	 <artifactId>maven-eclipse-plugin</artifactId>
