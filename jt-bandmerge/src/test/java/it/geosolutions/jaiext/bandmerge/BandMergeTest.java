@@ -27,23 +27,32 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.media.jai.IHSColorSpace;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
+import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
+import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.TiledImage;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.operator.BandSelectDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
+import java.awt.*;
+import java.awt.color.ColorSpace;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
+import java.awt.image.WritableRaster;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -829,6 +838,36 @@ public class BandMergeTest extends TestBase {
                 ((TiledImage) image).dispose();
             }
         }
+    }
+
+    @Test
+    public void testColorModelPreserved() {
+        final ColorSpace ihs = IHSColorSpace.getInstance();
+        final ColorModel cm = new ComponentColorModel(
+                ihs,
+                new int[] {8, 8, 8},
+                false,
+                false,
+                Transparency.OPAQUE,
+                DataBuffer.TYPE_BYTE);
+        SampleModel sm = cm.createCompatibleSampleModel(IMAGE_WIDTH, IMAGE_HEIGHT);
+        TiledImage ti = new TiledImage(0,0,IMAGE_WIDTH, IMAGE_HEIGHT, 0,0, sm, cm);
+
+        RenderedImage ri = PlanarImage.wrapRenderedImage(ti);
+        ImageLayout il = new ImageLayout();
+        il.setColorModel(cm);
+        il.setSampleModel(sm);
+
+        RenderedImage band1 = BandSelectDescriptor.create(ri, new int[]{0}, null);
+        RenderedImage band2 = BandSelectDescriptor.create(ri, new int[]{1}, null);
+        RenderedImage band3 = BandSelectDescriptor.create(ri, new int[]{2}, null);
+        RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, il);
+
+        // Let's recompose an IHS image
+        RenderedOp bandMerged = BandMergeDescriptor.create(null, 0d, false, hints, band1, band2, band3);
+        ColorModel bmcm = bandMerged.getColorModel();
+        assert (bmcm.getColorSpace() instanceof IHSColorSpace);
+
     }
 
     @Test
