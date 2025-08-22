@@ -45,64 +45,36 @@ public class ComparisonTest extends TestBase {
     private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
             "JAI.Ext.NotBenchmarkCycles", 0);
 
-    /** Boolean indicating if the old descriptor must be used */
-    private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
+    // General method for showing calculation time of the 2 Null operators
 
-    /** Source test image */
-    private static RenderedImage testImage;
-
-    // Initial static method for preparing all the test data
-    @BeforeClass
-    public static void initialSetup() {
-        // Setting of the image filler parameter to true for a better image creation
-        IMAGE_FILLER = true;
-        // Images initialization values
-        byte noDataB = 100;
-        short noDataUS = 100;
-        short noDataS = 100;
-        int noDataI = 100;
-        float noDataF = 100;
-        double noDataD = 100;
-
-        // Image creations
-        switch (TEST_SELECTOR) {
-        case DataBuffer.TYPE_BYTE:
-            testImage = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                    noDataB, false, 1);
-            break;
-        case DataBuffer.TYPE_USHORT:
-            testImage = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                    noDataUS, false, 1);
-            break;
-        case DataBuffer.TYPE_SHORT:
-            testImage = createTestImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                    noDataS, false, 1);
-            break;
-        case DataBuffer.TYPE_INT:
-            testImage = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                    noDataI, false, 1);
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            testImage = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                    noDataF, false, 1);
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            testImage = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                    noDataD, false, 1);
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data type");
-        }
-        // Image filler must be reset
-        IMAGE_FILLER = false;
-
+    @Test
+    public void testByte() {
+        testOperation(DataBuffer.TYPE_BYTE);
+    }
+    @Test
+    public void testShort() {
+        testOperation(DataBuffer.TYPE_SHORT);
+    }
+    @Test
+    public void testUShort() {
+        testOperation(DataBuffer.TYPE_USHORT);
+    }
+    @Test
+    public void testInt() {
+        testOperation(DataBuffer.TYPE_INT);
+    }
+    @Test
+    public void testFloat() {
+        testOperation(DataBuffer.TYPE_FLOAT);
+    }
+    @Test
+    public void testDouble() {
+        testOperation(DataBuffer.TYPE_DOUBLE);
     }
 
-    // General method for showing calculation time of the 2 Null operators
-    @Test
-    public void testNullDescriptor() {
-        // Image data types
-        int dataType = TEST_SELECTOR;
+    public void testOperation(int dataType) {
+        RenderedImage testImage = createDefaultTestImage(dataType, 1, false);
+
 
         // Descriptor string
         String description = "\n ";
@@ -117,30 +89,7 @@ public class ComparisonTest extends TestBase {
         }
 
         // Data type string
-        String dataTypeString = "";
-
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            dataTypeString += "Byte";
-            break;
-        case DataBuffer.TYPE_USHORT:
-            dataTypeString += "UShort";
-            break;
-        case DataBuffer.TYPE_SHORT:
-            dataTypeString += "Short";
-            break;
-        case DataBuffer.TYPE_INT:
-            dataTypeString += "Integer";
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            dataTypeString += "Float";
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            dataTypeString += "Double";
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data type");
-        }
+        String dataTypeString = getDataTypeString(dataType);
 
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;

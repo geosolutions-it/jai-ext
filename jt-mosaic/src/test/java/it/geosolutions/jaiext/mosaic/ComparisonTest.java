@@ -34,6 +34,7 @@ import javax.media.jai.operator.MosaicType;
 import javax.media.jai.operator.NullDescriptor;
 import javax.media.jai.operator.TranslateDescriptor;
 
+import it.geosolutions.jaiext.utilities.TestImageDumper;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -59,20 +60,14 @@ public class ComparisonTest extends TestBase{
     /** Number of not benchmark iterations (Default 0) */
     private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
             "JAI.Ext.NotBenchmarkCycles", 0);
-    
-    /** Boolean indicating if the old descriptor must be used */
-    private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
-    
-	/** Boolean indicating if the native acceleration must be used */
+
+    /** Boolean indicating if the native acceleration must be used */
 	private final static boolean NATIVE_ACCELERATION = Boolean
 			.getBoolean("JAI.Ext.Acceleration");
     
     /** Boolean for selecting one of the 2 MosaicType(Default Overlay) */
     private final static boolean MOSAIC_TYPE = Boolean.getBoolean(
             "JAI.Ext.MosaicBlend");
-    
-    /** Boolean indicating if a No Data Range must be used */
-    private final static boolean RANGE_USED = Boolean.getBoolean("JAI.Ext.RangeUsed");
 
     /** Value indicating No Data for the destination image */
     private static double destinationNoData = 0;
@@ -121,23 +116,12 @@ public class ComparisonTest extends TestBase{
     }
 
     @Test
-    public void testNearestNewMosaicDescriptor() {
-    	if(!OLD_DESCRIPTOR){
-    		testMosaic(OLD_DESCRIPTOR, MOSAIC_TYPE);
-    	}
-    }
-
-    @Test   
-    public void testNearestOldMosaicDescriptor() {
-    	if(OLD_DESCRIPTOR){
-    		testMosaic(OLD_DESCRIPTOR, MOSAIC_TYPE);
-    	}
+    public void testNearestMosaicDescriptor() {
+        testMosaic(OLD_DESCRIPTOR, MOSAIC_TYPE);
     }
 
     public void testMosaic(boolean old, boolean blend) {
-
         MosaicType mosaicType;
-
         String description = "";
 
         if (old) {
@@ -228,12 +212,7 @@ public class ComparisonTest extends TestBase{
                 + " msec.");
         System.out.println("Maximum value for " + description + "Descriptor : " + maxD + " msec.");
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
-
-        //Final Image disposal
-        if(imageMosaic instanceof RenderedOp){
-            ((RenderedOp)imageMosaic).dispose();
-        }
-        
+        finalizeTest(null, imageMosaic);
     }
 
     public static RenderedImage getSyntheticImage(byte value) {

@@ -907,8 +907,8 @@ public class LookupTest extends TestBase {
         PlanarImage destinationIMG = LookupDescriptor.create(img, table, destinationNoDataValue,
                 roiData, noDataRange, useRoiAccessor, null);
 
-        if (INTERACTIVE && table.getDataType() == DataBuffer.TYPE_BYTE
-                && TEST_SELECTOR == selector.getType() && dataTypeInput == DataBuffer.TYPE_BYTE) {
+        if (INTERACTIVE && table.getDataType() == DataBuffer.TYPE_BYTE &&
+                dataTypeInput == DataBuffer.TYPE_BYTE) {
             // The image is shown to the screen
             RenderedImageBrowser.showChain(destinationIMG, false, roiUsed);
             try {

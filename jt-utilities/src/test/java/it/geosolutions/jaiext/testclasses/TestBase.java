@@ -19,10 +19,13 @@ package it.geosolutions.jaiext.testclasses;
 
 
 import it.geosolutions.jaiext.JAIExt;
+import it.geosolutions.jaiext.range.Range;
+import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.utilities.ImageUtilities;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
@@ -31,10 +34,14 @@ import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 
+import javax.media.jai.PlanarImage;
 import javax.media.jai.ROIShape;
 import javax.media.jai.TiledImage;
 
+import it.geosolutions.jaiext.utilities.TestImageDumper;
 import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
 
 /**
@@ -48,6 +55,18 @@ import org.junit.BeforeClass;
  * project) because it shows if the image has been correctly rotated.   
  */
 public abstract class TestBase {
+
+    /** Boolean indicating if the old descriptor must be used */
+    protected final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
+
+    /** Boolean indicating if the old descriptor must be used */
+    protected final static boolean WRITE_RESULT = Boolean.getBoolean("JAI.Ext.WriteResult");
+
+    /** Boolean indicating if a No Data Range must be used */
+    protected final static boolean RANGE_USED = Boolean.getBoolean("JAI.Ext.RangeUsed");
+
+    @Rule
+    public TestName name = new TestName();
 
     /** Default value for image width */
     public static int DEFAULT_WIDTH = 256;
@@ -82,6 +101,13 @@ public abstract class TestBase {
     protected float scaleX = 0.5f;
 
     protected float scaleY = 0.5f;
+
+    private static final byte noDataB = 100;
+    private static final short noDataUS = 100;
+    private static final short noDataS = 100;
+    private static final int noDataI = 100;
+    private static final float noDataF = 100;
+    private static final double noDataD = 100;
 
     public enum InterpolationType {
         NEAREST_INTERP(0), BILINEAR_INTERP(1), BICUBIC_INTERP(2),GENERAL_INTERP(3);
@@ -163,13 +189,56 @@ public abstract class TestBase {
         
         return createTestImage(dataType, width,height, noDataValue, isBinary, 3);
     }
-    
+
     public static RenderedImage createTestImage(int dataType, int width, int height, Number noDataValue,
             boolean isBinary, int bands){
         return createTestImage(dataType, width, height, noDataValue, isBinary, bands, null);
         
     }
-    
+
+    public static RenderedImage createTestImage(int dataType, int width, int height, boolean isBinary, int numBands) {
+        return createTestImage(dataType, width, height, getDefaultNoData(dataType), isBinary, numBands, null);
+    }
+
+
+    public static RenderedImage createDefaultTestImage(int dataType, int numBands, boolean toggleFiller) {
+        RenderedImage image;
+
+        if (toggleFiller) {
+            IMAGE_FILLER = true;
+        }
+
+        // Image creation
+        switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+                image = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT, false, numBands);
+                break;
+            case DataBuffer.TYPE_USHORT:
+                image = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, false, numBands);
+                break;
+            case DataBuffer.TYPE_SHORT:
+                image = createTestImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, false, numBands);
+                break;
+            case DataBuffer.TYPE_INT:
+                image = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, false, numBands);
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                image = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT,false, numBands);
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                image = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT,false, numBands);
+                break;
+            default:
+                throw new IllegalArgumentException("Wrong data type");
+        }
+
+        if (toggleFiller) {
+            IMAGE_FILLER = false;
+        }
+        return image;
+    }
+
+
     /** Simple method for image creation */
     public static RenderedImage createTestImage(int dataType, int width, int height, Number noDataValue,
             boolean isBinary, int numBands, Number validData) {
@@ -215,6 +284,7 @@ public abstract class TestBase {
         int tileW = (int) Math.ceil(width / 8d);
         int tileH = (int) Math.ceil(height / 8d);
         TiledImage used;
+        ColorModel cm = null;
         if (sm instanceof MultiPixelPackedSampleModel) {
             MultiPixelPackedSampleModel mpsm = (MultiPixelPackedSampleModel) sm;
             int bits = mpsm.getSampleSize(0);
@@ -225,12 +295,10 @@ public abstract class TestBase {
             for (int i = 0; i < size; i++) {
                 reds[i] = blues[i] = greens[i] = (byte) (255 *  size / (double) (i + 1));
             }
-            IndexColorModel icm = new IndexColorModel(bits, size, reds, blues, greens);
-            used = new TiledImage(0, 0, width, height, 0, 0, sm, icm);
+            used = new TiledImage(0, 0, width, height, 0, 0, sm, cm);
         } else {
             used = new TiledImage(sm, tileW, tileH);
         }
-
 
         Byte crossValueByte = 0;
         Short crossValueUShort = 0;
@@ -445,8 +513,7 @@ public abstract class TestBase {
                                     throw new IllegalArgumentException("Wrong data type");
                                 }
                             }
-                            
-                        }                    
+                        }
                 }
             }
         }
@@ -501,4 +568,96 @@ public abstract class TestBase {
     public static void setup(){
         JAIExt.initJAIEXT();
     }
+
+    public static Range getRange(int dataType) {
+        Range range = null;
+        if (RANGE_USED && !OLD_DESCRIPTOR) {
+        switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+                range = RangeFactory.create(noDataB, true, noDataB, true);
+                break;
+            case DataBuffer.TYPE_USHORT:
+                range = RangeFactory.createU(noDataUS, true, noDataUS, true);
+                break;
+            case DataBuffer.TYPE_SHORT:
+                range = RangeFactory.create(noDataS, true, noDataS, true);
+                break;
+            case DataBuffer.TYPE_INT:
+                range = RangeFactory.create(noDataI, true, noDataI, true);
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                range = RangeFactory.create(noDataF, true, noDataF, true, true);
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                range = RangeFactory.create(noDataD, true, noDataD, true, true);
+                break;
+            default:
+                throw new IllegalArgumentException("Wrong data type");
+        }
+        }
+        return range;
+    }
+
+    public static String getDataTypeString(int dataType) {
+        String dataTypeString = "";
+
+        switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+                dataTypeString += "Byte";
+                break;
+            case DataBuffer.TYPE_USHORT:
+                dataTypeString += "UShort";
+                break;
+            case DataBuffer.TYPE_SHORT:
+                dataTypeString += "Short";
+                break;
+            case DataBuffer.TYPE_INT:
+                dataTypeString += "Integer";
+                break;
+            case DataBuffer.TYPE_FLOAT:
+                dataTypeString += "Float";
+                break;
+            case DataBuffer.TYPE_DOUBLE:
+                dataTypeString += "Double";
+                break;
+            default:
+                throw new IllegalArgumentException("Wrong data type");
+        }
+        return  dataTypeString;
+    }
+
+    private static int getDefaultNoData(int dataType) {
+        switch (dataType) {
+            case DataBuffer.TYPE_BYTE:
+                return noDataB;
+            case DataBuffer.TYPE_USHORT:
+                return noDataUS;
+            case DataBuffer.TYPE_SHORT:
+                return noDataS;
+            case DataBuffer.TYPE_INT:
+                return noDataI;
+            case DataBuffer.TYPE_FLOAT:
+                return (int) noDataF;
+            case DataBuffer.TYPE_DOUBLE:
+                return (int) noDataD;
+            default:
+                throw new IllegalArgumentException("Wrong data type");
+        }
+    }
+
+    public void finalizeTest(String suffix, RenderedImage image) {
+        if (OLD_DESCRIPTOR && WRITE_RESULT) {
+            TestImageDumper.saveAsDeflateTiff(name.getMethodName(), suffix, image);
+        } else {
+            disposeImage(image);
+        }
+    }
+
+    public static void disposeImage(RenderedImage image) {
+        // If the image is a PlanarImage or a TiledImage it has to be disposed
+        if (image instanceof PlanarImage) {
+            ((PlanarImage) image).dispose();
+        }
+    }
+
 }
