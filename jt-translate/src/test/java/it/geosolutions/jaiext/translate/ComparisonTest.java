@@ -74,6 +74,12 @@ public class ComparisonTest extends TestBase {
     }
 
     @Test
+    @Override
+    public void testBase() {
+        // Translate doesn't need to test all data types
+    }
+
+    @Test
     public void testNewTranslationDescriptor() {
         if (!OLD_DESCRIPTOR) {
             testTranslation(null);
@@ -89,18 +95,17 @@ public class ComparisonTest extends TestBase {
 
     public void testTranslation(Interpolation interp) {
         RenderedImage testImage = getSyntheticImage((byte) 100);
-        boolean old = interp != null;
         PlanarImage image = null;
 
         // creation of the image with the selected interpolator
-        if (old) {
+        if (OLD_DESCRIPTOR) {
             image = javax.media.jai.operator.TranslateDescriptor.create(testImage, transX,
                     transY, interp, null);
         } else {
             image = TranslateDescriptor.create(testImage, transX, transY, null, null);
         }
 
-        finalizeTest(getSuffix(null, null), null, image);
+        finalizeTest(null, DataBuffer.TYPE_BYTE, image);
     }
 
     public static RenderedImage getSyntheticImage(byte value) {

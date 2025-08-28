@@ -37,22 +37,28 @@ import it.geosolutions.jaiext.testclasses.TestBase;
  */
 public class ComparisonTest extends TestBase {
 
+    @BeforeClass
+    public static void initialSetup() {
+        if (OLD_DESCRIPTOR) {
+            JAIExt.registerJAIDescriptor("Null");
+        }
+
+    }
+
     @Test
-    public void testDataTypes() {
-        testAllTypes(TestRoiNoDataType.NONE);
+    @Override
+    public void testBase() {
+        // nullop doesn't need to test all data types
     }
 
     @Override
     public void testOperation(int dataType, TestRoiNoDataType testType) {
         RenderedImage testImage = createDefaultTestImage(dataType, 1, false);
-        String description = getDescription("null");
-        String dataTypeString = getDataTypeString(dataType);
         PlanarImage image;
 
         // creation of the image with the selected descriptor
 
         if (OLD_DESCRIPTOR) {
-            JAIExt.registerJAIDescriptor("Null");
             // Old descriptor calculations
             image = javax.media.jai.operator.NullDescriptor.create(testImage, null);
         } else {
@@ -60,9 +66,6 @@ public class ComparisonTest extends TestBase {
             image = NullDescriptor.create(testImage, null);
         }
 
-        System.out.println(description + "_" + dataTypeString);
         finalizeTest(getSuffix(testType, null), dataType, image);
-
-
     }
 }

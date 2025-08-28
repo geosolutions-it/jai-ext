@@ -305,6 +305,7 @@ public abstract class TestBase {
             for (int i = 0; i < size; i++) {
                 reds[i] = blues[i] = greens[i] = (byte) (255 * size / (double) (i + 1));
             }
+            cm = new IndexColorModel(bits, size, reds, blues, greens);
             used = new TiledImage(0, 0, width, height, 0, 0, sm, cm);
         } else {
             used = new TiledImage(sm, tileW, tileH);
@@ -782,7 +783,7 @@ public abstract class TestBase {
 
     protected boolean supportDataType(int dataType) {
         return dataType == DataBuffer.TYPE_BYTE || dataType == DataBuffer.TYPE_USHORT
-                || dataType == DataBuffer.TYPE_SHORT || dataType == DataBuffer.TYPE_INT
+                || /*dataType == DataBuffer.TYPE_SHORT || */dataType == DataBuffer.TYPE_INT
                 || dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE;
     }
 

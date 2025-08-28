@@ -102,7 +102,7 @@ public class ComparisonTest extends TestBase {
             // New descriptor calculations
             image = BandMergeDescriptor.create(range, destNoData, false, null, testImage);
         }
-
+        finalizeTest(getSuffix(testType, null), dataType, image);
 
         for (int band = 0; band < BAND_NUMBER; band++) {
             ((TiledImage) testImage[band]).dispose();

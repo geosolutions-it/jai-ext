@@ -72,6 +72,9 @@ public class ComparisonTest extends TestBase {
     @BeforeClass
     public static void init() {
 
+        if (OLD_DESCRIPTOR) {
+            JAIExt.registerJAIDescriptor("ErrorDiffusion");
+        }
         // Diffusion Kernel
         kernel = KernelJAI.GRADIENT_MASK_SOBEL_VERTICAL;
         // Create simple lookuptable
@@ -108,8 +111,6 @@ public class ComparisonTest extends TestBase {
 
     @Override
     public void testOperation(int dataType, TestRoiNoDataType testType) {
-        String description = getDescription("ErrorDiffusion");
-        String dataTypeString = getDataTypeString(dataType);
         Range range = getRange(dataType, testType);
         ROI roi = getROI(testType);
         RenderedImage testImage = createDefaultTestImage(dataType, NUM_BANDS, true);
@@ -118,14 +119,12 @@ public class ComparisonTest extends TestBase {
 
         // creation of the image
         if (OLD_DESCRIPTOR) {
-            JAIExt.registerJAIDescriptor("ErrorDiffusion");
             image = javax.media.jai.operator.ErrorDiffusionDescriptor.create(testImage,
                     lut, kernel, null);
         } else {
             image = ErrorDiffusionDescriptor.create(testImage, lut, kernel, roi, range,
                     null, null);
         }
-        System.out.println(description + "_" + dataTypeString);
         finalizeTest(getSuffix(testType, null), dataType, image);
     }
 }
