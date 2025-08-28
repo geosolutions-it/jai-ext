@@ -27,11 +27,10 @@ import java.io.IOException;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
-import javax.media.jai.RenderedOp;
 
+import it.geosolutions.jaiext.testclasses.TestBase;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
 
 /**
  * This test class is used for compare the timing between the new and the old versions of the translate descriptor . If the user wants to change the
@@ -42,44 +41,34 @@ import org.junit.Test;
  * <li>Image Translation</li>
  * <li>statistic calculation (if the cycle belongs to the benchmark cycles)</li>
  * </ul>
- * 
+ * <p>
  * The selection of the old or new descriptor must be done by setting to true or false the JVM parameter JAI.Ext.OldDescriptor.
- * 
+ *
  */
-public class ComparisonTest {
+public class ComparisonTest extends TestBase {
 
-    /** Number of benchmark iterations (Default 1) */
-    private final static Integer BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.BenchmarkCycles", 1);
-
-    /** Number of not benchmark iterations (Default 0) */
-    private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.NotBenchmarkCycles", 0);
-
-    /** Boolean indicating if the old descriptor must be used */
-    private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
-    
-    /** Image to elaborate */
-    private static RenderedImage image;
-
-    /** X translation parameter */
+    /**
+     * X translation parameter
+     */
     private static float transX;
 
-    /** Y translation parameter */
+    /**
+     * Y translation parameter
+     */
     private static float transY;
 
-    /** JAI nearest Interpolator */
+    /**
+     * JAI nearest Interpolator
+     */
     private static javax.media.jai.InterpolationNearest interpNearOld;
 
     @BeforeClass
     public static void initialSetup() throws FileNotFoundException, IOException {
-        // Selection of the image
-        image = getSyntheticImage((byte) 100);
 
         // Interpolators instantiation
         interpNearOld = new javax.media.jai.InterpolationNearest();
 
-        if(OLD_DESCRIPTOR){
+        if (OLD_DESCRIPTOR) {
             JAIExt.registerJAIDescriptor("Translate");
         }
     }
@@ -87,100 +76,38 @@ public class ComparisonTest {
     @Test
     public void testNewTranslationDescriptor() {
         if (!OLD_DESCRIPTOR) {
-        	testTranslation(null);
+            testTranslation(null);
         }
     }
 
     @Test
     public void testOldTranslationDescriptor() {
-    	if (OLD_DESCRIPTOR) {
-    		testTranslation(interpNearOld);
-    	}
+        if (OLD_DESCRIPTOR) {
+            testTranslation(interpNearOld);
+        }
     }
 
     public void testTranslation(Interpolation interp) {
-
-        String description = "";
-
+        RenderedImage testImage = getSyntheticImage((byte) 100);
         boolean old = interp != null;
+        PlanarImage image = null;
 
+        // creation of the image with the selected interpolator
         if (old) {
-            description = "Old Translate";
-            System.setProperty("com.sun.media.jai.disableMediaLib", "false");
+            image = javax.media.jai.operator.TranslateDescriptor.create(testImage, transX,
+                    transY, interp, null);
         } else {
-            description = "New Translate";
-            System.setProperty("com.sun.media.jai.disableMediaLib", "true");
-        }
-        
-        // Total cycles number
-        int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
-        // Image
-        PlanarImage imageTranslate = null;
-
-        long mean = 0;
-        long max = Long.MIN_VALUE;
-        long min = Long.MAX_VALUE;
-
-        // Cycle for calculating the mean, maximum and minimum calculation time
-        for (int i = 0; i < totalCycles; i++) {
-
-            // creation of the image with the selected interpolator
-            if (old) {
-                imageTranslate = javax.media.jai.operator.TranslateDescriptor.create(image, transX,
-                        transY, interp, null);
-            } else {
-                imageTranslate = TranslateDescriptor.create(image, transX, transY, null, null);
-            }
-
-            // Total calculation time
-            long start = System.nanoTime();
-            imageTranslate.getTiles();
-            long end = System.nanoTime() - start;
-
-            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
-            if (i > NOT_BENCHMARK_ITERATION - 1) {
-                if (i == NOT_BENCHMARK_ITERATION) {
-                    mean = end;
-                } else {
-                    mean = mean + end;
-                }
-
-                if (end > max) {
-                    max = end;
-                }
-
-                if (end < min) {
-                    min = end;
-                }
-            }
-            // For every cycle the cache is flushed such that all the tiles must be recalculates
-            JAI.getDefaultInstance().getTileCache().flush();
-        }
-        // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION * 1E-6;
-
-        // Max and Min values stored as double
-        double maxD = max * 1E-6;
-        double minD = min * 1E-6;
-        // Comparison between the mean times
-        // Output print of the
-        System.out.println("\nMean value for " + description + "Descriptor : " + meanValue
-                + " msec.");
-        System.out.println("Maximum value for " + description + "Descriptor : " + maxD + " msec.");
-        System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
-        
-        //Final Image disposal
-        if(imageTranslate instanceof RenderedOp){
-            ((RenderedOp)imageTranslate).dispose();
+            image = TranslateDescriptor.create(testImage, transX, transY, null, null);
         }
 
+        finalizeTest(getSuffix(null, null), null, image);
     }
 
     public static RenderedImage getSyntheticImage(byte value) {
         final float width = 256;
         final float height = 256;
         ParameterBlock pb = new ParameterBlock();
-        Byte[] array = new Byte[] { value, (byte) (value + 1), (byte) (value + 2) };
+        Byte[] array = new Byte[]{value, (byte) (value + 1), (byte) (value + 2)};
         pb.add(width);
         pb.add(height);
         pb.add(array);

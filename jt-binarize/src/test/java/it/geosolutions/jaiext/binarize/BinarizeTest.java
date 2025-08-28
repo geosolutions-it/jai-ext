@@ -256,4 +256,5 @@ public class BinarizeTest extends TestBase {
         // Disposal of the output image
         binarized.dispose();
     }
+
 }

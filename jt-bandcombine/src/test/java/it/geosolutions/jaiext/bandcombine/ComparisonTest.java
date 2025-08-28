@@ -45,9 +45,6 @@ public class ComparisonTest extends TestBase {
     private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
             "JAI.Ext.NotBenchmarkCycles", 0);
 
-    /** Boolean indicating if the old descriptor must be used */
-    private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
-
     /** Boolean indicating if a No Data Range must be used */
     private final static boolean RANGE_USED = Boolean.getBoolean("JAI.Ext.RangeUsed");
 
@@ -56,12 +53,6 @@ public class ComparisonTest extends TestBase {
 
     /** Source band number */
     private static final int NUM_BANDS = 3;
-
-    /** Image to elaborate */
-    private static RenderedImage image;
-
-    /** No Data Range parameter */
-    private static Range range;
 
     /** Input ROI used for reducing image active area*/
     private static ROI roi;
@@ -73,74 +64,6 @@ public class ComparisonTest extends TestBase {
     public static void initialSetup() {
 
         // Setting of the image filler parameter to true for a better image creation
-        IMAGE_FILLER = true;
-        // Images initialization
-        byte noDataB = 100;
-        short noDataUS = 100;
-        short noDataS = 100;
-        int noDataI = 100;
-        float noDataF = 100;
-        double noDataD = 100;
-
-        // Image creation
-        image = null;
-
-        switch (TEST_SELECTOR) {
-        case DataBuffer.TYPE_BYTE:
-            image = createTestImage(DataBuffer.TYPE_BYTE, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataB,
-                    false, NUM_BANDS);
-            break;
-        case DataBuffer.TYPE_USHORT:
-            image = createTestImage(DataBuffer.TYPE_USHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT,
-                    noDataUS, false, NUM_BANDS);
-            break;
-        case DataBuffer.TYPE_SHORT:
-            image = createTestImage(DataBuffer.TYPE_SHORT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataS,
-                    false, NUM_BANDS);
-            break;
-        case DataBuffer.TYPE_INT:
-            image = createTestImage(DataBuffer.TYPE_INT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataI,
-                    false, NUM_BANDS);
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            image = createTestImage(DataBuffer.TYPE_FLOAT, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataF,
-                    false, NUM_BANDS);
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            image = createTestImage(DataBuffer.TYPE_DOUBLE, DEFAULT_WIDTH, DEFAULT_HEIGHT, noDataD,
-                    false, NUM_BANDS);
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data type");
-        }
-        // Image filler must be reset
-        IMAGE_FILLER = false;
-
-        // Range creation if selected
-        if (RANGE_USED && !OLD_DESCRIPTOR) {
-            switch (TEST_SELECTOR) {
-            case DataBuffer.TYPE_BYTE:
-                range = RangeFactory.create(noDataB, true, noDataB, true);
-                break;
-            case DataBuffer.TYPE_USHORT:
-                range = RangeFactory.createU(noDataUS, true, noDataUS, true);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                range = RangeFactory.create(noDataS, true, noDataS, true);
-                break;
-            case DataBuffer.TYPE_INT:
-                range = RangeFactory.create(noDataI, true, noDataI, true);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                range = RangeFactory.create(noDataF, true, noDataF, true, true);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                range = RangeFactory.create(noDataD, true, noDataD, true, true);
-                break;
-            default:
-                throw new IllegalArgumentException("Wrong data type");
-            }
-        }
 
         // ROI creation
         if (ROI_USED) {
@@ -159,50 +82,24 @@ public class ComparisonTest extends TestBase {
     }
 
     @Test
-    public void testOperation() {
+    public void testDataTypes() {
+        testOperation(DataBuffer.TYPE_BYTE);
+        testOperation(DataBuffer.TYPE_USHORT);
+        testOperation(DataBuffer.TYPE_SHORT);
+        testOperation(DataBuffer.TYPE_INT);
+        testOperation(DataBuffer.TYPE_FLOAT);
+        testOperation(DataBuffer.TYPE_DOUBLE);
+    }
 
-        // Image dataType
-        int dataType = TEST_SELECTOR;
-
-        // Descriptor string definition
-        String description = "BandCombine";
-
-        if (OLD_DESCRIPTOR) {
-            description = "Old " + description;
-        } else {
-            description = "New " + description;
-        }
-
-        // Data type string
-        String dataTypeString = "";
-
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            dataTypeString += "Byte";
-            break;
-        case DataBuffer.TYPE_USHORT:
-            dataTypeString += "UShort";
-            break;
-        case DataBuffer.TYPE_SHORT:
-            dataTypeString += "Short";
-            break;
-        case DataBuffer.TYPE_INT:
-            dataTypeString += "Integer";
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            dataTypeString += "Float";
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            dataTypeString += "Double";
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data type");
-        }
-
+    public void testOperation(int dataType) {
+        RenderedImage testImage = createDefaultTestImage(dataType, 1, false);
+        String description = getDescription("BandCombine");
+        String dataTypeString = getDataTypeString(dataType);
+        Range range = getRange(dataType);
         // Total cycles number
         int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
         // Image
-        PlanarImage finalImage = null;
+        PlanarImage image = null;
 
         long mean = 0;
         long max = Long.MIN_VALUE;
@@ -214,16 +111,16 @@ public class ComparisonTest extends TestBase {
             // creation of the image
             if (OLD_DESCRIPTOR) {
                 JAIExt.registerJAIDescriptor("BandCombine");
-                finalImage = javax.media.jai.operator.BandCombineDescriptor.create(image, matrix,
+                image = javax.media.jai.operator.BandCombineDescriptor.create(testImage, matrix,
                         null);
             } else {
-                finalImage = BandCombineDescriptor.create(image, matrix, roi, range,
+                image = BandCombineDescriptor.create(testImage, matrix, roi, range,
                         destinationNoData, null);
             }
 
             // Total calculation time
             long start = System.nanoTime();
-            finalImage.getTiles();
+            image.getTiles();
             long end = System.nanoTime() - start;
 
             // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
@@ -258,11 +155,7 @@ public class ComparisonTest extends TestBase {
                 + " msec.");
         System.out.println("Maximum value for " + description + "Descriptor : " + maxD + " msec.");
         System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
-
-        // Final Image disposal
-        if (finalImage instanceof RenderedOp) {
-            ((RenderedOp) finalImage).dispose();
-        }
+        finalizeTest(null, dataType, image);
 
     }
 }

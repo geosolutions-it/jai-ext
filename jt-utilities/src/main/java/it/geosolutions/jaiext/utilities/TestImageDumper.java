@@ -44,7 +44,7 @@ public class TestImageDumper {
 
         try {
             Files.createDirectories(outDir);
-            String safeName = testName.replace("Old", "").replaceAll("[^a-zA-Z0-9_.-]", "_");
+            String safeName = testName.replaceAll("Old|New", "").replaceAll("[^a-zA-Z0-9_.-]", "_");
             safeName += (suffix == null || suffix.trim().isEmpty()) ? "" : suffix;
             out = outDir.resolve(safeName + ".tif");
             System.out.println("Saving image to: " + out.toAbsolutePath());

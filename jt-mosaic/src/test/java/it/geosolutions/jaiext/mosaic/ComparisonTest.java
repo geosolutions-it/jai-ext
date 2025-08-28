@@ -23,6 +23,7 @@ import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
 import java.awt.RenderingHints;
+import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 
@@ -52,33 +53,22 @@ import org.junit.Test;
  * If the user wants to use the accelerated code, the JVM parameter JAI.Ext.Acceleration must be set to true.
  */
 
-public class ComparisonTest extends TestBase{
-    /** Number of benchmark iterations (Default 1) */
-    private final static Integer BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.BenchmarkCycles", 1);
+public class ComparisonTest extends TestBase {
 
-    /** Number of not benchmark iterations (Default 0) */
-    private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.NotBenchmarkCycles", 0);
-
-    /** Boolean indicating if the native acceleration must be used */
-	private final static boolean NATIVE_ACCELERATION = Boolean
-			.getBoolean("JAI.Ext.Acceleration");
-    
-    /** Boolean for selecting one of the 2 MosaicType(Default Overlay) */
-    private final static boolean MOSAIC_TYPE = Boolean.getBoolean(
-            "JAI.Ext.MosaicBlend");
-
-    /** Value indicating No Data for the destination image */
+    /**
+     * Value indicating No Data for the destination image
+     */
     private static double destinationNoData = 0;
 
-    /** Image to elaborate */
+    /**
+     * Image to elaborate
+     */
     private static RenderedImage[] images;
 
-    /** RenderingHints used for selecting the borderExtender */
+    /**
+     * RenderingHints used for selecting the borderExtender
+     */
     private static RenderingHints hints;
-
-	private static Range[] rangeND;
 
     @BeforeClass
     public static void initialSetup() {
@@ -103,123 +93,46 @@ public class ComparisonTest extends TestBase{
         images = new RenderedImage[2];
         images[0] = image4;
         images[1] = image3;
-        
-        //Range creation if selected
-        rangeND= null;
-        if(RANGE_USED){
-            Range range = RangeFactory.create((byte)100,true,(byte)100,true);
-            rangeND = new Range[]{range, range};
-        }
-        if(OLD_DESCRIPTOR){
+
+        if (OLD_DESCRIPTOR) {
             JAIExt.registerJAIDescriptor("Mosaic");
         }
     }
 
     @Test
-    public void testNearestMosaicDescriptor() {
-        testMosaic(OLD_DESCRIPTOR, MOSAIC_TYPE);
+    public void testNearestMosaicOverlayDescriptor() {
+        testMosaic(javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY);
     }
 
-    public void testMosaic(boolean old, boolean blend) {
-        MosaicType mosaicType;
-        String description = "";
+    @Test
+    public void testNearestMosaicBlendDescriptor() {
+        testMosaic(javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_BLEND);
+    }
 
-        if (old) {
-            description = "Old Mosaic";
-			if(NATIVE_ACCELERATION){
-				description+=" accelerated ";   
-				System.setProperty("com.sun.media.jai.disableMediaLib", "false");
-			}else{
-				System.setProperty("com.sun.media.jai.disableMediaLib", "true");
-			}
+
+    public void testMosaic(MosaicType mosaicType) {
+        String suffix = mosaicType == javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY ? "Overlay" : "Blend";
+        Range range = getRange(DataBuffer.TYPE_BYTE, TestRoiNoDataType.NODATA);
+        Range[] rangeND = new Range[]{range, range};
+        PlanarImage image = null;
+        if (OLD_DESCRIPTOR) {
+            // background values and threshold
+            double[] background = {destinationNoData, destinationNoData};
+            double[][] threshold = {{0}, {0}};
+            image = javax.media.jai.operator.MosaicDescriptor.create(images, mosaicType,
+                    null, null, threshold, background, hints);
         } else {
-            description = "New Mosaic";
-            System.setProperty("com.sun.media.jai.disableMediaLib", "true");
+            double[] destnodata = {destinationNoData, destinationNoData};
+            image = MosaicDescriptor.create(images, mosaicType, null, null, null, destnodata, rangeND, hints);
         }
-
-        String mosaic = "";
-
-        if (!blend) {
-            mosaicType = javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_OVERLAY;
-            mosaic = "Mosaic Type Overlay";
-        } else {
-            mosaicType = javax.media.jai.operator.MosaicDescriptor.MOSAIC_TYPE_BLEND;
-            mosaic = "Mosaic Type Blend";
-        }
-
-        // Total cycles number
-        int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
-        // Image with the interpolator
-        PlanarImage imageMosaic = null;
-
-        long mean = 0;
-        long max = Long.MIN_VALUE;
-        long min = Long.MAX_VALUE;
-
-        // Cycle for calculating the mean, maximum and minimum calculation time
-        for (int i = 0; i < totalCycles; i++) {
-
-            // creation of the image with the selected interpolator
-
-            if (old) {
-                // background values and threshold
-                double[] background = { destinationNoData, destinationNoData };
-                double[][] threshold = { { 0 }, { 0 } };
-                imageMosaic = javax.media.jai.operator.MosaicDescriptor.create(images, mosaicType,
-                        null, null, threshold, background, hints);
-            } else {
-
-
-                double[] destnodata = { destinationNoData, destinationNoData };
-
-                imageMosaic = MosaicDescriptor.create(images, mosaicType, null, null, null, destnodata, rangeND, hints);
-            }
-
-            // Total calculation time
-            long start = System.nanoTime();
-            imageMosaic.getTiles();
-            long end = System.nanoTime() - start;
-
-            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
-            if (i > NOT_BENCHMARK_ITERATION - 1) {
-                if (i == NOT_BENCHMARK_ITERATION) {
-                    mean = end;
-                } else {
-                    mean = mean + end;
-                }
-
-                if (end > max) {
-                    max = end;
-                }
-
-                if (end < min) {
-                    min = end;
-                }
-            }
-            // For every cycle the cache is flushed such that all the tiles must be recalculates
-            JAI.getDefaultInstance().getTileCache().flush();
-        }
-        // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION * 1E-6;
-
-        // Max and Min values stored as double
-        double maxD = max * 1E-6;
-        double minD = min * 1E-6;
-        // Comparison between the mean times
-        System.out.println("\n" + mosaic);
-        // Output print of the
-        System.out.println("\nMean value for " + description + "Descriptor : " + meanValue
-                + " msec.");
-        System.out.println("Maximum value for " + description + "Descriptor : " + maxD + " msec.");
-        System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
-        finalizeTest(null, imageMosaic);
+        finalizeTest(suffix, DataBuffer.TYPE_BYTE, image);
     }
 
     public static RenderedImage getSyntheticImage(byte value) {
         final float width = 512;
         final float height = 512;
         ParameterBlock pb = new ParameterBlock();
-        Byte[] array = new Byte[] { value, (byte) (value + 1), (byte) (value + 2) };
+        Byte[] array = new Byte[]{value, (byte) (value + 1), (byte) (value + 2)};
         pb.add(width);
         pb.add(height);
         pb.add(array);

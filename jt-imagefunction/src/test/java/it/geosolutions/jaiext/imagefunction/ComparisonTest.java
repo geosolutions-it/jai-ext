@@ -19,18 +19,11 @@ package it.geosolutions.jaiext.imagefunction;
 
 import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
-import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.testclasses.TestBase;
 
-import java.awt.Rectangle;
-import java.awt.image.DataBuffer;
-
 import javax.media.jai.ImageFunction;
-import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
-import javax.media.jai.ROIShape;
-import javax.media.jai.RenderedOp;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -45,104 +38,49 @@ import org.junit.Test;
  * <li>JAI.Ext.RangeUsed(true/false) indicating if nodata check must be done (only for jai-ext)</li>
  * <li>JAI.Ext.ROIUsed(true/false) indicating if roi check must be done (only for jai-ext)</li>
  * </ul>
- * 
+ *
  * @author Nicola Lagomarsini geosolutions
- * 
+ *
  */
 public class ComparisonTest extends TestBase {
 
-    /** Number of benchmark iterations (Default 1) */
-    private final static Integer BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.BenchmarkCycles", 1);
-
-    /** Number of not benchmark iterations (Default 0) */
-    private final static int NOT_BENCHMARK_ITERATION = Integer.getInteger(
-            "JAI.Ext.NotBenchmarkCycles", 0);
-
-    /** Boolean indicating if the old descriptor must be used */
-    private final static boolean OLD_DESCRIPTOR = Boolean.getBoolean("JAI.Ext.OldDescriptor");
-
-    /** Boolean indicating if a No Data Range must be used */
-    private final static boolean RANGE_USED = Boolean.getBoolean("JAI.Ext.RangeUsed");
-
-    /** Boolean indicating if a ROI must be used */
-    private final static boolean ROI_USED = Boolean.getBoolean("JAI.Ext.ROIUsed");
-
-    /** No Data Range parameter */
-    private static Range range;
-
-    /** ROI Object used for testing */
-    private static ROI roi;
-
-    /** {@link ImageFunction} used in test */
+    /**
+     * {@link ImageFunction} used in test
+     */
     private static ImageFunctionJAIEXT function;
 
-    /** Output image width */
+    /**
+     * Output image width
+     */
     private static int width;
 
-    /** Output image height */
+    /**
+     * Output image height
+     */
     private static int height;
 
-    /** X translation of input pixels */
+    /**
+     * X translation of input pixels
+     */
     private static float xTrans;
 
-    /** Y translation of input pixels */
+    /**
+     * Y translation of input pixels
+     */
     private static float yTrans;
 
-    /** X scale of input pixels */
+    /**
+     * X scale of input pixels
+     */
     private static float xScale;
 
-    /** Y scale of input pixels */
+    /**
+     * Y scale of input pixels
+     */
     private static float yScale;
 
     @BeforeClass
     public static void init() {
-
-        // Setting of the image filler parameter to true for a better image creation
-        IMAGE_FILLER = true;
-        // Images initialization
-        byte noDataB = 100;
-        short noDataUS = 100;
-        short noDataS = 100;
-        int noDataI = 100;
-        float noDataF = 100;
-        double noDataD = 100;
-        // Image filler must be reset
-        IMAGE_FILLER = false;
-
-        // Range creation if selected
-        if (RANGE_USED && !OLD_DESCRIPTOR) {
-            switch (TEST_SELECTOR) {
-            case DataBuffer.TYPE_BYTE:
-                range = RangeFactory.create(noDataB, true, noDataB, true);
-                break;
-            case DataBuffer.TYPE_USHORT:
-                range = RangeFactory.createU(noDataUS, true, noDataUS, true);
-                break;
-            case DataBuffer.TYPE_SHORT:
-                range = RangeFactory.create(noDataS, true, noDataS, true);
-                break;
-            case DataBuffer.TYPE_INT:
-                range = RangeFactory.create(noDataI, true, noDataI, true);
-                break;
-            case DataBuffer.TYPE_FLOAT:
-                range = RangeFactory.create(noDataF, true, noDataF, true, true);
-                break;
-            case DataBuffer.TYPE_DOUBLE:
-                range = RangeFactory.create(noDataD, true, noDataD, true, true);
-                break;
-            default:
-                throw new IllegalArgumentException("Wrong data type");
-            }
-        }
-
-        // ROI creation
-        if (ROI_USED) {
-            Rectangle rect = new Rectangle(0, 0, DEFAULT_WIDTH / 4, DEFAULT_HEIGHT / 4);
-            roi = new ROIShape(rect);
-        } else {
-            roi = null;
-        }
 
         // ImageFunction
         function = new ImageFunctionTest.DummyFunction();
@@ -155,114 +93,49 @@ public class ComparisonTest extends TestBase {
         xScale = 3f;
         yScale = 3f;
 
+        if (OLD_DESCRIPTOR) {
+            JAIExt.registerJAIDescriptor("ImageFunction");
+        }
+
     }
 
     @Test
-    public void testOperation() {
+    public void testDataTypesWithRoi() {
+        if (!OLD_DESCRIPTOR)
+            testAllTypes(TestRoiNoDataType.ROI);
+    }
 
-        // Image dataType
-        int dataType = TEST_SELECTOR;
+    @Test
+    public void testDataTypesWithNoData() {
+        if (!OLD_DESCRIPTOR)
+            testAllTypes(TestRoiNoDataType.NODATA);
+    }
 
-        // Descriptor string definition
-        String description = "ImageFunction";
+    @Test
+    public void testDataTypesWithBoth() {
+        if (!OLD_DESCRIPTOR)
+            testAllTypes(TestRoiNoDataType.BOTH);
+    }
+
+    @Override
+    public void testOperation(int dataType, TestRoiNoDataType testType) {
+        Range range = getRange(dataType, testType);
+        ROI roi = getROI(testType);
+
+        // Image
+        PlanarImage image = null;
 
         if (OLD_DESCRIPTOR) {
-            description = "Old " + description;
+            JAIExt.registerJAIDescriptor("ImageFunction");
+            image = javax.media.jai.operator.ImageFunctionDescriptor.create(
+                    function, width, height, xScale, yScale, xTrans, yTrans,
+                    null);
         } else {
-            description = "New " + description;
+            image = ImageFunctionDescriptor.create(function, width,
+                    height, xScale, yScale, xTrans, yTrans, roi, range, 0f, null);
         }
 
-        // Data type string
-        String dataTypeString = "";
-
-        switch (dataType) {
-        case DataBuffer.TYPE_BYTE:
-            dataTypeString += "Byte";
-            break;
-        case DataBuffer.TYPE_USHORT:
-            dataTypeString += "UShort";
-            break;
-        case DataBuffer.TYPE_SHORT:
-            dataTypeString += "Short";
-            break;
-        case DataBuffer.TYPE_INT:
-            dataTypeString += "Integer";
-            break;
-        case DataBuffer.TYPE_FLOAT:
-            dataTypeString += "Float";
-            break;
-        case DataBuffer.TYPE_DOUBLE:
-            dataTypeString += "Double";
-            break;
-        default:
-            throw new IllegalArgumentException("Wrong data type");
-        }
-
-        // Total cycles number
-        int totalCycles = BENCHMARK_ITERATION + NOT_BENCHMARK_ITERATION;
-        // Image
-        PlanarImage imageCalculated = null;
-
-        long mean = 0;
-        long max = Long.MIN_VALUE;
-        long min = Long.MAX_VALUE;
-
-        // Cycle for calculating the mean, maximum and minimum calculation time
-        for (int i = 0; i < totalCycles; i++) {
-
-            // creation of the image
-            if (OLD_DESCRIPTOR) {
-                JAIExt.registerJAIDescriptor("ImageFunction");
-                imageCalculated = javax.media.jai.operator.ImageFunctionDescriptor.create(
-                        (ImageFunction) function, width, height, xScale, yScale, xTrans, yTrans,
-                        null);
-            } else {
-                imageCalculated = ImageFunctionDescriptor.create((ImageFunction) function, width,
-                        height, xScale, yScale, xTrans, yTrans, roi, range, 0f, null);
-            }
-
-            // Total calculation time
-            long start = System.nanoTime();
-            imageCalculated.getTiles();
-            long end = System.nanoTime() - start;
-
-            // If the the first NOT_BENCHMARK_ITERATION cycles has been done, then the mean, maximum and minimum values are stored
-            if (i > NOT_BENCHMARK_ITERATION - 1) {
-                if (i == NOT_BENCHMARK_ITERATION) {
-                    mean = end;
-                } else {
-                    mean = mean + end;
-                }
-
-                if (end > max) {
-                    max = end;
-                }
-
-                if (end < min) {
-                    min = end;
-                }
-            }
-            // For every cycle the cache is flushed such that all the tiles must be recalculates
-            JAI.getDefaultInstance().getTileCache().flush();
-        }
-        // Mean values
-        double meanValue = mean / BENCHMARK_ITERATION * 1E-6;
-
-        // Max and Min values stored as double
-        double maxD = max * 1E-6;
-        double minD = min * 1E-6;
-        System.out.println(dataTypeString);
-        // Comparison between the mean times
-        // Output print of the
-        System.out.println("\nMean value for " + description + "Descriptor : " + meanValue
-                + " msec.");
-        System.out.println("Maximum value for " + description + "Descriptor : " + maxD + " msec.");
-        System.out.println("Minimum value for " + description + "Descriptor : " + minD + " msec.");
-
-        // Final Image disposal
-        if (imageCalculated instanceof RenderedOp) {
-            ((RenderedOp) imageCalculated).dispose();
-        }
+        finalizeTest(getSuffix(testType, null), dataType, image);
 
     }
 }
