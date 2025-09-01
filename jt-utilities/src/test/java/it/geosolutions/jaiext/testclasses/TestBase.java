@@ -23,31 +23,39 @@ import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 import it.geosolutions.jaiext.utilities.ImageComparator;
 import it.geosolutions.jaiext.utilities.ImageUtilities;
-
 import java.awt.Rectangle;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
 import java.awt.image.MultiPixelPackedSampleModel;
+import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Iterator;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.FileImageInputStream;
+import javax.imageio.stream.ImageInputStream;
 import javax.media.jai.Interpolation;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.TiledImage;
+import javax.xml.crypto.Data;
 
 import it.geosolutions.jaiext.utilities.TestImageDumper;
-import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -783,8 +791,8 @@ public abstract class TestBase {
                 System.out.println("Saving image to: " + path.toAbsolutePath());
                 TestImageDumper.saveAsDeflateTiff(path, image);
             } else {
-                System.out.println("Comparing image with: " + path.toAbsolutePath());
-                final BufferedImage expectedBI = ImageIO.read(path.toFile());
+                System.out.println("Testing: " + testName + (suffix != null ? (" " + suffix) : ""));
+                BufferedImage expectedBI = readImage(path.toFile(), dataType);
                 ImageComparator.imagesEqual(expectedBI, image);
                 disposeImage(image);
                 disposeImage(expectedBI);
@@ -793,7 +801,6 @@ public abstract class TestBase {
             throw new RuntimeException("Failed to ");
         }
     }
-
 
     public static Path preparePath(String testName, String suffix) throws IOException {
 
@@ -813,11 +820,41 @@ public abstract class TestBase {
         if (!packagePath.isEmpty()) {
             outDir = outDir.resolve(packagePath).resolve("test-data");
         }
-        FileUtils.deleteDirectory(outDir.toFile());
         Files.createDirectories(outDir);
         String safeName = testName.replaceAll("Old|New", "").replaceAll("[^a-zA-Z0-9_.-]", "_");
         safeName += (suffix == null || suffix.trim().isEmpty()) ? "" : suffix;
         return outDir.resolve(safeName + ".tif");
+    }
+
+    public static BufferedImage readImage(File file) throws IOException {
+        return readImage(file, null);
+    }
+
+    public static BufferedImage readImage(File file, Integer suggestedDataType) throws IOException {
+        System.out.println("Comparing image with: " + file.getAbsolutePath());
+        if (suggestedDataType == DataBuffer.TYPE_FLOAT || suggestedDataType == DataBuffer.TYPE_DOUBLE) {
+            // Only the TIFF reader from the JDK supports floating point data
+            try (ImageInputStream iis = ImageIO.createImageInputStream(file)) {
+
+                Iterator<ImageReader> it = ImageIO.getImageReaders(iis);
+                while (it.hasNext()) {
+                    ImageReader reader = it.next();
+                    try {
+                        String className = reader.getClass().getName();
+                        if ("com.sun.imageio.plugins.tiff.TIFFImageReader".equals(className)) {
+                            reader.setInput(iis, true, true);
+                            return reader.read(0, null);
+                        }
+                    } finally {
+                        reader.dispose();
+                    }
+                }
+            }
+        } else {
+            return ImageIO.read(file);
+        }
+        throw new IOException("No TIFF ImageReader found");
+
     }
 
     private static String findCallingTestClass() {

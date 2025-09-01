@@ -46,7 +46,7 @@ public class ComparisonTest extends TestBase {
     /**
      * Final image band number
      */
-    private static final int BAND_NUMBER = 4;
+    private static final int BAND_NUMBER = 3;
 
     /**
      * Destination No Data value
