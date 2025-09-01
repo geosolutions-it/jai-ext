@@ -115,7 +115,7 @@ public class ComparisonTest extends TestBase {
     public void testOperation(int dataType, TestRoiNoDataType testType) {
         Range range = getRange(dataType, testType);
         ROI roi = getROI(testType);
-        RenderedImage testImage = createDefaultTestImage(dataType, 1, true);
+        RenderedImage testImage = createDefaultTestImage(dataType, 3, true);
         int[] numBinsTest = null;
         double[] maxBoundsTest = null;
         double[] minBoundsTest = null;
@@ -124,13 +124,13 @@ public class ComparisonTest extends TestBase {
         String stat = "";
         for (int statistic = 0; statistic < 3; statistic++) {
             if (statistic == 0) {
-                stat += "Mean";
+                stat = "Mean";
                 arrayStats = new StatsType[]{StatsType.MEAN};
             } else if (statistic == 1) {
-                stat += "Extrema";
+                stat = "Extrema";
                 arrayStats = new StatsType[]{StatsType.EXTREMA};
             } else if (statistic == 2) {
-                stat += "Histogram";
+                stat = "Histogram";
                 arrayStats = new StatsType[]{StatsType.HISTOGRAM};
                 numBinsTest = numBins;
                 maxBoundsTest = maxBounds;

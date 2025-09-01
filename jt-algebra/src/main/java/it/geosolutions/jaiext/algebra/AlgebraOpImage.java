@@ -172,7 +172,7 @@ public class AlgebraOpImage extends PointOpImage {
 
         // DataType check for the operation
         if (!op.isDataTypeSupported(srcDataType)) {
-            throw new IllegalArgumentException("This operation does not support DataType: " + srcDataType);
+            throw new IllegalArgumentException("This operation " + op + " does not support DataType: " + srcDataType);
         }
 
         int[] numBandsSrc = new int[numSrc];

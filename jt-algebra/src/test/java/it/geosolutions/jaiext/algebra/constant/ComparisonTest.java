@@ -73,12 +73,6 @@ public class ComparisonTest extends TestBase {
         destNoData = 100d;
     }
 
-    @Override
-    protected boolean supportShorts() {
-        //TODO; Check what to do with short
-        return false;
-    }
-
     @Test
     public void testDataTypes() {
         testAllTypes(TestRoiNoDataType.NONE);
@@ -128,7 +122,7 @@ public class ComparisonTest extends TestBase {
                     operation = "Divide";
                     break;
                 case OR:
-                    operation = "or";
+                    operation = "Or";
                     break;
                 case XOR:
                     operation = "Xor";
@@ -139,7 +133,12 @@ public class ComparisonTest extends TestBase {
                 default:
                     break;
             }
-
+            if ("Or".equals(operation) || "Xor".equals(operation) || "And".equals(operation)) {
+                if (dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE) {
+                    // logical operations are not supported on float and double
+                    continue;
+                }
+            }
             String description = getDescription(operation);
             PlanarImage image = null;
 

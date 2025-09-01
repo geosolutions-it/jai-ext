@@ -17,37 +17,11 @@ import java.util.Iterator;
 
 public class TestImageDumper {
 
-    // Root folder for all test outputs
-    private static final Path ROOT_OUT_DIR = Paths.get("src/test", "resources");
-
     private TestImageDumper() {}
 
-    public static Path saveAsDeflateTiff(String testName, String suffix, RenderedImage image) {
-
-        // Find the calling test class from the stack trace
-        String testClassName = findCallingTestClass();
-        System.out.println(testClassName);
-        String packagePath = "";
-        if (testClassName != null && testClassName.contains(".")) {
-            testClassName = testClassName.replace("it.geosolutions.jaiext", "org.eclipse.imagen.media")
-                    .replace("testclasses", "");
-            String pkg = testClassName.substring(0, testClassName.lastIndexOf('.'));
-            packagePath = pkg.replace('.', '/');
-        }
-
-        // Build final output dir
-        Path outDir = ROOT_OUT_DIR;
-        if (!packagePath.isEmpty()) {
-            outDir = outDir.resolve(packagePath).resolve("test-data");
-        }
-        Path out;
+    public static void saveAsDeflateTiff(Path path, RenderedImage image) {
 
         try {
-            Files.createDirectories(outDir);
-            String safeName = testName.replaceAll("Old|New", "").replaceAll("[^a-zA-Z0-9_.-]", "_");
-            safeName += (suffix == null || suffix.trim().isEmpty()) ? "" : suffix;
-            out = outDir.resolve(safeName + ".tif");
-            System.out.println("Saving image to: " + out.toAbsolutePath());
 
             // Pick a TIFF writer
             Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("tiff");
@@ -57,7 +31,7 @@ public class TestImageDumper {
             }
             ImageWriter writer = writers.next();
 
-            try (ImageOutputStream ios = ImageIO.createImageOutputStream(out.toFile())) {
+            try (ImageOutputStream ios = ImageIO.createImageOutputStream(path.toFile())) {
                 writer.setOutput(ios);
 
                 ImageWriteParam param = writer.getDefaultWriteParam();
@@ -86,7 +60,6 @@ public class TestImageDumper {
         if (image instanceof RenderedOp) {
             ((RenderedOp) image).dispose();
         }
-        return out;
     }
 
     private static String findCompressionTypeIgnoreCase(ImageWriteParam p, String... wanted) {
@@ -98,22 +71,5 @@ public class TestImageDumper {
             }
         }
         return null;
-    }
-
-    private static String findCallingTestClass() {
-        StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-        String candidate = null;
-
-        for (StackTraceElement el : stack) {
-            String cls = el.getClassName();
-            if (cls.startsWith("java.") || cls.startsWith("sun.") ||
-                    cls.equals(TestImageDumper.class.getName()) ||
-                    cls.endsWith("TestBase")) {
-                continue; // skip infra/base classes
-            }
-            candidate = cls;
-            break;
-        }
-        return candidate;
     }
 }

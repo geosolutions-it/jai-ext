@@ -167,7 +167,13 @@ public class ComparisonTest extends TestBase {
                     operation = "Min";
                     break;
             }
-
+            if ("Or".equals(operation) || "Xor".equals(operation) || "And".equals(operation)
+                    || "Not".equals(operation) || "Invert".equals(operation)) {
+                if (dataType == DataBuffer.TYPE_FLOAT || dataType == DataBuffer.TYPE_DOUBLE) {
+                    // logical operations are not supported on float and double
+                    continue;
+                }
+            }
             PlanarImage image = null;
 
             // creation of the image

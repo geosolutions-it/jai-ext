@@ -1,26 +1,27 @@
 /* JAI-Ext - OpenSource Java Advanced Image Extensions Library
-*    http://www.geo-solutions.it/
-*    Copyright 2014 - 2016 GeoSolutions
+ *    http://www.geo-solutions.it/
+ *    Copyright 2014 - 2016 GeoSolutions
 
 
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
 
-* http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
 
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package it.geosolutions.jaiext.testclasses;
 
 
 import it.geosolutions.jaiext.JAIExt;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
+import it.geosolutions.jaiext.utilities.ImageComparator;
 import it.geosolutions.jaiext.utilities.ImageUtilities;
 
 import java.awt.Rectangle;
@@ -33,7 +34,12 @@ import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
+import javax.imageio.ImageIO;
 import javax.media.jai.Interpolation;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
@@ -41,6 +47,7 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.TiledImage;
 
 import it.geosolutions.jaiext.utilities.TestImageDumper;
+import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -57,6 +64,9 @@ import org.junit.rules.TestName;
  * project) because it shows if the image has been correctly rotated.
  */
 public abstract class TestBase {
+
+    // Root folder for all test outputs
+    private static final Path ROOT_OUT_DIR = Paths.get("src/test", "resources");
 
     public enum TestRoiNoDataType {
         NONE, BOTH, ROI, NODATA
@@ -765,13 +775,67 @@ public abstract class TestBase {
 
 
     public void finalizeTest(String suffix, Integer dataType, RenderedImage image) {
-        if (WRITE_RESULT) {
-            String testName = dataType != null ? "test" + dataTypeName(dataType) : name.getMethodName();
-            TestImageDumper.saveAsDeflateTiff(testName, suffix, image);
-        } else {
-            disposeImage(image);
+        String testName = dataType != null ? "test" + dataTypeName(dataType) : name.getMethodName();
+        Path path = null;
+        try {
+            path = preparePath(testName, suffix);
+            if (WRITE_RESULT) {
+                System.out.println("Saving image to: " + path.toAbsolutePath());
+                TestImageDumper.saveAsDeflateTiff(path, image);
+            } else {
+                System.out.println("Comparing image with: " + path.toAbsolutePath());
+                final BufferedImage expectedBI = ImageIO.read(path.toFile());
+                ImageComparator.imagesEqual(expectedBI, image);
+                disposeImage(image);
+                disposeImage(expectedBI);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to ");
         }
     }
+
+
+    public static Path preparePath(String testName, String suffix) throws IOException {
+
+        // Find the calling test class from the stack trace
+        String testClassName = findCallingTestClass();
+        System.out.println(testClassName);
+        String packagePath = "";
+        if (testClassName != null && testClassName.contains(".")) {
+            testClassName = testClassName.replace("it.geosolutions.jaiext", "org.eclipse.imagen.media")
+                    .replace("testclasses", "");
+            String pkg = testClassName.substring(0, testClassName.lastIndexOf('.'));
+            packagePath = pkg.replace('.', '/');
+        }
+
+        // Build final output dir
+        Path outDir = ROOT_OUT_DIR;
+        if (!packagePath.isEmpty()) {
+            outDir = outDir.resolve(packagePath).resolve("test-data");
+        }
+        FileUtils.deleteDirectory(outDir.toFile());
+        Files.createDirectories(outDir);
+        String safeName = testName.replaceAll("Old|New", "").replaceAll("[^a-zA-Z0-9_.-]", "_");
+        safeName += (suffix == null || suffix.trim().isEmpty()) ? "" : suffix;
+        return outDir.resolve(safeName + ".tif");
+    }
+
+    private static String findCallingTestClass() {
+                StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+                String candidate = null;
+
+                for (StackTraceElement el : stack) {
+                    String cls = el.getClassName();
+                    if (cls.startsWith("java.") || cls.startsWith("sun.") ||
+                            cls.equals(TestImageDumper.class.getName()) ||
+                            cls.endsWith("TestBase")) {
+                        continue; // skip infra/base classes
+                    }
+                    candidate = cls;
+                    break;
+                }
+                return candidate;
+            }
 
     protected void testAllTypes(TestRoiNoDataType testType) {
         for (int dataType = 0; dataType < 6; dataType++) {
@@ -790,8 +854,6 @@ public abstract class TestBase {
     public void testOperation(int dataType, TestRoiNoDataType testType) {
         // empty implementation
     }
-
-    ;
 
     public static void disposeImage(RenderedImage image) {
         // If the image is a PlanarImage or a TiledImage it has to be disposed

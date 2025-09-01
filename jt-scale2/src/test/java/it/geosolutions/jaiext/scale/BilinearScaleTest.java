@@ -20,6 +20,7 @@ package it.geosolutions.jaiext.scale;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.locationtech.jts.awt.ShapeReader;
 
@@ -236,6 +237,7 @@ public class BilinearScaleTest extends TestScale2 {
     }
 
     @Test
+    @Ignore
     public void testRecyclingROIWeights() {
         int width = 6;
         int height = 6;

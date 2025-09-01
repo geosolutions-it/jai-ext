@@ -56,21 +56,10 @@ import org.junit.Test;
  */
 public class ComparisonTest extends TestBase {
 
-    /**
-     * Test colormodel
-     */
-    private static ColorModel colorModel;
-
     @BeforeClass
     public static void init() {
         if (OLD_DESCRIPTOR)
             JAIExt.registerJAIDescriptor("ColorConvert");
-
-        // ColorModel
-        ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
-
-        colorModel = new ComponentColorModel(cs, false, false, Transparency.OPAQUE,
-                DataBuffer.TYPE_BYTE);
     }
 
     @Override
@@ -86,6 +75,11 @@ public class ComparisonTest extends TestBase {
         Range range = getRange(dataType, testType);
         ROI roi = getROI(testType);
         RenderedImage testImage = createDefaultTestImage(dataType, 1, true);
+        // ColorModel
+        ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
+
+        ComponentColorModel colorModel = new ComponentColorModel(cs, false, false, Transparency.OPAQUE,
+                dataType);
         // Image
         PlanarImage image = null;
 
