@@ -107,8 +107,15 @@ public abstract class ColorSpaceJAIExt extends ColorSpaceJAI {
      * @param destNodata
      * @return a new {@link WritableRaster} with destination data values
      */
-    public abstract WritableRaster fromRGB(Raster src, int[] srcComponentSize, WritableRaster dest,
-            int[] dstComponentSize, ROI roi, Range nodata, float[] destNodata);
+    public abstract WritableRaster fromRGB(
+            Raster src,
+            int[] srcComponentSize,
+            WritableRaster dest,
+            Rectangle destRect,
+            int[] dstComponentSize,
+            ROI roi,
+            Range nodata,
+            float[] destNodata);
 
     /**
      * Converts an input Raster into a new one with CIEXYZ ColorSpace
@@ -137,8 +144,15 @@ public abstract class ColorSpaceJAIExt extends ColorSpaceJAI {
      * @param destNodata
      * @return a new {@link WritableRaster} with destination data values
      */
-    public abstract WritableRaster toRGB(Raster src, int[] srcComponentSize, WritableRaster dest,
-            int[] dstComponentSize, ROI roi, Range nodata, float[] destNodata);
+    public abstract WritableRaster toRGB(
+            Raster src,
+            int[] srcComponentSize,
+            WritableRaster dest,
+            Rectangle destRect,
+            int[] dstComponentSize,
+            ROI roi,
+            Range nodata,
+            float[] destNodata);
 
     @Override
     public WritableRaster fromCIEXYZ(Raster src, int[] srcComponentSize, WritableRaster dest,
@@ -147,9 +161,8 @@ public abstract class ColorSpaceJAIExt extends ColorSpaceJAI {
     }
 
     @Override
-    public WritableRaster fromRGB(Raster src, int[] srcComponentSize, WritableRaster dest,
-            int[] dstComponentSize) {
-        return fromRGB(src, srcComponentSize, dest, dstComponentSize, null, null, null);
+    public WritableRaster fromRGB(Raster src, int[] srcComponentSize, WritableRaster dest, int[] dstComponentSize) {
+        return fromRGB(src, srcComponentSize, dest, null, dstComponentSize, null, null, null);
     }
 
     @Override
@@ -159,9 +172,8 @@ public abstract class ColorSpaceJAIExt extends ColorSpaceJAI {
     }
 
     @Override
-    public WritableRaster toRGB(Raster src, int[] srcComponentSize, WritableRaster dest,
-            int[] dstComponentSize) {
-        return toRGB(src, srcComponentSize, dest, dstComponentSize, null, null, null);
+    public WritableRaster toRGB(Raster src, int[] srcComponentSize, WritableRaster dest, int[] dstComponentSize) {
+        return toRGB(src, srcComponentSize, dest, null, dstComponentSize, null, null, null);
     }
 
     /**

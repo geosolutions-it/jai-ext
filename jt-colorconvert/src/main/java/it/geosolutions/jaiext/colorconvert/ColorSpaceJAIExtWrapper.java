@@ -17,8 +17,9 @@
  */
 package it.geosolutions.jaiext.colorconvert;
 
-import it.geosolutions.jaiext.range.Range;
 
+import it.geosolutions.jaiext.range.Range;
+import java.awt.Rectangle;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 
@@ -69,10 +70,10 @@ public class ColorSpaceJAIExtWrapper extends ColorSpaceJAIExt {
 
 	@Override
 	public WritableRaster fromRGB(Raster src, int[] srcComponentSize,
-			WritableRaster dest, int[] dstComponentSize, ROI roi, Range nodata,
+			WritableRaster dest, Rectangle destRect, int[] dstComponentSize, ROI roi, Range nodata,
 			float[] destNodata) {
 		if (isJAIExt) {
-			return csJE.fromRGB(src, srcComponentSize, dest, dstComponentSize,
+			return csJE.fromRGB(src, srcComponentSize, dest, destRect, dstComponentSize,
 					roi, nodata, destNodata);
 		}
 		return cs.fromRGB(src, srcComponentSize, dest, dstComponentSize);
@@ -91,10 +92,10 @@ public class ColorSpaceJAIExtWrapper extends ColorSpaceJAIExt {
 
 	@Override
 	public WritableRaster toRGB(Raster src, int[] srcComponentSize,
-			WritableRaster dest, int[] dstComponentSize, ROI roi, Range nodata,
+			WritableRaster dest, Rectangle destRect, int[] dstComponentSize, ROI roi, Range nodata,
 			float[] destNodata) {
 		if (isJAIExt) {
-			return csJE.toRGB(src, srcComponentSize, dest, dstComponentSize,
+			return csJE.toRGB(src, srcComponentSize, dest, destRect, dstComponentSize,
 					roi, nodata, destNodata);
 		}
 		return cs.toRGB(src, srcComponentSize, dest, dstComponentSize);

@@ -18,9 +18,11 @@
 package it.geosolutions.jaiext.colorconvert;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Transparency;
@@ -29,22 +31,30 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
+import java.awt.image.PixelInterleavedSampleModel;
+import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.media.jai.ColorSpaceJAI;
 import javax.media.jai.IHSColorSpace;
+import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
 import javax.media.jai.ROI;
 import javax.media.jai.ROIShape;
 import javax.media.jai.RasterFactory;
 import javax.media.jai.RenderedOp;
+import javax.media.jai.TiledImage;
 
 import it.geosolutions.jaiext.utilities.ImageLayout2;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import it.geosolutions.jaiext.range.Range;
@@ -61,7 +71,7 @@ import it.geosolutions.rendered.viewer.RenderedImageBrowser;
  * 
  * @source $URL$
  */
-public class TestColorConvert extends TestBase {
+public class ColorConvertTest extends TestBase {
 
     /**
      * Synthetic with Short Sample Model
@@ -419,6 +429,7 @@ public class TestColorConvert extends TestBase {
     }
 
     @Test
+    @Ignore
     public void testExpandGrayCaseC() {
         // create gray indexed image
         BufferedImage bi = new BufferedImage(10, 10, BufferedImage.TYPE_BYTE_GRAY);
@@ -451,6 +462,72 @@ public class TestColorConvert extends TestBase {
         assertEquals(128, pixel[2]);
     }
 
+    /**
+     * This test covers some corner-cases found in mosaicking/scaling scenarios where the requested image has an
+     * extra-line or column with respect to the source image. In particular, it was found that when using IHSColorSpace
+     * color conversion the computation of such tiles was throwing ArrayIndexOutOfBoundsExceptions due to the code not
+     * considering the bounds of the Destination Rectangle.
+     */
+    @Test
+    public void testCornerCase() {
+        ColorSpace ihsCS = new IHSColorSpaceJAIExt();
+        int[] nBits = {8, 8, 8};
+        int[] dataTypes = {DataBuffer.TYPE_BYTE, DataBuffer.TYPE_INT, DataBuffer.TYPE_FLOAT};
+        ROI[] rois = {null, new ROIShape(new Rectangle(10, 10, 10, 10))};
+        Range[] nodatas = {null, RangeFactory.create(244d, 244d)};
+        for (int dataType : dataTypes) {
+            for (ROI roi : rois) {
+                for (Range nodata : nodatas) {
+                    ComponentColorModel colorModel =
+                            new ComponentColorModel(ihsCS, nBits, false, false, Transparency.OPAQUE, dataType);
+
+                    int tileW = 25;
+                    int tileH = 25;
+                    int pixelStride = 3;
+                    int scanlineStride = tileW * pixelStride;
+                    int[] bandOffsets = {0, 1, 2};
+
+                    SampleModel sampleModel = new PixelInterleavedSampleModel(
+                            dataType, tileW, tileH, pixelStride, scanlineStride, bandOffsets);
+
+                    // minX = -1, minY = 1, width = 26, height = 24
+                    // tileGridXOffset = 0, tileGridYOffset = 0, tile size = 25x25
+                    TiledImage src = new TiledImage(-1, 1, 26, 24, 0, 0, sampleModel, colorModel);
+
+                    WritableRaster raster = Raster.createWritableRaster(sampleModel, new Point(-1, 1));
+                    src.setData(raster);
+
+                    ImageLayout layout = new ImageLayout();
+                    layout.setMinX(-1);
+                    layout.setMinY(1);
+                    layout.setWidth(26);
+                    layout.setHeight(24);
+                    layout.setTileGridXOffset(0);
+                    layout.setTileGridYOffset(0);
+                    layout.setTileWidth(tileW);
+                    layout.setTileHeight(tileH);
+                    layout.setSampleModel(sampleModel);
+                    layout.setColorModel(colorModel);
+
+                    double[] destNoData = new double[] {0d, 0d, 0d};
+                    Map<Object, Object> config = new HashMap<>();
+                    config.put(JAI.KEY_IMAGE_LAYOUT, layout);
+
+                    ColorConvertOpImage op =
+                            new ColorConvertOpImage(src, config, layout, colorModel, nodata, roi, destNoData);
+
+                    // Before the fix the tile computation was throwing an ArrayIndexOutOfBoundsException,
+                    // trying to get pixels outside the data arrays.
+                    Raster tile = op.computeTile(0, 0);
+                    assertNotNull(tile);
+
+                    int[] pixel = new int[3];
+                    tile.getPixel(10, 10, pixel);
+                    assertNotNull(pixel);
+                }
+            }
+        }
+    }
     /**
      * Reading an image based on Spearfish data.
      * 

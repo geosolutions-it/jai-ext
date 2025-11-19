@@ -313,7 +313,9 @@ public class BandMergeOpImage extends PointOpImage {
             // Clear the mask bit if incompatible.
             layout.unsetValid(ImageLayout.COLOR_MODEL_MASK);
         }
-        if ((cm == null || !cm.hasAlpha()) && sm instanceof ComponentSampleModel) {
+        // Make sure the bandMerge is only setting the colormodel
+        // when not specified.
+        if (cm == null && sm instanceof ComponentSampleModel) {
             cm = ImageUtilities.getColorModel(sm, setAlpha);
             layout.setColorModel(cm);
         }
