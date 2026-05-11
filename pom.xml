@@ -80,7 +80,7 @@
       <repository>
        <uniqueVersion>false</uniqueVersion>
        <id>geosolutions</id>
-       <url>ftp://demo.geo-solutions.it</url>
+       <url>sftp://maven.geo-solutions.it</url>
       </repository>
     </distributionManagement>
    </profile>
@@ -699,8 +699,8 @@
     <!--.............................................-->
       <extension>
        <groupId>org.apache.maven.wagon</groupId>
-       <artifactId>wagon-ftp</artifactId>
-       <version>2.12</version>
+       <artifactId>wagon-ssh</artifactId>
+       <version>3.5.3</version>
       </extension>
 
     <!--....................................-->
