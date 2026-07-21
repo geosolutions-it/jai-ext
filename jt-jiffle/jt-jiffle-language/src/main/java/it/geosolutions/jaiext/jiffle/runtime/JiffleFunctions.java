@@ -250,7 +250,7 @@ public class JiffleFunctions {
      * @return the standard deviation of the input values
      */
     public double sdev(List values) {
-        return SampleStats.range(listToArray(values), true);
+        return SampleStats.sdev(listToArray(values), true);
     }
     
     

@@ -128,4 +128,38 @@ public class StatsFunctionsTest extends RuntimeTestBase {
         testScript(script, createRowValueImage(), e);
     }
 
+    @Test
+    public void sdevListArg() throws Exception {
+        System.out.println("   sdev(List)");
+
+        String script = "z = [1, 2, 3, 4]; \n"
+                + "dest = sdev(z);";
+
+        Evaluator e = new Evaluator() {
+            public double eval(double val) {
+                // sample standard deviation of [1, 2, 3, 4]:
+                // mean 2.5, sum of squared deviations 5, variance 5/3
+                return Math.sqrt(5.0 / 3.0);
+            }
+        };
+
+        testScript(script, e);
+    }
+
+    @Test
+    public void sdevIsSquareRootOfVariance() throws Exception {
+        System.out.println("   sdev(List) consistent with variance(List)");
+
+        String script = "z = [ src, src + 2, src + 7 ]; \n"
+                + "dest = sdev(z) * sdev(z) - variance(z);";
+
+        Evaluator e = new Evaluator() {
+            public double eval(double val) {
+                return 0.0;
+            }
+        };
+
+        testScript(script, e);
+    }
+
 }
