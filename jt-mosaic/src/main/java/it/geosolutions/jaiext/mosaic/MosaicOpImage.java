@@ -83,16 +83,16 @@ public class MosaicOpImage extends OpImage {
     public static final double[] DEFAULT_DESTINATION_NO_DATA_VALUE = { 0 };
 
     /** mosaic type selected */
-    private final MosaicType mosaicTypeSelected;
+    protected final MosaicType mosaicTypeSelected;
 
     /** Number of bands for every image */
     private final int numBands;
 
     /** Bean used for storing image data, ROI, alpha channel, Nodata Range */
-    private final ImageMosaicBean[] imageBeans;
+    protected final ImageMosaicBean[] imageBeans;
 
     /** Boolean for checking if the ROI is used in the mosaic */
-    private boolean roiPresent;
+    protected boolean roiPresent;
 
     /**
      * Boolean for checking if the alpha channel is used only for bitmask or for weighting every
@@ -104,15 +104,15 @@ public class MosaicOpImage extends OpImage {
     private boolean alphaPresent;
 
     /** Border extender for the source data */
-    private final BorderExtender sourceBorderExtender;
+    protected final BorderExtender sourceBorderExtender;
 
     /** Border extender for the ROI or alpha channel data */
-    private final BorderExtender zeroBorderExtender;
+    protected final BorderExtender zeroBorderExtender;
 
     /**
      * No data values for the destination image if the pixel of the same location are no Data (Byte)
      */
-    private byte[] destinationNoDataByte;
+    protected byte[] destinationNoDataByte;
 
     /**
      * No data values for the destination image if the pixel of the same location are no Data
@@ -148,10 +148,10 @@ public class MosaicOpImage extends OpImage {
      * Table used for checking no data values. The first index indicates the source, the second the
      * band, the third the value
      */
-    private final boolean[][][] byteLookupTable;
+    protected final boolean[][][] byteLookupTable;
 
     /** The format tag for the destination image */
-    private final RasterFormatTag rasterFormatTag;
+    protected final RasterFormatTag rasterFormatTag;
 
     /** Enumerator for the type of mosaic weigher */
     public enum WeightType {

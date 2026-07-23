@@ -24,6 +24,7 @@ import java.awt.image.RenderedImage;
 import java.awt.image.renderable.ParameterBlock;
 import java.awt.image.renderable.RenderedImageFactory;
 
+import javax.media.jai.ImageLayout;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
 import javax.media.jai.operator.MosaicType;
@@ -41,16 +42,20 @@ public class MosaicRIF implements RenderedImageFactory {
      * This method implements the RenderedImageFactory create method and return the MosaicOpImage using the parameters defined by the parameterBlock
      */
     public RenderedImage create(ParameterBlock paramBlock, RenderingHints hints) {
-        return
-                new MosaicOpImage(paramBlock.getSources(),
-                                  RIFUtil.getImageLayoutHint(hints),
-                                  hints,
-                                  (MosaicType)paramBlock.getObjectParameter(0),
-                                  (PlanarImage[])paramBlock.getObjectParameter(1),
-                                  (ROI[])paramBlock.getObjectParameter(2),
-                                  (double[][])paramBlock.getObjectParameter(3),
-                                  (double[])paramBlock.getObjectParameter(4),
-                                  (Range[])paramBlock.getObjectParameter(5));
+        MosaicType type = (MosaicType) paramBlock.getObjectParameter(0);
+        PlanarImage[] alphas = (PlanarImage[]) paramBlock.getObjectParameter(1);
+        ROI[] rois = (ROI[]) paramBlock.getObjectParameter(2);
+        double[][] thresholds = (double[][]) paramBlock.getObjectParameter(3);
+        double[] destNoData = (double[]) paramBlock.getObjectParameter(4);
+        Range[] noDatas = (Range[]) paramBlock.getObjectParameter(5);
+        ImageLayout layout = RIFUtil.getImageLayoutHint(hints);
+
+        if (SingleImageMosaicOpImage.applies(paramBlock, type, alphas)) {
+            return new SingleImageMosaicOpImage(paramBlock.getSources(), layout, hints, type, alphas,
+                    rois, thresholds, destNoData, noDatas);
+        }
+        return new MosaicOpImage(paramBlock.getSources(), layout, hints, type, alphas, rois,
+                thresholds, destNoData, noDatas);
     }
 
 }
