@@ -39,7 +39,6 @@ import com.sun.media.jai.opimage.RIFUtil;
 
 import it.geosolutions.jaiext.mosaic.MosaicOpImage;
 import it.geosolutions.jaiext.mosaic.SingleImageMosaicOpImage;
-import java.awt.image.DataBuffer;
 import it.geosolutions.jaiext.range.Range;
 import it.geosolutions.jaiext.range.RangeFactory;
 
@@ -125,7 +124,7 @@ public class CropCRIF implements RenderedImageFactory {
             // Mosaic operation. Single byte source in OVERLAY: use the fast single-image path.
             ROI[] rois = { roi };
             Range[] noDatas = { noData };
-            if (image.getSampleModel().getDataType() == DataBuffer.TYPE_BYTE) {
+            if (SingleImageMosaicOpImage.applies(image, MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null)) {
                 image = new SingleImageMosaicOpImage(listSrc, layout, local,
                         MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, rois, null, destNoData, noDatas);
             } else {

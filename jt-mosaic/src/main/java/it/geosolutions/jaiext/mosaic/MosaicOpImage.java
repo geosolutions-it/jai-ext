@@ -142,7 +142,7 @@ public class MosaicOpImage extends OpImage {
      * No data values for the destination image if the pixel of the same location are no Data
      * (Double)
      */
-    private double[] destinationNoDataDouble;
+    protected double[] destinationNoDataDouble;
 
     /**
      * Table used for checking no data values. The first index indicates the source, the second the

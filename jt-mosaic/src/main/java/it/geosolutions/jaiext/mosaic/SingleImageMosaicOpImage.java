@@ -20,7 +20,10 @@ import it.geosolutions.jaiext.range.Range;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.DataBuffer;
+import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.Raster;
+import java.awt.image.SampleModel;
+import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.awt.image.renderable.ParameterBlock;
 import java.util.List;
@@ -32,6 +35,7 @@ import javax.media.jai.RasterAccessor;
 import javax.media.jai.RasterFormatTag;
 import javax.media.jai.operator.MosaicDescriptor;
 import javax.media.jai.operator.MosaicType;
+import com.sun.media.jai.util.ImageUtil;
 
 /**
  * Fast mosaic for the frequent terminal case of a single byte source composited in OVERLAY mode.
@@ -55,25 +59,31 @@ public class SingleImageMosaicOpImage extends MosaicOpImage {
         WritableRaster dest = createWritableRaster(getSampleModel(),
                 new Point(tileXToX(tileX), tileYToY(tileY)));
         Rectangle destRect = getTileRect(tileX, tileY);
+        ImageMosaicBean bean = imageBeans[0];
+
+        // Skip tiles fully outside the ROI bounding box: pure background, no source read. The bbox
+        // test is exact for disjointness and free (no ROI materialization), unlike ROI.contains,
+        // which would force the lazy reprojection-derived ROI to be computed per tile.
+        Raster roiRaster = null;
+        ROI roi = roiPresent ? bean.getRoi() : null;
+        if (roi != null) {
+            if (!roi.getBounds().intersects(destRect)) {
+                ImageUtil.fillBackground(dest, destRect, destinationNoDataDouble);
+                return dest;
+            }
+            roiRaster = PlanarImage.wrapRenderedImage(bean.getRoiImage())
+                    .getExtendedData(destRect, zeroBorderExtender);
+        }
 
         // Extend the source over the whole tile: pixels outside the source are filled with the
         // nodata/background border value, so out-of-source and nodata collapse into one test.
         PlanarImage source = getSourceImage(0);
         Raster srcData = source.getExtendedData(destRect, sourceBorderExtender);
-
-        ImageMosaicBean bean = imageBeans[0];
         RasterAccessor srcAcc = new RasterAccessorExt(srcData, destRect, bean.getRasterFormatTag(),
                 bean.getColorModel(), getNumBands(), DataBuffer.TYPE_BYTE);
         RasterAccessor dstAcc = new RasterAccessor(dest, destRect, rasterFormatTag, null);
 
-        Raster roiRaster = null;
-        if (roiPresent && bean.getRoiImage() != null) {
-            roiRaster = PlanarImage.wrapRenderedImage(bean.getRoiImage())
-                    .getExtendedData(destRect, zeroBorderExtender);
-        }
-        boolean hasNoData = bean.getSourceNoData() != null;
-
-        overlayByteLoop(srcAcc, dstAcc, roiRaster, hasNoData, destRect);
+        overlayByteLoop(srcAcc, dstAcc, roiRaster, bean.getSourceNoData() != null, destRect);
         dstAcc.copyDataToRaster();
         return dest;
     }
@@ -93,13 +103,53 @@ public class SingleImageMosaicOpImage extends MosaicOpImage {
         int h = dst.getHeight();
         boolean[][] lut = byteLookupTable[0];
 
+        // Read the ROI straight from its raster, hoisted out of the inner loop. A bilevel ROI is
+        // kept packed (1 bit/pixel, 8 pixels/byte, no expansion); a byte ROI is read from its array.
+        boolean hasRoi = roi != null;
+        boolean roiBinary = false;
+        byte[] roiPacked = null;
+        int roiRowBytes = 0;
+        byte[] roiBytes = null;
+        int roiLine = 0;
+        int roiPix = 0;
+        int roiBandOff = 0;
+        if (hasRoi) {
+            SampleModel roiSm = roi.getSampleModel();
+            if (roiSm instanceof MultiPixelPackedSampleModel) {
+                roiBinary = true;
+                roiPacked = ImageUtil.getPackedBinaryData(roi, destRect);
+                roiRowBytes = (w + 7) / 8; // getPackedBinaryData pads each row to a byte boundary
+            } else {
+                RasterFormatTag tag = new RasterFormatTag(roiSm,
+                        RasterAccessor.findCompatibleTag(null, roiSm));
+                RasterAccessor roiAcc = new RasterAccessor(roi, destRect, tag, null);
+                roiBytes = roiAcc.getByteDataArrays()[0];
+                roiLine = roiAcc.getScanlineStride();
+                roiPix = roiAcc.getPixelStride();
+                roiBandOff = roiAcc.getBandOffsets()[0];
+            }
+        }
+
         for (int y = 0; y < h; y++) {
             int sRow = y * sLine;
             int dRow = y * dLine;
+            int roiRow = roiBinary ? y * roiRowBytes : roiBandOff + y * roiLine;
             for (int x = 0; x < w; x++) {
                 int sCol = sRow + x * sPix;
-                boolean background = pixelIsBackground(s, sBandOff, sCol, bands, lut, hasNoData, roi,
-                        destRect.x + x, destRect.y + y);
+                boolean background;
+                if (hasRoi && roiZero(roiBinary, roiPacked, roiBytes, roiRow, roiPix, x)) {
+                    background = true;
+                } else if (!hasNoData) {
+                    background = false;
+                } else {
+                    background = true;
+                    for (int b = 0; b < bands; b++) {
+                        if (lut[b][s[b][sBandOff[b] + sCol] & 0xFF]) {
+                            background = false;
+                            break;
+                        }
+                    }
+                }
                 int dCol = dRow + x * dPix;
                 for (int b = 0; b < bands; b++) {
                     d[b][dBandOff[b] + dCol] =
@@ -109,28 +159,25 @@ public class SingleImageMosaicOpImage extends MosaicOpImage {
         }
     }
 
-    /** True when the source pixel must be replaced by the background (outside ROI or nodata). */
-    private boolean pixelIsBackground(byte[][] s, int[] sBandOff, int sCol, int bands,
-            boolean[][] lut, boolean hasNoData, Raster roi, int absX, int absY) {
-        if (roi != null && roi.getSample(absX, absY, 0) == 0) {
-            return true;
+    /** True if the ROI is zero (outside) at column x of the current row, reading bits or bytes. */
+    private static boolean roiZero(boolean binary, byte[] packed, byte[] bytes, int rowOffset,
+            int pixelStride, int x) {
+        if (binary) {
+            return ((packed[rowOffset + (x >> 3)] >> (7 - (x & 7))) & 1) == 0;
         }
-        if (!hasNoData) {
-            return false;
-        }
-        for (int b = 0; b < bands; b++) {
-            if (lut[b][s[b][sBandOff[b] + sCol] & 0xFF]) {
-                return false;
-            }
-        }
-        return true;
+        return bytes[rowOffset + x * pixelStride] == 0;
     }
 
     /** True if the mosaic parameters match the single byte OVERLAY source fast path. */
-    static boolean applies(ParameterBlock pb, MosaicType type, PlanarImage[] alphas) {
-        return pb.getNumSources() == 1
+    public static boolean applies(ParameterBlock pb, MosaicType type, PlanarImage[] alphas) {
+        return pb.getNumSources() == 1 && applies(pb.getRenderedSource(0), type, alphas);
+    }
+
+    /** True if a single source in OVERLAY mode with no alpha and byte data can use the fast path. */
+    public static boolean applies(RenderedImage source, MosaicType type, PlanarImage[] alphas) {
+        return source != null
                 && type == MosaicDescriptor.MOSAIC_TYPE_OVERLAY
                 && (alphas == null || alphas.length == 0 || alphas[0] == null)
-                && pb.getRenderedSource(0).getSampleModel().getDataType() == DataBuffer.TYPE_BYTE;
+                && source.getSampleModel().getDataType() == DataBuffer.TYPE_BYTE;
     }
 }
