@@ -18,9 +18,12 @@
 package it.geosolutions.jaiext.iterators;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.awt.image.ComponentSampleModel;
 import java.awt.image.DataBuffer;
+import java.awt.image.PixelInterleavedSampleModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 
@@ -333,6 +336,67 @@ public class RandomIterTest {
         if (TEST_SELECTOR == 2) {
             testIteratorSpeed(testImageByte, false, false,SUBSEQUENCY);
         }
+    }
+
+    // Asserts the byte ComponentSampleModel fast iterator matches the generic one on every pixel,
+    // for both single-band and interleaved RGB layouts, across tile boundaries.
+    @Test
+    public void testComponentByteEquivalence() {
+        assertComponentByteMatches(1, 40, 34, 16, 16);
+        assertComponentByteMatches(3, 40, 34, 16, 16);
+    }
+
+    // A 40x34 image tiled at 16x16 has edge tiles hanging over it. Reads landing in that overhang
+    // are outside the image and must fail, as they do on the iterator this one replaces, rather
+    // than return the tile padding.
+    @Test
+    public void testComponentByteRejectsReadsOutsideTheImage() {
+        PixelInterleavedSampleModel sm = new PixelInterleavedSampleModel(DataBuffer.TYPE_BYTE, 40,
+                34, 1, 40, new int[] {0});
+        TiledImage img = new TiledImage(sm, 16, 16);
+        RandomIter fast = new RandomIterComponentByte(img);
+        // last pixel of the last tile column that is still inside the image
+        assertEquals(0, fast.getSample(39, 5, 0));
+        for (int[] outside : new int[][] {{40, 5}, {45, 5}, {5, 34}, {5, 40}, {-1, 5}, {5, -1}}) {
+            try {
+                fast.getSample(outside[0], outside[1], 0);
+                fail("Expected a failure reading outside the image at " + outside[0] + ","
+                        + outside[1]);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                assertTrue(e.getMessage(), e.getMessage().contains("outside the image"));
+            }
+        }
+        fast.done();
+    }
+
+    private void assertComponentByteMatches(int bands, int w, int h, int tileW, int tileH) {
+        int[] bankIndices = new int[bands];
+        int[] bandOffsets = new int[bands];
+        for (int b = 0; b < bands; b++) {
+            bandOffsets[b] = b;
+        }
+        PixelInterleavedSampleModel sm = new PixelInterleavedSampleModel(
+                DataBuffer.TYPE_BYTE, w, h, bands, w * bands, bandOffsets);
+        TiledImage img = new TiledImage(sm, tileW, tileH);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                for (int b = 0; b < bands; b++) {
+                    img.setSample(x, y, b, (x * 7 + y * 13 + b * 3) & 0xFF);
+                }
+            }
+        }
+
+        RandomIter fast = new RandomIterComponentByte(img);
+        RandomIter generic = new RandomIterFallbackByte(img, img.getBounds());
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                for (int b = 0; b < bands; b++) {
+                    assertEquals(generic.getSample(x, y, b), fast.getSample(x, y, b));
+                }
+            }
+        }
+        fast.done();
+        generic.done();
     }
 
     /** Simple method for image creation */
