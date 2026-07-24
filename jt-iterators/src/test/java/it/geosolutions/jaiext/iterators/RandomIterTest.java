@@ -335,6 +335,44 @@ public class RandomIterTest {
         }
     }
 
+    // Asserts the byte ComponentSampleModel fast iterator matches the generic one on every pixel,
+    // for both single-band and interleaved RGB layouts, across tile boundaries.
+    @Test
+    public void testComponentByteEquivalence() {
+        assertComponentByteMatches(1, 40, 34, 16, 16);
+        assertComponentByteMatches(3, 40, 34, 16, 16);
+    }
+
+    private void assertComponentByteMatches(int bands, int w, int h, int tileW, int tileH) {
+        int[] bankIndices = new int[bands];
+        int[] bandOffsets = new int[bands];
+        for (int b = 0; b < bands; b++) {
+            bandOffsets[b] = b;
+        }
+        java.awt.image.PixelInterleavedSampleModel sm = new java.awt.image.PixelInterleavedSampleModel(
+                DataBuffer.TYPE_BYTE, w, h, bands, w * bands, bandOffsets);
+        TiledImage img = new TiledImage(sm, tileW, tileH);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                for (int b = 0; b < bands; b++) {
+                    img.setSample(x, y, b, (x * 7 + y * 13 + b * 3) & 0xFF);
+                }
+            }
+        }
+
+        RandomIter fast = new RandomIterComponentByte(img);
+        RandomIter generic = new RandomIterFallbackByte(img, img.getBounds());
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                for (int b = 0; b < bands; b++) {
+                    assertEquals(generic.getSample(x, y, b), fast.getSample(x, y, b));
+                }
+            }
+        }
+        fast.done();
+        generic.done();
+    }
+
     /** Simple method for image creation */
     public static RenderedImage createTestImage(int dataType, int width, int height, int tileW,
             int tileH) {

@@ -56,6 +56,9 @@ public class RandomIterFactory {
             bounds = new Rectangle(im.getMinX(), im.getMinY(), im.getWidth(), im.getHeight());
         }
         if (arrayCalculation) {
+            if (cachedTiles && RandomIterComponentByte.applies(im)) {
+                return new RandomIterComponentByte(im);
+            }
             if (im.getMinTileX() >= Byte.MIN_VALUE
                     && (im.getMinTileX() + im.getNumXTiles() - 1) <= Byte.MAX_VALUE
                     && im.getMinTileY() >= Byte.MIN_VALUE
