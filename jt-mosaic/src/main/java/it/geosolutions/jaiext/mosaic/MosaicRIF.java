@@ -41,16 +41,13 @@ public class MosaicRIF implements RenderedImageFactory {
      * This method implements the RenderedImageFactory create method and return the MosaicOpImage using the parameters defined by the parameterBlock
      */
     public RenderedImage create(ParameterBlock paramBlock, RenderingHints hints) {
-        return
-                new MosaicOpImage(paramBlock.getSources(),
-                                  RIFUtil.getImageLayoutHint(hints),
-                                  hints,
-                                  (MosaicType)paramBlock.getObjectParameter(0),
-                                  (PlanarImage[])paramBlock.getObjectParameter(1),
-                                  (ROI[])paramBlock.getObjectParameter(2),
-                                  (double[][])paramBlock.getObjectParameter(3),
-                                  (double[])paramBlock.getObjectParameter(4),
-                                  (Range[])paramBlock.getObjectParameter(5));
+        return MosaicOpImage.create(paramBlock.getSources(), RIFUtil.getImageLayoutHint(hints),
+                hints, (MosaicType) paramBlock.getObjectParameter(0),
+                (PlanarImage[]) paramBlock.getObjectParameter(1),
+                (ROI[]) paramBlock.getObjectParameter(2),
+                (double[][]) paramBlock.getObjectParameter(3),
+                (double[]) paramBlock.getObjectParameter(4),
+                (Range[]) paramBlock.getObjectParameter(5));
     }
 
 }

@@ -71,6 +71,58 @@ public class CropImageTest extends TestBase {
         destNoData = new double[] { 127 };
     }
 
+    /**
+     * A ROI hanging over the requested bounds reduces them to the intersection, the same way a ROI
+     * fully inside them does. Goes through CropCRIF directly, the descriptor only checks parameters.
+     */
+    @Test
+    public void testRoiPartiallyOverlappingReducesBounds() {
+        Rectangle cropBounds = new Rectangle(0, 0, 50, 50);
+        ROI roi = new ROIShape(new Rectangle(10, 10, 200, 200));
+        assertEquals(new Rectangle(10, 10, 40, 40), cropBoundsOf(cropBounds, roi, false));
+        assertEquals(new Rectangle(10, 10, 40, 40), cropBoundsOf(cropBounds, roi, true));
+    }
+
+    /** A ROI fully inside the requested bounds keeps reducing them to itself. */
+    @Test
+    public void testRoiInsideReducesBoundsToRoi() {
+        Rectangle cropBounds = new Rectangle(0, 0, 50, 50);
+        ROI roi = new ROIShape(new Rectangle(5, 5, 10, 10));
+        assertEquals(new Rectangle(5, 5, 10, 10), cropBoundsOf(cropBounds, roi, false));
+        assertEquals(new Rectangle(5, 5, 10, 10), cropBoundsOf(cropBounds, roi, true));
+    }
+
+    /** A ROI disjoint from the requested bounds leaves nothing to crop, and must say so. */
+    @Test
+    public void testRoiDisjointFails() {
+        Rectangle cropBounds = new Rectangle(0, 0, 50, 50);
+        ROI roi = new ROIShape(new Rectangle(60, 60, 30, 30));
+        for (boolean noData : new boolean[] {false, true}) {
+            try {
+                cropBoundsOf(cropBounds, roi, noData);
+                fail("Expected a failure on a disjoint ROI, nodata used: " + noData);
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage(), e.getMessage().contains("disjoint"));
+                assertTrue(e.getMessage(), e.getMessage().contains("width=50"));
+                assertTrue(e.getMessage(), e.getMessage().contains("x=60"));
+            }
+        }
+    }
+
+    /** Bounds of the crop of the shared source over the given rectangle, with the given ROI. */
+    private Rectangle cropBoundsOf(Rectangle cropBounds, ROI roi, boolean noData) {
+        ParameterBlock pb = new ParameterBlock();
+        pb.addSource(source);
+        pb.add((float) cropBounds.x).add((float) cropBounds.y);
+        pb.add((float) cropBounds.width).add((float) cropBounds.height);
+        pb.add(roi);
+        pb.add(noData ? RangeFactory.create(noDataValue, true, noDataValue, true) : null);
+        pb.add(destNoData);
+        RenderedImage cropped = new CropCRIF().create(pb, new RenderingHints(null));
+        return new Rectangle(cropped.getMinX(), cropped.getMinY(), cropped.getWidth(),
+                cropped.getHeight());
+    }
+
     @Test
     public void testCropImagePB() {
         // Parameterblock creation

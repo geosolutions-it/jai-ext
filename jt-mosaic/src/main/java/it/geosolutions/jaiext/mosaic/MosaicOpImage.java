@@ -89,10 +89,10 @@ public class MosaicOpImage extends OpImage {
     private final int numBands;
 
     /** Bean used for storing image data, ROI, alpha channel, Nodata Range */
-    private final ImageMosaicBean[] imageBeans;
+    final ImageMosaicBean[] imageBeans;
 
     /** Boolean for checking if the ROI is used in the mosaic */
-    private boolean roiPresent;
+    boolean roiPresent;
 
     /**
      * Boolean for checking if the alpha channel is used only for bitmask or for weighting every
@@ -107,12 +107,12 @@ public class MosaicOpImage extends OpImage {
     private final BorderExtender sourceBorderExtender;
 
     /** Border extender for the ROI or alpha channel data */
-    private final BorderExtender zeroBorderExtender;
+    final BorderExtender zeroBorderExtender;
 
     /**
      * No data values for the destination image if the pixel of the same location are no Data (Byte)
      */
-    private byte[] destinationNoDataByte;
+    byte[] destinationNoDataByte;
 
     /**
      * No data values for the destination image if the pixel of the same location are no Data
@@ -148,10 +148,10 @@ public class MosaicOpImage extends OpImage {
      * Table used for checking no data values. The first index indicates the source, the second the
      * band, the third the value
      */
-    private final boolean[][][] byteLookupTable;
+    final boolean[][][] byteLookupTable;
 
     /** The format tag for the destination image */
-    private final RasterFormatTag rasterFormatTag;
+    final RasterFormatTag rasterFormatTag;
 
     /** Enumerator for the type of mosaic weigher */
     public enum WeightType {
@@ -445,6 +445,21 @@ public class MosaicOpImage extends OpImage {
             }
         }
         return uniformPalettes;
+    }
+
+    /**
+     * Builds a mosaic over the given sources, picking the fastest implementation that can handle
+     * them: same output whichever one is returned.
+     */
+    public static MosaicOpImage create(List sources, ImageLayout layout, Map renderingHints,
+            MosaicType mosaicTypeSelected, PlanarImage[] alphaImgs, ROI[] rois,
+            double[][] thresholds, double[] destinationNoData, Range[] noDatas) {
+        if (SingleImageMosaicOpImage.applies(sources, mosaicTypeSelected, alphaImgs)) {
+            return new SingleImageMosaicOpImage(sources, layout, renderingHints, mosaicTypeSelected,
+                    alphaImgs, rois, thresholds, destinationNoData, noDatas);
+        }
+        return new MosaicOpImage(sources, layout, renderingHints, mosaicTypeSelected, alphaImgs,
+                rois, thresholds, destinationNoData, noDatas);
     }
 
     /**

@@ -32,7 +32,6 @@ import java.util.Vector;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.ROI;
-import javax.media.jai.ROIShape;
 import javax.media.jai.operator.MosaicDescriptor;
 
 import com.sun.media.jai.opimage.RIFUtil;
@@ -87,15 +86,17 @@ public class CropCRIF implements RenderedImageFactory {
         Rectangle bounds = new Rectangle2D.Float(x, y, width, height).getBounds();
         // Initialization of the final bounds
         Rectangle finalBounds = bounds;
-        // If roi is present the final bounds are intersected with the ROI object
+        // A ROI reduces the final bounds to the intersection of the two. Only its bounds
+        // contribute, the shape itself is not carried any further.
         if (roi != null) {
             Rectangle roiBounds = roi.getBounds();
-
-            if (finalBounds.contains(roiBounds)) {
-                finalBounds = roiBounds;
-            } else {
-                finalBounds.intersection(roiBounds);
+            // an empty intersection has no image to describe it, report it here rather than let
+            // the layout fail later on a non-positive width
+            if (!finalBounds.intersects(roiBounds)) {
+                throw new IllegalArgumentException("Crop bounds " + finalBounds
+                        + " and ROI bounds " + roiBounds + " are disjoint, the crop would be empty");
             }
+            finalBounds = finalBounds.intersection(roiBounds);
         }
         // The final bounds coordinates are taken
         x = (float) finalBounds.getMinX();
@@ -105,8 +106,6 @@ public class CropCRIF implements RenderedImageFactory {
 
         // If noData are present, the MosaicOpImage is used instead of the crop
         if (noData != null) {
-            // The calculated bounds are taken as an input roi
-            roi = new ROIShape(finalBounds);
             // The source image is taken as a list of data
             List<RenderedImage> listSrc = new Vector<RenderedImage>();            
             listSrc.add(image);
@@ -120,10 +119,12 @@ public class CropCRIF implements RenderedImageFactory {
             layout.setMinX(finalBounds.x);
             layout.setMinY(finalBounds.y);
 
-            // Mosaic operation
-            image = new MosaicOpImage(listSrc, layout, local, MosaicDescriptor.MOSAIC_TYPE_OVERLAY,
-                    null, new ROI[] { roi }, null, destNoData, new Range[] { noData });
-            return image;
+            // No ROI is passed: the destination is exactly the crop bounds, so a ROI covering them
+            // could never exclude a pixel, while it would rasterize the shape and push every tile
+            // onto the slower per-pixel ROI branch.
+            return MosaicOpImage.create(listSrc, layout, local,
+                    MosaicDescriptor.MOSAIC_TYPE_OVERLAY, null, null, null, destNoData,
+                    new Range[] { noData });
         }
 
         // If noData are not present, then the crop operation is performed
