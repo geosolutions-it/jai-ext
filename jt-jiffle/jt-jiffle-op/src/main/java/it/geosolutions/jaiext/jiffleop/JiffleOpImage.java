@@ -145,7 +145,6 @@ public class JiffleOpImage extends OpImage {
     protected void computeRect(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
         final int destBands = dest.getNumBands();
         double[] pixel = new double[destBands];
-        // the runtime keeps per-evaluation state and is shared by all tiles of this image
         synchronized (runtime) {
             for (int y = destRect.y, iy = 0; iy < destRect.height; y++, iy++) {
                 for (int x = destRect.x, ix = 0; ix < destRect.width; x++, ix++) {

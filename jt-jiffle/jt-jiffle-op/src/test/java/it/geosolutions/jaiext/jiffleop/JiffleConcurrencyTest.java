@@ -94,7 +94,6 @@ public class JiffleConcurrencyTest {
     }
 
     private static RenderedOp buildJiffle(RenderedImage src) {
-        // without a tile cache every getTile call runs the script
         RenderingHints hints = new RenderingHints(JAI.KEY_TILE_CACHE, null);
         hints.put(JAI.KEY_IMAGE_LAYOUT, new ImageLayout().setTileWidth(TILE).setTileHeight(TILE));
         return JiffleDescriptor.create(new RenderedImage[] {src}, new String[] {"src"}, "dest", SCRIPT,
