@@ -145,13 +145,16 @@ public class JiffleOpImage extends OpImage {
     protected void computeRect(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
         final int destBands = dest.getNumBands();
         double[] pixel = new double[destBands];
-        for (int y = destRect.y, iy = 0; iy < destRect.height; y++, iy++) {
-            for (int x = destRect.x, ix = 0; ix < destRect.width; x++, ix++) {
-                // the script might not be always setting the output value, it may be conditional,
-                // the default value should be Double.NaN
-                Arrays.fill(pixel, Double.NaN);
-                runtime.evaluate(x, y, pixel);
-                dest.setPixel(x, y, pixel);
+        // the runtime keeps per-evaluation state and is shared by all tiles of this image
+        synchronized (runtime) {
+            for (int y = destRect.y, iy = 0; iy < destRect.height; y++, iy++) {
+                for (int x = destRect.x, ix = 0; ix < destRect.width; x++, ix++) {
+                    // the script might not be always setting the output value, it may be conditional,
+                    // the default value should be Double.NaN
+                    Arrays.fill(pixel, Double.NaN);
+                    runtime.evaluate(x, y, pixel);
+                    dest.setPixel(x, y, pixel);
+                }
             }
         }
     }
